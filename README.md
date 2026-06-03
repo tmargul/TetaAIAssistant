@@ -79,3 +79,25 @@ Katalog danych wektorowych konfigurujesz w pliku `config.yaml` Qdrant po stronie
 Zmienne środowiskowe: `.env.example` (root) oraz `apps/api/.env.example`.
 
 Ollama i modele (`qwen3`, `deepseek-r1`) konfigurujesz na maszynie klienta — aplikacja łączy się tylko z lokalnym adresem `OLLAMA_BASE_URL`.
+
+## GitHub
+
+Repozytorium lokalne jest gotowe (gałąź `main`). Aby opublikować na swoim koncie GitHub:
+
+```powershell
+# 1. Jednorazowe logowanie (otworzy przeglądarkę)
+gh auth login
+
+# 2. Utworzenie repozytorium i push (domyślnie prywatne: TetaAIAssistant)
+cd c:\Projects\TetaAIAssistant
+.\scripts\publish-to-github.ps1
+
+# Opcjonalnie: inna nazwa lub repozytorium publiczne
+.\scripts\publish-to-github.ps1 MojaNazwaRepo public
+```
+
+Ręcznie (bez skryptu):
+
+```powershell
+gh repo create TetaAIAssistant --private --source=. --remote=origin --push
+```
