@@ -1,0 +1,57 @@
+.layout {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+}
+
+header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0 0 2rem;
+  color: #9aa0a6;
+}
+
+.card {
+  background: #1a2332;
+  border: 1px solid #2d3a4d;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.card h2 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #8ab4f8;
+}
+
+.card.muted ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #bdc1c6;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+dt {
+  color: #9aa0a6;
+}
+
+dd {
+  margin: 0;
+}
+
+.error {
+  color: #f28b82;
+  margin: 0;
+}

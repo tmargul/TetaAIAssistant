@@ -1,0 +1,19 @@
+{
+  "name": "teta-ai-assistant",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Teta AI Assistant — intranetowy asystent AI (React + NestJS + Ollama + Qdrant)",
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "dev:api": "pnpm --filter @teta/api run dev",
+    "dev:web": "pnpm --filter @teta/web run dev",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm --filter @teta/api run test",
+    "postinstall": "pnpm --filter @teta/shared run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.28.1"
+}
