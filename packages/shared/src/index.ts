@@ -8,3 +8,15 @@ export interface HealthResponse {
   version: string;
   timestamp: string;
 }
+
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  createdAt: string;
+}
+
+export const CHAT_MODELS = ['qwen3', 'deepseek-r1'] as const;
+export type ChatModel = (typeof CHAT_MODELS)[number];

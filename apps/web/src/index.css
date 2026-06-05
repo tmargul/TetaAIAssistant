@@ -2,8 +2,26 @@
   font-family: 'Segoe UI', system-ui, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #e8eaed;
-  background-color: #0f1419;
+
+  /* SaaS dark theme tokens */
+  --bg-app: #0b0f14;
+  --bg-sidebar: #111820;
+  --bg-card: #161d27;
+  --bg-hover: #1c2533;
+
+  --border: #243044;
+  --border-hover: #2f3f56;
+
+  --text-primary: #e8eaed;
+  --text-secondary: #bdc1c6;
+  --text-muted: #8b939e;
+
+  --accent: #3b82f6;
+  --accent-dark: #2563eb;
+  --accent-muted: rgba(59, 130, 246, 0.12);
+
+  --success: #34d399;
+  --error: #f87171;
 }
 
 * {
@@ -13,6 +31,8 @@
 body {
   margin: 0;
   min-height: 100vh;
+  color: var(--text-primary);
+  background-color: var(--bg-app);
 }
 
 #root {

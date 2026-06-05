@@ -1,0 +1,55 @@
+﻿# Zależności
+node_modules/
+
+# Build i cache
+dist/
+build/
+.vite/
+.turbo/
+*.tsbuildinfo
+
+# Testy i pokrycie kodu
+coverage/
+.nyc_output/
+
+# Logi
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Sekrety i konfiguracja lokalna (zostaw .env.example — jest wzorcem)
+.env
+.env.local
+.env.*.local
+
+# Baza danych i dane runtime
+data/
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Lockfile — duży, rzadko potrzebny w kontekście AI
+pnpm-lock.yaml
+
+# Visual Studio / .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Inne IDE
+.idea/
+
+# System operacyjny
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Source mapy z buildu
+*.map
+
+# Qdrant — dane wektorowe po stronie serwera (jeśli lokalny katalog)
+qdrant_storage/
