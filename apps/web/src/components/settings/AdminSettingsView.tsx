@@ -4,8 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { authFetch } from '../../lib/auth-storage';
 import './settings.css';
 
+type SettingsTab = 'users' | 'servers';
+
 export function AdminSettingsView() {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<SettingsTab>('users');
   const [users, setUsers] = useState<AppUserRecord[]>([]);
   const [servers, setServers] = useState<TetaServer[]>([]);
   const [grantUsername, setGrantUsername] = useState('');
@@ -92,6 +95,8 @@ export function AdminSettingsView() {
   };
 
   const toggleServer = async (server: TetaServer) => {
+    setMessage(null);
+    setError(null);
     await authFetch(`/api/admin/teta-servers/${server.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ isEnabled: !server.isEnabled }),
@@ -104,121 +109,168 @@ export function AdminSettingsView() {
       {message && <div className="settings__message settings__message--ok">{message}</div>}
       {error && <div className="settings__message settings__message--error">{error}</div>}
 
-      <section className="panel">
-        <h2 className="panel__title">Użytkownicy aplikacji</h2>
-        <p className="settings__hint">
-          Użytkownicy logują się kontem Oracle. Administrator nadaje dostęp wpisując login Oracle.
-        </p>
+      <div className="settings__tabs">
+        <button
+          type="button"
+          className={`settings__tab${activeTab === 'users' ? ' settings__tab--active' : ''}`}
+          onClick={() => setActiveTab('users')}
+        >
+          Użytkownicy aplikacji
+        </button>
+        <button
+          type="button"
+          className={`settings__tab${activeTab === 'servers' ? ' settings__tab--active' : ''}`}
+          onClick={() => setActiveTab('servers')}
+        >
+          Serwery dostępne dla użytkowników
+        </button>
+      </div>
 
-        <div className="settings__grant-form">
-          <input
-            className="settings__input"
-            placeholder="Login Oracle"
-            value={grantUsername}
-            onChange={(e) => setGrantUsername(e.target.value)}
-          />
-          <input
-            className="settings__input"
-            placeholder="Nazwa wyświetlana (opcjonalnie)"
-            value={grantDisplayName}
-            onChange={(e) => setGrantDisplayName(e.target.value)}
-          />
-          <button
-            type="button"
-            className="settings__btn"
-            onClick={handleGrant}
-            disabled={!grantUsername.trim()}
-          >
-            Przyznaj dostęp
-          </button>
-        </div>
+      <section className="panel settings__panel">
+        {activeTab === 'users' && (
+          <>
+            <h2 className="panel__title">Użytkownicy aplikacji</h2>
+            <p className="settings__hint">
+              Użytkownicy logują się kontem Oracle. Administrator nadaje dostęp wpisując login
+              Oracle.
+            </p>
 
-        <table className="settings__table">
-          <thead>
-            <tr>
-              <th>Login Oracle</th>
-              <th>Rola</th>
-              <th>Status</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td>{u.oracleUsername}</td>
-                <td>{u.role === 'admin' ? 'Administrator' : 'Użytkownik'}</td>
-                <td>{u.isActive ? 'Aktywny' : 'Zablokowany'}</td>
-                <td>
-                  {u.role !== 'admin' && u.isActive && (
-                    <button type="button" className="settings__link-btn" onClick={() => handleRevoke(u.id)}>
-                      Odbierz dostęp
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+            <div className="settings__grant-form">
+              <input
+                className="settings__input"
+                placeholder="Login Oracle"
+                value={grantUsername}
+                onChange={(e) => setGrantUsername(e.target.value)}
+              />
+              <input
+                className="settings__input"
+                placeholder="Nazwa wyświetlana (opcjonalnie)"
+                value={grantDisplayName}
+                onChange={(e) => setGrantDisplayName(e.target.value)}
+              />
+              <button
+                type="button"
+                className="settings__btn"
+                onClick={handleGrant}
+                disabled={!grantUsername.trim()}
+              >
+                Przyznaj dostęp
+              </button>
+            </div>
 
-      <section className="panel">
-        <h2 className="panel__title">Serwery Teta dostępne dla użytkowników</h2>
-        <p className="settings__hint">
-          Lista serwerów widoczna dla zwykłych użytkowników aplikacji (np. przy wyborze środowiska).
-        </p>
+            <table className="settings__table">
+              <thead>
+                <tr>
+                  <th>Login Oracle</th>
+                  <th>Rola</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td>{u.oracleUsername}</td>
+                    <td>{u.role === 'admin' ? 'Administrator' : 'Użytkownik'}</td>
+                    <td>
+                      <span
+                        className={`settings__badge${
+                          u.isActive ? ' settings__badge--ok' : ' settings__badge--off'
+                        }`}
+                      >
+                        {u.isActive ? 'Aktywny' : 'Zablokowany'}
+                      </span>
+                    </td>
+                    <td>
+                      {u.role !== 'admin' && u.isActive && (
+                        <button
+                          type="button"
+                          className="settings__link-btn"
+                          onClick={() => handleRevoke(u.id)}
+                        >
+                          Odbierz dostęp
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="settings__empty">
+                      Brak użytkowników z dostępem do aplikacji.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
 
-        <div className="settings__grant-form">
-          <input
-            className="settings__input"
-            placeholder="Nazwa serwera"
-            value={newServer.name}
-            onChange={(e) => setNewServer((prev) => ({ ...prev, name: e.target.value }))}
-          />
-          <input
-            className="settings__input"
-            placeholder="Opis (opcjonalnie)"
-            value={newServer.description ?? ''}
-            onChange={(e) => setNewServer((prev) => ({ ...prev, description: e.target.value }))}
-          />
-          <button
-            type="button"
-            className="settings__btn"
-            onClick={handleAddServer}
-            disabled={!newServer.name.trim()}
-          >
-            Dodaj serwer
-          </button>
-        </div>
+        {activeTab === 'servers' && (
+          <>
+            <h2 className="panel__title">Serwery dostępne dla użytkowników</h2>
+            <p className="settings__hint">
+              Lista serwerów Teta widoczna dla zwykłych użytkowników (np. przy wyborze środowiska).
+            </p>
 
-        <table className="settings__table">
-          <thead>
-            <tr>
-              <th>Nazwa</th>
-              <th>Opis</th>
-              <th>Dostępny</th>
-            </tr>
-          </thead>
-          <tbody>
-            {servers.map((s) => (
-              <tr key={s.id}>
-                <td>{s.name}</td>
-                <td>{s.description ?? '—'}</td>
-                <td>
-                  <button type="button" className="settings__link-btn" onClick={() => toggleServer(s)}>
-                    {s.isEnabled ? 'Tak' : 'Nie'}
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {servers.length === 0 && (
-              <tr>
-                <td colSpan={3} className="settings__empty">
-                  Brak zdefiniowanych serwerów Teta.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            <div className="settings__grant-form">
+              <input
+                className="settings__input"
+                placeholder="Nazwa serwera"
+                value={newServer.name}
+                onChange={(e) => setNewServer((prev) => ({ ...prev, name: e.target.value }))}
+              />
+              <input
+                className="settings__input"
+                placeholder="Opis (opcjonalnie)"
+                value={newServer.description ?? ''}
+                onChange={(e) => setNewServer((prev) => ({ ...prev, description: e.target.value }))}
+              />
+              <button
+                type="button"
+                className="settings__btn"
+                onClick={handleAddServer}
+                disabled={!newServer.name.trim()}
+              >
+                Dodaj serwer
+              </button>
+            </div>
+
+            <table className="settings__table">
+              <thead>
+                <tr>
+                  <th>Nazwa</th>
+                  <th>Opis</th>
+                  <th>Dostępny</th>
+                </tr>
+              </thead>
+              <tbody>
+                {servers.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.name}</td>
+                    <td>{s.description ?? '—'}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className={`settings__toggle${s.isEnabled ? ' settings__toggle--on' : ''}`}
+                        onClick={() => toggleServer(s)}
+                      >
+                        {s.isEnabled ? 'Tak' : 'Nie'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {servers.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="settings__empty">
+                      Brak zdefiniowanych serwerów Teta.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
       </section>
     </div>
   );

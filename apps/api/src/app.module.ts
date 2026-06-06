@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { resolveEnvFilePaths } from './config/env-files';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AdminModule } from './admin/admin.module';
@@ -12,7 +13,7 @@ import { OracleModule } from './oracle/oracle.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '../../.env'],
+      envFilePath: resolveEnvFilePaths(),
     }),
     DatabaseModule,
     HealthModule,
