@@ -1,3 +1,5 @@
+export type TetaOracleBackendMode = 'fake' | 'real';
+
 export type OracleConnectionMode = 'basic' | 'tns';
 
 export type OracleIdentifierType = 'sid' | 'serviceName';
@@ -18,6 +20,7 @@ export interface OracleConnectionInput extends OracleConnectionConfig {
 
 export interface OracleConnectionStatusResponse {
   configured: boolean;
+  backendMode: TetaOracleBackendMode;
   config?: OracleConnectionConfig & { updatedAt: string };
 }
 

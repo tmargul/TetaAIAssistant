@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { APP_NAME } from '@teta/shared';
-import type { LoginRequest, LoginResponse } from '@teta/shared';
+import type { LoginRequest, LoginResponse, OracleConnectionStatusResponse } from '@teta/shared';
 import '../oracle/oracle-setup.css';
 
 type AdminBootstrapFormProps = {
@@ -11,6 +11,20 @@ export function AdminBootstrapForm({ onSuccess }: AdminBootstrapFormProps) {
   const [form, setForm] = useState<LoginRequest>({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFakeMode, setIsFakeMode] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/oracle/status')
+      .then(async (res) => res.json() as Promise<OracleConnectionStatusResponse>)
+      .then((status) => {
+        const fake = status.backendMode === 'fake';
+        setIsFakeMode(fake);
+        if (fake) {
+          setForm({ username: 'teta_admin', password: 'admin' });
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -47,6 +61,13 @@ export function AdminBootstrapForm({ onSuccess }: AdminBootstrapFormProps) {
             użytkownikom oraz zarządzać ustawieniami aplikacji.
           </p>
         </div>
+
+        {isFakeMode && (
+          <div className="oracle-setup__banner">
+            <strong>Tryb symulatora</strong> — użyj konta testowego administratora:{' '}
+            <code>teta_admin</code> / <code>admin</code>
+          </div>
+        )}
 
         <div className="oracle-setup__form">
           <div className="oracle-setup__field">

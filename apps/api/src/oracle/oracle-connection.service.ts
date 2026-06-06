@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -9,12 +10,13 @@ import type {
   OracleConnectionInput,
   OracleConnectionStatusResponse,
   OracleTestConnectionResponse,
+  TetaOracleBackendMode,
   TnsListResponse,
 } from '@teta/shared';
 import { DatabaseService } from '../database/database.service';
 import { decryptSecret, encryptSecret } from './oracle-crypto';
-import oracledb from './oracle-driver';
-import { loadTnsEntries } from './tns-parser';
+import { ORACLE_CLIENT, type OracleClient } from './oracle-client.interface';
+import { getOracleBackendMode } from './oracle-mode';
 
 interface OracleConnectionRow {
   mode: 'basic' | 'tns';
@@ -33,16 +35,23 @@ export class OracleConnectionService {
   constructor(
     private readonly db: DatabaseService,
     private readonly config: ConfigService,
+    @Inject(ORACLE_CLIENT) private readonly oracleClient: OracleClient,
   ) {}
 
+  getBackendMode(): TetaOracleBackendMode {
+    return getOracleBackendMode(this.config);
+  }
+
   getStatus(): OracleConnectionStatusResponse {
+    const backendMode = this.getBackendMode();
     const row = this.getRow();
     if (!row) {
-      return { configured: false };
+      return { configured: false, backendMode };
     }
 
     return {
       configured: true,
+      backendMode,
       config: {
         ...this.rowToConfig(row),
         updatedAt: row.updated_at,
@@ -51,37 +60,13 @@ export class OracleConnectionService {
   }
 
   listTnsEntries(): TnsListResponse {
-    return loadTnsEntries();
+    return this.oracleClient.listTnsEntries();
   }
 
   async testConnection(input: OracleConnectionInput): Promise<OracleTestConnectionResponse> {
     this.validateInput(input);
-
-    try {
-      const connectString = this.buildConnectString(input);
-      const connection = await oracledb.getConnection({
-        user: input.username,
-        password: input.password,
-        connectString,
-      });
-
-      try {
-        const result = await connection.execute<{ BANNER: string }>(
-          'SELECT BANNER FROM V$VERSION WHERE ROWNUM = 1',
-          {},
-          { outFormat: oracledb.OUT_FORMAT_OBJECT },
-        );
-        const version = result.rows?.[0]?.BANNER ?? 'Połączenie udane';
-        return { success: true, message: 'Połączenie z bazą Oracle Teta udane.', databaseVersion: version };
-      } finally {
-        await connection.close();
-      }
-    } catch (err: unknown) {
-      return {
-        success: false,
-        message: this.formatOracleError(err),
-      };
-    }
+    const connectString = this.buildConnectString(input);
+    return this.oracleClient.testConnection(input, connectString);
   }
 
   async saveConnection(input: OracleConnectionInput): Promise<OracleConnectionStatusResponse> {
@@ -150,55 +135,13 @@ export class OracleConnectionService {
   }
 
   async verifyUserCredentials(username: string, password: string): Promise<void> {
-    await this.withUserConnection(username, password, async (connection) => {
-      await connection.execute('SELECT 1 FROM DUAL');
-    });
+    const connectString = this.getStoredConnectString();
+    await this.oracleClient.verifyUserConnection(username, password, connectString);
   }
 
   async verifyTetaAdministrator(username: string, password: string): Promise<void> {
-    const sql = this.config.get<string>('TETA_ADMIN_CHECK_SQL')?.trim();
-    if (!sql) {
-      throw new InternalServerErrorException(
-        'Ustaw TETA_ADMIN_CHECK_SQL w pliku .env — zapytanie weryfikujące administratora Teta.',
-      );
-    }
-
-    await this.withUserConnection(username, password, async (connection) => {
-      const result = await connection.execute(
-        sql,
-        { username: username.trim() },
-        { outFormat: oracledb.OUT_FORMAT_OBJECT },
-      );
-      if (!result.rows?.length) {
-        throw new BadRequestException(
-          'Użytkownik nie ma uprawnień administratora Teta lub zapytanie weryfikacyjne nie zwróciło wyniku.',
-        );
-      }
-    });
-  }
-
-  private async withUserConnection<T>(
-    username: string,
-    password: string,
-    fn: (connection: import('oracledb').Connection) => Promise<T>,
-  ): Promise<T> {
     const connectString = this.getStoredConnectString();
-    const connection = await oracledb.getConnection({
-      user: username.trim(),
-      password,
-      connectString,
-    });
-
-    try {
-      return await fn(connection);
-    } catch (err: unknown) {
-      if (err instanceof BadRequestException || err instanceof InternalServerErrorException) {
-        throw err;
-      }
-      throw new BadRequestException(this.formatOracleError(err));
-    } finally {
-      await connection.close();
-    }
+    await this.oracleClient.verifyAdministrator(username, password, connectString);
   }
 
   buildConnectString(input: OracleConnectionConfig): string {
@@ -282,15 +225,5 @@ export class OracleConnectionService {
       );
     }
     return secret;
-  }
-
-  private formatOracleError(err: unknown): string {
-    if (err instanceof Error) {
-      if (err.message.includes('NJS-')) {
-        return `${err.message} — upewnij się, że Oracle Instant Client jest zainstalowany na serwerze.`;
-      }
-      return err.message;
-    }
-    return 'Nieznany błąd połączenia z Oracle.';
   }
 }

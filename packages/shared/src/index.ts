@@ -41,6 +41,7 @@ export type {
   OracleConnectionStatusResponse,
   OracleIdentifierType,
   OracleTestConnectionResponse,
+  TetaOracleBackendMode,
   TnsEntry,
   TnsListResponse,
 } from './oracle';

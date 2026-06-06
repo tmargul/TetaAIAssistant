@@ -212,3 +212,18 @@
   justify-content: center;
   color: var(--text-muted);
 }
+
+.oracle-setup__banner {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: var(--text-secondary);
+}
+
+.oracle-setup__banner strong {
+  color: var(--accent);
+}

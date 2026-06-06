@@ -4,8 +4,10 @@ import { CustomSelect } from '../ui/CustomSelect';
 import type {
   OracleConnectionInput,
   OracleConnectionMode,
+  OracleConnectionStatusResponse,
   OracleIdentifierType,
   OracleTestConnectionResponse,
+  TetaOracleBackendMode,
   TnsEntry,
   TnsListResponse,
 } from '@teta/shared';
@@ -34,6 +36,25 @@ export function OracleConnectionForm({ onConfigured }: OracleConnectionFormProps
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testResult, setTestResult] = useState<OracleTestConnectionResponse | null>(null);
+  const [backendMode, setBackendMode] = useState<TetaOracleBackendMode>('fake');
+
+  useEffect(() => {
+    fetch('/api/oracle/status')
+      .then(async (res) => res.json() as Promise<OracleConnectionStatusResponse>)
+      .then((status) => {
+        setBackendMode(status.backendMode);
+        if (status.backendMode === 'fake') {
+          setForm((prev) => ({
+            ...prev,
+            host: '192.168.1.10',
+            identifier: 'TETA',
+            username: 'teta',
+            password: 'teta',
+          }));
+        }
+      })
+      .catch(() => setBackendMode('fake'));
+  }, []);
 
   useEffect(() => {
     fetch('/api/oracle/tns')
@@ -121,6 +142,15 @@ export function OracleConnectionForm({ onConfigured }: OracleConnectionFormProps
             zapisane lokalnie w bazie SQLite aplikacji.
           </p>
         </div>
+
+        {backendMode === 'fake' && (
+          <div className="oracle-setup__banner">
+            <strong>Tryb symulatora (fake)</strong> — bez prawdziwej bazy Oracle. Test połączenia
+            zawsze się powiedzie. Administrator: <code>teta_admin</code> / <code>admin</code>,
+            użytkownik: <code>teta_user</code> / <code>user</code>. Przełącz na{' '}
+            <code>TETA_ORACLE_MODE=real</code> w <code>.env</code> po podłączeniu VM.
+          </div>
+        )}
 
         <div className="oracle-setup__tabs">
           <button
