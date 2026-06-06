@@ -13,6 +13,7 @@ import type {
 } from '@teta/shared';
 import { DatabaseService } from '../database/database.service';
 import { decryptSecret, encryptSecret } from './oracle-crypto';
+import oracledb from './oracle-driver';
 import { loadTnsEntries } from './tns-parser';
 
 interface OracleConnectionRow {
@@ -57,7 +58,6 @@ export class OracleConnectionService {
     this.validateInput(input);
 
     try {
-      const oracledb = await import('oracledb');
       const connectString = this.buildConnectString(input);
       const connection = await oracledb.getConnection({
         user: input.username,
@@ -164,7 +164,6 @@ export class OracleConnectionService {
     }
 
     await this.withUserConnection(username, password, async (connection) => {
-      const oracledb = await import('oracledb');
       const result = await connection.execute(
         sql,
         { username: username.trim() },
@@ -183,7 +182,6 @@ export class OracleConnectionService {
     password: string,
     fn: (connection: import('oracledb').Connection) => Promise<T>,
   ): Promise<T> {
-    const oracledb = await import('oracledb');
     const connectString = this.getStoredConnectString();
     const connection = await oracledb.getConnection({
       user: username.trim(),

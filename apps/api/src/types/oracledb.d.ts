@@ -1,6 +1,4 @@
 declare module 'oracledb' {
-  export const OUT_FORMAT_OBJECT: number;
-
   export interface Connection {
     execute<T = unknown>(
       sql: string,
@@ -10,9 +8,15 @@ declare module 'oracledb' {
     close(): Promise<void>;
   }
 
-  export function getConnection(config: {
-    user: string;
-    password: string;
-    connectString: string;
-  }): Promise<Connection>;
+  interface OracleDb {
+    OUT_FORMAT_OBJECT: number;
+    getConnection(config: {
+      user: string;
+      password: string;
+      connectString: string;
+    }): Promise<Connection>;
+  }
+
+  const oracledb: OracleDb;
+  export default oracledb;
 }
