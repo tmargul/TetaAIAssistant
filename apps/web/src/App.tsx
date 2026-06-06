@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import type { HealthResponse } from '@teta/shared';
 import { ChatView } from './components/chat/ChatView';
 import { AppShell } from './components/layout/AppShell';
+import { AuthGate } from './components/auth/AuthGate';
+import { OracleSetupGate } from './components/oracle/OracleSetupGate';
+import { AdminSettingsView } from './components/settings/AdminSettingsView';
 import type { NavItem } from './components/layout/Sidebar';
 import './components/layout/layout.css';
 
@@ -124,32 +127,31 @@ export default function App() {
   const meta = PAGE_META[activeNav];
 
   return (
-    <AppShell
-      activeNav={activeNav}
-      onNavigate={setActiveNav}
-      title={meta.title}
-      subtitle={meta.subtitle}
-    >
-      {activeNav === 'dashboard' && <DashboardView health={health} error={error} />}
-      {activeNav === 'chat' && <ChatView />}
-      {activeNav === 'documents' && (
-        <PlaceholderView
-          title="Dokumenty"
-          description="Upload i zarządzanie dokumentami do indeksu RAG (Qdrant)."
-        />
-      )}
-      {activeNav === 'history' && (
-        <PlaceholderView
-          title="Historia"
-          description="Lista poprzednich konwersacji i zapytań do asystenta."
-        />
-      )}
-      {activeNav === 'settings' && (
-        <PlaceholderView
-          title="Ustawienia"
-          description="Konfiguracja modelu, połączenia z Ollama/Qdrant oraz preferencje użytkownika."
-        />
-      )}
-    </AppShell>
+    <OracleSetupGate>
+      <AuthGate>
+      <AppShell
+        activeNav={activeNav}
+        onNavigate={setActiveNav}
+        title={meta.title}
+        subtitle={meta.subtitle}
+      >
+        {activeNav === 'dashboard' && <DashboardView health={health} error={error} />}
+        {activeNav === 'chat' && <ChatView />}
+        {activeNav === 'documents' && (
+          <PlaceholderView
+            title="Dokumenty"
+            description="Upload i zarządzanie dokumentami do indeksu RAG (Qdrant)."
+          />
+        )}
+        {activeNav === 'history' && (
+          <PlaceholderView
+            title="Historia"
+            description="Lista poprzednich konwersacji i zapytań do asystenta."
+          />
+        )}
+        {activeNav === 'settings' && <AdminSettingsView />}
+      </AppShell>
+      </AuthGate>
+    </OracleSetupGate>
   );
 }

@@ -1,0 +1,298 @@
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type {
+  OracleConnectionConfig,
+  OracleConnectionInput,
+  OracleConnectionStatusResponse,
+  OracleTestConnectionResponse,
+  TnsListResponse,
+} from '@teta/shared';
+import { DatabaseService } from '../database/database.service';
+import { decryptSecret, encryptSecret } from './oracle-crypto';
+import { loadTnsEntries } from './tns-parser';
+
+interface OracleConnectionRow {
+  mode: 'basic' | 'tns';
+  host: string | null;
+  port: number | null;
+  identifier_type: 'sid' | 'serviceName' | null;
+  identifier: string | null;
+  tns_alias: string | null;
+  username: string;
+  password_encrypted: string;
+  updated_at: string;
+}
+
+@Injectable()
+export class OracleConnectionService {
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly config: ConfigService,
+  ) {}
+
+  getStatus(): OracleConnectionStatusResponse {
+    const row = this.getRow();
+    if (!row) {
+      return { configured: false };
+    }
+
+    return {
+      configured: true,
+      config: {
+        ...this.rowToConfig(row),
+        updatedAt: row.updated_at,
+      },
+    };
+  }
+
+  listTnsEntries(): TnsListResponse {
+    return loadTnsEntries();
+  }
+
+  async testConnection(input: OracleConnectionInput): Promise<OracleTestConnectionResponse> {
+    this.validateInput(input);
+
+    try {
+      const oracledb = await import('oracledb');
+      const connectString = this.buildConnectString(input);
+      const connection = await oracledb.getConnection({
+        user: input.username,
+        password: input.password,
+        connectString,
+      });
+
+      try {
+        const result = await connection.execute<{ BANNER: string }>(
+          'SELECT BANNER FROM V$VERSION WHERE ROWNUM = 1',
+          {},
+          { outFormat: oracledb.OUT_FORMAT_OBJECT },
+        );
+        const version = result.rows?.[0]?.BANNER ?? 'Połączenie udane';
+        return { success: true, message: 'Połączenie z bazą Oracle Teta udane.', databaseVersion: version };
+      } finally {
+        await connection.close();
+      }
+    } catch (err: unknown) {
+      return {
+        success: false,
+        message: this.formatOracleError(err),
+      };
+    }
+  }
+
+  async saveConnection(input: OracleConnectionInput): Promise<OracleConnectionStatusResponse> {
+    const test = await this.testConnection(input);
+    if (!test.success) {
+      throw new BadRequestException(test.message);
+    }
+
+    const secret = this.getEncryptionSecret();
+    const encrypted = encryptSecret(input.password, secret);
+    const now = new Date().toISOString();
+
+    this.db.connection
+      .prepare(
+        `INSERT INTO oracle_connection (
+          id, mode, host, port, identifier_type, identifier, tns_alias,
+          username, password_encrypted, updated_at
+        ) VALUES (1, @mode, @host, @port, @identifier_type, @identifier, @tns_alias,
+          @username, @password_encrypted, @updated_at)
+        ON CONFLICT(id) DO UPDATE SET
+          mode = excluded.mode,
+          host = excluded.host,
+          port = excluded.port,
+          identifier_type = excluded.identifier_type,
+          identifier = excluded.identifier,
+          tns_alias = excluded.tns_alias,
+          username = excluded.username,
+          password_encrypted = excluded.password_encrypted,
+          updated_at = excluded.updated_at`,
+      )
+      .run({
+        mode: input.mode,
+        host: input.host ?? null,
+        port: input.port ?? null,
+        identifier_type: input.identifierType ?? null,
+        identifier: input.identifier ?? null,
+        tns_alias: input.tnsAlias ?? null,
+        username: input.username,
+        password_encrypted: encrypted,
+        updated_at: now,
+      });
+
+    return this.getStatus();
+  }
+
+  getStoredPassword(): string | null {
+    const row = this.getRow();
+    if (!row) return null;
+    return decryptSecret(row.password_encrypted, this.getEncryptionSecret());
+  }
+
+  getStoredConfigWithPassword(): OracleConnectionInput | null {
+    const row = this.getRow();
+    if (!row) return null;
+    const password = this.getStoredPassword();
+    if (!password) return null;
+    return { ...this.rowToConfig(row), password };
+  }
+
+  getStoredConnectString(): string {
+    const config = this.getStoredConfigWithPassword();
+    if (!config) {
+      throw new BadRequestException('Połączenie Oracle nie jest skonfigurowane.');
+    }
+    return this.buildConnectString(config);
+  }
+
+  async verifyUserCredentials(username: string, password: string): Promise<void> {
+    await this.withUserConnection(username, password, async (connection) => {
+      await connection.execute('SELECT 1 FROM DUAL');
+    });
+  }
+
+  async verifyTetaAdministrator(username: string, password: string): Promise<void> {
+    const sql = this.config.get<string>('TETA_ADMIN_CHECK_SQL')?.trim();
+    if (!sql) {
+      throw new InternalServerErrorException(
+        'Ustaw TETA_ADMIN_CHECK_SQL w pliku .env — zapytanie weryfikujące administratora Teta.',
+      );
+    }
+
+    await this.withUserConnection(username, password, async (connection) => {
+      const oracledb = await import('oracledb');
+      const result = await connection.execute(
+        sql,
+        { username: username.trim() },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      );
+      if (!result.rows?.length) {
+        throw new BadRequestException(
+          'Użytkownik nie ma uprawnień administratora Teta lub zapytanie weryfikacyjne nie zwróciło wyniku.',
+        );
+      }
+    });
+  }
+
+  private async withUserConnection<T>(
+    username: string,
+    password: string,
+    fn: (connection: import('oracledb').Connection) => Promise<T>,
+  ): Promise<T> {
+    const oracledb = await import('oracledb');
+    const connectString = this.getStoredConnectString();
+    const connection = await oracledb.getConnection({
+      user: username.trim(),
+      password,
+      connectString,
+    });
+
+    try {
+      return await fn(connection);
+    } catch (err: unknown) {
+      if (err instanceof BadRequestException || err instanceof InternalServerErrorException) {
+        throw err;
+      }
+      throw new BadRequestException(this.formatOracleError(err));
+    } finally {
+      await connection.close();
+    }
+  }
+
+  buildConnectString(input: OracleConnectionConfig): string {
+    if (input.mode === 'tns') {
+      if (!input.tnsAlias?.trim()) {
+        throw new BadRequestException('Wybierz alias TNS.');
+      }
+      return input.tnsAlias.trim();
+    }
+
+    const host = input.host?.trim();
+    const port = input.port ?? 1521;
+    const identifier = input.identifier?.trim();
+
+    if (!host) {
+      throw new BadRequestException('Podaj adres IP lub host serwera.');
+    }
+    if (!identifier) {
+      throw new BadRequestException('Podaj SID lub nazwę usługi.');
+    }
+
+    if (input.identifierType === 'serviceName') {
+      return `${host}:${port}/${identifier}`;
+    }
+
+    return `(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=${host})(PORT=${port}))(CONNECT_DATA=(SID=${identifier})))`;
+  }
+
+  private getRow(): OracleConnectionRow | undefined {
+    return this.db.connection
+      .prepare('SELECT * FROM oracle_connection WHERE id = 1')
+      .get() as OracleConnectionRow | undefined;
+  }
+
+  private rowToConfig(row: OracleConnectionRow): OracleConnectionConfig {
+    return {
+      mode: row.mode,
+      host: row.host ?? undefined,
+      port: row.port ?? undefined,
+      identifierType: row.identifier_type ?? undefined,
+      identifier: row.identifier ?? undefined,
+      tnsAlias: row.tns_alias ?? undefined,
+      username: row.username,
+    };
+  }
+
+  private validateInput(input: OracleConnectionInput) {
+    if (!input.username?.trim()) {
+      throw new BadRequestException('Podaj login użytkownika.');
+    }
+    if (!input.password) {
+      throw new BadRequestException('Podaj hasło.');
+    }
+
+    if (input.mode === 'tns') {
+      if (!input.tnsAlias?.trim()) {
+        throw new BadRequestException('Wybierz alias TNS.');
+      }
+      return;
+    }
+
+    if (!input.host?.trim()) {
+      throw new BadRequestException('Podaj adres IP lub host serwera.');
+    }
+    if (!input.port || input.port < 1 || input.port > 65535) {
+      throw new BadRequestException('Podaj prawidłowy port (1–65535).');
+    }
+    if (!input.identifierType) {
+      throw new BadRequestException('Wybierz typ identyfikatora: SID lub Service Name.');
+    }
+    if (!input.identifier?.trim()) {
+      throw new BadRequestException('Podaj SID lub nazwę usługi.');
+    }
+  }
+
+  private getEncryptionSecret(): string {
+    const secret = this.config.get<string>('JWT_SECRET');
+    if (!secret || secret === 'change-me-in-production') {
+      throw new InternalServerErrorException(
+        'Ustaw JWT_SECRET w pliku .env przed zapisem hasła do bazy.',
+      );
+    }
+    return secret;
+  }
+
+  private formatOracleError(err: unknown): string {
+    if (err instanceof Error) {
+      if (err.message.includes('NJS-')) {
+        return `${err.message} — upewnij się, że Oracle Instant Client jest zainstalowany na serwerze.`;
+      }
+      return err.message;
+    }
+    return 'Nieznany błąd połączenia z Oracle.';
+  }
+}

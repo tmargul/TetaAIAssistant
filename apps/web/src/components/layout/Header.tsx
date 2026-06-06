@@ -1,3 +1,5 @@
+import type { AuthUser } from '@teta/shared';
+import { useAuth } from '../../context/AuthContext';
 import { IconBell } from './icons';
 import './layout.css';
 
@@ -6,7 +8,35 @@ type HeaderProps = {
   subtitle?: string;
 };
 
+function HeaderUser({ user }: { user: AuthUser }) {
+  const { logout } = useAuth();
+  const initials = user.displayName?.[0] ?? user.oracleUsername[0]?.toUpperCase() ?? 'U';
+
+  return (
+    <div className="header__actions">
+      <button type="button" className="header__icon-btn" aria-label="Powiadomienia">
+        <IconBell className="header__icon" />
+      </button>
+      <div className="header__user">
+        <div className="header__avatar">{initials}</div>
+        <div className="header__user-info">
+          <span className="header__user-name">
+            {user.displayName ?? user.oracleUsername}
+          </span>
+          <span className="header__user-role">
+            {user.role === 'admin' ? 'Administrator' : 'Użytkownik'}
+          </span>
+        </div>
+      </div>
+      <button type="button" className="header__logout-btn" onClick={logout}>
+        Wyloguj
+      </button>
+    </div>
+  );
+}
+
 export function Header({ title, subtitle }: HeaderProps) {
+  const { user } = useAuth();
   return (
     <header className="header">
       <div>
@@ -14,18 +44,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         {subtitle && <p className="header__subtitle">{subtitle}</p>}
       </div>
 
-      <div className="header__actions">
-        <button type="button" className="header__icon-btn" aria-label="Powiadomienia">
-          <IconBell className="header__icon" />
-        </button>
-        <div className="header__user">
-          <div className="header__avatar">U</div>
-          <div className="header__user-info">
-            <span className="header__user-name">Użytkownik</span>
-            <span className="header__user-role">Intranet</span>
-          </div>
-        </div>
-      </div>
+      {user && <HeaderUser user={user} />}
     </header>
   );
 }
