@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { APP_NAME } from '@teta/shared';
+import { CustomSelect } from '../ui/CustomSelect';
 import type {
   OracleConnectionInput,
   OracleConnectionMode,
@@ -212,24 +213,17 @@ export function OracleConnectionForm({ onConfigured }: OracleConnectionFormProps
               <label className="oracle-setup__label" htmlFor="tnsAlias">
                 Serwer (TNS alias)
               </label>
-              <select
+              <CustomSelect
                 id="tnsAlias"
-                className="oracle-setup__select"
                 value={form.tnsAlias ?? ''}
-                onChange={(e) => update('tnsAlias', e.target.value)}
                 disabled={tnsEntries.length === 0}
-              >
-                {tnsEntries.length === 0 ? (
-                  <option value="">Brak wpisów w tnsnames.ora</option>
-                ) : (
-                  tnsEntries.map((entry) => (
-                    <option key={entry.alias} value={entry.alias}>
-                      {entry.alias}
-                      {entry.host ? ` — ${entry.host}:${entry.port ?? 1521}` : ''}
-                    </option>
-                  ))
-                )}
-              </select>
+                placeholder="Brak wpisów w tnsnames.ora"
+                options={tnsEntries.map((entry) => ({
+                  value: entry.alias,
+                  label: `${entry.alias}${entry.host ? ` — ${entry.host}:${entry.port ?? 1521}` : ''}`,
+                }))}
+                onChange={(alias) => update('tnsAlias', alias)}
+              />
               {tnsSource && <p className="oracle-setup__tns-info">Źródło: {tnsSource}</p>}
               {tnsEntries.length === 0 && (
                 <p className="oracle-setup__tns-info">

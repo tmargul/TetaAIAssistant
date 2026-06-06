@@ -47,8 +47,10 @@ export function ModelSelect({ value, onChange }: ModelSelectProps) {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span>{value}</span>
-        <IconChevron open={open} />
+        <span className="chat__select-value">{value}</span>
+        <span className="chat__select-icon" aria-hidden>
+          <IconChevron open={open} />
+        </span>
       </button>
 
       {open && (
