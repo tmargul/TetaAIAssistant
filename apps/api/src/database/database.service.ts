@@ -73,6 +73,15 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         updated_at TEXT NOT NULL,
         updated_by INTEGER REFERENCES users(id)
       );
+
+      CREATE TABLE IF NOT EXISTS rag_global_builds (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        version TEXT,
+        chunk_count INTEGER NOT NULL,
+        sources_json TEXT NOT NULL,
+        built_at TEXT NOT NULL,
+        package_path TEXT
+      );
     `);
   }
 }

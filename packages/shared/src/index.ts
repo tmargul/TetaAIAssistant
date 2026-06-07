@@ -35,6 +35,24 @@ export type {
 } from './auth';
 
 export type {
+  AppMode,
+  GlobalRagExportResult,
+  GlobalRagIngestResult,
+  GlobalRagStatusResponse,
+  RagChunkPayload,
+  RagPackManifest,
+  RagPackVectorRecord,
+} from './rag';
+
+export {
+  CLIENT_RAG_COLLECTION,
+  DEFAULT_EMBEDDING_DIMENSIONS,
+  DEFAULT_EMBEDDING_MODEL,
+  GLOBAL_RAG_COLLECTION,
+  RAG_PACK_FORMAT,
+} from './rag';
+
+export type {
   OracleConnectionConfig,
   OracleConnectionInput,
   OracleConnectionMode,

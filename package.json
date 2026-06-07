@@ -10,6 +10,8 @@
     "dev:web": "pnpm --filter @teta/web run dev",
     "lint": "pnpm -r run lint",
     "test": "pnpm --filter @teta/api run test",
+    "rag:global:ingest": "pnpm --filter @teta/api run rag:global:ingest",
+    "rag:global:export": "pnpm --filter @teta/api run rag:global:export",
     "postinstall": "pnpm --filter @teta/shared run build"
   },
   "engines": {

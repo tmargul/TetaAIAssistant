@@ -18,7 +18,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "rag:global:ingest": "ts-node -r tsconfig-paths/register src/scripts/rag-global-cli.ts ingest",
+    "rag:global:export": "ts-node -r tsconfig-paths/register src/scripts/rag-global-cli.ts export"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -27,6 +29,7 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.0.1",
     "@teta/shared": "workspace:*",
+    "archiver": "^7.0.1",
     "better-sqlite3": "^12.10.0",
     "oracledb": "^7.0.0",
     "reflect-metadata": "^0.2.2",
@@ -38,6 +41,7 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@types/archiver": "^6.0.3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
