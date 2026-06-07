@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { SystemHealthResponse } from '@teta/shared';
+import { useSystemHealth } from './hooks/useSystemHealth';
 import { ChatView } from './components/chat/ChatView';
 import { AppShell } from './components/layout/AppShell';
 import { AuthGate } from './components/auth/AuthGate';
@@ -150,20 +151,7 @@ function PlaceholderView({ title, description }: { title: string; description: s
 
 export default function App() {
   const [activeNav, setActiveNav] = useState<NavItem>('dashboard');
-  const [health, setHealth] = useState<SystemHealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch('/api/health/system')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<SystemHealthResponse>;
-      })
-      .then(setHealth)
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Błąd połączenia z API');
-      });
-  }, []);
+  const { health, error } = useSystemHealth();
 
   const meta = PAGE_META[activeNav];
 

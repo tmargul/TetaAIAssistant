@@ -1,9 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { GlobalRagService } from './global-rag.service';
-import { VendorGuard } from './vendor.guard';
+import { VendorAccessGuard } from './vendor-access.guard';
 
 @Controller('vendor/rag')
-@UseGuards(VendorGuard)
+@UseGuards(VendorAccessGuard)
 export class VendorRagController {
   constructor(private readonly globalRag: GlobalRagService) {}
 

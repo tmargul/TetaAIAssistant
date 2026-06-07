@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { AppUserRecord, CreateTetaServerRequest, TetaServer } from '@teta/shared';
 import { useAuth } from '../../context/AuthContext';
+import { useSystemHealth } from '../../hooks/useSystemHealth';
 import { authFetch } from '../../lib/auth-storage';
+import { VendorPackagesPanel } from './VendorPackagesPanel';
 import './settings.css';
 
-type SettingsTab = 'users' | 'servers';
+type SettingsTab = 'users' | 'servers' | 'packages';
 
 export function AdminSettingsView() {
   const { user } = useAuth();
+  const { health } = useSystemHealth();
+  const isVendorMode = health?.appMode === 'vendor' && health?.vendorEnabled;
   const [activeTab, setActiveTab] = useState<SettingsTab>('users');
   const [users, setUsers] = useState<AppUserRecord[]>([]);
   const [servers, setServers] = useState<TetaServer[]>([]);
@@ -124,6 +128,15 @@ export function AdminSettingsView() {
         >
           Serwery dostępne dla użytkowników
         </button>
+        {isVendorMode && (
+          <button
+            type="button"
+            className={`settings__tab${activeTab === 'packages' ? ' settings__tab--active' : ''}`}
+            onClick={() => setActiveTab('packages')}
+          >
+            Paczki wdrożeniowe
+          </button>
+        )}
       </div>
 
       <section className="panel settings__panel">
@@ -205,6 +218,8 @@ export function AdminSettingsView() {
             </table>
           </>
         )}
+
+        {activeTab === 'packages' && isVendorMode && <VendorPackagesPanel />}
 
         {activeTab === 'servers' && (
           <>

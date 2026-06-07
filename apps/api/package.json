@@ -30,6 +30,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@teta/shared": "workspace:*",
     "archiver": "^7.0.1",
+    "extract-zip": "^2.0.1",
     "better-sqlite3": "^12.10.0",
     "oracledb": "^7.0.0",
     "reflect-metadata": "^0.2.2",

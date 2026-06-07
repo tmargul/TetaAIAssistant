@@ -136,11 +136,46 @@
   background: var(--bg-app);
 }
 
+.header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
 .header__title {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.header__mode-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.header__mode-badge--vendor {
+  background: var(--accent-muted);
+  color: var(--accent);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.header__mode-badge--vendor-off {
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--error);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.header__mode-badge--client {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
 }
 
 .header__subtitle {

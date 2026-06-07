@@ -1,5 +1,6 @@
 import type { AuthUser } from '@teta/shared';
 import { useAuth } from '../../context/AuthContext';
+import { useSystemHealth } from '../../hooks/useSystemHealth';
 import { IconBell } from './icons';
 import './layout.css';
 
@@ -7,6 +8,25 @@ type HeaderProps = {
   title: string;
   subtitle?: string;
 };
+
+function AppModeBadge() {
+  const { health } = useSystemHealth();
+
+  if (!health) {
+    return null;
+  }
+
+  if (health.appMode === 'vendor') {
+    const label = health.vendorEnabled ? 'Vendor' : 'Vendor (nieaktywny)';
+    const className = health.vendorEnabled
+      ? 'header__mode-badge header__mode-badge--vendor'
+      : 'header__mode-badge header__mode-badge--vendor-off';
+
+    return <span className={className}>{label}</span>;
+  }
+
+  return <span className="header__mode-badge header__mode-badge--client">Client</span>;
+}
 
 function HeaderUser({ user }: { user: AuthUser }) {
   const { logout } = useAuth();
@@ -37,10 +57,14 @@ function HeaderUser({ user }: { user: AuthUser }) {
 
 export function Header({ title, subtitle }: HeaderProps) {
   const { user } = useAuth();
+
   return (
     <header className="header">
       <div>
-        <h1 className="header__title">{title}</h1>
+        <div className="header__title-row">
+          <h1 className="header__title">{title}</h1>
+          <AppModeBadge />
+        </div>
         {subtitle && <p className="header__subtitle">{subtitle}</p>}
       </div>
 
