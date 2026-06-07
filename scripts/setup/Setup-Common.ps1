@@ -7,10 +7,79 @@ $script:QdrantServiceName = "TetaAI-Qdrant"
 $script:OfflineMode = $false
 $script:OfflineBundlePath = $null
 
-function Initialize-OfflineMode([string]$BundlePath) {
+function Find-DefaultOfflineBundlePath {
+    $repo = $script:RepoRoot
+    $zipCandidates = @(
+        (Join-Path $repo "offline-bundle.zip")
+    )
+    $zipCandidates += @(Get-ChildItem $repo -Filter "teta-offline-bundle*.zip" -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        ForEach-Object { $_.FullName })
+
+    foreach ($candidate in $zipCandidates) {
+        if ($candidate -and (Test-Path $candidate)) {
+            return $candidate
+        }
+    }
+
+    $dirCandidate = Join-Path $repo "offline-bundle"
+    if (Test-Path $dirCandidate) {
+        return $dirCandidate
+    }
+
+    return $dirCandidate
+}
+
+function Get-OfflineBundleRoot([string]$Path) {
+    $manifestPath = Join-Path $Path "manifest.json"
+    if (Test-Path $manifestPath) {
+        return $Path
+    }
+
+    $subdirs = Get-ChildItem $Path -Directory -ErrorAction SilentlyContinue
+    if ($subdirs.Count -eq 1) {
+        $nested = Join-Path $subdirs[0].FullName "manifest.json"
+        if (Test-Path $nested) {
+            return $subdirs[0].FullName
+        }
+    }
+
+    throw "Brak manifest.json w paczce offline: $Path"
+}
+
+function Resolve-OfflineBundlePath {
+    param(
+        [Parameter(Mandatory = $true)][string]$BundlePath,
+        [Parameter(Mandatory = $true)][string]$InstallRoot
+    )
+
     if (-not (Test-Path $BundlePath)) {
         throw "Nie znaleziono paczki offline: $BundlePath"
     }
+
+    $resolved = (Resolve-Path $BundlePath).Path
+    $item = Get-Item -LiteralPath $resolved
+
+    if ($item.PSIsContainer) {
+        return Get-OfflineBundleRoot $resolved
+    }
+
+    if ($resolved -notmatch '\.zip$') {
+        throw "Paczka offline musi byc katalogiem lub plikiem .zip: $resolved"
+    }
+
+    Write-Host "  Rozpakowywanie paczki ZIP: $resolved" -ForegroundColor Yellow
+    $extractDir = Join-Path $InstallRoot "offline-bundle"
+    if (Test-Path $extractDir) {
+        Remove-Item $extractDir -Recurse -Force
+    }
+    New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
+    Expand-Archive -LiteralPath $resolved -DestinationPath $extractDir -Force
+
+    return Get-OfflineBundleRoot $extractDir
+}
+
+function Initialize-OfflineMode([string]$BundlePath) {
     $script:OfflineBundlePath = (Resolve-Path $BundlePath).Path
     $manifestPath = Join-Path $script:OfflineBundlePath "manifest.json"
     if (-not (Test-Path $manifestPath)) {
@@ -398,6 +467,73 @@ call pnpm dev
     $path = Join-Path $InstallRoot "Start-App.bat"
     Set-Content $path $startApp -Encoding ASCII
     Write-Host "  $path"
+}
+
+function Import-GlobalRagFromBundle {
+    Write-Step "Import globalnego RAG do Qdrant"
+    $ragDir = Get-BundleItem "rag"
+    if (-not (Test-Path $ragDir)) {
+        Write-Host "  Brak katalogu rag w paczce offline — pominięto import RAG." -ForegroundColor Yellow
+        return
+    }
+
+    $ragFile = Get-ChildItem $ragDir -Filter "global-rag-*.zip" -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+
+    if (-not $ragFile) {
+        Write-Host "  Brak pliku global-rag-*.zip — pominięto import RAG." -ForegroundColor Yellow
+        return
+    }
+
+    Set-Location $script:RepoRoot
+    Write-Host "  Import: $($ragFile.Name)"
+    pnpm rag:global:import --file "$($ragFile.FullName)"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Import globalnego RAG nie powiódł się."
+    }
+    Write-Host "  RAG zaimportowany pomyślnie." -ForegroundColor Green
+}
+
+function Wait-ApplicationReady {
+    Write-Step "Oczekiwanie na uruchomienie aplikacji"
+    $deadline = (Get-Date).AddMinutes(4)
+    $apiOk = $false
+    $webOk = $false
+
+    while ((Get-Date) -lt $deadline) {
+        if (-not $apiOk) {
+            try {
+                Invoke-RestMethod -Uri "http://127.0.0.1:3000/api/health" -TimeoutSec 4 | Out-Null
+                Write-Host "  API: OK (http://127.0.0.1:3000)" -ForegroundColor Green
+                $apiOk = $true
+            } catch { }
+        }
+        if (-not $webOk) {
+            try {
+                Invoke-WebRequest -Uri "http://127.0.0.1:5173" -TimeoutSec 4 -UseBasicParsing | Out-Null
+                Write-Host "  Web: OK (http://127.0.0.1:5173)" -ForegroundColor Green
+                $webOk = $true
+            } catch { }
+        }
+        if ($apiOk -and $webOk) {
+            return
+        }
+        Start-Sleep -Seconds 4
+    }
+
+    Write-Host "  Aplikacja może jeszcze się uruchamiać — sprawdź http://localhost:5173" -ForegroundColor Yellow
+}
+
+function Start-Application([string]$InstallRoot) {
+    Write-Step "Uruchamianie aplikacji Teta AI"
+    $batPath = Join-Path $InstallRoot "Start-App.bat"
+    if (-not (Test-Path $batPath)) {
+        throw "Brak skryptu startowego: $batPath"
+    }
+
+    Start-Process -FilePath $batPath -WorkingDirectory $InstallRoot
+    Wait-ApplicationReady
 }
 
 function Test-ServicesHealth {

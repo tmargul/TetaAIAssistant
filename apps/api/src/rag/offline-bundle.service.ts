@@ -7,18 +7,20 @@ import { execSync } from 'child_process';
 import archiver from 'archiver';
 import extract from 'extract-zip';
 
+export type OfflineBundleManifest = {
+  format: string;
+  version: string;
+  createdAt: string;
+  qdrantTag: string;
+  models: string[];
+  nodeRequired: string;
+  notes: string;
+};
+
 export type OfflineBundleResult = {
   zipPath: string;
   filename: string;
-  manifest: {
-    format: string;
-    version: string;
-    createdAt: string;
-    qdrantTag: string;
-    models: string[];
-    nodeRequired: string;
-    notes: string;
-  };
+  manifest: OfflineBundleManifest;
 };
 
 @Injectable()
@@ -29,34 +31,39 @@ export class OfflineBundleService {
     return this.resolveRepoRoot();
   }
 
-  async buildAndZip(): Promise<OfflineBundleResult> {
+  async buildToDirectory(outputDir: string): Promise<OfflineBundleManifest> {
     const repoRoot = this.resolveRepoRoot();
-    const stamp = Date.now();
-    const workDir = path.join(repoRoot, 'data', 'vendor-packages', `offline-bundle-${stamp}`);
-    const zipPath = path.join(repoRoot, 'data', 'vendor-packages', `teta-offline-bundle-${stamp}.zip`);
+    await mkdir(outputDir, { recursive: true });
 
-    await mkdir(workDir, { recursive: true });
-    await mkdir(path.dirname(zipPath), { recursive: true });
+    const qdrantTag = await this.addQdrant(outputDir);
+    await this.addNssm(outputDir);
+    await this.addOllamaModels(outputDir);
+    await this.addInstallers(outputDir, repoRoot);
+    await this.addPnpmStore(outputDir, repoRoot);
+    await this.addRagPackages(outputDir, repoRoot);
 
-    const qdrantTag = await this.addQdrant(workDir);
-    await this.addNssm(workDir);
-    await this.addOllamaModels(workDir);
-    await this.addInstallers(workDir, repoRoot);
-    await this.addPnpmStore(workDir, repoRoot);
-    await this.addRagPackages(workDir, repoRoot);
-
-    const models = await this.collectOllamaModelNames(path.join(workDir, 'ollama-models'));
-    const manifest = {
+    const models = await this.collectOllamaModelNames(path.join(outputDir, 'ollama-models'));
+    const manifest: OfflineBundleManifest = {
       format: 'teta-offline-bundle',
       version: '1.0.0',
       createdAt: new Date().toISOString(),
       qdrantTag,
       models,
       nodeRequired: '>=20',
-      notes: 'Paczka do instalacji offline u klienta (setup:client -Offline)',
+      notes: 'Paczka do instalacji offline u klienta (setup:client:offline — ZIP rozpakowywany automatycznie)',
     };
-    await writeFile(path.join(workDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    await writeFile(path.join(outputDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    return manifest;
+  }
 
+  async buildAndZip(): Promise<OfflineBundleResult> {
+    const repoRoot = this.resolveRepoRoot();
+    const stamp = Date.now();
+    const workDir = path.join(repoRoot, 'data', 'vendor-packages', `offline-bundle-${stamp}`);
+    const zipPath = path.join(repoRoot, 'data', 'vendor-packages', `teta-offline-bundle-${stamp}.zip`);
+
+    await mkdir(path.dirname(zipPath), { recursive: true });
+    const manifest = await this.buildToDirectory(workDir);
     await this.zipDirectory(workDir, zipPath);
     await rm(workDir, { recursive: true, force: true });
 
@@ -66,6 +73,19 @@ export class OfflineBundleService {
       filename: path.basename(zipPath),
       manifest,
     };
+  }
+
+  async zipDirectory(sourceDir: string, zipPath: string, archiveRoot = false): Promise<void> {
+    await mkdir(path.dirname(zipPath), { recursive: true });
+    await new Promise<void>((resolve, reject) => {
+      const output = createWriteStream(zipPath);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      output.on('close', () => resolve());
+      archive.on('error', (err) => reject(err));
+      archive.pipe(output);
+      archive.directory(sourceDir, archiveRoot === false ? false : String(archiveRoot));
+      void archive.finalize();
+    });
   }
 
   private resolveRepoRoot(): string {
@@ -221,17 +241,6 @@ export class OfflineBundleService {
     return [...names].sort();
   }
 
-  private async zipDirectory(sourceDir: string, zipPath: string): Promise<void> {
-    await new Promise<void>((resolve, reject) => {
-      const output = createWriteStream(zipPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      output.on('close', () => resolve());
-      archive.on('error', (err) => reject(err));
-      archive.pipe(output);
-      archive.directory(sourceDir, false);
-      void archive.finalize();
-    });
-  }
 }
 
 function stampSafe(): string {

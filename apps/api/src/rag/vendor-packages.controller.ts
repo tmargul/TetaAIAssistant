@@ -9,6 +9,7 @@ import {
 import type { Response } from 'express';
 import { rm } from 'fs/promises';
 import * as path from 'path';
+import { ClientDeployPackageService } from './client-deploy-package.service';
 import { GlobalRagExportService } from './global-rag-export.service';
 import { OfflineBundleService } from './offline-bundle.service';
 import { VendorAccessGuard } from './vendor-access.guard';
@@ -22,8 +23,31 @@ type ExportGlobalRagBody = {
 export class VendorPackagesController {
   constructor(
     private readonly offlineBundle: OfflineBundleService,
+    private readonly clientDeployPackage: ClientDeployPackageService,
     private readonly globalRagExport: GlobalRagExportService,
   ) {}
+
+  @Post('app-update/export')
+  async exportAppUpdate(@Res() res: Response): Promise<void> {
+    const result = await this.clientDeployPackage.buildAppUpdateZip();
+    res.download(result.zipPath, result.filename, (err) => {
+      void rm(result.zipPath, { force: true });
+      if (err && !res.headersSent) {
+        res.status(500).json({ message: 'Nie udało się pobrać paczki aktualizacji aplikacji.' });
+      }
+    });
+  }
+
+  @Post('client-install/export')
+  async exportClientInstall(@Res() res: Response): Promise<void> {
+    const result = await this.clientDeployPackage.buildAndZip();
+    res.download(result.zipPath, result.filename, (err) => {
+      void rm(result.zipPath, { force: true });
+      if (err && !res.headersSent) {
+        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji klienta.' });
+      }
+    });
+  }
 
   @Post('offline-bundle/export')
   async exportOfflineBundle(@Res() res: Response): Promise<void> {

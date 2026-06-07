@@ -22,19 +22,67 @@
 
   --success: #34d399;
   --error: #f87171;
+
+  --shell-header-height: 4.5rem;
+
+  --scrollbar-size: 10px;
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #4b5f7a;
+  --scrollbar-track: transparent;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
   color: var(--text-primary);
   background-color: var(--bg-app);
 }
 
 #root {
-  min-height: 100vh;
+  height: 100%;
+}
+
+.app-shell__content,
+.settings__panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.app-shell__content::-webkit-scrollbar,
+.settings__panel::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+}
+
+.app-shell__content::-webkit-scrollbar-track,
+.settings__panel::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  margin: 4px 0;
+}
+
+.app-shell__content::-webkit-scrollbar-thumb,
+.settings__panel::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.app-shell__content::-webkit-scrollbar-thumb:hover,
+.settings__panel::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+.app-shell__content::-webkit-scrollbar-corner,
+.settings__panel::-webkit-scrollbar-corner {
+  background: transparent;
 }

@@ -44,6 +44,8 @@ async function downloadPackage(
 export function VendorPackagesPanel() {
   const [ragStatus, setRagStatus] = useState<GlobalRagStatusResponse | null>(null);
   const [ragVersion, setRagVersion] = useState('');
+  const [clientInstallLoading, setClientInstallLoading] = useState(false);
+  const [appUpdateLoading, setAppUpdateLoading] = useState(false);
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [ragLoading, setRagLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -64,6 +66,42 @@ export function VendorPackagesPanel() {
       .catch(() => setError('Nie udało się wczytać statusu RAG globalnego.'));
   }, []);
 
+  const handleClientInstallExport = async () => {
+    setMessage(null);
+    setError(null);
+    setClientInstallLoading(true);
+    try {
+      const result = await downloadPackage('/api/vendor/packages/client-install/export');
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setMessage(
+        'Paczka instalacji klienta pobrana. U klienta: rozpakuj ZIP → Instaluj-Klienta.bat (Admin).',
+      );
+    } finally {
+      setClientInstallLoading(false);
+    }
+  };
+
+  const handleAppUpdateExport = async () => {
+    setMessage(null);
+    setError(null);
+    setAppUpdateLoading(true);
+    try {
+      const result = await downloadPackage('/api/vendor/packages/app-update/export');
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setMessage(
+        'Paczka aktualizacji aplikacji pobrana. U klienta: rozpakuj na istniejący katalog → Aktualizuj-Aplikacje.bat.',
+      );
+    } finally {
+      setAppUpdateLoading(false);
+    }
+  };
+
   const handleOfflineExport = async () => {
     setMessage(null);
     setError(null);
@@ -74,9 +112,7 @@ export function VendorPackagesPanel() {
         setError(result.message);
         return;
       }
-      setMessage(
-        'Paczka offline pobrana. Rozpakuj ZIP u klienta i uruchom setup:client:offline (lub Setup.ps1 -Mode client -Offline).',
-      );
+      setMessage('Paczka offline pobrana.');
     } finally {
       setOfflineLoading(false);
     }
@@ -98,9 +134,7 @@ export function VendorPackagesPanel() {
         setError(result.message);
         return;
       }
-      setMessage(
-        `Paczka RAG global ${version} pobrana. Admin klienta zaimportuje ją w trybie client (wkrótce w UI).`,
-      );
+      setMessage(`Paczka RAG global ${version} pobrana. U klienta: Aktualizuj-RAG.bat lub pnpm rag:global:import.`);
     } finally {
       setRagLoading(false);
     }
@@ -117,73 +151,125 @@ export function VendorPackagesPanel() {
       {error && <div className="settings__message settings__message--error">{error}</div>}
 
       <div className="settings__package-grid">
-        <article className="settings__package-card">
-          <h3 className="settings__package-title">1. Paczka setup offline</h3>
-          <p className="settings__package-desc">
-            Zawiera Qdrant, NSSM, modele Ollama, pnpm store i opcjonalnie paczki RAG. Wymaga
-            internetu podczas budowy. Przed budową upewnij się, że masz modele Ollama (np.{' '}
-            <code>nomic-embed-text</code>) oraz opcjonalnie instalatory w{' '}
-            <code>data/offline-installers/</code>.
-          </p>
-          <ul className="settings__package-list">
-            <li>Rozpakuj ZIP na nośniku klienta</li>
-            <li>
-              U klienta: <code>pnpm setup:client:offline</code>
-            </li>
-          </ul>
-          <button
-            type="button"
-            className="settings__btn"
-            onClick={handleOfflineExport}
-            disabled={offlineLoading}
-          >
-            {offlineLoading ? 'Przygotowywanie… (może potrwać)' : 'Przygotuj i pobierz paczkę offline'}
-          </button>
-        </article>
-
-        <article className="settings__package-card">
-          <h3 className="settings__package-title">2. Paczka RAG globalny</h3>
-          <p className="settings__package-desc">
-            Eksport wektorów z globalnej bazy wiedzy. Admin klienta importuje paczkę bez dostępu do
-            źródeł dokumentów Tety.
-          </p>
-          {ragStatus && (
-            <dl className="settings__package-stats">
-              <div>
-                <dt>Chunków w bazie</dt>
-                <dd>{ragStatus.chunkCount}</dd>
-              </div>
-              <div>
-                <dt>Model embeddingu</dt>
-                <dd>{ragStatus.embeddingModel}</dd>
-              </div>
-              <div>
-                <dt>Ostatnia wersja</dt>
-                <dd>{ragStatus.lastVersion ?? '—'}</dd>
-              </div>
-            </dl>
-          )}
-          <div className="settings__package-form">
-            <input
-              className="settings__input"
-              placeholder="Wersja paczki (np. 1.0.0)"
-              value={ragVersion}
-              onChange={(e) => setRagVersion(e.target.value)}
-            />
+        <article className="settings__package-card settings__package-card--featured">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">1. Instalacja klienta (pełna)</h3>
+            <p className="settings__package-desc">
+              Pierwsza instalacja — aplikacja, silnik, RAG i uruchomienie. Gdy u klienta nie ma
+              jeszcze niczego.
+            </p>
+            <ul className="settings__package-list">
+              <li>Rozpakuj ZIP → <code>Instaluj-Klienta.bat</code> (Admin)</li>
+            </ul>
+          </div>
+          <div className="settings__package-actions">
             <button
               type="button"
               className="settings__btn"
-              onClick={handleRagExport}
-              disabled={ragLoading || !ragStatus?.chunkCount}
+              onClick={handleClientInstallExport}
+              disabled={clientInstallLoading}
             >
-              {ragLoading ? 'Eksportowanie…' : 'Pobierz paczkę RAG'}
+              {clientInstallLoading ? 'Przygotowywanie…' : 'Pobierz paczkę instalacji'}
             </button>
           </div>
-          {!ragStatus?.chunkCount && (
-            <p className="settings__package-warn">
-              Baza RAG jest pusta — najpierw uruchom ingest: <code>pnpm rag:global:ingest</code>
+        </article>
+
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">2. Aktualizacja aplikacji</h3>
+            <p className="settings__package-desc">
+              Tylko React + NestJS (kod i zależności). Bez Ollama, Qdrant i RAG — gdy u klienta
+              system już działa i chcesz podmienić samą apkę.
             </p>
-          )}
+            <ul className="settings__package-list">
+              <li>Rozpakuj na istniejący katalog instalacji</li>
+              <li>Uruchom <code>Aktualizuj-Aplikacje.bat</code></li>
+            </ul>
+          </div>
+          <div className="settings__package-actions">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={handleAppUpdateExport}
+              disabled={appUpdateLoading}
+            >
+              {appUpdateLoading ? 'Pakowanie…' : 'Pobierz paczkę aktualizacji'}
+            </button>
+          </div>
+        </article>
+
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">3. Setup offline (silnik)</h3>
+            <p className="settings__package-desc">
+              Qdrant, NSSM, modele Ollama, pnpm store. Aktualizacja silnika bez zmiany kodu
+              aplikacji.
+            </p>
+            <ul className="settings__package-list">
+              <li>
+                U klienta: <code>setup:client:offline -NoStart</code>
+              </li>
+            </ul>
+          </div>
+          <div className="settings__package-actions">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={handleOfflineExport}
+              disabled={offlineLoading}
+            >
+              {offlineLoading ? 'Przygotowywanie…' : 'Pobierz paczkę offline'}
+            </button>
+          </div>
+        </article>
+
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">4. RAG globalny</h3>
+            <p className="settings__package-desc">
+              Eksport wektorów z bazy wiedzy. Admin klienta importuje bez dostępu do dokumentów
+              Tety.
+            </p>
+            {ragStatus && (
+              <dl className="settings__package-stats">
+                <div>
+                  <dt>Chunków</dt>
+                  <dd>{ragStatus.chunkCount}</dd>
+                </div>
+                <div>
+                  <dt>Model</dt>
+                  <dd>{ragStatus.embeddingModel}</dd>
+                </div>
+                <div>
+                  <dt>Wersja</dt>
+                  <dd>{ragStatus.lastVersion ?? '—'}</dd>
+                </div>
+              </dl>
+            )}
+            {!ragStatus?.chunkCount && (
+              <p className="settings__package-warn">
+                Baza RAG pusta — uruchom <code>pnpm rag:global:ingest</code>
+              </p>
+            )}
+          </div>
+          <div className="settings__package-actions">
+            <div className="settings__package-form">
+              <input
+                className="settings__input"
+                placeholder="Wersja (np. 1.0.0)"
+                value={ragVersion}
+                onChange={(e) => setRagVersion(e.target.value)}
+              />
+              <button
+                type="button"
+                className="settings__btn"
+                onClick={handleRagExport}
+                disabled={ragLoading || !ragStatus?.chunkCount}
+              >
+                {ragLoading ? 'Eksportowanie…' : 'Pobierz paczkę RAG'}
+              </button>
+            </div>
+          </div>
         </article>
       </div>
     </>

@@ -53,3 +53,10 @@ export interface GlobalRagExportResult {
   outputPath: string;
   checksum: string;
 }
+
+export interface GlobalRagImportResult {
+  version: string;
+  chunkCount: number;
+  sources: string[];
+  collection: string;
+}

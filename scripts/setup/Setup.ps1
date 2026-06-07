@@ -6,6 +6,7 @@
 # Lub z parametrem:
 #   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode vendor
 #   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode client
+#   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode client -Offline -BundlePath D:\media\teta-offline-bundle.zip
 
 param(
     [Parameter()]
@@ -16,18 +17,13 @@ param(
 
     [switch]$Offline,
 
-    [string]$BundlePath = ""
+    [string]$BundlePath = "",
+
+    [switch]$NoStart
 )
 
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\Setup-Common.ps1"
-
-if ($Offline) {
-    if (-not $BundlePath) {
-        $BundlePath = Join-Path $script:RepoRoot "offline-bundle"
-    }
-    Initialize-OfflineMode $BundlePath | Out-Null
-}
 
 if (-not $Mode) {
     Write-Host ""
@@ -40,6 +36,14 @@ if (-not $Mode) {
 }
 
 Assert-Administrator
+
+if ($Offline) {
+    if (-not $BundlePath) {
+        $BundlePath = Find-DefaultOfflineBundlePath
+    }
+    $resolvedBundle = Resolve-OfflineBundlePath -BundlePath $BundlePath -InstallRoot $InstallRoot
+    Initialize-OfflineMode $resolvedBundle | Out-Null
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
@@ -71,6 +75,10 @@ if ($isVendor) {
 Register-QdrantService -NssmExe $nssmExe -QdrantExe $qdrantExe
 Wait-QdrantReady -InstallRoot $InstallRoot
 
+if (-not $isVendor -and $Offline) {
+    Import-GlobalRagFromBundle
+}
+
 Write-StartAppScript -InstallRoot $InstallRoot
 
 Write-Host ""
@@ -98,19 +106,20 @@ if ($isVendor) {
     Write-Host "  2. pnpm rag:global:ingest --input ./sources/global"
     Write-Host "  3. pnpm rag:global:export --version 1.0.0 --out ./dist/global-rag-1.0.0.zip"
 } else {
-    Write-Host "Client - po wdrozeniu:"
-    if ($Offline) {
-        $ragBundle = Get-BundleItem "rag"
-        if (Test-Path $ragBundle) {
-            $ragFiles = Get-ChildItem $ragBundle -Filter "global-rag-*.zip" -ErrorAction SilentlyContinue
-            if ($ragFiles) {
-                Write-Host "  - paczka RAG w offline-bundle\rag: $($ragFiles.Name -join ', ')"
-            }
-        }
-    }
-    Write-Host "  - import paczki globalnego RAG (modul w przygotowaniu)"
+    Write-Host "Client - aktualizacje niezalezne (gdy system juz dziala):"
+    Write-Host "  - RAG:         pnpm rag:global:import --file .\global-rag-X.zip"
+    Write-Host "  - Aplikacja:   skopiuj nowe pliki + pnpm install --offline"
+    Write-Host "  - Silnik:      nowa paczka offline-bundle + setup z -NoStart"
     Write-Host "  - upload dokumentow klienta przez admina (w przygotowaniu)"
 }
 
 Write-Host ""
 Test-ServicesHealth | Out-Null
+
+if (-not $isVendor -and $Offline -and -not $NoStart) {
+    Start-Application $InstallRoot
+    Write-Host ""
+    Write-Host "Aplikacja uruchomiona:" -ForegroundColor Green
+    Write-Host "  http://localhost:5173"
+    Write-Host "  http://localhost:3000/api/health"
+}

@@ -20,7 +20,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "rag:global:ingest": "ts-node -r tsconfig-paths/register src/scripts/rag-global-cli.ts ingest",
-    "rag:global:export": "ts-node -r tsconfig-paths/register src/scripts/rag-global-cli.ts export"
+    "rag:global:export": "ts-node -r tsconfig-paths/register src/scripts/rag-global-cli.ts export",
+    "rag:global:import": "ts-node -r tsconfig-paths/register src/scripts/rag-import-cli.ts import"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

@@ -4,10 +4,12 @@ import { DatabaseModule } from '../database/database.module';
 import { ChunkingService } from './chunking.service';
 import { EmbeddingService } from './embedding.service';
 import { GlobalRagExportService } from './global-rag-export.service';
+import { GlobalRagImportService } from './global-rag-import.service';
 import { GlobalRagIngestService } from './global-rag-ingest.service';
 import { GlobalRagService } from './global-rag.service';
 import { QdrantService } from './qdrant.service';
 import { RagGlobalBuildService } from './rag-global-build.service';
+import { ClientDeployPackageService } from './client-deploy-package.service';
 import { OfflineBundleService } from './offline-bundle.service';
 import { VendorAccessGuard } from './vendor-access.guard';
 import { VendorPackagesController } from './vendor-packages.controller';
@@ -22,14 +24,17 @@ import { VendorGuard } from './vendor.guard';
     EmbeddingService,
     QdrantService,
     RagGlobalBuildService,
+    GlobalRagImportService,
     GlobalRagIngestService,
     GlobalRagExportService,
     GlobalRagService,
+    ClientDeployPackageService,
     OfflineBundleService,
     VendorAccessGuard,
     VendorGuard,
   ],
   exports: [
+    GlobalRagImportService,
     GlobalRagIngestService,
     GlobalRagExportService,
     GlobalRagService,

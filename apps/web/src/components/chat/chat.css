@@ -1,8 +1,9 @@
 .chat {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 73px);
-  margin: -1.5rem -2rem -2rem;
+  flex: 1;
+  min-height: calc(100vh - var(--shell-header-height) - 2.5rem);
+  margin: -1.5rem -2rem 0;
 }
 
 .chat__toolbar {

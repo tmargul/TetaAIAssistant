@@ -12,6 +12,7 @@
     "test": "pnpm --filter @teta/api run test",
     "rag:global:ingest": "pnpm --filter @teta/api run rag:global:ingest",
     "rag:global:export": "pnpm --filter @teta/api run rag:global:export",
+    "rag:global:import": "pnpm --filter @teta/api run rag:global:import",
     "setup:install": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1",
     "setup:vendor": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1 -Mode vendor",
     "setup:client": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1 -Mode client",
