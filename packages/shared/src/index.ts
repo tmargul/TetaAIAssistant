@@ -32,7 +32,7 @@ export type {
   TetaServer,
   UpdateTetaServerRequest,
   UserRole,
-} from './auth';
+} from './auth.js';
 
 export type {
   AppMode,
@@ -42,7 +42,7 @@ export type {
   RagChunkPayload,
   RagPackManifest,
   RagPackVectorRecord,
-} from './rag';
+} from './rag.js';
 
 export {
   CLIENT_RAG_COLLECTION,
@@ -50,7 +50,7 @@ export {
   DEFAULT_EMBEDDING_MODEL,
   GLOBAL_RAG_COLLECTION,
   RAG_PACK_FORMAT,
-} from './rag';
+} from './rag.js';
 
 export type {
   OracleConnectionConfig,
@@ -62,4 +62,4 @@ export type {
   TetaOracleBackendMode,
   TnsEntry,
   TnsListResponse,
-} from './oracle';
+} from './oracle.js';

@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
-import { isVendorMode } from '../rag/app-mode';
+import { assertVendorEnabled } from '../rag/vendor-auth';
 import { GlobalRagExportService } from '../rag/global-rag-export.service';
 import { GlobalRagIngestService } from '../rag/global-rag-ingest.service';
 
@@ -10,7 +10,7 @@ Użycie:
   rag-global ingest --input <katalog>
   rag-global export --version <wersja> --out <plik.zip>
 
-Wymaga TETA_APP_MODE=vendor oraz uruchomionych Ollama i Qdrant.
+Wymaga TETA_APP_MODE=vendor, TETA_VENDOR_SECRET (min. 32 znaki) oraz uruchomionych Ollama i Qdrant.
 `);
 }
 
@@ -39,9 +39,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!isVendorMode()) {
-    throw new Error('Ustaw TETA_APP_MODE=vendor w apps/api/.env przed budową globalnego RAG.');
-  }
+  assertVendorEnabled();
 
   const args = parseArgs(rest);
   const app = await NestFactory.createApplicationContext(AppModule, {
