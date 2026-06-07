@@ -127,11 +127,11 @@ export class OracleConnectionService {
   }
 
   getStoredConnectString(): string {
-    const config = this.getStoredConfigWithPassword();
-    if (!config) {
+    const row = this.getRow();
+    if (!row) {
       throw new BadRequestException('Połączenie Oracle nie jest skonfigurowane.');
     }
-    return this.buildConnectString(config);
+    return this.buildConnectString(this.rowToConfig(row));
   }
 
   async verifyUserCredentials(username: string, password: string): Promise<void> {

@@ -1,15 +1,18 @@
 import { Controller, Get } from '@nestjs/common';
-import { APP_NAME, type HealthResponse } from '@teta/shared';
+import type { HealthResponse, SystemHealthResponse } from '@teta/shared';
+import { HealthService } from './health.service';
 
 @Controller('health')
 export class HealthController {
+  constructor(private readonly health: HealthService) {}
+
   @Get()
   check(): HealthResponse {
-    return {
-      status: 'ok',
-      app: APP_NAME,
-      version: process.env.npm_package_version ?? '0.0.1',
-      timestamp: new Date().toISOString(),
-    };
+    return this.health.getBasicHealth();
+  }
+
+  @Get('system')
+  async system(): Promise<SystemHealthResponse> {
+    return this.health.getSystemHealth();
   }
 }

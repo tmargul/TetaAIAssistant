@@ -12,6 +12,11 @@
     "test": "pnpm --filter @teta/api run test",
     "rag:global:ingest": "pnpm --filter @teta/api run rag:global:ingest",
     "rag:global:export": "pnpm --filter @teta/api run rag:global:export",
+    "setup:install": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1",
+    "setup:vendor": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1 -Mode vendor",
+    "setup:client": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1 -Mode client",
+    "setup:client:offline": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1 -Mode client -Offline",
+    "bundle:offline": "powershell -ExecutionPolicy Bypass -File scripts/setup/Prepare-OfflineBundle.ps1",
     "postinstall": "pnpm --filter @teta/shared run build"
   },
   "engines": {

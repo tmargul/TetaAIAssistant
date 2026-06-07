@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { HealthResponse } from '@teta/shared';
+import type { SystemHealthResponse } from '@teta/shared';
 import { ChatView } from './components/chat/ChatView';
 import { AppShell } from './components/layout/AppShell';
 import { AuthGate } from './components/auth/AuthGate';
@@ -31,14 +31,22 @@ const PAGE_META: Record<NavItem, { title: string; subtitle: string }> = {
   },
 };
 
+function serviceLabel(status: 'ok' | 'offline' | 'loading'): string {
+  if (status === 'ok') return 'Online';
+  if (status === 'offline') return 'Offline';
+  return '…';
+}
+
 function DashboardView({
   health,
   error,
 }: {
-  health: HealthResponse | null;
+  health: SystemHealthResponse | null;
   error: string | null;
 }) {
-  const apiStatus = error ? 'offline' : health ? health.status : 'loading';
+  const apiStatus = error ? 'offline' : health ? 'ok' : 'loading';
+  const ollamaStatus = health?.ollama.status ?? 'loading';
+  const qdrantStatus = health?.qdrant.status ?? 'loading';
 
   return (
     <>
@@ -50,34 +58,67 @@ function DashboardView({
               apiStatus === 'ok' ? ' stat-card__value--ok' : apiStatus === 'offline' ? ' stat-card__value--error' : ''
             }`}
           >
-            {apiStatus === 'ok' ? 'Online' : apiStatus === 'offline' ? 'Offline' : '…'}
+            {serviceLabel(apiStatus)}
           </p>
         </div>
         <div className="stat-card">
-          <p className="stat-card__label">Wersja</p>
-          <p className="stat-card__value">{health?.version ?? '—'}</p>
+          <p className="stat-card__label">Tryb aplikacji</p>
+          <p className="stat-card__value">
+            {health ? (health.appMode === 'vendor' ? 'Vendor' : 'Client') : '…'}
+          </p>
         </div>
         <div className="stat-card">
           <p className="stat-card__label">Ollama</p>
-          <p className="stat-card__value">Planowany</p>
+          <p
+            className={`stat-card__value${
+              ollamaStatus === 'ok' ? ' stat-card__value--ok' : ollamaStatus === 'offline' ? ' stat-card__value--error' : ''
+            }`}
+          >
+            {serviceLabel(ollamaStatus)}
+          </p>
         </div>
         <div className="stat-card">
           <p className="stat-card__label">Qdrant (RAG)</p>
-          <p className="stat-card__value">Planowany</p>
+          <p
+            className={`stat-card__value${
+              qdrantStatus === 'ok' ? ' stat-card__value--ok' : qdrantStatus === 'offline' ? ' stat-card__value--error' : ''
+            }`}
+          >
+            {serviceLabel(qdrantStatus)}
+          </p>
         </div>
       </div>
 
       <section className="panel">
-        <h2 className="panel__title">Status API</h2>
+        <h2 className="panel__title">Status systemu</h2>
         {health && (
           <dl className="data-grid">
-            <dt>Status</dt>
-            <dd>{health.status}</dd>
+            <dt>Status ogólny</dt>
+            <dd>{health.status === 'ok' ? 'OK' : 'Ograniczony'}</dd>
+            <dt>Tryb</dt>
+            <dd>
+              {health.appMode === 'vendor' ? 'Vendor (budowa RAG)' : 'Client (wdrożenie)'}
+              {health.appMode === 'vendor' && (
+                <> — vendor {health.vendorEnabled ? 'aktywny' : 'nieaktywny'}</>
+              )}
+            </dd>
             <dt>Aplikacja</dt>
             <dd>{health.app}</dd>
             <dt>Wersja</dt>
             <dd>{health.version}</dd>
-            <dt>Czas</dt>
+            <dt>Ollama</dt>
+            <dd>
+              {health.ollama.status === 'ok'
+                ? `Online (${health.ollama.modelCount} modeli)`
+                : 'Offline'}
+            </dd>
+            <dt>Qdrant</dt>
+            <dd>
+              {health.qdrant.status === 'ok'
+                ? `Online — ${health.qdrant.collection}, ${health.qdrant.pointsCount ?? 0} wektorów`
+                : 'Offline'}
+            </dd>
+            <dt>Czas sprawdzenia</dt>
             <dd>{new Date(health.timestamp).toLocaleString('pl-PL')}</dd>
           </dl>
         )}
@@ -89,9 +130,9 @@ function DashboardView({
         <h2 className="panel__title">Stack</h2>
         <ul className="panel__list">
           <li>React + NestJS + SQLite</li>
-          <li>Ollama (Qwen3, DeepSeek-R1)</li>
-          <li>Qdrant (RAG) + JWT</li>
-          <li>Autoryzacja domenowa (planowana)</li>
+          <li>Ollama (Qwen3, DeepSeek-R1, nomic-embed-text)</li>
+          <li>Qdrant (RAG globalny + klienta)</li>
+          <li>Autoryzacja Oracle + JWT</li>
         </ul>
       </section>
     </>
@@ -109,14 +150,14 @@ function PlaceholderView({ title, description }: { title: string; description: s
 
 export default function App() {
   const [activeNav, setActiveNav] = useState<NavItem>('dashboard');
-  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [health, setHealth] = useState<SystemHealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/health')
+    fetch('/api/health/system')
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<HealthResponse>;
+        return res.json() as Promise<SystemHealthResponse>;
       })
       .then(setHealth)
       .catch((err: unknown) => {
