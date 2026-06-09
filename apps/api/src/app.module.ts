@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { OracleModule } from './oracle/oracle.module';
+import { DocumentsModule } from './documents/documents.module';
 import { RagModule } from './rag/rag.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { RagModule } from './rag/rag.module';
     AuthModule,
     AdminModule,
     RagModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

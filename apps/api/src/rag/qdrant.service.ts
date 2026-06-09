@@ -23,6 +23,12 @@ export class QdrantService {
     );
   }
 
+  get clientCollection(): string {
+    return (
+      this.config.get<string>('QDRANT_COLLECTION_CLIENT') ?? RAG_CONSTANTS.clientCollection
+    );
+  }
+
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`, init);
     if (!res.ok) {
@@ -122,6 +128,18 @@ export class QdrantService {
     } while (offset !== null && offset !== undefined);
 
     return points;
+  }
+
+  async deletePointsBySource(collection: string, source: string): Promise<void> {
+    await this.request(`/collections/${collection}/points/delete?wait=true`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filter: {
+          must: [{ key: 'source', match: { value: source } }],
+        },
+      }),
+    });
   }
 
   async getPointsCount(collection: string): Promise<number> {

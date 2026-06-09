@@ -34,6 +34,7 @@ import { VendorGuard } from './vendor.guard';
     VendorGuard,
   ],
   exports: [
+    ChunkingService,
     GlobalRagImportService,
     GlobalRagIngestService,
     GlobalRagExportService,

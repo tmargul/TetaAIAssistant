@@ -5,6 +5,7 @@ import { ChatView } from './components/chat/ChatView';
 import { AppShell } from './components/layout/AppShell';
 import { AuthGate } from './components/auth/AuthGate';
 import { OracleSetupGate } from './components/oracle/OracleSetupGate';
+import { DocumentsView } from './components/documents/DocumentsView';
 import { AdminSettingsView } from './components/settings/AdminSettingsView';
 import type { NavItem } from './components/layout/Sidebar';
 import './components/layout/layout.css';
@@ -166,12 +167,7 @@ export default function App() {
       >
         {activeNav === 'dashboard' && <DashboardView health={health} error={error} />}
         {activeNav === 'chat' && <ChatView />}
-        {activeNav === 'documents' && (
-          <PlaceholderView
-            title="Dokumenty"
-            description="Upload i zarządzanie dokumentami do indeksu RAG (Qdrant)."
-          />
-        )}
+        {activeNav === 'documents' && <DocumentsView />}
         {activeNav === 'history' && (
           <PlaceholderView
             title="Historia"

@@ -37,9 +37,13 @@ export type {
 export type {
   AppMode,
   GlobalRagExportResult,
+  ClientRagStatusResponse,
   GlobalRagImportResult,
   GlobalRagIngestResult,
   GlobalRagStatusResponse,
+  RagDocumentRecord,
+  RagDocumentStatus,
+  RagDocumentUploadResponse,
   RagChunkPayload,
   RagPackManifest,
   RagPackVectorRecord,
@@ -47,11 +51,15 @@ export type {
 
 export {
   CLIENT_RAG_COLLECTION,
+  CLIENT_RAG_SUPPORTED_EXTENSIONS,
   DEFAULT_EMBEDDING_DIMENSIONS,
   DEFAULT_EMBEDDING_MODEL,
   GLOBAL_RAG_COLLECTION,
   RAG_PACK_FORMAT,
+  isClientRagSupportedExtension,
 } from './rag.js';
+
+export type { ClientRagSupportedExtension } from './rag.js';
 
 export type {
   OracleConnectionConfig,

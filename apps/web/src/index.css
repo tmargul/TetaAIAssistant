@@ -7,6 +7,8 @@
   --bg-app: #0b0f14;
   --bg-sidebar: #111820;
   --bg-card: #161d27;
+  --bg-elevated: #1f2d40;
+  --bg-upload: #1c2735;
   --bg-hover: #1c2533;
 
   --border: #243044;
@@ -19,6 +21,9 @@
   --accent: #3b82f6;
   --accent-dark: #2563eb;
   --accent-muted: rgba(59, 130, 246, 0.12);
+
+  --accent-warm: #f59e0b;
+  --accent-warm-dark: #d97706;
 
   --success: #34d399;
   --error: #f87171;
@@ -49,6 +54,8 @@ body {
 
 #root {
   height: 100%;
+  min-height: 100vh;
+  overflow: hidden;
 }
 
 .app-shell__content,

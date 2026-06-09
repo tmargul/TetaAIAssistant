@@ -141,26 +141,22 @@ export function VendorPackagesPanel() {
   };
 
   return (
-    <>
-      <h2 className="panel__title">Paczki wdrożeniowe</h2>
-      <p className="settings__hint">
-        Przygotuj paczki do przekazania klientowi. Dostępne tylko w trybie vendor (u Tety).
+    <div className="settings__packages">
+      <h2 className="settings__packages-heading">Paczki wdrożeniowe</h2>
+      <p className="settings__packages-lead">
+        Przygotuj paczki do przekazania klientowi (tryb vendor).
       </p>
 
       {message && <div className="settings__message settings__message--ok">{message}</div>}
       {error && <div className="settings__message settings__message--error">{error}</div>}
 
       <div className="settings__package-grid">
-        <article className="settings__package-card settings__package-card--featured">
+        <article className="settings__package-card">
           <div className="settings__package-body">
             <h3 className="settings__package-title">1. Instalacja klienta (pełna)</h3>
             <p className="settings__package-desc">
-              Pierwsza instalacja — aplikacja, silnik, RAG i uruchomienie. Gdy u klienta nie ma
-              jeszcze niczego.
+              Wszystko naraz: aplikacja, silnik, RAG i start. Dla pustej maszyny u klienta.
             </p>
-            <ul className="settings__package-list">
-              <li>Rozpakuj ZIP → <code>Instaluj-Klienta.bat</code> (Admin)</li>
-            </ul>
           </div>
           <div className="settings__package-actions">
             <button
@@ -178,13 +174,8 @@ export function VendorPackagesPanel() {
           <div className="settings__package-body">
             <h3 className="settings__package-title">2. Aktualizacja aplikacji</h3>
             <p className="settings__package-desc">
-              Tylko React + NestJS (kod i zależności). Bez Ollama, Qdrant i RAG — gdy u klienta
-              system już działa i chcesz podmienić samą apkę.
+              Tylko React + NestJS. Nadpisz pliki → <code>Aktualizuj-Aplikacje.bat</code>.
             </p>
-            <ul className="settings__package-list">
-              <li>Rozpakuj na istniejący katalog instalacji</li>
-              <li>Uruchom <code>Aktualizuj-Aplikacje.bat</code></li>
-            </ul>
           </div>
           <div className="settings__package-actions">
             <button
@@ -202,14 +193,8 @@ export function VendorPackagesPanel() {
           <div className="settings__package-body">
             <h3 className="settings__package-title">3. Setup offline (silnik)</h3>
             <p className="settings__package-desc">
-              Qdrant, NSSM, modele Ollama, pnpm store. Aktualizacja silnika bez zmiany kodu
-              aplikacji.
+              Qdrant, Ollama, modele, pnpm store. U klienta: <code>setup:client:offline -NoStart</code>.
             </p>
-            <ul className="settings__package-list">
-              <li>
-                U klienta: <code>setup:client:offline -NoStart</code>
-              </li>
-            </ul>
           </div>
           <div className="settings__package-actions">
             <button
@@ -227,8 +212,7 @@ export function VendorPackagesPanel() {
           <div className="settings__package-body">
             <h3 className="settings__package-title">4. RAG globalny</h3>
             <p className="settings__package-desc">
-              Eksport wektorów z bazy wiedzy. Admin klienta importuje bez dostępu do dokumentów
-              Tety.
+              Eksport wektorów RAG. Import u klienta bez źródeł dokumentów Tety.
             </p>
             {ragStatus && (
               <dl className="settings__package-stats">
@@ -272,6 +256,6 @@ export function VendorPackagesPanel() {
           </div>
         </article>
       </div>
-    </>
+    </div>
   );
 }

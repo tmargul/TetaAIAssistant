@@ -221,7 +221,11 @@ export class OracleConnectionService {
     const secret = (
       this.config.get<string>('JWT_SECRET') ?? process.env.JWT_SECRET
     )?.trim();
+
     if (!secret || secret === 'change-me-in-production') {
+      if (this.getBackendMode() === 'fake') {
+        return 'dev-fake-oracle-encryption-key-32ch';
+      }
       throw new InternalServerErrorException(
         'Ustaw JWT_SECRET w pliku .env przed zapisem hasła do bazy.',
       );

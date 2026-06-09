@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createHash } from 'crypto';
 import { readdir, readFile, stat } from 'fs/promises';
 import * as path from 'path';
 import type { GlobalRagIngestResult } from '@teta/shared';
@@ -8,6 +7,7 @@ import { EmbeddingService } from './embedding.service';
 import { QdrantService } from './qdrant.service';
 import { RagGlobalBuildService } from './rag-global-build.service';
 import { RAG_CONSTANTS } from './rag.constants';
+import { buildRagPointId } from './rag-point-id';
 
 type ChunkCandidate = {
   id: string;
@@ -46,7 +46,7 @@ export class GlobalRagIngestService {
 
       chunks.forEach((text, chunkIndex) => {
         candidates.push({
-          id: this.buildPointId(relativeSource, chunkIndex),
+          id: buildRagPointId(relativeSource, chunkIndex),
           text,
           source: relativeSource,
           chunkIndex,
@@ -114,15 +114,4 @@ export class GlobalRagIngestService {
     return files.sort();
   }
 
-  private buildPointId(source: string, chunkIndex: number): string {
-    const hash = createHash('sha256').update(`${source}:${chunkIndex}`).digest('hex');
-    return [
-      hash.slice(0, 8),
-      hash.slice(8, 12),
-      `4${hash.slice(13, 16)}`,
-      ((parseInt(hash.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, '0') +
-        hash.slice(18, 20),
-      hash.slice(20, 32),
-    ].join('-');
-  }
 }

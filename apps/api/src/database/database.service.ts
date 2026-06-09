@@ -82,6 +82,21 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         built_at TEXT NOT NULL,
         package_path TEXT
       );
+
+      CREATE TABLE IF NOT EXISTS rag_documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        original_name TEXT NOT NULL,
+        storage_name TEXT NOT NULL UNIQUE,
+        mime_type TEXT NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        storage_path TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('pending', 'processing', 'indexed', 'failed')),
+        chunk_count INTEGER NOT NULL DEFAULT 0,
+        error_message TEXT,
+        uploaded_by INTEGER REFERENCES users(id),
+        created_at TEXT NOT NULL,
+        indexed_at TEXT
+      );
     `);
   }
 }
