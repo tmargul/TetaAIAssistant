@@ -186,8 +186,15 @@ function Install-ProjectDependencies {
     Write-Step "Instalacja zaleznosci projektu (pnpm install)"
     Set-Location $script:RepoRoot
 
-    if (Test-ProductionLayout) {
-        Write-Host "  Paczka produkcyjna (skompilowana) — pomijam pnpm install" -ForegroundColor Green
+    $nodeModules = Join-Path $script:RepoRoot "node_modules"
+    if ((Test-ProductionLayout) -and (Test-Path $nodeModules)) {
+        Write-Host "  Paczka produkcyjna — zaleznosci juz w paczce, pomijam pnpm install" -ForegroundColor Green
+        return
+    }
+
+    if ((Test-ProductionLayout) -and -not (Test-Path $nodeModules)) {
+        Write-Host "  Paczka produkcyjna (online) — instalacja zaleznosci (pnpm install)..."
+        pnpm install
         return
     }
 

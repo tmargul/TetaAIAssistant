@@ -114,7 +114,7 @@ export class ClientDeployPackageService {
 
   async buildVendorInstallZip(): Promise<VendorDeployPackageResult> {
     const repoRoot = this.offlineBundle.getRepoRoot();
-    this.logger.log('Budowanie aplikacji vendor (build:vendor) przed pakowaniem…');
+    this.logger.log('Budowanie aplikacji vendor (build:vendor) przed pakowaniem offline…');
     execSync('pnpm run build:vendor', { cwd: repoRoot, stdio: 'inherit' });
 
     const stamp = Date.now();
@@ -140,7 +140,41 @@ export class ClientDeployPackageService {
     await rm(stagingDir, { recursive: true, force: true });
 
     const createdAt = new Date().toISOString();
-    this.logger.log(`Paczka instalacji vendor (produkcja): ${zipPath}`);
+    this.logger.log(`Paczka instalacji vendor (offline): ${zipPath}`);
+    return {
+      zipPath,
+      filename: path.basename(zipPath),
+      appVersion,
+      createdAt,
+    };
+  }
+
+  async buildVendorOnlineInstallZip(): Promise<VendorDeployPackageResult> {
+    const repoRoot = this.offlineBundle.getRepoRoot();
+    this.logger.log('Budowanie aplikacji vendor (build:vendor) przed pakowaniem online…');
+    execSync('pnpm run build:vendor', { cwd: repoRoot, stdio: 'inherit' });
+
+    const stamp = Date.now();
+    const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `vendor-install-online-${stamp}`);
+    const appDir = path.join(stagingDir, 'TetaAIAssistant');
+    const zipPath = path.join(
+      repoRoot,
+      'data',
+      'vendor-packages',
+      `teta-vendor-install-online-${stamp}.zip`,
+    );
+
+    await mkdir(appDir, { recursive: true });
+
+    const appVersion = await this.readAppVersion(repoRoot);
+    await this.copyProductionVendorOnlineLayout(repoRoot, appDir);
+    await this.writeVendorOnlineInstallFiles(appDir, appVersion);
+
+    await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
+    await rm(stagingDir, { recursive: true, force: true });
+
+    const createdAt = new Date().toISOString();
+    this.logger.log(`Paczka instalacji vendor (online): ${zipPath}`);
     return {
       zipPath,
       filename: path.basename(zipPath),
@@ -228,6 +262,23 @@ export class ClientDeployPackageService {
     ]);
   }
 
+  /** Paczka vendor online: bez offline-bundle i bez node_modules (setup pobiera z internetu). */
+  private async copyProductionVendorOnlineLayout(repoRoot: string, targetDir: string): Promise<void> {
+    await this.copyProductionLayout(
+      repoRoot,
+      targetDir,
+      'vendor',
+      [
+        'apps/api/dist',
+        'apps/web/dist',
+        'packages/shared/dist',
+        'sources/global',
+        'scripts/setup',
+      ],
+      { includeNodeModules: false },
+    );
+  }
+
   /** Paczka klienta: build client — bez modułu vendor w dist API. */
   private async copyProductionClientLayout(repoRoot: string, targetDir: string): Promise<void> {
     await this.copyProductionLayout(repoRoot, targetDir, 'client', [
@@ -243,6 +294,7 @@ export class ClientDeployPackageService {
     targetDir: string,
     profile: 'client' | 'vendor',
     copyPaths: string[],
+    options?: { includeNodeModules?: boolean },
   ): Promise<void> {
     for (const relative of copyPaths) {
       const source = path.join(repoRoot, relative);
@@ -286,15 +338,19 @@ export class ClientDeployPackageService {
       'utf8',
     );
 
-    const nodeModulesSource = path.join(repoRoot, 'node_modules');
-    if (await this.pathExists(nodeModulesSource)) {
-      this.logger.log('Kopiowanie node_modules do paczki (może chwilę potrwać)…');
-      await cp(nodeModulesSource, path.join(targetDir, 'node_modules'), {
-        recursive: true,
-        filter: (src) => !src.includes(`${path.sep}.cache${path.sep}`),
-      });
-    } else {
-      throw new Error('Brak node_modules — uruchom pnpm install przed eksportem paczki.');
+    const includeNodeModules = options?.includeNodeModules !== false;
+
+    if (includeNodeModules) {
+      const nodeModulesSource = path.join(repoRoot, 'node_modules');
+      if (await this.pathExists(nodeModulesSource)) {
+        this.logger.log('Kopiowanie node_modules do paczki (może chwilę potrwać)…');
+        await cp(nodeModulesSource, path.join(targetDir, 'node_modules'), {
+          recursive: true,
+          filter: (src) => !src.includes(`${path.sep}.cache${path.sep}`),
+        });
+      } else {
+        throw new Error('Brak node_modules — uruchom pnpm install przed eksportem paczki.');
+      }
     }
   }
 
@@ -420,12 +476,12 @@ export class ClientDeployPackageService {
 
   private async writeVendorInstallFiles(appDir: string, appVersion: string): Promise<void> {
     const readme = [
-      'Teta AI Assistant — instalacja VENDOR (stanowisko budowy globalnego RAG)',
+      'Teta AI Assistant — instalacja VENDOR OFFLINE (stanowisko budowy globalnego RAG)',
       '',
       `Wersja aplikacji: ${appVersion}`,
       '',
-      'Paczka zawiera SKOMPILOWANA aplikacje (bez kodu zrodlowego).',
-      'Przeznaczenie: praca nad baza wiedzy Tety (globalny RAG), nie dla klienta koncowego.',
+      'Paczka OFFLINE (~6–9 GB): aplikacja + offline-bundle.zip (modele Ollama, Qdrant, node_modules).',
+      'Bez internetu u celu. Jesli masz internet, uzyj paczki vendor ONLINE (~100 MB).',
       '',
       '=== INSTALACJA ===',
       '',
@@ -478,7 +534,69 @@ export class ClientDeployPackageService {
       'pause',
     ].join('\r\n');
 
+    await writeFile(path.join(appDir, 'INSTALACJA-VENDOR-OFFLINE.txt'), `${readme}\n`, 'utf8');
+    await writeFile(path.join(appDir, 'Instaluj-Vendor-Offline.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'INSTALACJA-VENDOR.txt'), `${readme}\n`, 'utf8');
     await writeFile(path.join(appDir, 'Instaluj-Vendor.bat'), `${installBat}\r\n`, 'utf8');
+  }
+
+  private async writeVendorOnlineInstallFiles(appDir: string, appVersion: string): Promise<void> {
+    const readme = [
+      'Teta AI Assistant — instalacja VENDOR ONLINE (stanowisko budowy globalnego RAG)',
+      '',
+      `Wersja aplikacji: ${appVersion}`,
+      '',
+      'Paczka ONLINE (~50–150 MB): skompilowana aplikacja bez modeli AI i bez offline-bundle.',
+      'Wymaga internetu podczas instalacji (Node, Ollama, Qdrant, modele, pnpm install).',
+      '',
+      '=== INSTALACJA ===',
+      '',
+      '1. Rozpakuj archiwum ZIP (np. D:\\TetaAIAssistant).',
+      '2. Kliknij prawym: Instaluj-Vendor-Online.bat -> Uruchom jako administrator.',
+      '3. Poczekaj na pobranie modeli Ollama (nomic-embed-text + qwen3, ok. 5–6 GB).',
+      '4. Po zakonczeniu uruchom: C:\\TetaAI\\Start-App.bat',
+      '5. Otworz przegladarke: http://localhost:3000',
+      '',
+      '=== PIERWSZE URUCHOMIENIE ===',
+      '',
+      '- Skonfiguruj polaczenie Oracle (tryb fake — symulator).',
+      '- Zarejestruj administratora: teta_admin / admin',
+      '',
+      '=== BAZA WIEDZY ===',
+      '',
+      'Pelna instrukcja: sources\\global\\README.md',
+      '',
+      'Skrot:',
+      `  1. Dodaj pliki (${formatRagSourceExtensions()}) w menu Zrodla globalne`,
+      '  2. Ustawienia -> Paczki -> Zbuduj indeks RAG',
+      '  3. Pobierz paczke RAG (np. 1.0.0)',
+      '',
+      'Adresy:',
+      '   Aplikacja:  http://localhost:3000',
+      '   API:        http://localhost:3000/api/health',
+      '   Qdrant:     http://localhost:6333/dashboard',
+    ].join('\n');
+
+    const installBat = [
+      '@echo off',
+      'title Teta AI Assistant - instalacja vendor ONLINE',
+      'cd /d "%~dp0"',
+      'echo Wymagane polaczenie z internetem (Node, Ollama, Qdrant, modele AI).',
+      'powershell -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor',
+      'if errorlevel 1 (',
+      '  echo.',
+      '  echo Instalacja nie powiodla sie.',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      'echo.',
+      'echo Instalacja vendor (online) zakonczona.',
+      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat',
+      'echo Adres: http://localhost:3000',
+      'pause',
+    ].join('\r\n');
+
+    await writeFile(path.join(appDir, 'INSTALACJA-VENDOR-ONLINE.txt'), `${readme}\n`, 'utf8');
+    await writeFile(path.join(appDir, 'Instaluj-Vendor-Online.bat'), `${installBat}\r\n`, 'utf8');
   }
 }

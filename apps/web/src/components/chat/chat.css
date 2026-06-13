@@ -325,6 +325,13 @@
   font-size: 0.8125rem;
 }
 
+.chat__typing-hint {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
 .chat__typing {
   display: flex;
   gap: 4px;

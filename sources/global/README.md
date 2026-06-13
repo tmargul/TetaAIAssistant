@@ -27,7 +27,10 @@ Obsługiwane formaty (takie same jak w RAG klienta):
 
 ## Krok po kroku w aplikacji
 
-Po instalacji (`Instaluj-Vendor.bat`) otwórz **http://localhost:3000**
+Po instalacji otwórz **http://localhost:3000**
+
+- **Online (z internetem):** `Instaluj-Vendor-Online.bat` — setup pobiera Ollamę, Qdrant i modele (~5–6 GB).
+- **Offline (bez internetu):** `Instaluj-Vendor.bat` — wszystko jest już w paczce (~7 GB).
 
 1. Skonfiguruj Oracle (symulator fake) i zarejestruj admina: `teta_admin` / `admin`
 2. Wejdź w **Źródła globalne** — dodaj pliki (txt, md, pdf, doc, docx, csv, xls, xlsx, html)
@@ -55,5 +58,5 @@ Na końcu pliku możesz dopisać sekcję:
 
 ## Pomoc
 
-- Instalacja: `INSTALACJA-VENDOR.txt` (w katalogu głównym paczki)
+- Instalacja online: `INSTALACJA-VENDOR-ONLINE.txt` · offline: `INSTALACJA-VENDOR-OFFLINE.txt`
 - Panel Qdrant: http://localhost:6333/dashboard

@@ -47,14 +47,13 @@ export function VendorPackagesPanel() {
   const [ragVersion, setRagVersion] = useState('');
   const [clientInstallLoading, setClientInstallLoading] = useState(false);
   const [vendorInstallLoading, setVendorInstallLoading] = useState(false);
+  const [vendorOnlineInstallLoading, setVendorOnlineInstallLoading] = useState(false);
   const [appUpdateLoading, setAppUpdateLoading] = useState(false);
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [ragLoading, setRagLoading] = useState(false);
   const [ragIngestLoading, setRagIngestLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [itSectionOpen, setItSectionOpen] = useState(false);
-
   const loadRagStatus = () => {
     authFetch('/api/vendor/rag/status')
       .then(async (res) => {
@@ -99,6 +98,24 @@ export function VendorPackagesPanel() {
     }
   };
 
+  const handleVendorOnlineInstallExport = async () => {
+    setMessage(null);
+    setError(null);
+    setVendorOnlineInstallLoading(true);
+    try {
+      const result = await downloadPackage('/api/vendor/packages/vendor-install-online/export');
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setMessage(
+        'Paczka vendor (online) pobrana. U kolegi: rozpakuj ZIP → Instaluj-Vendor-Online.bat (Admin, wymaga internetu).',
+      );
+    } finally {
+      setVendorOnlineInstallLoading(false);
+    }
+  };
+
   const handleVendorInstallExport = async () => {
     setMessage(null);
     setError(null);
@@ -110,7 +127,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka vendor pobrana. Zawiera skompilowaną aplikację i instrukcję instalacji (INSTALACJA-VENDOR.txt).',
+        'Paczka vendor (offline) pobrana. Zawiera offline-bundle (~7 GB) — Instaluj-Vendor.bat bez internetu.',
       );
     } finally {
       setVendorInstallLoading(false);
@@ -202,110 +219,109 @@ export function VendorPackagesPanel() {
       {message && <div className="settings__message settings__message--ok">{message}</div>}
       {error && <div className="settings__message settings__message--error">{error}</div>}
 
-      <article className="settings__package-card settings__package-card--primary">
-        <div className="settings__package-body">
-          <h3 className="settings__package-title">RAG globalny — budowa i eksport</h3>
-          <p className="settings__package-desc">
-            Po dodaniu plików w <strong>Źródła globalne</strong> zbuduj indeks wektorów, a następnie
-            pobierz paczkę <code>global-rag-X.zip</code> do wdrożeń u klientów.
-          </p>
-          {ragStatus && (
-            <dl className="settings__package-stats">
-              <div>
-                <dt>Chunków</dt>
-                <dd>{ragStatus.chunkCount}</dd>
-              </div>
-              <div>
-                <dt>Model</dt>
-                <dd>{ragStatus.embeddingModel}</dd>
-              </div>
-              <div>
-                <dt>Wersja</dt>
-                <dd>{ragStatus.lastVersion ?? '—'}</dd>
-              </div>
-            </dl>
-          )}
-          {ragStatus && ragStatus.sources.length > 0 && (
-            <div className="settings__package-sources">
-              <p className="settings__package-sources-title">Pliki w ostatnim indeksie</p>
-              <ul className="settings__package-sources-list">
-                {ragStatus.sources.map((source) => (
-                  <li key={source}>{source}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {!ragStatus?.chunkCount && (
-            <p className="settings__package-warn">
-              Indeks pusty — dodaj pliki ({formatRagSourceExtensions()}) w menu{' '}
-              <strong>Źródła globalne</strong>, potem kliknij <strong>Zbuduj indeks RAG</strong>.
+      <div className="settings__package-layout">
+        <article className="settings__package-card settings__package-card--accent settings__package-card--rag">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">RAG globalny</h3>
+            <p className="settings__package-desc">
+              Po dodaniu materiałów w <strong>Źródła globalne</strong> zbuduj indeks wektorów w Qdrant,
+              a następnie pobierz paczkę <code>global-rag-X.zip</code> do wdrożeń u wszystkich klientów.
             </p>
-          )}
-        </div>
-        <div className="settings__package-actions">
-          <button
-            type="button"
-            className="settings__btn"
-            onClick={handleRagIngest}
-            disabled={ragIngestLoading || ragLoading}
-          >
-            {ragIngestLoading ? 'Indeksowanie…' : 'Zbuduj indeks RAG'}
-          </button>
-          <div className="settings__package-form">
-            <input
-              className="settings__input"
-              placeholder="Wersja (np. 1.0.0)"
-              value={ragVersion}
-              onChange={(e) => setRagVersion(e.target.value)}
-            />
+            <ol className="settings__package-steps">
+              <li>Dodaj pliki ({formatRagSourceExtensions()}) w menu Źródła globalne</li>
+              <li>Kliknij „Zbuduj indeks RAG”</li>
+              <li>Podaj wersję i pobierz paczkę dla klientów</li>
+            </ol>
+            {ragStatus && (
+              <dl className="settings__package-stats">
+                <div>
+                  <dt>Chunków</dt>
+                  <dd>{ragStatus.chunkCount}</dd>
+                </div>
+                <div>
+                  <dt>Plików</dt>
+                  <dd>{ragStatus.sources.length}</dd>
+                </div>
+                <div>
+                  <dt>Wersja</dt>
+                  <dd>{ragStatus.lastVersion ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Model</dt>
+                  <dd>{ragStatus.embeddingModel}</dd>
+                </div>
+              </dl>
+            )}
+            {!ragStatus?.chunkCount && (
+              <p className="settings__package-warn">
+                Indeks pusty — najpierw dodaj pliki w Źródła globalne.
+              </p>
+            )}
+          </div>
+          <div className="settings__package-actions settings__package-actions--stack">
             <button
               type="button"
               className="settings__btn"
-              onClick={handleRagExport}
-              disabled={ragLoading || !ragStatus?.chunkCount}
+              onClick={handleRagIngest}
+              disabled={ragIngestLoading || ragLoading}
             >
-              {ragLoading ? 'Eksportowanie…' : 'Pobierz paczkę RAG'}
+              {ragIngestLoading ? 'Indeksowanie…' : 'Zbuduj indeks RAG'}
             </button>
-          </div>
-        </div>
-      </article>
-
-      <details
-        className="settings__advanced"
-        open={itSectionOpen}
-        onToggle={(e) => setItSectionOpen(e.currentTarget.open)}
-      >
-        <summary className="settings__advanced-summary">Zaawansowane (IT)</summary>
-        <p className="settings__advanced-hint">
-          Paczki instalacyjne i aktualizacje dla zespołu wdrożeniowego — nie są potrzebne do codziennej
-          pracy nad bazą wiedzy.
-        </p>
-        <div className="settings__package-grid">
-          <article className="settings__package-card">
-            <div className="settings__package-body">
-              <h3 className="settings__package-title">Instalacja vendor (Teta)</h3>
-              <p className="settings__package-desc">
-                Paczka instalacyjna stanowiska vendor: skompilowana aplikacja, środowisko offline
-                oraz dokumentacja procesu budowy globalnej bazy wiedzy.
-              </p>
-            </div>
-            <div className="settings__package-actions">
+            <div className="settings__package-form">
+              <input
+                className="settings__input"
+                placeholder="Wersja (np. 1.0.0)"
+                value={ragVersion}
+                onChange={(e) => setRagVersion(e.target.value)}
+              />
               <button
                 type="button"
                 className="settings__btn"
-                onClick={handleVendorInstallExport}
-                disabled={vendorInstallLoading}
+                onClick={handleRagExport}
+                disabled={ragLoading || !ragStatus?.chunkCount}
               >
-                {vendorInstallLoading ? 'Przygotowywanie…' : 'Pobierz paczkę vendor'}
+                {ragLoading ? 'Eksportowanie…' : 'Pobierz paczkę RAG'}
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <div className="settings__package-grid">
+          <article className="settings__package-card">
+            <div className="settings__package-body">
+              <h3 className="settings__package-title">Instalacja vendor</h3>
+              <p className="settings__package-desc">
+                Stanowisko budowy globalnego RAG u Tety. <strong>Online</strong> (~100 MB) — setup
+                pobiera Node, Ollamę, Qdrant i modele z internetu. <strong>Offline</strong> (~7 GB) —
+                cała paczka bez sieci u celu.
+              </p>
+            </div>
+            <div className="settings__package-actions settings__package-actions--stack">
+              <button
+                type="button"
+                className="settings__btn"
+                onClick={handleVendorOnlineInstallExport}
+                disabled={vendorOnlineInstallLoading || vendorInstallLoading}
+              >
+                {vendorOnlineInstallLoading ? 'Przygotowywanie…' : 'Paczka vendor (online)'}
+              </button>
+              <button
+                type="button"
+                className="settings__btn settings__btn--secondary"
+                onClick={handleVendorInstallExport}
+                disabled={vendorInstallLoading || vendorOnlineInstallLoading}
+              >
+                {vendorInstallLoading ? 'Przygotowywanie…' : 'Paczka vendor (offline)'}
               </button>
             </div>
           </article>
 
           <article className="settings__package-card">
             <div className="settings__package-body">
-              <h3 className="settings__package-title">Instalacja klienta (pełna)</h3>
+              <h3 className="settings__package-title">Instalacja klienta</h3>
               <p className="settings__package-desc">
-                Wszystko naraz: aplikacja, silnik, RAG i start. Dla pustej maszyny u klienta.
+                Pełna instalacja na pustej maszynie u klienta: aplikacja (React + NestJS), silnik AI
+                (Ollama, Qdrant), import globalnego RAG i skrypt startowy — wszystko w jednym ZIP.
               </p>
             </div>
             <div className="settings__package-actions">
@@ -324,7 +340,8 @@ export function VendorPackagesPanel() {
             <div className="settings__package-body">
               <h3 className="settings__package-title">Aktualizacja aplikacji</h3>
               <p className="settings__package-desc">
-                Tylko React + NestJS. Nadpisz pliki → <code>Aktualizuj-Aplikacje.bat</code>.
+                Tylko kod aplikacji (React + NestJS) — bez zmiany Ollamy, Qdrant ani bazy RAG. Rozpakuj
+                na istniejący katalog instalacji i uruchom <code>Aktualizuj-Aplikacje.bat</code>.
               </p>
             </div>
             <div className="settings__package-actions">
@@ -341,9 +358,10 @@ export function VendorPackagesPanel() {
 
           <article className="settings__package-card">
             <div className="settings__package-body">
-              <h3 className="settings__package-title">Setup offline (silnik)</h3>
+              <h3 className="settings__package-title">Setup offline</h3>
               <p className="settings__package-desc">
-                Qdrant, Ollama, modele, pnpm store — paczka silnika offline.
+                Sam silnik offline: Qdrant, Ollama, modele embedding/czat i pnpm store. Do odświeżenia
+                infrastruktury AI u klienta bez przebudowy aplikacji.
               </p>
             </div>
             <div className="settings__package-actions">
@@ -358,7 +376,7 @@ export function VendorPackagesPanel() {
             </div>
           </article>
         </div>
-      </details>
+      </div>
     </div>
   );
 }

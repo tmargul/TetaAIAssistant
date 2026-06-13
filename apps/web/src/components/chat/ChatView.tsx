@@ -79,13 +79,29 @@ export function ChatView() {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ChatModel>('qwen3');
   const [isTyping, setIsTyping] = useState(false);
+  const [typingHint, setTypingHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, typingHint]);
+
+  useEffect(() => {
+    if (!isTyping) {
+      setTypingHint(null);
+      return;
+    }
+
+    setTypingHint('Szukam w bazie wiedzy…');
+    const slowHint = window.setTimeout(
+      () => setTypingHint('Generuję odpowiedź (zwykle 15–30 s)…'),
+      4000,
+    );
+
+    return () => window.clearTimeout(slowHint);
+  }, [isTyping]);
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
@@ -213,6 +229,7 @@ export function ChatView() {
               <div className="chat__message chat__message--assistant">
                 <div className="chat__avatar">AI</div>
                 <div className="chat__bubble">
+                  {typingHint && <p className="chat__typing-hint">{typingHint}</p>}
                   <div className="chat__typing">
                     <span />
                     <span />

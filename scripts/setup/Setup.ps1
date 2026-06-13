@@ -67,7 +67,7 @@ Ensure-Ollama
 Wait-OllamaReady
 
 if ($isVendor) {
-    Install-OllamaModels @("nomic-embed-text")
+    Install-OllamaModels @("nomic-embed-text", "qwen3")
 } else {
     Install-OllamaModels @("nomic-embed-text", "qwen3", "deepseek-r1")
 }
