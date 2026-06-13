@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
+import { execSync } from 'child_process';
+import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'fs/promises';
 import * as path from 'path';
 import { GlobalRagExportService } from './global-rag-export.service';
 import { GlobalRagService } from './global-rag.service';
@@ -31,6 +32,8 @@ export type AppUpdatePackageResult = {
   createdAt: string;
 };
 
+export type VendorDeployPackageResult = ClientDeployPackageResult;
+
 @Injectable()
 export class ClientDeployPackageService {
   private readonly logger = new Logger(ClientDeployPackageService.name);
@@ -43,6 +46,9 @@ export class ClientDeployPackageService {
 
   async buildAppUpdateZip(): Promise<AppUpdatePackageResult> {
     const repoRoot = this.offlineBundle.getRepoRoot();
+    this.logger.log('Budowanie aplikacji klienckiej (build:client) przed pakowaniem aktualizacji…');
+    execSync('pnpm run build:client', { cwd: repoRoot, stdio: 'inherit' });
+
     const stamp = Date.now();
     const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `app-update-${stamp}`);
     const appDir = path.join(stagingDir, 'TetaAIAssistant');
@@ -51,7 +57,7 @@ export class ClientDeployPackageService {
     await mkdir(appDir, { recursive: true });
 
     const appVersion = await this.readAppVersion(repoRoot);
-    await this.copyApplicationSource(repoRoot, appDir);
+    await this.copyProductionClientLayout(repoRoot, appDir);
     await this.writeAppUpdateFiles(appDir, appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
@@ -69,6 +75,9 @@ export class ClientDeployPackageService {
 
   async buildAndZip(): Promise<ClientDeployPackageResult> {
     const repoRoot = this.offlineBundle.getRepoRoot();
+    this.logger.log('Budowanie aplikacji klienckiej (build:client) przed pakowaniem instalacji…');
+    execSync('pnpm run build:client', { cwd: repoRoot, stdio: 'inherit' });
+
     const stamp = Date.now();
     const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `client-install-${stamp}`);
     const appDir = path.join(stagingDir, 'TetaAIAssistant');
@@ -86,7 +95,7 @@ export class ClientDeployPackageService {
     );
     await rm(offlineStaging, { recursive: true, force: true });
 
-    await this.copyApplicationSource(repoRoot, appDir);
+    await this.copyProductionClientLayout(repoRoot, appDir);
     await this.writeClientInstallFiles(appDir, appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
@@ -94,6 +103,43 @@ export class ClientDeployPackageService {
 
     const createdAt = new Date().toISOString();
     this.logger.log(`Paczka instalacji klienta: ${zipPath}`);
+    return {
+      zipPath,
+      filename: path.basename(zipPath),
+      appVersion,
+      createdAt,
+    };
+  }
+
+  async buildVendorInstallZip(): Promise<VendorDeployPackageResult> {
+    const repoRoot = this.offlineBundle.getRepoRoot();
+    this.logger.log('Budowanie aplikacji vendor (build:vendor) przed pakowaniem…');
+    execSync('pnpm run build:vendor', { cwd: repoRoot, stdio: 'inherit' });
+
+    const stamp = Date.now();
+    const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `vendor-install-${stamp}`);
+    const appDir = path.join(stagingDir, 'TetaAIAssistant');
+    const zipPath = path.join(repoRoot, 'data', 'vendor-packages', `teta-vendor-install-${stamp}.zip`);
+
+    await mkdir(appDir, { recursive: true });
+
+    const appVersion = await this.readAppVersion(repoRoot);
+    const offlineStaging = path.join(stagingDir, '_offline-staging');
+    await this.offlineBundle.buildToDirectory(offlineStaging);
+    await this.offlineBundle.zipDirectory(
+      offlineStaging,
+      path.join(appDir, 'offline-bundle.zip'),
+    );
+    await rm(offlineStaging, { recursive: true, force: true });
+
+    await this.copyProductionVendorLayout(repoRoot, appDir);
+    await this.writeVendorInstallFiles(appDir, appVersion);
+
+    await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
+    await rm(stagingDir, { recursive: true, force: true });
+
+    const createdAt = new Date().toISOString();
+    this.logger.log(`Paczka instalacji vendor (produkcja): ${zipPath}`);
     return {
       zipPath,
       filename: path.basename(zipPath),
@@ -168,6 +214,96 @@ export class ClientDeployPackageService {
     };
 
     await walk('');
+  }
+
+  /** Paczka vendor: skompilowana aplikacja + node_modules, bez kodu źródłowego. */
+  private async copyProductionVendorLayout(repoRoot: string, targetDir: string): Promise<void> {
+    await this.copyProductionLayout(repoRoot, targetDir, 'vendor', [
+      'apps/api/dist',
+      'apps/web/dist',
+      'packages/shared/dist',
+      'sources/global',
+      'scripts/setup',
+    ]);
+  }
+
+  /** Paczka klienta: build client — bez modułu vendor w dist API. */
+  private async copyProductionClientLayout(repoRoot: string, targetDir: string): Promise<void> {
+    await this.copyProductionLayout(repoRoot, targetDir, 'client', [
+      'apps/api/dist',
+      'apps/web/dist',
+      'packages/shared/dist',
+      'scripts/setup',
+    ]);
+  }
+
+  private async copyProductionLayout(
+    repoRoot: string,
+    targetDir: string,
+    profile: 'client' | 'vendor',
+    copyPaths: string[],
+  ): Promise<void> {
+    for (const relative of copyPaths) {
+      const source = path.join(repoRoot, relative);
+      const target = path.join(targetDir, relative);
+      await cp(source, target, { recursive: true });
+    }
+
+    const apiPkgRaw = await readFile(path.join(repoRoot, 'apps/api/package.json'), 'utf8');
+    const apiPkg = JSON.parse(apiPkgRaw) as Record<string, unknown>;
+    delete apiPkg.devDependencies;
+    await mkdir(path.join(targetDir, 'apps/api'), { recursive: true });
+    await writeFile(
+      path.join(targetDir, 'apps/api/package.json'),
+      `${JSON.stringify(apiPkg, null, 2)}\n`,
+      'utf8',
+    );
+
+    const sharedPkg = await readFile(path.join(repoRoot, 'packages/shared/package.json'), 'utf8');
+    await mkdir(path.join(targetDir, 'packages/shared'), { recursive: true });
+    await writeFile(path.join(targetDir, 'packages/shared/package.json'), sharedPkg, 'utf8');
+
+    const productionRootPkg = {
+      name: 'teta-ai-assistant',
+      version: await this.readAppVersion(repoRoot),
+      private: true,
+      description:
+        profile === 'vendor'
+          ? 'Teta AI Assistant — instalacja vendor (produkcja)'
+          : 'Teta AI Assistant — instalacja klienta (produkcja)',
+      packageManager: 'pnpm@10.28.1',
+    };
+    await writeFile(
+      path.join(targetDir, 'package.json'),
+      `${JSON.stringify(productionRootPkg, null, 2)}\n`,
+      'utf8',
+    );
+
+    await writeFile(
+      path.join(targetDir, 'pnpm-workspace.yaml'),
+      "packages:\n  - 'apps/api'\n  - 'packages/*'\n",
+      'utf8',
+    );
+
+    const nodeModulesSource = path.join(repoRoot, 'node_modules');
+    if (await this.pathExists(nodeModulesSource)) {
+      this.logger.log('Kopiowanie node_modules do paczki (może chwilę potrwać)…');
+      await cp(nodeModulesSource, path.join(targetDir, 'node_modules'), {
+        recursive: true,
+        filter: (src) => !src.includes(`${path.sep}.cache${path.sep}`),
+      });
+    } else {
+      throw new Error('Brak node_modules — uruchom pnpm install przed eksportem paczki.');
+    }
+  }
+
+  private async pathExists(filePath: string): Promise<boolean> {
+    try {
+      await stat(filePath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private async writeClientInstallFiles(appDir: string, appVersion: string): Promise<void> {
@@ -279,5 +415,69 @@ export class ClientDeployPackageService {
 
     await writeFile(path.join(appDir, 'AKTUALIZACJA-APLIKACJI.txt'), `${readme}\n`, 'utf8');
     await writeFile(path.join(appDir, 'Aktualizuj-Aplikacje.bat'), `${updateBat}\r\n`, 'utf8');
+  }
+
+  private async writeVendorInstallFiles(appDir: string, appVersion: string): Promise<void> {
+    const readme = [
+      'Teta AI Assistant — instalacja VENDOR (stanowisko budowy globalnego RAG)',
+      '',
+      `Wersja aplikacji: ${appVersion}`,
+      '',
+      'Paczka zawiera SKOMPILOWANA aplikacje (bez kodu zrodlowego).',
+      'Przeznaczenie: praca nad baza wiedzy Tety (globalny RAG), nie dla klienta koncowego.',
+      '',
+      '=== INSTALACJA ===',
+      '',
+      '1. Rozpakuj caly archiwum ZIP (np. D:\\TetaAIAssistant).',
+      '2. Kliknij prawym: Instaluj-Vendor.bat -> Uruchom jako administrator.',
+      '3. Po zakonczeniu uruchom: C:\\TetaAI\\Start-App.bat',
+      '4. Otworz przegladarke: http://localhost:3000',
+      '',
+      '=== PIERWSZE URUCHOMIENIE ===',
+      '',
+      '- Skonfiguruj polaczenie Oracle (tryb fake — symulator, bez prawdziwej bazy).',
+      '- Zarejestruj administratora: teta_admin / admin',
+      '',
+      '=== BAZA WIEDZY (dla osoby nietechnicznej) ===',
+      '',
+      'Pelna instrukcja: sources\\global\\README.md',
+      '',
+      'Skrot w aplikacji (http://localhost:3000 -> Ustawienia -> Paczki):',
+      '  1. Wrzuc pliki .txt / .md do folderu sources\\global\\ (Eksplorator Windows).',
+      '  2. Kliknij „Zbuduj indeks RAG” w panelu vendor.',
+      '  3. Kliknij „Pobierz paczke RAG” (podaj wersje, np. 1.0.0).',
+      '',
+      '=== PO ZAKONCZENIU PRACY ===',
+      '',
+      '- Pliki z sources\\global\\ przekaz zespolowi do repozytorium (git).',
+      '- Paczke global-rag-X.zip przekaz do wdrozen u klientow.',
+      '',
+      'Adresy:',
+      '   Aplikacja:  http://localhost:3000',
+      '   API:        http://localhost:3000/api/health',
+      '   Qdrant:     http://localhost:6333/dashboard',
+    ].join('\n');
+
+    const installBat = [
+      '@echo off',
+      'title Teta AI Assistant - instalacja vendor (budowa RAG)',
+      'cd /d "%~dp0"',
+      'powershell -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip"',
+      'if errorlevel 1 (',
+      '  echo.',
+      '  echo Instalacja nie powiodla sie.',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      'echo.',
+      'echo Instalacja vendor zakonczona.',
+      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat',
+      'echo Adres: http://localhost:3000',
+      'echo Instrukcja: sources\\global\\README.md',
+      'pause',
+    ].join('\r\n');
+
+    await writeFile(path.join(appDir, 'INSTALACJA-VENDOR.txt'), `${readme}\n`, 'utf8');
+    await writeFile(path.join(appDir, 'Instaluj-Vendor.bat'), `${installBat}\r\n`, 'utf8');
   }
 }

@@ -176,9 +176,20 @@ function Ensure-Pnpm {
     npm install -g pnpm
 }
 
+function Test-ProductionLayout {
+    $apiSrc = Join-Path $script:RepoRoot "apps\api\src"
+    $apiDist = Join-Path $script:RepoRoot "apps\api\dist\main.js"
+    return (-not (Test-Path $apiSrc)) -and (Test-Path $apiDist)
+}
+
 function Install-ProjectDependencies {
     Write-Step "Instalacja zaleznosci projektu (pnpm install)"
     Set-Location $script:RepoRoot
+
+    if (Test-ProductionLayout) {
+        Write-Host "  Paczka produkcyjna (skompilowana) — pomijam pnpm install" -ForegroundColor Green
+        return
+    }
 
     if ($script:OfflineMode) {
         $bundleStore = Get-BundleItem "pnpm-store"
@@ -457,12 +468,23 @@ function Write-StartAppScript([string]$InstallRoot) {
     Write-Step "Tworzenie skryptu startowego aplikacji"
     New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
 
-    $startApp = @"
+    if (Test-ProductionLayout) {
+        $startApp = @"
+@echo off
+title Teta AI Assistant
+cd /d "$script:RepoRoot\apps\api"
+set TETA_REPO_ROOT=$script:RepoRoot
+set WEB_DIST_PATH=$script:RepoRoot\apps\web\dist
+node dist\main.js
+"@
+    } else {
+        $startApp = @"
 @echo off
 title Teta AI Assistant
 cd /d "$script:RepoRoot"
 call pnpm dev
 "@
+    }
 
     $path = Join-Path $InstallRoot "Start-App.bat"
     Set-Content $path $startApp -Encoding ASCII
@@ -500,6 +522,7 @@ function Wait-ApplicationReady {
     $deadline = (Get-Date).AddMinutes(4)
     $apiOk = $false
     $webOk = $false
+    $production = Test-ProductionLayout
 
     while ((Get-Date) -lt $deadline) {
         if (-not $apiOk) {
@@ -510,11 +533,21 @@ function Wait-ApplicationReady {
             } catch { }
         }
         if (-not $webOk) {
-            try {
-                Invoke-WebRequest -Uri "http://127.0.0.1:5173" -TimeoutSec 4 -UseBasicParsing | Out-Null
-                Write-Host "  Web: OK (http://127.0.0.1:5173)" -ForegroundColor Green
-                $webOk = $true
-            } catch { }
+            if ($production) {
+                if ($apiOk) {
+                    try {
+                        Invoke-WebRequest -Uri "http://127.0.0.1:3000" -TimeoutSec 4 -UseBasicParsing | Out-Null
+                        Write-Host "  Aplikacja: OK (http://127.0.0.1:3000)" -ForegroundColor Green
+                        $webOk = $true
+                    } catch { }
+                }
+            } else {
+                try {
+                    Invoke-WebRequest -Uri "http://127.0.0.1:5173" -TimeoutSec 4 -UseBasicParsing | Out-Null
+                    Write-Host "  Web: OK (http://127.0.0.1:5173)" -ForegroundColor Green
+                    $webOk = $true
+                } catch { }
+            }
         }
         if ($apiOk -and $webOk) {
             return
@@ -522,7 +555,11 @@ function Wait-ApplicationReady {
         Start-Sleep -Seconds 4
     }
 
-    Write-Host "  Aplikacja może jeszcze się uruchamiać — sprawdź http://localhost:5173" -ForegroundColor Yellow
+    if ($production) {
+        Write-Host "  Aplikacja może jeszcze się uruchamiać — sprawdź http://localhost:3000" -ForegroundColor Yellow
+    } else {
+        Write-Host "  Aplikacja może jeszcze się uruchamiać — sprawdź http://localhost:5173" -ForegroundColor Yellow
+    }
 }
 
 function Start-Application([string]$InstallRoot) {

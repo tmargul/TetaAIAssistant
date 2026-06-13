@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { GlobalRagStatusResponse } from '@teta/shared';
+import type { GlobalRagIngestResult, GlobalRagStatusResponse } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
 
 async function downloadPackage(
@@ -45,13 +45,15 @@ export function VendorPackagesPanel() {
   const [ragStatus, setRagStatus] = useState<GlobalRagStatusResponse | null>(null);
   const [ragVersion, setRagVersion] = useState('');
   const [clientInstallLoading, setClientInstallLoading] = useState(false);
+  const [vendorInstallLoading, setVendorInstallLoading] = useState(false);
   const [appUpdateLoading, setAppUpdateLoading] = useState(false);
   const [offlineLoading, setOfflineLoading] = useState(false);
   const [ragLoading, setRagLoading] = useState(false);
+  const [ragIngestLoading, setRagIngestLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadRagStatus = () => {
     authFetch('/api/vendor/rag/status')
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -64,7 +66,54 @@ export function VendorPackagesPanel() {
         }
       })
       .catch(() => setError('Nie udało się wczytać statusu RAG globalnego.'));
+  };
+
+  useEffect(() => {
+    loadRagStatus();
   }, []);
+
+  const handleRagIngest = async () => {
+    setMessage(null);
+    setError(null);
+    setRagIngestLoading(true);
+    try {
+      const res = await authFetch('/api/vendor/rag/ingest', { method: 'POST' });
+      const result = (await res.json()) as GlobalRagIngestResult | { message?: string | string[] };
+      if (!res.ok) {
+        const msg = Array.isArray((result as { message?: string[] }).message)
+          ? (result as { message: string[] }).message.join(', ')
+          : (result as { message?: string }).message;
+        throw new Error(msg ?? `HTTP ${res.status}`);
+      }
+      const ingest = result as GlobalRagIngestResult;
+      setMessage(
+        `Indeks RAG zbudowany: ${ingest.chunkCount} chunków z ${ingest.sources.length} plików.`,
+      );
+      loadRagStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Budowa indeksu RAG nie powiodła się.');
+    } finally {
+      setRagIngestLoading(false);
+    }
+  };
+
+  const handleVendorInstallExport = async () => {
+    setMessage(null);
+    setError(null);
+    setVendorInstallLoading(true);
+    try {
+      const result = await downloadPackage('/api/vendor/packages/vendor-install/export');
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setMessage(
+        'Paczka vendor pobrana. Zawiera skompilowaną aplikację i instrukcję instalacji (INSTALACJA-VENDOR.txt).',
+      );
+    } finally {
+      setVendorInstallLoading(false);
+    }
+  };
 
   const handleClientInstallExport = async () => {
     setMessage(null);
@@ -144,7 +193,7 @@ export function VendorPackagesPanel() {
     <div className="settings__packages">
       <h2 className="settings__packages-heading">Paczki wdrożeniowe</h2>
       <p className="settings__packages-lead">
-        Przygotuj paczki do przekazania klientowi (tryb vendor).
+        Przygotuj paczki wdrożeniowe. Instalacja vendor — stanowisko do budowy globalnego RAG u Tety.
       </p>
 
       {message && <div className="settings__message settings__message--ok">{message}</div>}
@@ -153,7 +202,28 @@ export function VendorPackagesPanel() {
       <div className="settings__package-grid">
         <article className="settings__package-card">
           <div className="settings__package-body">
-            <h3 className="settings__package-title">1. Instalacja klienta (pełna)</h3>
+            <h3 className="settings__package-title">1. Instalacja vendor (Teta)</h3>
+            <p className="settings__package-desc">
+              Paczka instalacyjna stanowiska vendor: skompilowana aplikacja, środowisko offline
+              oraz dokumentacja procesu budowy globalnej bazy wiedzy (
+              <code>sources/global/README.md</code>).
+            </p>
+          </div>
+          <div className="settings__package-actions">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={handleVendorInstallExport}
+              disabled={vendorInstallLoading}
+            >
+              {vendorInstallLoading ? 'Przygotowywanie…' : 'Pobierz paczkę vendor'}
+            </button>
+          </div>
+        </article>
+
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">2. Instalacja klienta (pełna)</h3>
             <p className="settings__package-desc">
               Wszystko naraz: aplikacja, silnik, RAG i start. Dla pustej maszyny u klienta.
             </p>
@@ -172,7 +242,7 @@ export function VendorPackagesPanel() {
 
         <article className="settings__package-card">
           <div className="settings__package-body">
-            <h3 className="settings__package-title">2. Aktualizacja aplikacji</h3>
+            <h3 className="settings__package-title">3. Aktualizacja aplikacji</h3>
             <p className="settings__package-desc">
               Tylko React + NestJS. Nadpisz pliki → <code>Aktualizuj-Aplikacje.bat</code>.
             </p>
@@ -191,7 +261,7 @@ export function VendorPackagesPanel() {
 
         <article className="settings__package-card">
           <div className="settings__package-body">
-            <h3 className="settings__package-title">3. Setup offline (silnik)</h3>
+            <h3 className="settings__package-title">4. Setup offline (silnik)</h3>
             <p className="settings__package-desc">
               Qdrant, Ollama, modele, pnpm store. U klienta: <code>setup:client:offline -NoStart</code>.
             </p>
@@ -210,7 +280,7 @@ export function VendorPackagesPanel() {
 
         <article className="settings__package-card">
           <div className="settings__package-body">
-            <h3 className="settings__package-title">4. RAG globalny</h3>
+            <h3 className="settings__package-title">5. RAG globalny</h3>
             <p className="settings__package-desc">
               Eksport wektorów RAG. Import u klienta bez źródeł dokumentów Tety.
             </p>
@@ -237,6 +307,14 @@ export function VendorPackagesPanel() {
             )}
           </div>
           <div className="settings__package-actions">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={handleRagIngest}
+              disabled={ragIngestLoading || ragLoading}
+            >
+              {ragIngestLoading ? 'Indeksowanie…' : 'Zbuduj indeks RAG'}
+            </button>
             <div className="settings__package-form">
               <input
                 className="settings__input"

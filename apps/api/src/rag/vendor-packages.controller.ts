@@ -49,6 +49,17 @@ export class VendorPackagesController {
     });
   }
 
+  @Post('vendor-install/export')
+  async exportVendorInstall(@Res() res: Response): Promise<void> {
+    const result = await this.clientDeployPackage.buildVendorInstallZip();
+    res.download(result.zipPath, result.filename, (err) => {
+      void rm(result.zipPath, { force: true });
+      if (err && !res.headersSent) {
+        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji vendor.' });
+      }
+    });
+  }
+
   @Post('offline-bundle/export')
   async exportOfflineBundle(@Res() res: Response): Promise<void> {
     const result = await this.offlineBundle.buildAndZip();

@@ -6,7 +6,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "pnpm --filter @teta/shared run build && nest build",
+    "build": "node scripts/prepare-build-profile.mjs vendor && pnpm --filter @teta/shared run build && nest build",
+    "build:client": "node scripts/prepare-build-profile.mjs client && pnpm --filter @teta/shared run build && nest build -p tsconfig.build.client.json && node scripts/prepare-build-profile.mjs vendor",
+    "build:vendor": "node scripts/prepare-build-profile.mjs vendor && pnpm --filter @teta/shared run build && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "dev": "nest start --watch",

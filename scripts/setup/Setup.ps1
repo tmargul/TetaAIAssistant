@@ -92,19 +92,26 @@ Write-Host "  Ollama  - autostart przez instalator Ollama"
 Write-Host ""
 Write-Host "Uruchom aplikację:"
 Write-Host "  $InstallRoot\Start-App.bat"
-Write-Host "  lub: pnpm dev"
+if (-not (Test-ProductionLayout)) {
+    Write-Host "  lub: pnpm dev"
+}
 Write-Host ""
 Write-Host "Adresy:"
-Write-Host "  Aplikacja:  http://localhost:5173"
+if (Test-ProductionLayout) {
+    Write-Host "  Aplikacja:  http://localhost:3000"
+} else {
+    Write-Host "  Aplikacja:  http://localhost:5173"
+}
 Write-Host "  API:        http://localhost:3000/api/health"
 Write-Host "  Qdrant:     http://localhost:6333/dashboard"
 Write-Host ""
 
 if ($isVendor) {
     Write-Host "Vendor - budowa globalnego RAG:"
-    Write-Host "  1. Dodaj pliki .txt / .md do: sources\global\"
-    Write-Host "  2. pnpm rag:global:ingest --input ./sources/global"
-    Write-Host "  3. pnpm rag:global:export --version 1.0.0 --out ./dist/global-rag-1.0.0.zip"
+    Write-Host "  Pelna instrukcja: sources\global\README.md"
+    Write-Host "  1. Wrzuc pliki .txt / .md do: sources\global\"
+    Write-Host "  2. W aplikacji: Ustawienia -> Paczki -> Zbuduj indeks RAG"
+    Write-Host "  3. Pobierz paczke RAG global (wersja np. 1.0.0)"
 } else {
     Write-Host "Client - aktualizacje niezalezne (gdy system juz dziala):"
     Write-Host "  - RAG:         pnpm rag:global:import --file .\global-rag-X.zip"
@@ -116,10 +123,21 @@ if ($isVendor) {
 Write-Host ""
 Test-ServicesHealth | Out-Null
 
-if (-not $isVendor -and $Offline -and -not $NoStart) {
-    Start-Application $InstallRoot
-    Write-Host ""
-    Write-Host "Aplikacja uruchomiona:" -ForegroundColor Green
-    Write-Host "  http://localhost:5173"
-    Write-Host "  http://localhost:3000/api/health"
+if (-not $NoStart) {
+    if (-not $isVendor -and $Offline) {
+        Start-Application $InstallRoot
+        Write-Host ""
+        Write-Host "Aplikacja uruchomiona:" -ForegroundColor Green
+        if (Test-ProductionLayout) {
+            Write-Host "  http://localhost:3000"
+        } else {
+            Write-Host "  http://localhost:5173"
+        }
+        Write-Host "  http://localhost:3000/api/health"
+    } elseif ($isVendor -and (Test-ProductionLayout)) {
+        Start-Application $InstallRoot
+        Write-Host ""
+        Write-Host "Aplikacja uruchomiona:" -ForegroundColor Green
+        Write-Host "  http://localhost:3000"
+    }
 }

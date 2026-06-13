@@ -13,6 +13,37 @@ Intranetowy asystent AI dla serwerów klientów — bez wyjścia poza sieć klie
 | Wektory (RAG) | Qdrant |
 | Auth | JWT (planowane) |
 
+## Tryby: vendor vs client
+
+| Tryb | Kto | Cel |
+|------|-----|-----|
+| **vendor** | Teta — budowa wiedzy | Globalny RAG z `sources/global/` |
+| **client** | Klient intranetowy | Import paczki RAG + dokumenty lokalne |
+
+W `.env`: `TETA_APP_MODE=vendor` lub `client`.
+
+## Globalny RAG — workflow
+
+### Stanowisko kolegi (vendor)
+
+1. Wygeneruj paczkę: **Ustawienia → Paczki → Instalacja vendor (Teta)**.
+2. Kolega rozpakowuje ZIP → **`Instaluj-Vendor.bat`** (Administrator).
+3. Uruchamia **`C:\TetaAI\Start-App.bat`** → aplikacja pod **http://localhost:3000** (bez kodu źródłowego, wersja skompilowana).
+4. Instrukcja w paczce: `INSTALACJA-VENDOR.txt` oraz `sources/global/README.md`.
+5. W UI: wrzuca pliki do `sources/global/` → **Zbuduj indeks RAG** → **Pobierz paczkę RAG**.
+
+### Co wrzucić do repozytorium git
+
+| Tak | Nie |
+|-----|-----|
+| `sources/global/*.md`, `*.txt` | `data/`, `global-rag-*.zip`, katalog Qdrant `storage/` |
+
+Źródła w git — wektory generujesz przy eksporcie paczki dla klientów.
+
+### U klienta
+
+Paczka **Instalacja klienta (pełna)** importuje globalny RAG automatycznie. Aktualizacja: `Aktualizuj-RAG.bat` + nowy `global-rag-X.zip`.
+
 ## Struktura monorepo
 
 ```
@@ -22,6 +53,8 @@ TetaAIAssistant/
 │   └── web/          # React (@teta/web)
 ├── packages/
 │   └── shared/       # Wspólne typy (@teta/shared)
+├── sources/
+│   └── global/       # Źródła globalnego RAG (vendor) + README.md
 └── pnpm-workspace.yaml
 ```
 
@@ -66,6 +99,9 @@ Katalog danych wektorowych konfigurujesz w pliku `config.yaml` Qdrant po stronie
 | `pnpm dev:api` | Tylko NestJS |
 | `pnpm dev:web` | Tylko React |
 | `pnpm build` | Build wszystkich pakietów |
+| `pnpm setup:vendor` | Instalacja lokalna trybu vendor (PowerShell Admin) |
+| `pnpm rag:global:ingest` | Indeksacja `sources/global/` → Qdrant |
+| `pnpm rag:global:export` | Eksport paczki `global-rag-X.zip` |
 
 ## Kolejne kroki (MVP)
 

@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.build.json",
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts",
+    "src/rag/rag-vendor.module.ts",
+    "src/rag/rag.module.vendor.ts",
+    "src/rag/vendor-packages.controller.ts",
+    "src/rag/vendor-rag.controller.ts",
+    "src/rag/vendor-access.guard.ts",
+    "src/rag/vendor.guard.ts",
+    "src/rag/client-deploy-package.service.ts",
+    "src/rag/offline-bundle.service.ts",
+    "src/rag/global-rag-export.service.ts",
+    "src/rag/global-rag-ingest.service.ts",
+    "src/scripts/rag-global-cli.ts"
+  ]
+}

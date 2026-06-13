@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
+    "build:client": "pnpm --filter @teta/shared run build && pnpm --filter @teta/api run build:client && pnpm --filter @teta/web run build",
+    "build:vendor": "pnpm --filter @teta/shared run build && pnpm --filter @teta/api run build:vendor && pnpm --filter @teta/web run build",
     "dev:api": "pnpm --filter @teta/api run dev",
     "dev:web": "pnpm --filter @teta/web run dev",
     "lint": "pnpm -r run lint",
