@@ -9,12 +9,25 @@ import {
 } from './icons';
 import './layout.css';
 
-export type NavItem = 'dashboard' | 'chat' | 'documents' | 'history' | 'settings';
+export type NavItem =
+  | 'dashboard'
+  | 'chat'
+  | 'documents'
+  | 'globalSources'
+  | 'history'
+  | 'settings';
 
-const NAV_ITEMS: { id: NavItem; label: string; icon: FC<{ className?: string }> }[] = [
+const BASE_NAV_ITEMS: {
+  id: NavItem;
+  label: string;
+  icon: FC<{ className?: string }>;
+  vendorOnly?: boolean;
+  clientOnly?: boolean;
+}[] = [
   { id: 'dashboard', label: 'Panel', icon: IconDashboard },
   { id: 'chat', label: 'Asystent AI', icon: IconChat },
-  { id: 'documents', label: 'Dokumenty', icon: IconDocuments },
+  { id: 'globalSources', label: 'Źródła globalne', icon: IconDocuments, vendorOnly: true },
+  { id: 'documents', label: 'Dokumenty', icon: IconDocuments, clientOnly: true },
   { id: 'history', label: 'Historia', icon: IconHistory },
   { id: 'settings', label: 'Ustawienia', icon: IconSettings },
 ];
@@ -22,9 +35,15 @@ const NAV_ITEMS: { id: NavItem; label: string; icon: FC<{ className?: string }> 
 type SidebarProps = {
   active: NavItem;
   onNavigate: (item: NavItem) => void;
+  isVendorMode?: boolean;
 };
 
-export function Sidebar({ active, onNavigate }: SidebarProps) {
+export function Sidebar({ active, onNavigate, isVendorMode = false }: SidebarProps) {
+  const navItems = BASE_NAV_ITEMS.filter((item) => {
+    if (item.vendorOnly) return isVendorMode;
+    if (item.clientOnly) return !isVendorMode;
+    return true;
+  });
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -36,7 +55,7 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
       </div>
 
       <nav className="sidebar__nav">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+        {navItems.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"

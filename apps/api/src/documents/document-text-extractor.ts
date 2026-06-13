@@ -1,17 +1,22 @@
 import { readFile } from 'fs/promises';
 import * as path from 'path';
+import { convert as htmlToText } from 'html-to-text';
 import pdfParse from 'pdf-parse';
+import WordExtractor from 'word-extractor';
+import * as XLSX from 'xlsx';
 import {
-  CLIENT_RAG_SUPPORTED_EXTENSIONS,
-  isClientRagSupportedExtension,
+  RAG_SOURCE_EXTENSIONS,
+  isRagSourceExtension,
 } from '@teta/shared';
+
+const wordExtractor = new WordExtractor();
 
 export async function extractDocumentText(filePath: string, displayName: string): Promise<string> {
   const ext = path.extname(displayName).toLowerCase();
 
-  if (!isClientRagSupportedExtension(ext)) {
+  if (!isRagSourceExtension(ext)) {
     throw new Error(
-      `Nieobsługiwany format pliku: ${ext}. Dozwolone: ${CLIENT_RAG_SUPPORTED_EXTENSIONS.join(', ')}`,
+      `Nieobsługiwany format pliku: ${ext}. Dozwolone: ${RAG_SOURCE_EXTENSIONS.join(', ')}`,
     );
   }
 
@@ -21,8 +26,64 @@ export async function extractDocumentText(filePath: string, displayName: string)
     return normalizeExtractedText(parsed.text);
   }
 
+  if (ext === '.doc' || ext === '.docx') {
+    const extracted = await wordExtractor.extract(filePath);
+    return normalizeExtractedText(extracted.getBody());
+  }
+
+  if (ext === '.xls' || ext === '.xlsx') {
+    return extractSpreadsheetText(filePath);
+  }
+
+  if (ext === '.html' || ext === '.htm') {
+    const html = await readFile(filePath, 'utf8');
+    return normalizeExtractedText(
+      htmlToText(html, {
+        wordwrap: false,
+        selectors: [
+          { selector: 'a', options: { ignoreHref: true } },
+          { selector: 'img', format: 'skip' },
+          { selector: 'script', format: 'skip' },
+          { selector: 'style', format: 'skip' },
+        ],
+      }),
+    );
+  }
+
   const content = await readFile(filePath, 'utf8');
   return normalizeExtractedText(content);
+}
+
+async function extractSpreadsheetText(filePath: string): Promise<string> {
+  const buffer = await readFile(filePath);
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const parts: string[] = [];
+
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) continue;
+
+    const rows = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
+      header: 1,
+      defval: '',
+      blankrows: false,
+    });
+
+    const lines = rows
+      .map((row) =>
+        row
+          .map((cell) => (cell === null || cell === undefined ? '' : String(cell).trim()))
+          .filter(Boolean)
+          .join('\t'),
+      )
+      .filter(Boolean);
+
+    if (lines.length > 0) {
+      parts.push(`# ${sheetName}\n${lines.join('\n')}`);
+    }
+  }
+
+  return normalizeExtractedText(parts.join('\n\n'));
 }
 
 function normalizeExtractedText(text: string): string {

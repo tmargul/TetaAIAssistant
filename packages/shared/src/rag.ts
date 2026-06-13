@@ -6,11 +6,72 @@ export const DEFAULT_EMBEDDING_DIMENSIONS = 768;
 export const GLOBAL_RAG_COLLECTION = 'teta_global';
 export const CLIENT_RAG_COLLECTION = 'teta_client';
 
-export const CLIENT_RAG_SUPPORTED_EXTENSIONS = ['.txt', '.md', '.pdf'] as const;
-export type ClientRagSupportedExtension = (typeof CLIENT_RAG_SUPPORTED_EXTENSIONS)[number];
+export const RAG_SOURCE_EXTENSIONS = [
+  '.txt',
+  '.md',
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.csv',
+  '.xls',
+  '.xlsx',
+  '.html',
+  '.htm',
+] as const;
+export type RagSourceExtension = (typeof RAG_SOURCE_EXTENSIONS)[number];
+
+/** Wspólna lista formatów dla RAG globalnego i RAG klienta. */
+export const CLIENT_RAG_SUPPORTED_EXTENSIONS = RAG_SOURCE_EXTENSIONS;
+export type ClientRagSupportedExtension = RagSourceExtension;
+
+export const GLOBAL_RAG_SUPPORTED_EXTENSIONS = RAG_SOURCE_EXTENSIONS;
+export type GlobalRagSupportedExtension = RagSourceExtension;
+
+const RAG_SOURCE_MIME_TYPES = [
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'text/html',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+] as const;
+
+/** Wartość atrybutu `accept` dla input[type=file] w UI. */
+export function getRagSourceFileAccept(): string {
+  return [...RAG_SOURCE_EXTENSIONS, ...RAG_SOURCE_MIME_TYPES].join(',');
+}
+
+/** Etykieta formatów do komunikatów (np. „.txt, .md, .pdf”). */
+export function formatRagSourceExtensions(separator = ', '): string {
+  return RAG_SOURCE_EXTENSIONS.join(separator);
+}
+
+export function isRagSourceExtension(ext: string): ext is RagSourceExtension {
+  return (RAG_SOURCE_EXTENSIONS as readonly string[]).includes(ext);
+}
 
 export function isClientRagSupportedExtension(ext: string): ext is ClientRagSupportedExtension {
-  return (CLIENT_RAG_SUPPORTED_EXTENSIONS as readonly string[]).includes(ext);
+  return isRagSourceExtension(ext);
+}
+
+export function isGlobalRagSupportedExtension(ext: string): ext is GlobalRagSupportedExtension {
+  return isRagSourceExtension(ext);
+}
+
+export interface GlobalSourceFileRecord {
+  name: string;
+  sizeBytes: number;
+  modifiedAt: string;
+  protected: boolean;
+  indexed: boolean;
+}
+
+export interface GlobalSourcesListResponse {
+  directory: string;
+  files: GlobalSourceFileRecord[];
 }
 
 export type AppMode = 'vendor' | 'client';

@@ -5,16 +5,22 @@ Ten katalog służy do budowy **globalnego RAG** (`teta_global` w Qdrant). Mater
 ## Twoja rola
 
 1. Zbierasz dokumenty szkoleniowe, FAQ, procedury, opisy modułów Tety.
-2. Wrzucasz je tutaj jako pliki **`.txt`** lub **`.md`** (Eksplorator Windows).
+2. Wrzucasz je tutaj w aplikacji (**Źródła globalne**) lub w tym folderze — obsługiwane formaty jak w RAG klienta (txt, md, pdf, doc, docx, csv, xls, xlsx, html).
 3. W aplikacji budujesz indeks i pobierasz paczkę dla klientów.
 
 **Nie musisz znać programowania** — wszystko robisz w przeglądarce i w tym folderze.
 
 ## Co wrzucać tutaj
 
+Obsługiwane formaty (takie same jak w RAG klienta):
+
+**`.txt` · `.md` · `.pdf` · `.doc` · `.docx` · `.csv` · `.xls` · `.xlsx` · `.html` · `.htm`**
+
 | Tak | Nie (na razie) |
 |-----|----------------|
-| `.txt`, `.md` z treścią szkoleniową | Filmy `.mp4` — wrzuć **transkrypt** jako `.txt` / `.md` |
+| Dokumenty i arkusze w formatach powyżej | Filmy `.mp4` — wrzuć **transkrypt** jako `.txt` / `.md` |
+| Eksport FAQ/procedur z Excela (`.xlsx`, `.csv`) | Surowe dumpy bazy Oracle |
+| Zapisane strony szkoleniowe (`.html`) | Prezentacje `.pptx` (na razie — zapisz jako PDF) |
 | FAQ, procedury, słownik pojęć Tety | Surowe dumpy bazy Oracle |
 
 **Wskazówka:** jeden temat = jeden plik.
@@ -24,8 +30,8 @@ Ten katalog służy do budowy **globalnego RAG** (`teta_global` w Qdrant). Mater
 Po instalacji (`Instaluj-Vendor.bat`) otwórz **http://localhost:3000**
 
 1. Skonfiguruj Oracle (symulator fake) i zarejestruj admina: `teta_admin` / `admin`
-2. Wejdź w **Ustawienia → Paczki**
-3. Wrzuć pliki do tego folderu: `sources\global\`
+2. Wejdź w **Źródła globalne** — dodaj pliki (txt, md, pdf, doc, docx, csv, xls, xlsx, html)
+3. Wejdź w **Ustawienia → Paczki**
 4. Kliknij **„Zbuduj indeks RAG”**
 5. Podaj wersję (np. `1.0.0`) i kliknij **„Pobierz paczkę RAG”**
 

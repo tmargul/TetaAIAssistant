@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { execSync } from 'child_process';
 import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'fs/promises';
 import * as path from 'path';
+import { formatRagSourceExtensions } from '@teta/shared';
 import { GlobalRagExportService } from './global-rag-export.service';
 import { GlobalRagService } from './global-rag.service';
 import { OfflineBundleService } from './offline-bundle.service';
@@ -442,8 +443,8 @@ export class ClientDeployPackageService {
       '',
       'Pelna instrukcja: sources\\global\\README.md',
       '',
-      'Skrot w aplikacji (http://localhost:3000 -> Ustawienia -> Paczki):',
-      '  1. Wrzuc pliki .txt / .md do folderu sources\\global\\ (Eksplorator Windows).',
+      'Skrot w aplikacji (http://localhost:3000 -> Zrodla globalne / Ustawienia -> Paczki):',
+      `  1. Dodaj pliki (${formatRagSourceExtensions()}) w menu Zrodla globalne lub w sources\\global\\.`,
       '  2. Kliknij „Zbuduj indeks RAG” w panelu vendor.',
       '  3. Kliknij „Pobierz paczke RAG” (podaj wersje, np. 1.0.0).',
       '',

@@ -9,10 +9,10 @@ import { randomUUID } from 'crypto';
 import { mkdir, readFile, rm, writeFile } from 'fs/promises';
 import * as path from 'path';
 import {
-  CLIENT_RAG_SUPPORTED_EXTENSIONS,
+  formatRagSourceExtensions,
   type ClientRagStatusResponse,
   type RagDocumentRecord,
-  isClientRagSupportedExtension,
+  isRagSourceExtension,
 } from '@teta/shared';
 import { DatabaseService } from '../database/database.service';
 import { EmbeddingService } from '../rag/embedding.service';
@@ -112,9 +112,9 @@ export class DocumentsService {
     }
 
     const ext = path.extname(file.originalname).toLowerCase();
-    if (!isClientRagSupportedExtension(ext)) {
+    if (!isRagSourceExtension(ext)) {
       throw new BadRequestException(
-        `Dozwolone formaty: ${CLIENT_RAG_SUPPORTED_EXTENSIONS.join(', ')}`,
+        `Dozwolone formaty: ${formatRagSourceExtensions()}`,
       );
     }
 
@@ -141,7 +141,7 @@ export class DocumentsService {
       .run(
         file.originalname,
         storageName,
-        file.mimetype || (ext === '.pdf' ? 'application/pdf' : 'text/plain'),
+        file.mimetype || mimeTypeForExtension(ext),
         file.size,
         storagePath,
         uploadedBy,
@@ -248,5 +248,27 @@ export class DocumentsService {
       createdAt: row.created_at,
       indexedAt: row.indexed_at,
     };
+  }
+}
+
+function mimeTypeForExtension(ext: string): string {
+  switch (ext) {
+    case '.pdf':
+      return 'application/pdf';
+    case '.doc':
+      return 'application/msword';
+    case '.docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case '.csv':
+      return 'text/csv';
+    case '.xls':
+      return 'application/vnd.ms-excel';
+    case '.xlsx':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case '.html':
+    case '.htm':
+      return 'text/html';
+    default:
+      return 'text/plain';
   }
 }

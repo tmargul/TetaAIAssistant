@@ -3,6 +3,7 @@ import {
   DEFAULT_EMBEDDING_DIMENSIONS,
   DEFAULT_EMBEDDING_MODEL,
   GLOBAL_RAG_COLLECTION,
+  RAG_SOURCE_EXTENSIONS,
 } from '@teta/shared';
 
 export const RAG_CONSTANTS = {
@@ -12,5 +13,5 @@ export const RAG_CONSTANTS = {
   embeddingDimensions: DEFAULT_EMBEDDING_DIMENSIONS,
   chunkSizeChars: 2000,
   chunkOverlapChars: 200,
-  supportedExtensions: ['.txt', '.md'] as const,
+  supportedExtensions: RAG_SOURCE_EXTENSIONS,
 };

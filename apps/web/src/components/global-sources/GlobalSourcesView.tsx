@@ -3,12 +3,13 @@ import {
   formatRagSourceExtensions,
   getRagSourceFileAccept,
   isRagSourceExtension,
-  type ClientRagStatusResponse,
-  type RagDocumentRecord,
+  type GlobalRagStatusResponse,
+  type GlobalSourceFileRecord,
+  type GlobalSourcesListResponse,
 } from '@teta/shared';
 import { useAuth } from '../../context/AuthContext';
 import { authFetch, getAccessToken } from '../../lib/auth-storage';
-import './documents.css';
+import '../documents/documents.css';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -16,73 +17,63 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return '—';
+function formatDate(value: string): string {
   return new Date(value).toLocaleString('pl-PL');
 }
 
-function statusLabel(status: RagDocumentRecord['status']): string {
-  switch (status) {
-    case 'indexed':
-      return 'Zaindeksowany';
-    case 'processing':
-      return 'Indeksowanie…';
-    case 'failed':
-      return 'Błąd';
-    default:
-      return 'Oczekuje';
-  }
-}
-
-async function uploadDocumentFile(file: File): Promise<RagDocumentRecord> {
+async function uploadSourceFile(file: File): Promise<GlobalSourceFileRecord> {
   const form = new FormData();
   form.append('file', file);
   const headers = new Headers();
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const res = await fetch('/api/documents/upload', {
+  const res = await fetch('/api/vendor/rag/sources/upload', {
     method: 'POST',
     body: form,
     headers,
   });
 
-  const data = (await res.json()) as { document?: RagDocumentRecord; message?: string | string[] };
+  const data = (await res.json()) as GlobalSourceFileRecord & { message?: string | string[] };
   if (!res.ok) {
     const message = Array.isArray(data.message) ? data.message.join(', ') : data.message;
     throw new Error(message ?? `HTTP ${res.status}`);
   }
-  if (!data.document) {
-    throw new Error('Nieprawidłowa odpowiedź serwera.');
-  }
-  return data.document;
+  return data;
 }
 
-export function DocumentsView() {
+export function GlobalSourcesView() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [documents, setDocuments] = useState<RagDocumentRecord[]>([]);
-  const [status, setStatus] = useState<ClientRagStatusResponse | null>(null);
+  const [sources, setSources] = useState<GlobalSourceFileRecord[]>([]);
+  const [directory, setDirectory] = useState('');
+  const [ragStatus, setRagStatus] = useState<GlobalRagStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [actionId, setActionId] = useState<number | null>(null);
+  const [actionName, setActionName] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const [docsRes, statusRes] = await Promise.all([
-      authFetch('/api/documents'),
-      authFetch('/api/documents/status'),
+    const [sourcesRes, statusRes] = await Promise.all([
+      authFetch('/api/vendor/rag/sources'),
+      authFetch('/api/vendor/rag/status'),
     ]);
-    if (docsRes.ok) setDocuments(await docsRes.json());
-    if (statusRes.ok) setStatus(await statusRes.json());
+    if (sourcesRes.ok) {
+      const data = (await sourcesRes.json()) as GlobalSourcesListResponse;
+      setSources(data.files);
+      setDirectory(data.directory);
+    }
+    if (statusRes.ok) {
+      setRagStatus(await statusRes.json());
+    }
   }, []);
 
   useEffect(() => {
     loadData()
-      .catch(() => setError('Nie udało się wczytać dokumentów RAG.'))
+      .catch(() => setError('Nie udało się wczytać źródeł globalnych RAG.'))
       .finally(() => setLoading(false));
   }, [loadData]);
 
@@ -110,12 +101,12 @@ export function DocumentsView() {
 
     try {
       for (const file of list) {
-        await uploadDocumentFile(file);
+        await uploadSourceFile(file);
       }
       setMessage(
         list.length === 1
-          ? `Dodano i zaindeksowano: ${list[0].name}`
-          : `Dodano i zaindeksowano ${list.length} dokumentów.`,
+          ? `Dodano plik: ${list[0].name}`
+          : `Dodano ${list.length} plików do bazy wiedzy.`,
       );
       await loadData();
     } catch (err) {
@@ -127,62 +118,51 @@ export function DocumentsView() {
     }
   };
 
-  const handleDelete = async (doc: RagDocumentRecord) => {
-    if (!window.confirm(`Usunąć dokument „${doc.originalName}" z bazy RAG?`)) return;
-    setActionId(doc.id);
+  const handleDelete = async (file: GlobalSourceFileRecord) => {
+    if (file.protected) return;
+    if (!window.confirm(`Usunąć plik „${file.name}" z katalogu źródeł?`)) return;
+
+    setActionName(file.name);
     setMessage(null);
     setError(null);
     try {
-      const res = await authFetch(`/api/documents/${doc.id}`, { method: 'DELETE' });
+      const res = await authFetch(
+        `/api/vendor/rag/sources?path=${encodeURIComponent(file.name)}`,
+        { method: 'DELETE' },
+      );
       if (!res.ok) {
         const data = (await res.json()) as { message?: string };
         throw new Error(data.message ?? `HTTP ${res.status}`);
       }
-      setMessage(`Usunięto: ${doc.originalName}`);
+      setMessage(`Usunięto: ${file.name}`);
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Usuwanie nie powiodło się.');
     } finally {
-      setActionId(null);
+      setActionName(null);
     }
   };
 
-  const handleReindex = async (doc: RagDocumentRecord) => {
-    setActionId(doc.id);
-    setMessage(null);
-    setError(null);
-    try {
-      const res = await authFetch(`/api/documents/${doc.id}/reindex`, { method: 'POST' });
-      const data = (await res.json()) as RagDocumentRecord & { message?: string };
-      if (!res.ok) throw new Error(data.message ?? `HTTP ${res.status}`);
-      setMessage(`Ponownie zaindeksowano: ${doc.originalName}`);
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Indeksacja nie powiodła się.');
-      await loadData();
-    } finally {
-      setActionId(null);
-    }
-  };
+  const editableFiles = sources.filter((f) => !f.protected);
 
   return (
     <div className="documents">
       <div className="documents__stats">
         <div className="documents__stat">
-          <span className="documents__stat-label">Dokumenty klienta</span>
-          <strong>{status?.documentCount ?? '…'}</strong>
+          <span className="documents__stat-label">Pliki źródłowe</span>
+          <strong>{editableFiles.length}</strong>
         </div>
         <div className="documents__stat">
-          <span className="documents__stat-label">Zaindeksowane</span>
-          <strong>{status?.indexedDocumentCount ?? '…'}</strong>
-        </div>
-        <div className="documents__stat">
-          <span className="documents__stat-label">Chunków (klient)</span>
-          <strong>{status?.chunkCount ?? '…'}</strong>
+          <span className="documents__stat-label">W indeksie RAG</span>
+          <strong>{ragStatus?.sources.length ?? '…'}</strong>
         </div>
         <div className="documents__stat">
           <span className="documents__stat-label">Chunków (global)</span>
-          <strong>{status?.globalChunkCount ?? '…'}</strong>
+          <strong>{ragStatus?.chunkCount ?? '…'}</strong>
+        </div>
+        <div className="documents__stat">
+          <span className="documents__stat-label">Ostatnia wersja</span>
+          <strong>{ragStatus?.lastVersion ?? '—'}</strong>
         </div>
       </div>
 
@@ -221,81 +201,86 @@ export function DocumentsView() {
           />
           <p className="documents__dropzone-title">
             {uploading
-              ? 'Indeksowanie dokumentu…'
+              ? 'Zapisywanie plików…'
               : `Upuść pliki ${formatRagSourceExtensions(' / ')} lub kliknij, aby wybrać`}
           </p>
           <p className="documents__dropzone-hint">
-            Dokumenty trafiają do lokalnej bazy RAG klienta ({status?.collection ?? 'teta_client'}).
-            Model: {status?.embeddingModel ?? 'nomic-embed-text'}.
+            Pliki trafiają do katalogu źródeł globalnego RAG. Po dodaniu materiałów przejdź do{' '}
+            <strong>Ustawienia → Paczki</strong> i kliknij <strong>Zbuduj indeks RAG</strong>.
+            {directory && (
+              <>
+                {' '}
+                Katalog: <code>{directory}</code>
+              </>
+            )}
           </p>
         </div>
       )}
 
       {!isAdmin && (
         <p className="documents__readonly-hint">
-          Tylko administrator może dodawać i usuwać dokumenty. Poniżej lista zaindeksowanych plików.
+          Tylko administrator może dodawać i usuwać pliki źródłowe. Poniżej lista materiałów.
         </p>
       )}
 
       <section className="panel documents__panel">
-        <h2 className="panel__title">Dokumenty w indeksie RAG</h2>
+        <h2 className="panel__title">Materiały w katalogu źródeł</h2>
         {loading ? (
           <p className="documents__empty">Ładowanie…</p>
         ) : (
           <table className="documents__table">
             <thead>
               <tr>
-                <th>Nazwa</th>
-                <th>Status</th>
-                <th>Chunków</th>
+                <th>Nazwa pliku</th>
+                <th>W indeksie</th>
                 <th>Rozmiar</th>
-                <th>Dodany</th>
-                <th>Autor</th>
+                <th>Ostatnia zmiana</th>
                 {isAdmin && <th />}
               </tr>
             </thead>
             <tbody>
-              {documents.map((doc) => (
-                <tr key={doc.id}>
-                  <td>{doc.originalName}</td>
+              {sources.map((file) => (
+                <tr key={file.name}>
+                  <td>
+                    {file.name}
+                    {file.protected && (
+                      <span className="documents__badge documents__badge--indexed" title="Plik instrukcji">
+                        {' '}
+                        instrukcja
+                      </span>
+                    )}
+                  </td>
                   <td>
                     <span
-                      className={`documents__badge documents__badge--${doc.status}`}
-                      title={doc.errorMessage ?? undefined}
+                      className={`documents__badge documents__badge--${
+                        file.indexed ? 'indexed' : 'pending'
+                      }`}
                     >
-                      {statusLabel(doc.status)}
+                      {file.indexed ? 'Tak' : 'Nie'}
                     </span>
                   </td>
-                  <td>{doc.chunkCount}</td>
-                  <td>{formatBytes(doc.sizeBytes)}</td>
-                  <td>{formatDate(doc.createdAt)}</td>
-                  <td>{doc.uploaderName ?? '—'}</td>
+                  <td>{formatBytes(file.sizeBytes)}</td>
+                  <td>{formatDate(file.modifiedAt)}</td>
                   {isAdmin && (
                     <td className="documents__actions">
-                      <button
-                        type="button"
-                        className="documents__action-btn"
-                        disabled={actionId === doc.id || uploading}
-                        onClick={() => handleReindex(doc)}
-                      >
-                        Reindex
-                      </button>
-                      <button
-                        type="button"
-                        className="documents__action-btn documents__action-btn--danger"
-                        disabled={actionId === doc.id || uploading}
-                        onClick={() => handleDelete(doc)}
-                      >
-                        Usuń
-                      </button>
+                      {!file.protected && (
+                        <button
+                          type="button"
+                          className="documents__action-btn documents__action-btn--danger"
+                          disabled={actionName === file.name || uploading}
+                          onClick={() => handleDelete(file)}
+                        >
+                          Usuń
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>
               ))}
-              {documents.length === 0 && (
+              {sources.length === 0 && (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="documents__empty">
-                    Brak dokumentów w lokalnym indeksie RAG.
+                  <td colSpan={isAdmin ? 5 : 4} className="documents__empty">
+                    Brak plików — dodaj materiały szkoleniowe ({formatRagSourceExtensions()}).
                   </td>
                 </tr>
               )}

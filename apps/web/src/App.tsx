@@ -6,6 +6,7 @@ import { AppShell } from './components/layout/AppShell';
 import { AuthGate } from './components/auth/AuthGate';
 import { OracleSetupGate } from './components/oracle/OracleSetupGate';
 import { DocumentsView } from './components/documents/DocumentsView';
+import { GlobalSourcesView } from './components/global-sources/GlobalSourcesView';
 import { AdminSettingsView } from './components/settings/AdminSettingsView';
 import type { NavItem } from './components/layout/Sidebar';
 import './components/layout/layout.css';
@@ -21,7 +22,11 @@ const PAGE_META: Record<NavItem, { title: string; subtitle: string }> = {
   },
   documents: {
     title: 'Dokumenty',
-    subtitle: 'Baza wiedzy RAG — Qdrant',
+    subtitle: 'Baza wiedzy RAG klienta — Qdrant',
+  },
+  globalSources: {
+    title: 'Źródła globalne',
+    subtitle: 'Materiały szkoleniowe do globalnego RAG (teta_global)',
   },
   history: {
     title: 'Historia',
@@ -153,6 +158,7 @@ function PlaceholderView({ title, description }: { title: string; description: s
 export default function App() {
   const [activeNav, setActiveNav] = useState<NavItem>('dashboard');
   const { health, error } = useSystemHealth();
+  const isVendorMode = health?.appMode === 'vendor' && health?.vendorEnabled;
 
   const meta = PAGE_META[activeNav];
 
@@ -164,10 +170,12 @@ export default function App() {
         onNavigate={setActiveNav}
         title={meta.title}
         subtitle={meta.subtitle}
+        isVendorMode={isVendorMode}
       >
         {activeNav === 'dashboard' && <DashboardView health={health} error={error} />}
         {activeNav === 'chat' && <ChatView />}
-        {activeNav === 'documents' && <DocumentsView />}
+        {activeNav === 'documents' && !isVendorMode && <DocumentsView />}
+        {activeNav === 'globalSources' && isVendorMode && <GlobalSourcesView />}
         {activeNav === 'history' && (
           <PlaceholderView
             title="Historia"

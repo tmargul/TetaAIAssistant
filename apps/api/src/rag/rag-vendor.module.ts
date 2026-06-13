@@ -3,6 +3,7 @@ import { AuthModule } from '../auth/auth.module';
 import { ClientDeployPackageService } from './client-deploy-package.service';
 import { GlobalRagExportService } from './global-rag-export.service';
 import { GlobalRagIngestService } from './global-rag-ingest.service';
+import { GlobalSourcesService } from './global-sources.service';
 import { OfflineBundleService } from './offline-bundle.service';
 import { RagCoreModule } from './rag-core.module';
 import { VendorAccessGuard } from './vendor-access.guard';
@@ -15,6 +16,7 @@ import { VendorGuard } from './vendor.guard';
   controllers: [VendorRagController, VendorPackagesController],
   providers: [
     GlobalRagIngestService,
+    GlobalSourcesService,
     GlobalRagExportService,
     ClientDeployPackageService,
     OfflineBundleService,

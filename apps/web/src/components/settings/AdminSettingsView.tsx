@@ -233,9 +233,10 @@ export function AdminSettingsView() {
           <>
             <h2 className="panel__title">Połączenie z bazą Oracle</h2>
             <p className="settings__hint">
-              Parametry połączenia z bazą Teta (host, SID, login techniczny). Zmiany są zapisywane
-              lokalnie i wymagają pomyślnego testu połączenia. Hasło można pozostawić puste, aby
-              zachować dotychczasowe.
+              Parametry połączenia z bazą Teta (host, SID, login techniczny). Administrator może je
+              zmienić w każdej chwili — np. przejść z symulatora (fake) na prawdziwy serwer klienta.
+              Zmiany są zapisywane lokalnie i wymagają pomyślnego testu połączenia. Hasło można
+              pozostawić puste, aby zachować dotychczasowe.
             </p>
             <OracleConnectionForm
               variant="settings"

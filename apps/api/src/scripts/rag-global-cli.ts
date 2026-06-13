@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { formatRagSourceExtensions } from '@teta/shared';
 import { AppModule } from '../app.module';
 import { assertVendorEnabled } from '../rag/vendor-auth';
 import { GlobalRagExportService } from '../rag/global-rag-export.service';
@@ -50,7 +51,7 @@ async function main(): Promise<void> {
     if (command === 'ingest') {
       const input = args.input;
       if (!input) {
-        throw new Error('Podaj --input <katalog> z dokumentami .txt / .md');
+        throw new Error(`Podaj --input <katalog> z dokumentami (${formatRagSourceExtensions()})`);
       }
       const ingest = app.get(GlobalRagIngestService);
       const result = await ingest.ingestFromDirectory(input);

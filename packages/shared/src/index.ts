@@ -41,6 +41,8 @@ export type {
   GlobalRagImportResult,
   GlobalRagIngestResult,
   GlobalRagStatusResponse,
+  GlobalSourceFileRecord,
+  GlobalSourcesListResponse,
   RagDocumentRecord,
   RagDocumentStatus,
   RagDocumentUploadResponse,
@@ -55,11 +57,21 @@ export {
   DEFAULT_EMBEDDING_DIMENSIONS,
   DEFAULT_EMBEDDING_MODEL,
   GLOBAL_RAG_COLLECTION,
+  GLOBAL_RAG_SUPPORTED_EXTENSIONS,
   RAG_PACK_FORMAT,
+  RAG_SOURCE_EXTENSIONS,
+  getRagSourceFileAccept,
+  formatRagSourceExtensions,
   isClientRagSupportedExtension,
+  isGlobalRagSupportedExtension,
+  isRagSourceExtension,
 } from './rag.js';
 
-export type { ClientRagSupportedExtension } from './rag.js';
+export type {
+  ClientRagSupportedExtension,
+  GlobalRagSupportedExtension,
+  RagSourceExtension,
+} from './rag.js';
 
 export type {
   OracleConnectionConfig,
