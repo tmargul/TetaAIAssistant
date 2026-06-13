@@ -15,7 +15,8 @@ export interface OracleConnectionConfig {
 }
 
 export interface OracleConnectionInput extends OracleConnectionConfig {
-  password: string;
+  /** Puste przy edycji — zachowane zostanie dotychczasowe hasło. */
+  password?: string;
 }
 
 export interface OracleConnectionStatusResponse {

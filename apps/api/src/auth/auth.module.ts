@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { OracleModule } from '../oracle/oracle.module';
@@ -11,7 +11,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 @Module({
   imports: [
     UsersModule,
-    OracleModule,
+    forwardRef(() => OracleModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

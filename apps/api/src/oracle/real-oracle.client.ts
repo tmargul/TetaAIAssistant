@@ -16,7 +16,7 @@ export class RealOracleClient implements OracleClient {
     try {
       const connection = await oracledb.getConnection({
         user: input.username,
-        password: input.password,
+        password: input.password ?? '',
         connectString,
       });
 
@@ -86,13 +86,13 @@ export class RealOracleClient implements OracleClient {
     connectString: string,
     fn: (connection: import('oracledb').Connection) => Promise<T>,
   ): Promise<T> {
-    const connection = await oracledb.getConnection({
-      user: username.trim(),
-      password,
-      connectString,
-    });
-
+    let connection: import('oracledb').Connection | undefined;
     try {
+      connection = await oracledb.getConnection({
+        user: username.trim(),
+        password,
+        connectString,
+      });
       return await fn(connection);
     } catch (err: unknown) {
       if (err instanceof BadRequestException || err instanceof InternalServerErrorException) {
@@ -100,7 +100,9 @@ export class RealOracleClient implements OracleClient {
       }
       throw new BadRequestException(this.formatOracleError(err));
     } finally {
-      await connection.close();
+      if (connection) {
+        await connection.close();
+      }
     }
   }
 

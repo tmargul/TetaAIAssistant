@@ -64,19 +64,21 @@ export class OracleConnectionService {
   }
 
   async testConnection(input: OracleConnectionInput): Promise<OracleTestConnectionResponse> {
-    this.validateInput(input);
-    const connectString = this.buildConnectString(input);
-    return this.oracleClient.testConnection(input, connectString);
+    const resolved = this.resolveInputWithPassword(input);
+    this.validateInput(resolved);
+    const connectString = this.buildConnectString(resolved);
+    return this.oracleClient.testConnection(resolved, connectString);
   }
 
   async saveConnection(input: OracleConnectionInput): Promise<OracleConnectionStatusResponse> {
-    const test = await this.testConnection(input);
+    const resolved = this.resolveInputWithPassword(input);
+    const test = await this.testConnection(resolved);
     if (!test.success) {
       throw new BadRequestException(test.message);
     }
 
     const secret = this.getEncryptionSecret();
-    const encrypted = encryptSecret(input.password, secret);
+    const encrypted = encryptSecret(resolved.password!, secret);
     const now = new Date().toISOString();
 
     this.db.connection
@@ -104,12 +106,25 @@ export class OracleConnectionService {
         identifier_type: input.identifierType ?? null,
         identifier: input.identifier ?? null,
         tns_alias: input.tnsAlias ?? null,
-        username: input.username,
+        username: resolved.username,
         password_encrypted: encrypted,
         updated_at: now,
       });
 
     return this.getStatus();
+  }
+
+  private resolveInputWithPassword(input: OracleConnectionInput): OracleConnectionInput & { password: string } {
+    if (input.password?.trim()) {
+      return { ...input, password: input.password };
+    }
+
+    const stored = this.getStoredPassword();
+    if (stored) {
+      return { ...input, password: stored };
+    }
+
+    throw new BadRequestException('Podaj hasło.');
   }
 
   getStoredPassword(): string | null {
@@ -192,7 +207,7 @@ export class OracleConnectionService {
     if (!input.username?.trim()) {
       throw new BadRequestException('Podaj login użytkownika.');
     }
-    if (!input.password) {
+    if (!input.password?.trim()) {
       throw new BadRequestException('Podaj hasło.');
     }
 

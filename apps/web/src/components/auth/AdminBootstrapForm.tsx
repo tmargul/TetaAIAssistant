@@ -5,9 +5,10 @@ import '../oracle/oracle-setup.css';
 
 type AdminBootstrapFormProps = {
   onSuccess: (response: LoginResponse) => void;
+  onOpenOracleRecovery?: () => void;
 };
 
-export function AdminBootstrapForm({ onSuccess }: AdminBootstrapFormProps) {
+export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBootstrapFormProps) {
   const [form, setForm] = useState<LoginRequest>({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +110,18 @@ export function AdminBootstrapForm({ onSuccess }: AdminBootstrapFormProps) {
               {loading ? 'Weryfikacja…' : 'Zarejestruj administratora'}
             </button>
           </div>
+
+          {onOpenOracleRecovery && (
+            <p className="oracle-setup__footer">
+              <button
+                type="button"
+                className="oracle-setup__link"
+                onClick={onOpenOracleRecovery}
+              >
+                Problemy z połączeniem? Zmień parametry Oracle
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

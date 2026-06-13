@@ -4,9 +4,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useSystemHealth } from '../../hooks/useSystemHealth';
 import { authFetch } from '../../lib/auth-storage';
 import { VendorPackagesPanel } from './VendorPackagesPanel';
+import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
 import './settings.css';
 
-type SettingsTab = 'users' | 'servers' | 'packages';
+type SettingsTab = 'users' | 'servers' | 'oracle' | 'packages';
 
 export function AdminSettingsView() {
   const { user } = useAuth();
@@ -128,6 +129,13 @@ export function AdminSettingsView() {
         >
           Serwery dostępne dla użytkowników
         </button>
+        <button
+          type="button"
+          className={`settings__tab${activeTab === 'oracle' ? ' settings__tab--active' : ''}`}
+          onClick={() => setActiveTab('oracle')}
+        >
+          Połączenie Oracle
+        </button>
         {isVendorMode && (
           <button
             type="button"
@@ -220,6 +228,21 @@ export function AdminSettingsView() {
         )}
 
         {activeTab === 'packages' && isVendorMode && <VendorPackagesPanel />}
+
+        {activeTab === 'oracle' && (
+          <>
+            <h2 className="panel__title">Połączenie z bazą Oracle</h2>
+            <p className="settings__hint">
+              Parametry połączenia z bazą Teta (host, SID, login techniczny). Zmiany są zapisywane
+              lokalnie i wymagają pomyślnego testu połączenia. Hasło można pozostawić puste, aby
+              zachować dotychczasowe.
+            </p>
+            <OracleConnectionForm
+              variant="settings"
+              onSaved={() => setMessage('Zaktualizowano konfigurację połączenia Oracle.')}
+            />
+          </>
+        )}
 
         {activeTab === 'servers' && (
           <>

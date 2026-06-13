@@ -4,6 +4,7 @@ import { AuthProvider } from '../../context/AuthContext';
 import { authFetch, setAccessToken } from '../../lib/auth-storage';
 import { AdminBootstrapForm } from './AdminBootstrapForm';
 import { LoginForm } from './LoginForm';
+import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
 import '../oracle/oracle-setup.css';
 
 type AuthGateProps = {
@@ -12,6 +13,7 @@ type AuthGateProps = {
 
 export function AuthGate({ children }: AuthGateProps) {
   const [status, setStatus] = useState<AuthSetupStatusResponse | null>(null);
+  const [oracleRecovery, setOracleRecovery] = useState(false);
 
   const refreshStatus = () => {
     authFetch('/api/auth/setup-status')
@@ -48,11 +50,29 @@ export function AuthGate({ children }: AuthGateProps) {
   };
 
   if (!status.adminBootstrapped) {
-    return <AdminBootstrapForm onSuccess={handleAuthSuccess} />;
+    if (oracleRecovery) {
+      return (
+        <OracleConnectionForm
+          variant="recovery"
+          onConfigured={() => setOracleRecovery(false)}
+          onCancel={() => setOracleRecovery(false)}
+        />
+      );
+    }
+    return <AdminBootstrapForm onSuccess={handleAuthSuccess} onOpenOracleRecovery={() => setOracleRecovery(true)} />;
   }
 
   if (!status.authenticated || !status.user) {
-    return <LoginForm onSuccess={handleAuthSuccess} />;
+    if (oracleRecovery) {
+      return (
+        <OracleConnectionForm
+          variant="recovery"
+          onConfigured={() => setOracleRecovery(false)}
+          onCancel={() => setOracleRecovery(false)}
+        />
+      );
+    }
+    return <LoginForm onSuccess={handleAuthSuccess} onOpenOracleRecovery={() => setOracleRecovery(true)} />;
   }
 
   return <AuthProvider initialUser={status.user}>{children}</AuthProvider>;

@@ -5,9 +5,10 @@ import '../oracle/oracle-setup.css';
 
 type LoginFormProps = {
   onSuccess: (response: LoginResponse) => void;
+  onOpenOracleRecovery?: () => void;
 };
 
-export function LoginForm({ onSuccess }: LoginFormProps) {
+export function LoginForm({ onSuccess, onOpenOracleRecovery }: LoginFormProps) {
   const [form, setForm] = useState<LoginRequest>({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +89,18 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               {loading ? 'Logowanie…' : 'Zaloguj się'}
             </button>
           </div>
+
+          {onOpenOracleRecovery && (
+            <p className="oracle-setup__footer">
+              <button
+                type="button"
+                className="oracle-setup__link"
+                onClick={onOpenOracleRecovery}
+              >
+                Problemy z logowaniem? Zmień parametry połączenia Oracle
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

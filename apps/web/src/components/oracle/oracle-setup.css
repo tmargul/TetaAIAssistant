@@ -250,6 +250,59 @@
   color: var(--text-secondary);
 }
 
+.oracle-setup--embedded {
+  min-height: auto;
+  padding: 0;
+  background: transparent;
+}
+
+.oracle-setup--embedded .oracle-setup__tabs {
+  margin-bottom: 1rem;
+}
+
+.oracle-setup__status {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.oracle-setup__status p {
+  margin: 0 0 0.35rem;
+}
+
+.oracle-setup__status p:last-child {
+  margin-bottom: 0;
+}
+
+.oracle-setup__status strong {
+  color: var(--text-primary);
+}
+
 .oracle-setup__banner strong {
   color: var(--accent);
+}
+
+.oracle-setup__footer {
+  margin: 1rem 0 0;
+  text-align: center;
+}
+
+.oracle-setup__link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.oracle-setup__link:hover {
+  color: var(--text-primary);
 }
