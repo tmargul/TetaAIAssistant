@@ -26,8 +26,15 @@ export class OllamaChatService {
   }
 
   async getAvailableChatModels(): Promise<ChatModel[]> {
-    const installed = await this.listInstalledModels(true);
-    return CHAT_MODELS.filter((candidate) => this.isChatModelInstalled(candidate, installed));
+    try {
+      const installed = await this.listInstalledModels(true);
+      return CHAT_MODELS.filter((candidate) => this.isChatModelInstalled(candidate, installed));
+    } catch (error) {
+      this.logger.warn(
+        `Nie udało się pobrać listy modeli czatu: ${error instanceof Error ? error.message : error}`,
+      );
+      return [];
+    }
   }
 
   private isChatModelInstalled(candidate: ChatModel, installed: string[]): boolean {

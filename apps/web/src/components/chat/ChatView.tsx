@@ -3,6 +3,7 @@ import {
   type ChatCompletionResponse,
   type ChatMessage,
   type ChatModel,
+  type ChatModelsResponse,
   type ChatRagSource,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
@@ -78,6 +79,8 @@ export function ChatView() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ChatModel>('qwen3');
+  const [availableModels, setAvailableModels] = useState<ChatModel[]>(['qwen3']);
+  const [modelsLoading, setModelsLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [typingHint, setTypingHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,9 +106,29 @@ export function ChatView() {
     return () => window.clearTimeout(slowHint);
   }, [isTyping]);
 
+  useEffect(() => {
+    authFetch('/api/chat/models')
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<ChatModelsResponse>;
+      })
+      .then(({ models }) => {
+        setAvailableModels(models);
+        if (models.length === 0) return;
+        setModel((current) => {
+          if (models.includes(current)) return current;
+          return models.includes('qwen3') ? 'qwen3' : models[0]!;
+        });
+      })
+      .catch(() => {
+        setAvailableModels(['qwen3']);
+      })
+      .finally(() => setModelsLoading(false));
+  }, []);
+
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || isTyping) return;
+    if (!trimmed || isTyping || availableModels.length === 0) return;
 
     const userMessage: ChatMessage = {
       id: createId(),
@@ -187,11 +210,14 @@ export function ChatView() {
       <div className="chat__toolbar">
         <div>
           <span className="chat__model-label">Model: </span>
-          <ModelSelect value={model} onChange={setModel} />
-          {model === 'deepseek-r1' && (
-            <p className="chat__model-hint">
-              deepseek-r1 wymaga <code>ollama pull deepseek-r1</code> — bez niego używany jest qwen3.
-            </p>
+          <ModelSelect
+            value={model}
+            models={availableModels}
+            onChange={setModel}
+            disabled={modelsLoading || availableModels.length === 0}
+          />
+          {!modelsLoading && availableModels.length === 0 && (
+            <p className="chat__model-hint">Brak modeli czatu w Ollama — zainstaluj qwen3.</p>
           )}
         </div>
         <button type="button" className="chat__new-btn" onClick={handleNewChat}>
@@ -261,14 +287,14 @@ export function ChatView() {
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             rows={1}
-            disabled={isTyping}
+            disabled={isTyping || availableModels.length === 0}
           />
           <button
             type="button"
             className="chat__send-btn"
             aria-label="Wyślij"
             onClick={handleSubmit}
-            disabled={!input.trim() || isTyping}
+            disabled={!input.trim() || isTyping || availableModels.length === 0}
           >
             <IconSend />
           </button>
