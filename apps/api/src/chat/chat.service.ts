@@ -59,6 +59,11 @@ export class ChatService {
       };
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
+      if (/timeout|aborted/i.test(detail)) {
+        throw new ServiceUnavailableException(
+          'Ollama nie zdążyła odpowiedzieć w limicie czasu (ok. 3 min). Użyj modelu qwen3, skróć pytanie lub sprawdź obciążenie CPU.',
+        );
+      }
       throw new ServiceUnavailableException(
         `Asystent AI jest niedostępny. Upewnij się, że Ollama działa i model jest pobrany. ${detail}`,
       );

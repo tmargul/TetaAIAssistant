@@ -22,6 +22,17 @@
   color: var(--text-muted);
 }
 
+.chat__model-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.6875rem;
+  color: var(--warning, #f59e0b);
+  line-height: 1.35;
+}
+
+.chat__model-hint code {
+  font-size: 0.625rem;
+}
+
 .chat__select {
   position: relative;
   display: inline-block;

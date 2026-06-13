@@ -27,8 +27,14 @@ export class OllamaChatService {
 
   async complete(messages: OllamaMessage[], model: ChatModel): Promise<string> {
     const resolvedModel = await this.resolveInstalledModel(model);
-    const think = this.shouldUseThinking(model);
-    const timeoutMs = Number(this.config.get('OLLAMA_CHAT_TIMEOUT_MS', 120_000));
+    const think = this.shouldUseThinking(resolvedModel);
+    const timeoutMs = Number(this.config.get('OLLAMA_CHAT_TIMEOUT_MS', 180_000));
+
+    if (model !== this.toChatModel(resolvedModel) && model === 'deepseek-r1') {
+      this.logger.warn(
+        `Wybrano „${model}”, ale używam „${resolvedModel}” — thinking wyłączone (model zastępczy).`,
+      );
+    }
 
     this.logger.log(
       `Ollama chat: model=${resolvedModel}, think=${think}, messages=${messages.length}`,
@@ -42,6 +48,7 @@ export class OllamaChatService {
         messages,
         stream: false,
         think,
+        keep_alive: '10m',
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -68,18 +75,27 @@ export class OllamaChatService {
     return content;
   }
 
-  /** qwen3 z thinking=true potrafi „myśleć” 2+ min bez widocznej odpowiedzi w UI. */
-  private shouldUseThinking(model: ChatModel): boolean {
-    if (model === 'deepseek-r1') {
+  /** Thinking tylko dla faktycznie używanego modelu rozumującego — nie dla qwen3-zastępcy. */
+  private shouldUseThinking(resolvedModel: string): boolean {
+    const base = resolvedModel.split(':')[0].toLowerCase();
+
+    if (base.includes('deepseek') || base.endsWith('-r1') || base === 'r1') {
+      const configured = this.config.get<string>('OLLAMA_CHAT_THINK');
+      if (configured === 'false' || configured === '0') {
+        return false;
+      }
       return true;
     }
 
-    const configured = this.config.get<string>('OLLAMA_CHAT_THINK');
-    if (configured !== undefined) {
-      return configured === 'true' || configured === '1';
-    }
-
     return false;
+  }
+
+  private toChatModel(resolvedModel: string): ChatModel {
+    const base = resolvedModel.split(':')[0];
+    if (base === 'deepseek-r1') {
+      return 'deepseek-r1';
+    }
+    return 'qwen3';
   }
 
   private async resolveInstalledModel(model: ChatModel): Promise<string> {

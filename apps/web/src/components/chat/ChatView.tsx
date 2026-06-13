@@ -188,6 +188,11 @@ export function ChatView() {
         <div>
           <span className="chat__model-label">Model: </span>
           <ModelSelect value={model} onChange={setModel} />
+          {model === 'deepseek-r1' && (
+            <p className="chat__model-hint">
+              deepseek-r1 wymaga <code>ollama pull deepseek-r1</code> — bez niego używany jest qwen3.
+            </p>
+          )}
         </div>
         <button type="button" className="chat__new-btn" onClick={handleNewChat}>
           Nowa rozmowa
