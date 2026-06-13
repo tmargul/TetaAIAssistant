@@ -15,6 +15,7 @@ export type {
   ChatHistoryMessage,
   ChatMessage,
   ChatModel,
+  ChatModelsResponse,
   ChatRagCollection,
   ChatRagSource,
   ChatRole,

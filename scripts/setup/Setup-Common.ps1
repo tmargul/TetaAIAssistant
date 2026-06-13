@@ -271,11 +271,28 @@ function Install-OllamaModels([string[]]$Models) {
         return
     }
 
-    Write-Step "Pobieranie modeli Ollama"
+    Write-Step "Pobieranie modeli Ollama (wymaga internetu)"
     foreach ($model in $Models) {
         Write-Host "  ollama pull $model"
         ollama pull $model
     }
+}
+
+function Invoke-OptionalDeepseekInstall {
+    Write-Host ""
+    Write-Host "Opcjonalny model deepseek-r1 (~15 GB):" -ForegroundColor Yellow
+    Write-Host "  - wolniejszy (szczegolnie na CPU), do trudniejszych pytan w czacie"
+    Write-Host "  - wymaga internetu podczas instalacji (ollama pull)"
+    Write-Host "  - w wiekszosci wdrozen wystarczy domyslny czat: qwen3"
+    Write-Host ""
+    $answer = Read-Host "Doinstalowac deepseek-r1 teraz? [t/N]"
+    if ($answer -match '^[tTyY]') {
+        Install-OllamaModels @("deepseek-r1")
+        return
+    }
+
+    Write-Host "  Pomijam deepseek-r1 — czat domyslny: qwen3" -ForegroundColor Green
+    Write-Host "  Pozniej recznie: ollama pull deepseek-r1"
 }
 
 function Get-QdrantInstallDir([string]$InstallRoot) {

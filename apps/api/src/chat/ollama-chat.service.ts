@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { ChatModel } from '@teta/shared';
+import { CHAT_MODELS, type ChatModel } from '@teta/shared';
 
 type OllamaMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -23,6 +23,21 @@ export class OllamaChatService {
       return this.config.get<string>('OLLAMA_MODEL_REASONING', 'deepseek-r1');
     }
     return this.config.get<string>('OLLAMA_MODEL_CHAT', 'qwen3');
+  }
+
+  async getAvailableChatModels(): Promise<ChatModel[]> {
+    const installed = await this.listInstalledModels(true);
+    return CHAT_MODELS.filter((candidate) => this.isChatModelInstalled(candidate, installed));
+  }
+
+  private isChatModelInstalled(candidate: ChatModel, installed: string[]): boolean {
+    const preferred = this.resolveModelName(candidate);
+    return installed.some(
+      (name) =>
+        name === preferred ||
+        name.startsWith(`${preferred}:`) ||
+        name.split(':')[0] === preferred,
+    );
   }
 
   async complete(messages: OllamaMessage[], model: ChatModel): Promise<string> {
@@ -128,8 +143,8 @@ export class OllamaChatService {
     return base.includes('embed');
   }
 
-  private async listInstalledModels(): Promise<string[]> {
-    if (this.cachedModelNames) {
+  private async listInstalledModels(refresh = false): Promise<string[]> {
+    if (!refresh && this.cachedModelNames) {
       return this.cachedModelNames;
     }
 

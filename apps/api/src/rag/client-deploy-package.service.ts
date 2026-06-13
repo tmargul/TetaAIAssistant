@@ -380,6 +380,7 @@ export class ClientDeployPackageService {
       '',
       '4. Setup automatycznie:',
       '   - zainstaluje Node, Ollama, Qdrant, zaleznosci',
+      '   - skopiuje modele z paczki (nomic-embed-text + qwen3; deepseek-r1 tylko jesli byl w paczce IT)',
       '   - zaimportuje globalny RAG do Qdrant',
       '   - uruchomi aplikacje (API + web)',
       '',

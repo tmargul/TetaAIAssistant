@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { CHAT_MODELS, type ChatModel } from '@teta/shared';
+import { type ChatModel } from '@teta/shared';
 import './chat.css';
 
 type ModelSelectProps = {
   value: ChatModel;
+  models: ChatModel[];
   onChange: (model: ChatModel) => void;
+  disabled?: boolean;
 };
 
 function IconChevron({ open }: { open: boolean }) {
@@ -21,7 +23,7 @@ function IconChevron({ open }: { open: boolean }) {
   );
 }
 
-export function ModelSelect({ value, onChange }: ModelSelectProps) {
+export function ModelSelect({ value, models, onChange, disabled = false }: ModelSelectProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +48,7 @@ export function ModelSelect({ value, onChange }: ModelSelectProps) {
         onClick={() => setOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        disabled={disabled || models.length === 0}
       >
         <span className="chat__select-value">{value}</span>
         <span className="chat__select-icon" aria-hidden>
@@ -53,9 +56,9 @@ export function ModelSelect({ value, onChange }: ModelSelectProps) {
         </span>
       </button>
 
-      {open && (
+      {open && models.length > 0 && (
         <ul className="chat__select-menu" role="listbox">
-          {CHAT_MODELS.map((m) => (
+          {models.map((m) => (
             <li key={m} role="presentation">
               <button
                 type="button"

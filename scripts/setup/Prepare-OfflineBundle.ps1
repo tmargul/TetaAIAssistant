@@ -130,7 +130,7 @@ Write-Host "Paczka offline gotowa: $OutputDir" -ForegroundColor Green
 Write-Host ""
 Write-Host "Przed kopiowaniem na klienta:"
 Write-Host "  1. Sprawdz installers\ - dodaj node MSI i OllamaSetup.exe jesli brak"
-Write-Host "  2. Sprawdz ollama-models\ - powinny byc modele (nomic-embed-text, qwen3, deepseek-r1)"
+Write-Host "  2. Sprawdz ollama-models\ - wymagane: nomic-embed-text, qwen3; opcjonalnie deepseek-r1"
 Write-Host "  3. Skopiuj ZIP (lub katalog) na nosnik / siec klienta"
 Write-Host ""
 Write-Host "U klienta (bez internetu):"

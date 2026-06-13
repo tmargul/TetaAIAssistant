@@ -7,6 +7,7 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode vendor
 #   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode client
 #   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode client -Offline -BundlePath D:\media\teta-offline-bundle.zip
+#   Setup client online pyta opcjonalnie o deepseek-r1 (~15 GB, wymaga internetu).
 
 param(
     [Parameter()]
@@ -68,8 +69,13 @@ Wait-OllamaReady
 
 if ($isVendor) {
     Install-OllamaModels @("nomic-embed-text", "qwen3")
+} elseif ($Offline) {
+    Install-OllamaModels @("nomic-embed-text", "qwen3")
+    Write-Host ""
+    Write-Host "Modele offline: skopiowano z paczki (deepseek-r1 tylko jesli byl w paczce IT)." -ForegroundColor DarkGray
 } else {
-    Install-OllamaModels @("nomic-embed-text", "qwen3", "deepseek-r1")
+    Install-OllamaModels @("nomic-embed-text", "qwen3")
+    Invoke-OptionalDeepseekInstall
 }
 
 Register-QdrantService -NssmExe $nssmExe -QdrantExe $qdrantExe

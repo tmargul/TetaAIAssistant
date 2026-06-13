@@ -31,6 +31,10 @@ export interface ChatRagSource {
   excerpt: string;
 }
 
+export interface ChatModelsResponse {
+  models: ChatModel[];
+}
+
 export interface ChatCompletionResponse {
   content: string;
   sources: ChatRagSource[];
