@@ -7,6 +7,7 @@ import { GlobalRagImportService } from './global-rag-import.service';
 import { GlobalRagService } from './global-rag.service';
 import { QdrantService } from './qdrant.service';
 import { RagGlobalBuildService } from './rag-global-build.service';
+import { RagRetrievalService } from './rag-retrieval.service';
 
 @Module({
   imports: [DatabaseModule, AuthModule],
@@ -17,6 +18,7 @@ import { RagGlobalBuildService } from './rag-global-build.service';
     RagGlobalBuildService,
     GlobalRagImportService,
     GlobalRagService,
+    RagRetrievalService,
   ],
   exports: [
     ChunkingService,
@@ -25,6 +27,7 @@ import { RagGlobalBuildService } from './rag-global-build.service';
     GlobalRagService,
     QdrantService,
     RagGlobalBuildService,
+    RagRetrievalService,
   ],
 })
 export class RagCoreModule {}

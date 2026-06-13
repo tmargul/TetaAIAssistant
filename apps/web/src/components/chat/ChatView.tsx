@@ -1,25 +1,46 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
-import { type ChatMessage, type ChatModel } from '@teta/shared';
+import {
+  type ChatCompletionResponse,
+  type ChatMessage,
+  type ChatModel,
+  type ChatRagSource,
+} from '@teta/shared';
+import { authFetch } from '../../lib/auth-storage';
 import { IconChat } from '../layout/icons';
 import { ModelSelect } from './ModelSelect';
 import './chat.css';
 
 const SUGGESTIONS = [
-  'Podsumuj dokumentację serwera',
-  'Jak skonfigurować Ollama?',
-  'Wyjaśnij architekturę RAG',
-  'Jakie modele są dostępne?',
+  'Jak zalogować się do systemu Teta?',
+  'Opisz procedurę backupu serwera',
+  'Jakie są wymagania dla użytkownika aplikacji?',
+  'Wyjaśnij różnicę między RAG globalnym a lokalnym',
 ];
 
 function createId() {
   return crypto.randomUUID();
 }
 
-function mockAssistantReply(userText: string, model: ChatModel): string {
+function formatSourceLabel(source: ChatRagSource): string {
+  const scope = source.collection === 'global' ? 'Teta' : 'Klient';
+  return `${scope}: ${source.source}`;
+}
+
+function ChatSources({ sources }: { sources: ChatRagSource[] }) {
+  if (sources.length === 0) return null;
+
   return (
-    `To jest odpowiedź demonstracyjna (model: ${model}). ` +
-    `Integracja z Ollama zostanie podłączona w kolejnym kroku.\n\n` +
-    `Twoje pytanie: „${userText}"`
+    <details className="chat__sources">
+      <summary>Źródła RAG ({sources.length})</summary>
+      <ul className="chat__sources-list">
+        {sources.map((source, index) => (
+          <li key={`${source.collection}-${source.source}-${index}`}>
+            <span className="chat__sources-name">{formatSourceLabel(source)}</span>
+            <span className="chat__sources-excerpt">{source.excerpt}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -28,7 +49,10 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   return (
     <div className={`chat__message${isUser ? ' chat__message--user' : ' chat__message--assistant'}`}>
       <div className="chat__avatar">{isUser ? 'Ty' : 'AI'}</div>
-      <div className="chat__bubble">{message.content}</div>
+      <div className="chat__bubble">
+        <div className="chat__bubble-text">{message.content}</div>
+        {!isUser && message.sources && <ChatSources sources={message.sources} />}
+      </div>
     </div>
   );
 }
@@ -55,6 +79,7 @@ export function ChatView() {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ChatModel>('qwen3');
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -75,19 +100,46 @@ export function ChatView() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setError(null);
     setIsTyping(true);
 
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      const history = [...messages, userMessage]
+        .slice(-8)
+        .map((item) => ({ role: item.role, content: item.content }));
 
-    const assistantMessage: ChatMessage = {
-      id: createId(),
-      role: 'assistant',
-      content: mockAssistantReply(trimmed, model),
-      createdAt: new Date().toISOString(),
-    };
+      const res = await authFetch('/api/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: trimmed,
+          model,
+          history: history.slice(0, -1),
+        }),
+      });
 
-    setMessages((prev) => [...prev, assistantMessage]);
-    setIsTyping(false);
+      const data = (await res.json()) as ChatCompletionResponse & {
+        message?: string | string[];
+      };
+
+      if (!res.ok) {
+        const msg = Array.isArray(data.message) ? data.message.join(', ') : data.message;
+        throw new Error(msg ?? `Błąd HTTP ${res.status}`);
+      }
+
+      const assistantMessage: ChatMessage = {
+        id: createId(),
+        role: 'assistant',
+        content: data.content,
+        createdAt: data.createdAt,
+        sources: data.sources,
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się uzyskać odpowiedzi asystenta.');
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleSubmit = () => sendMessage(input);
@@ -109,6 +161,7 @@ export function ChatView() {
   const handleNewChat = () => {
     setMessages([]);
     setInput('');
+    setError(null);
     setIsTyping(false);
     textareaRef.current?.focus();
   };
@@ -125,6 +178,8 @@ export function ChatView() {
         </button>
       </div>
 
+      {error && <div className="chat__error">{error}</div>}
+
       <div className="chat__messages">
         {messages.length === 0 ? (
           <div className="chat__empty">
@@ -133,7 +188,8 @@ export function ChatView() {
             </div>
             <p className="chat__empty-title">Czym mogę pomóc?</p>
             <p className="chat__empty-desc">
-              Zadaj pytanie dotyczące dokumentacji, konfiguracji serwera lub procesów w firmie.
+              Zadaj pytanie na podstawie zindeksowanej bazy wiedzy RAG. Odpowiedź generuje lokalny
+              model Ollama z kontekstem z Qdrant.
             </p>
             <div className="chat__suggestions">
               {SUGGESTIONS.map((s) => (
@@ -196,7 +252,7 @@ export function ChatView() {
           </button>
         </div>
         <p className="chat__hint">
-          Enter — wyślij · Shift+Enter — nowa linia · Odpowiedzi demonstracyjne do czasu integracji z Ollama
+          Enter — wyślij · Shift+Enter — nowa linia · Odpowiedź: Ollama + kontekst RAG (Qdrant)
         </p>
       </div>
     </div>

@@ -9,6 +9,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { OracleModule } from './oracle/oracle.module';
 import { DocumentsModule } from './documents/documents.module';
+import { ChatModule } from './chat/chat.module';
 import { RagModule } from './rag/rag.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { RagModule } from './rag/rag.module';
     AdminModule,
     RagModule,
     DocumentsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

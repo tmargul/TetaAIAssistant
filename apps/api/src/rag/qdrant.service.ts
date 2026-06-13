@@ -143,9 +143,36 @@ export class QdrantService {
   }
 
   async getPointsCount(collection: string): Promise<number> {
-    const info = await this.request<{
-      result: { points_count: number };
-    }>(`/collections/${collection}`);
-    return info.result.points_count;
+    try {
+      const info = await this.request<{
+        result: { points_count: number };
+      }>(`/collections/${collection}`);
+      return info.result.points_count;
+    } catch {
+      return 0;
+    }
+  }
+
+  async search(
+    collection: string,
+    vector: number[],
+    limit: number,
+  ): Promise<Array<{ score: number; payload: RagChunkPayload }>> {
+    try {
+      const response = await this.request<{
+        result: Array<{ score: number; payload: RagChunkPayload }>;
+      }>(`/collections/${collection}/points/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vector,
+          limit,
+          with_payload: true,
+        }),
+      });
+      return response.result ?? [];
+    } catch {
+      return [];
+    }
   }
 }
