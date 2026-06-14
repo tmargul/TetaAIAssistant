@@ -5,13 +5,17 @@ export type {
 } from './updates.js';
 
 export type {
+  OllamaModelPullProgress,
   OllamaModelPullResult,
+  OllamaModelPullStreamEvent,
   OllamaModelsImportResult,
   OllamaModelsPackManifest,
   OllamaPullModel,
 } from './ollama-models.js';
 
 export { OLLAMA_MODELS_PACK_FORMAT, OLLAMA_PULL_MODELS } from './ollama-models.js';
+
+export type { PathBrowseEntry, PathBrowseEntryKind, PathBrowseResponse } from './path-browse.js';
 
 export type {
   HealthResponse,

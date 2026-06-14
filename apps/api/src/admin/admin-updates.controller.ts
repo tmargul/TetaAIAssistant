@@ -4,10 +4,13 @@ import {
   Controller,
   Get,
   Post,
+  Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { unlink } from 'fs/promises';
 import { diskStorage } from 'multer';
@@ -15,23 +18,34 @@ import { tmpdir } from 'os';
 import type {
   ClientUpdatesStatusResponse,
   GlobalRagImportResult,
-  OllamaModelPullResult,
+  OllamaModelPullProgress,
+  OllamaModelPullStreamEvent,
   OllamaModelsImportResult,
   OllamaPullModel,
+  PathBrowseResponse,
 } from '@teta/shared';
 import { OLLAMA_PULL_MODELS } from '@teta/shared';
 import { AdminGuard } from '../auth/admin.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminPathBrowserService } from './admin-path-browser.service';
 import { AdminUpdatesService } from './admin-updates.service';
 
 @Controller('admin/updates')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminUpdatesController {
-  constructor(private readonly updates: AdminUpdatesService) {}
+  constructor(
+    private readonly updates: AdminUpdatesService,
+    private readonly pathBrowser: AdminPathBrowserService,
+  ) {}
 
   @Get('status')
   getStatus(): Promise<ClientUpdatesStatusResponse> {
     return this.updates.getStatus();
+  }
+
+  @Get('browse')
+  browsePaths(@Query('path') browsePath?: string): Promise<PathBrowseResponse> {
+    return this.pathBrowser.browse(browsePath);
   }
 
   @Post('global-rag/import')
@@ -117,13 +131,53 @@ export class AdminUpdatesController {
   }
 
   @Post('ollama/pull')
-  pullOllamaModel(@Body() body: { model?: string }): Promise<OllamaModelPullResult> {
+  async pullOllamaModel(
+    @Body() body: { model?: string },
+    @Res({ passthrough: false }) res: Response,
+  ): Promise<void> {
     const model = body.model?.trim() as OllamaPullModel | undefined;
     if (!model || !OLLAMA_PULL_MODELS.includes(model)) {
       throw new BadRequestException(
         `Podaj model: ${OLLAMA_PULL_MODELS.join(', ')}.`,
       );
     }
-    return this.updates.pullOllamaModel(model);
+
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const writeEvent = (event: OllamaModelPullStreamEvent) => {
+      res.write(`${JSON.stringify(event)}\n`);
+    };
+
+    try {
+      await this.updates.pullOllamaModelWithProgress(model, (progress: OllamaModelPullProgress) => {
+        writeEvent({ type: 'progress', ...progress });
+      });
+      writeEvent({ type: 'complete', model, status: 'complete' });
+      res.end();
+    } catch (error) {
+      const message =
+        error instanceof BadRequestException
+          ? (error.getResponse() as string | { message?: string | string[] })
+          : error instanceof Error
+            ? error.message
+            : 'Pobieranie modelu nie powiodło się.';
+
+      const text =
+        typeof message === 'string'
+          ? message
+          : Array.isArray(message.message)
+            ? message.message.join(', ')
+            : (message.message ?? 'Pobieranie modelu nie powiodło się.');
+
+      if (!res.headersSent) {
+        res.status(400).json({ message: text });
+        return;
+      }
+
+      writeEvent({ type: 'error', message: text });
+      res.end();
+    }
   }
 }

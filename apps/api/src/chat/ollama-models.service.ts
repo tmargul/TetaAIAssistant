@@ -8,6 +8,7 @@ import extract from 'extract-zip';
 import {
   OLLAMA_MODELS_PACK_FORMAT,
   OLLAMA_PULL_MODELS,
+  type OllamaModelPullProgress,
   type OllamaModelPullResult,
   type OllamaModelsImportResult,
   type OllamaModelsPackManifest,
@@ -72,6 +73,13 @@ export class OllamaModelsService {
   }
 
   async pullModel(model: OllamaPullModel): Promise<OllamaModelPullResult> {
+    return this.pullModelWithProgress(model);
+  }
+
+  async pullModelWithProgress(
+    model: OllamaPullModel,
+    onProgress?: (progress: import('@teta/shared').OllamaModelPullProgress) => void,
+  ): Promise<OllamaModelPullResult> {
     if (!OLLAMA_PULL_MODELS.includes(model)) {
       throw new BadRequestException(`Nieobsługiwany model: ${model}`);
     }
@@ -93,13 +101,16 @@ export class OllamaModelsService {
       throw new BadRequestException('Ollama nie zwróciło strumienia postępu pobierania.');
     }
 
-    await this.consumePullStream(res.body);
+    await this.consumePullStream(res.body, onProgress);
     this.ollamaChat.invalidateInstalledModelsCache();
 
     return { model, status: 'complete' };
   }
 
-  private async consumePullStream(body: ReadableStream<Uint8Array>): Promise<void> {
+  private async consumePullStream(
+    body: ReadableStream<Uint8Array>,
+    onProgress?: (progress: OllamaModelPullProgress) => void,
+  ): Promise<void> {
     const reader = body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -117,9 +128,26 @@ export class OllamaModelsService {
         if (!trimmed) continue;
 
         try {
-          const event = JSON.parse(trimmed) as { status?: string; error?: string };
+          const event = JSON.parse(trimmed) as {
+            status?: string;
+            error?: string;
+            completed?: number;
+            total?: number;
+          };
           if (event.error) {
             throw new BadRequestException(`Ollama pull: ${event.error}`);
+          }
+          if (event.status && onProgress) {
+            const percent =
+              event.total && event.total > 0 && event.completed != null
+                ? Math.min(100, Math.round((event.completed / event.total) * 100))
+                : null;
+            onProgress({
+              status: event.status,
+              completed: event.completed,
+              total: event.total,
+              percent,
+            });
           }
           if (event.status === 'success') {
             return;

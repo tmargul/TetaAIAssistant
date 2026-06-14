@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type { ClientUpdatesStatusResponse, GlobalRagImportResult, OllamaPullModel } from '@teta/shared';
+import type {
+  ClientUpdatesStatusResponse,
+  GlobalRagImportResult,
+  OllamaModelPullProgress,
+  OllamaPullModel,
+} from '@teta/shared';
 import { OllamaChatService } from '../chat/ollama-chat.service';
 import { OllamaModelsService } from '../chat/ollama-models.service';
 import { HealthService } from '../health/health.service';
@@ -47,5 +52,12 @@ export class AdminUpdatesService {
 
   pullOllamaModel(model: OllamaPullModel) {
     return this.ollamaModels.pullModel(model);
+  }
+
+  pullOllamaModelWithProgress(
+    model: OllamaPullModel,
+    onProgress: (progress: OllamaModelPullProgress) => void,
+  ) {
+    return this.ollamaModels.pullModelWithProgress(model, onProgress);
   }
 }

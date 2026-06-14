@@ -22,3 +22,15 @@ export interface OllamaModelPullResult {
   model: string;
   status: 'complete';
 }
+
+export interface OllamaModelPullProgress {
+  status: string;
+  completed?: number;
+  total?: number;
+  percent: number | null;
+}
+
+export type OllamaModelPullStreamEvent =
+  | ({ type: 'progress' } & OllamaModelPullProgress)
+  | ({ type: 'complete' } & OllamaModelPullResult)
+  | { type: 'error'; message: string };

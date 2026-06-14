@@ -229,6 +229,10 @@
   display: none;
 }
 
+.settings__updates-grid .settings__package-card {
+  overflow: visible;
+}
+
 .settings__updates-path {
   display: flex;
   flex-direction: column;
@@ -250,12 +254,202 @@
   font-size: 0.6875rem;
 }
 
-.settings__updates-path .settings__btn {
+.settings__path-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   width: 100%;
+  min-width: 0;
+}
+
+.settings__path-picker-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.settings__path-picker-browse {
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.settings__path-browser {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+}
+
+.settings__path-browser-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-app);
+  flex-wrap: wrap;
+}
+
+.settings__path-browser-up {
+  flex-shrink: 0;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.settings__path-browser-up:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.settings__path-browser-up:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.settings__path-browser-current {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.6875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings__path-browser-hint,
+.settings__path-browser-error,
+.settings__path-browser-empty {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.6875rem;
+}
+
+.settings__path-browser-error {
+  color: var(--danger, #ef4444);
+}
+
+.settings__path-browser-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.settings__path-browser-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.35rem 0.65rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings__path-browser-item:hover {
+  background: var(--bg-hover);
+}
+
+.settings__path-browser-item--selected {
+  background: var(--accent-muted);
+}
+
+.settings__path-browser-item-kind {
+  flex-shrink: 0;
+  width: 2rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.settings__path-browser-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+}
+
+.settings__updates-path > .settings__btn {
+  width: 100%;
+}
+
+.settings__updates-divider {
+  height: 1px;
+  margin: 0.15rem 0;
+  background: var(--border);
+}
+
+.settings__updates-section-label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .settings__updates .settings__message {
   margin-bottom: 0.75rem;
+}
+
+.settings__progress {
+  width: 100%;
+}
+
+.settings__progress-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.settings__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+
+.settings__progress-bar--indeterminate .settings__progress-fill {
+  width: 35%;
+  animation: settings-progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes settings-progress-slide {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(186%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.settings__progress-label {
+  margin: 0.35rem 0 0;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .settings__package-layout {
@@ -411,6 +605,11 @@
   font-size: 0.75rem;
   white-space: normal;
   text-align: center;
+}
+
+.settings__package-actions .settings__path-browser-up {
+  width: auto;
+  white-space: nowrap;
 }
 
 .settings__package-form .settings__input {

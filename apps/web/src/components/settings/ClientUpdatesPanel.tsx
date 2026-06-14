@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   ClientUpdatesStatusResponse,
   GlobalRagImportResult,
-  OllamaModelPullResult,
+  OllamaModelPullStreamEvent,
   OllamaModelsImportResult,
   OllamaPullModel,
 } from '@teta/shared';
 import { getAccessToken, authFetch } from '../../lib/auth-storage';
+import { ServerPathPicker } from './ServerPathPicker';
 import './settings.css';
 
 function formatDate(value: string | null): string {
@@ -18,6 +19,31 @@ function hasEmbeddingModel(models: string[]): boolean {
   return models.some((name) => name.split(':')[0].toLowerCase().includes('embed'));
 }
 
+type ModelOperationProgress = {
+  kind: 'pull' | 'import' | 'import-path';
+  model?: OllamaPullModel;
+  percent: number | null;
+  status: string;
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function formatPullStatus(
+  status: string,
+  percent: number | null,
+  completed?: number,
+  total?: number,
+): string {
+  if (percent != null && total) {
+    return `${status} — ${percent}% (${formatBytes(completed ?? 0)} / ${formatBytes(total)})`;
+  }
+  return status;
+}
+
 export function ClientUpdatesPanel() {
   const ragFileInputRef = useRef<HTMLInputElement>(null);
   const modelsFileInputRef = useRef<HTMLInputElement>(null);
@@ -27,7 +53,9 @@ export function ClientUpdatesPanel() {
   const [modelsImporting, setModelsImporting] = useState(false);
   const [modelsPathImporting, setModelsPathImporting] = useState(false);
   const [pullingModel, setPullingModel] = useState<OllamaPullModel | null>(null);
+  const [operationProgress, setOperationProgress] = useState<ModelOperationProgress | null>(null);
   const [modelsPath, setModelsPath] = useState('');
+  const [pathBrowseOpen, setPathBrowseOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,6 +90,9 @@ export function ClientUpdatesPanel() {
     setMessage(null);
     setError(null);
     setImporting(true);
+    if (url.includes('ollama/import')) {
+      setOperationProgress({ kind: 'import', percent: null, status: 'Importowanie paczki modeli…' });
+    }
 
     try {
       const form = new FormData();
@@ -93,6 +124,9 @@ export function ClientUpdatesPanel() {
       setError(err instanceof Error ? err.message : 'Import nie powiódł się.');
     } finally {
       setImporting(false);
+      if (url.includes('ollama/import')) {
+        setOperationProgress(null);
+      }
     }
   };
 
@@ -135,6 +169,11 @@ export function ClientUpdatesPanel() {
     setMessage(null);
     setError(null);
     setModelsPathImporting(true);
+    setOperationProgress({
+      kind: 'import-path',
+      percent: null,
+      status: 'Importowanie modeli ze ścieżki…',
+    });
 
     try {
       const res = await authFetch('/api/admin/updates/ollama/import-path', {
@@ -158,6 +197,7 @@ export function ClientUpdatesPanel() {
       setError(err instanceof Error ? err.message : 'Import modeli ze ścieżki nie powiódł się.');
     } finally {
       setModelsPathImporting(false);
+      setOperationProgress(null);
     }
   };
 
@@ -165,26 +205,83 @@ export function ClientUpdatesPanel() {
     setMessage(null);
     setError(null);
     setPullingModel(model);
+    setOperationProgress({
+      kind: 'pull',
+      model,
+      percent: null,
+      status: 'Łączenie z Ollama…',
+    });
 
     try {
       const res = await authFetch('/api/admin/updates/ollama/pull', {
         method: 'POST',
         body: JSON.stringify({ model }),
       });
-      const result = (await res.json()) as OllamaModelPullResult | { message?: string | string[] };
+
+      const contentType = res.headers.get('Content-Type') ?? '';
       if (!res.ok) {
-        const msg = Array.isArray((result as { message?: string[] }).message)
-          ? (result as { message: string[] }).message.join(', ')
-          : (result as { message?: string }).message;
-        throw new Error(msg ?? `HTTP ${res.status}`);
+        let message = `HTTP ${res.status}`;
+        try {
+          const data = (await res.json()) as { message?: string | string[] };
+          if (Array.isArray(data.message)) {
+            message = data.message.join(', ');
+          } else if (data.message) {
+            message = data.message;
+          }
+        } catch {
+          // response nie był JSON
+        }
+        throw new Error(message);
       }
 
-      setMessage(`Model ${(result as OllamaModelPullResult).model} pobrany z Ollama.`);
+      if (!contentType.includes('ndjson') || !res.body) {
+        throw new Error('Serwer nie zwrócił strumienia postępu pobierania.');
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let completed = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          const event = JSON.parse(trimmed) as OllamaModelPullStreamEvent;
+          if (event.type === 'progress') {
+            setOperationProgress({
+              kind: 'pull',
+              model,
+              percent: event.percent,
+              status: formatPullStatus(event.status, event.percent, event.completed, event.total),
+            });
+          } else if (event.type === 'complete') {
+            completed = true;
+            setMessage(`Model ${event.model} pobrany z Ollama.`);
+          } else if (event.type === 'error') {
+            throw new Error(event.message);
+          }
+        }
+      }
+
+      if (!completed) {
+        throw new Error('Pobieranie modelu zakończyło się bez potwierdzenia.');
+      }
+
       await refreshStatus();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Pobieranie modelu nie powiodło się.');
     } finally {
       setPullingModel(null);
+      setOperationProgress(null);
     }
   };
 
@@ -282,11 +379,30 @@ export function ClientUpdatesPanel() {
               )}
             </p>
             <p className="settings__package-desc">
-              Offline: paczka <code>teta-models-update-*.zip</code> z pendrive’a (zalecane dla
-              dużych plików — import ze ścieżki serwera). Online: pobierz modele z Ollama.
+              Offline: paczka <code>teta-models-update-*.zip</code> z pendrive’a — wybierz plik na
+              serwerze lub zaimportuj mniejszą paczkę przez upload.
             </p>
           </div>
           <div className="settings__package-actions settings__package-actions--stack">
+            {operationProgress && (
+              <div className="settings__progress">
+                <div
+                  className={`settings__progress-bar${
+                    operationProgress.percent == null ? ' settings__progress-bar--indeterminate' : ''
+                  }`}
+                >
+                  <div
+                    className="settings__progress-fill"
+                    style={
+                      operationProgress.percent != null
+                        ? { width: `${operationProgress.percent}%` }
+                        : undefined
+                    }
+                  />
+                </div>
+                <p className="settings__progress-label">{operationProgress.status}</p>
+              </div>
+            )}
             <input
               ref={modelsFileInputRef}
               type="file"
@@ -304,27 +420,33 @@ export function ClientUpdatesPanel() {
               disabled={modelsBusy}
               onClick={() => modelsFileInputRef.current?.click()}
             >
-              {modelsImporting ? 'Importowanie…' : 'Importuj paczkę modeli (ZIP)'}
+              {modelsImporting ? 'Importowanie…' : 'Importuj paczkę (upload ZIP)'}
             </button>
+
+            <div className="settings__updates-divider" aria-hidden />
+
             <div className="settings__updates-path">
-              <p className="settings__updates-path-label">Ścieżka na serwerze (pendrive / dysk lokalny)</p>
-              <input
-                type="text"
-                className="settings__input"
-                placeholder="E:\Teta\teta-models-update.zip"
+              <p className="settings__updates-path-label">Plik ZIP na serwerze</p>
+              <ServerPathPicker
                 value={modelsPath}
+                onChange={setModelsPath}
                 disabled={modelsBusy}
-                onChange={(e) => setModelsPath(e.target.value)}
+                browseOpen={pathBrowseOpen}
+                onBrowseOpenChange={setPathBrowseOpen}
               />
               <button
                 type="button"
                 className="settings__btn settings__btn--secondary"
-                disabled={modelsBusy}
+                disabled={modelsBusy || !modelsPath.trim()}
                 onClick={() => void handleModelsPathImport()}
               >
                 {modelsPathImporting ? 'Importowanie…' : 'Import ze ścieżki'}
               </button>
             </div>
+
+            <div className="settings__updates-divider" aria-hidden />
+
+            <p className="settings__updates-section-label">Pobierz z internetu (Ollama)</p>
             <button
               type="button"
               className="settings__btn settings__btn--secondary"
