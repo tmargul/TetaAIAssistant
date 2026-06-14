@@ -1,0 +1,34 @@
+---
+description: Czytaj i uzupełniaj kontekst ustaleń z rozmów (docs/session-context.md)
+alwaysApply: true
+---
+
+# Kontekst rozmów między komputerami
+
+Historia czatów Cursor **nie** synchronizuje się. Źródło ustaleń między sesjami i maszynami:
+
+**`docs/session-context.md`**
+
+## Na starcie sesji
+
+1. Przeczytaj `docs/session-context.md`
+2. Sprawdź git (`git log -10`, `git status`) — reguła `git-context`
+3. Krótko potwierdź użytkownikowi, z czego wynika kontekst (ostatnie ustalenia + ostatnie commity)
+
+## Po ważnych ustaleniach — ZAWSZE uaktualnij plik
+
+Dopisz lub zaktualizuj, gdy ustaliliśmy np.:
+
+- parametry środowiska (IP VM, SID, porty, tryby `.env`)
+- decyzje architektoniczne lub UX
+- konta testowe, flow logowania, ograniczenia
+- otwarte TODO / blokery
+- co zrobić na drugim komputerze
+
+Format: sekcja **Notatki sesji** z datą + tabela/sekcja **Otwarte** jeśli coś zostało niedokończone.
+
+## Zasady
+
+- Nie duplikuj całego czatu — tylko **konkrety** (wartości, decyzje, następne kroki)
+- Plik trzymaj **krótki** (< ~150 linii); starsze notatki można skracać do bulletów
+- Commituj `docs/session-context.md` gdy użytkownik prosi o commit; inaczej zostaw w working tree i wspomnij, że warto zacommitować przed zmianą komputera
