@@ -44,7 +44,18 @@ export class VendorPackagesController {
     res.download(result.zipPath, result.filename, (err) => {
       void rm(result.zipPath, { force: true });
       if (err && !res.headersSent) {
-        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji klienta.' });
+        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji klienta (offline).' });
+      }
+    });
+  }
+
+  @Post('client-install-online/export')
+  async exportClientOnlineInstall(@Res() res: Response): Promise<void> {
+    const result = await this.clientDeployPackage.buildClientOnlineInstallZip();
+    res.download(result.zipPath, result.filename, (err) => {
+      void rm(result.zipPath, { force: true });
+      if (err && !res.headersSent) {
+        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji klienta (online).' });
       }
     });
   }

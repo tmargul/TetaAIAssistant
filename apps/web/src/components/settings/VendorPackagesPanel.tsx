@@ -46,6 +46,7 @@ export function VendorPackagesPanel() {
   const [ragStatus, setRagStatus] = useState<GlobalRagStatusResponse | null>(null);
   const [ragVersion, setRagVersion] = useState('');
   const [clientInstallLoading, setClientInstallLoading] = useState(false);
+  const [clientOnlineInstallLoading, setClientOnlineInstallLoading] = useState(false);
   const [vendorInstallLoading, setVendorInstallLoading] = useState(false);
   const [vendorOnlineInstallLoading, setVendorOnlineInstallLoading] = useState(false);
   const [appUpdateLoading, setAppUpdateLoading] = useState(false);
@@ -134,6 +135,24 @@ export function VendorPackagesPanel() {
     }
   };
 
+  const handleClientOnlineInstallExport = async () => {
+    setMessage(null);
+    setError(null);
+    setClientOnlineInstallLoading(true);
+    try {
+      const result = await downloadPackage('/api/vendor/packages/client-install-online/export');
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setMessage(
+        'Paczka klienta (online) pobrana. U klienta z internetem: Instaluj-Klienta-Online.bat (Admin), potem import RAG.',
+      );
+    } finally {
+      setClientOnlineInstallLoading(false);
+    }
+  };
+
   const handleClientInstallExport = async () => {
     setMessage(null);
     setError(null);
@@ -145,7 +164,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka instalacji klienta pobrana. U klienta: rozpakuj ZIP → Instaluj-Klienta.bat (Admin).',
+        'Paczka klienta (offline) pobrana. U klienta bez sieci: Instaluj-Klienta.bat (Admin, ~7 GB).',
       );
     } finally {
       setClientInstallLoading(false);
@@ -320,18 +339,27 @@ export function VendorPackagesPanel() {
             <div className="settings__package-body">
               <h3 className="settings__package-title">Instalacja klienta</h3>
               <p className="settings__package-desc">
-                Pełna instalacja na pustej maszynie u klienta: aplikacja (React + NestJS), silnik AI
-                (Ollama, Qdrant), import globalnego RAG i skrypt startowy — wszystko w jednym ZIP.
+                Pełna instalacja u klienta. <strong>Online</strong> (~100 MB) — setup pobiera silnik z
+                internetu; RAG osobno (<code>global-rag-X.zip</code>). <strong>Offline</strong> (~7 GB)
+                — wszystko w jednym ZIP, bez sieci u celu.
               </p>
             </div>
-            <div className="settings__package-actions">
+            <div className="settings__package-actions settings__package-actions--stack">
               <button
                 type="button"
                 className="settings__btn"
-                onClick={handleClientInstallExport}
-                disabled={clientInstallLoading}
+                onClick={handleClientOnlineInstallExport}
+                disabled={clientOnlineInstallLoading || clientInstallLoading}
               >
-                {clientInstallLoading ? 'Przygotowywanie…' : 'Pobierz paczkę instalacji'}
+                {clientOnlineInstallLoading ? 'Przygotowywanie…' : 'Paczka klienta (online)'}
+              </button>
+              <button
+                type="button"
+                className="settings__btn settings__btn--secondary"
+                onClick={handleClientInstallExport}
+                disabled={clientInstallLoading || clientOnlineInstallLoading}
+              >
+                {clientInstallLoading ? 'Przygotowywanie…' : 'Paczka klienta (offline)'}
               </button>
             </div>
           </article>

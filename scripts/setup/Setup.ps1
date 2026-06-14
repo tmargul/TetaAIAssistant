@@ -140,10 +140,14 @@ if (-not $NoStart) {
             Write-Host "  http://localhost:5173"
         }
         Write-Host "  http://localhost:3000/api/health"
-    } elseif ($isVendor -and (Test-ProductionLayout)) {
+    } elseif (Test-ProductionLayout) {
         Start-Application $InstallRoot
         Write-Host ""
         Write-Host "Aplikacja uruchomiona:" -ForegroundColor Green
         Write-Host "  http://localhost:3000"
+        if (-not $isVendor) {
+            Write-Host ""
+            Write-Host "Pamietaj: zaimportuj RAG — Aktualizuj-RAG.bat lub pnpm rag:global:import" -ForegroundColor Yellow
+        }
     }
 }

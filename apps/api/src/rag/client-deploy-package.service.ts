@@ -103,7 +103,41 @@ export class ClientDeployPackageService {
     await rm(stagingDir, { recursive: true, force: true });
 
     const createdAt = new Date().toISOString();
-    this.logger.log(`Paczka instalacji klienta: ${zipPath}`);
+    this.logger.log(`Paczka instalacji klienta (offline): ${zipPath}`);
+    return {
+      zipPath,
+      filename: path.basename(zipPath),
+      appVersion,
+      createdAt,
+    };
+  }
+
+  async buildClientOnlineInstallZip(): Promise<ClientDeployPackageResult> {
+    const repoRoot = this.offlineBundle.getRepoRoot();
+    this.logger.log('Budowanie aplikacji klienckiej (build:client) przed pakowaniem online…');
+    execSync('pnpm run build:client', { cwd: repoRoot, stdio: 'inherit' });
+
+    const stamp = Date.now();
+    const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `client-install-online-${stamp}`);
+    const appDir = path.join(stagingDir, 'TetaAIAssistant');
+    const zipPath = path.join(
+      repoRoot,
+      'data',
+      'vendor-packages',
+      `teta-client-install-online-${stamp}.zip`,
+    );
+
+    await mkdir(appDir, { recursive: true });
+
+    const appVersion = await this.readAppVersion(repoRoot);
+    await this.copyProductionClientOnlineLayout(repoRoot, appDir);
+    await this.writeClientOnlineInstallFiles(appDir, appVersion);
+
+    await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
+    await rm(stagingDir, { recursive: true, force: true });
+
+    const createdAt = new Date().toISOString();
+    this.logger.log(`Paczka instalacji klienta (online): ${zipPath}`);
     return {
       zipPath,
       filename: path.basename(zipPath),
@@ -289,6 +323,17 @@ export class ClientDeployPackageService {
     ]);
   }
 
+  /** Paczka klienta online: bez offline-bundle i bez node_modules (setup pobiera z internetu). */
+  private async copyProductionClientOnlineLayout(repoRoot: string, targetDir: string): Promise<void> {
+    await this.copyProductionLayout(
+      repoRoot,
+      targetDir,
+      'client',
+      ['apps/api/dist', 'apps/web/dist', 'packages/shared/dist', 'scripts/setup'],
+      { includeNodeModules: false },
+    );
+  }
+
   private async copyProductionLayout(
     repoRoot: string,
     targetDir: string,
@@ -365,10 +410,12 @@ export class ClientDeployPackageService {
 
   private async writeClientInstallFiles(appDir: string, appVersion: string): Promise<void> {
     const readme = [
-      'Teta AI Assistant — instalacja u klienta (offline)',
+      'Teta AI Assistant — instalacja u klienta OFFLINE',
       '',
       `Wersja aplikacji: ${appVersion}`,
       '',
+      'Paczka OFFLINE (~6–9 GB): aplikacja + offline-bundle.zip (modele, Qdrant, RAG, node_modules).',
+      'Bez internetu u celu. Jesli klient ma internet, uzyj paczki client ONLINE (~100 MB).',
       '1. Rozpakuj caly archiwum ZIP na serwerze klienta.',
       '2. Wejdz do katalogu TetaAIAssistant.',
       '3. Uruchom PowerShell jako Administrator:',
@@ -425,8 +472,82 @@ export class ClientDeployPackageService {
       'pause',
     ].join('\r\n');
 
+    await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA-OFFLINE.txt'), `${readme}\n`, 'utf8');
+    await writeFile(path.join(appDir, 'Instaluj-Klienta-Offline.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA.txt'), `${readme}\n`, 'utf8');
     await writeFile(path.join(appDir, 'Instaluj-Klienta.bat'), `${installBat}\r\n`, 'utf8');
+    await writeFile(path.join(appDir, 'Aktualizuj-RAG.bat'), `${updateRagBat}\r\n`, 'utf8');
+  }
+
+  private async writeClientOnlineInstallFiles(appDir: string, appVersion: string): Promise<void> {
+    const readme = [
+      'Teta AI Assistant — instalacja u klienta ONLINE',
+      '',
+      `Wersja aplikacji: ${appVersion}`,
+      '',
+      'Paczka ONLINE (~50–150 MB): skompilowana aplikacja bez modeli AI i bez offline-bundle.',
+      'Wymaga internetu podczas instalacji (Node, Ollama, Qdrant, modele, pnpm install).',
+      '',
+      '=== INSTALACJA ===',
+      '',
+      '1. Rozpakuj archiwum ZIP na serwerze klienta.',
+      '2. Kliknij prawym: Instaluj-Klienta-Online.bat -> Uruchom jako administrator.',
+      '3. Poczekaj na pobranie modeli Ollama (nomic-embed-text + qwen3, ok. 5–6 GB).',
+      '4. Setup zapyta opcjonalnie o deepseek-r1 (~15 GB) — domyslnie N (wystarczy qwen3).',
+      '5. Po zakonczeniu uruchom: C:\\TetaAI\\Start-App.bat',
+      '6. Otworz przegladarke: http://localhost:3000',
+      '',
+      '=== PIERWSZE URUCHOMIENIE ===',
+      '',
+      '- Skonfiguruj polaczenie Oracle (dane od klienta / administratora Tety).',
+      '- Zarejestruj administratora aplikacji (login Oracle admina).',
+      '',
+      '=== RAG GLOBALNY ===',
+      '',
+      'Paczka online NIE zawiera bazy RAG — pobierz osobno global-rag-X.zip od Tety.',
+      'Po instalacji: .\\Aktualizuj-RAG.bat sciezka\\do\\global-rag-X.zip',
+      '',
+      'Adresy:',
+      '   Aplikacja:  http://localhost:3000',
+      '   API:        http://localhost:3000/api/health',
+      '   Qdrant:     http://localhost:6333/dashboard',
+    ].join('\n');
+
+    const installBat = [
+      '@echo off',
+      'title Teta AI Assistant - instalacja klienta ONLINE',
+      'cd /d "%~dp0"',
+      'echo Wymagane polaczenie z internetem (Node, Ollama, Qdrant, modele AI).',
+      'powershell -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client',
+      'if errorlevel 1 (',
+      '  echo.',
+      '  echo Instalacja nie powiodla sie.',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      'echo.',
+      'echo Instalacja klienta (online) zakonczona.',
+      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat',
+      'echo Zaimportuj RAG: Aktualizuj-RAG.bat sciezka\\do\\global-rag-X.zip',
+      'echo Adres: http://localhost:3000',
+      'pause',
+    ].join('\r\n');
+
+    const updateRagBat = [
+      '@echo off',
+      'title Teta AI - aktualizacja RAG globalnego',
+      'cd /d "%~dp0"',
+      'if "%~1"=="" (',
+      '  echo Uzycie: Aktualizuj-RAG.bat sciezka\\do\\global-rag-X.zip',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      'pnpm rag:global:import --file "%~1"',
+      'pause',
+    ].join('\r\n');
+
+    await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA-ONLINE.txt'), `${readme}\n`, 'utf8');
+    await writeFile(path.join(appDir, 'Instaluj-Klienta-Online.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'Aktualizuj-RAG.bat'), `${updateRagBat}\r\n`, 'utf8');
   }
 
