@@ -23,6 +23,18 @@ export type OfflineBundleResult = {
   manifest: OfflineBundleManifest;
 };
 
+export type ModelsUpdatePackageResult = {
+  zipPath: string;
+  filename: string;
+  manifest: {
+    format: string;
+    version: string;
+    createdAt: string;
+    models: string[];
+    notes?: string;
+  };
+};
+
 @Injectable()
 export class OfflineBundleService {
   private readonly logger = new Logger(OfflineBundleService.name);
@@ -68,6 +80,36 @@ export class OfflineBundleService {
     await rm(workDir, { recursive: true, force: true });
 
     this.logger.log(`Paczka offline: ${zipPath}`);
+    return {
+      zipPath,
+      filename: path.basename(zipPath),
+      manifest,
+    };
+  }
+
+  async buildModelsUpdateZip(): Promise<ModelsUpdatePackageResult> {
+    const repoRoot = this.resolveRepoRoot();
+    const stamp = Date.now();
+    const workDir = path.join(repoRoot, 'data', 'vendor-packages', `models-update-${stamp}`);
+    const zipPath = path.join(repoRoot, 'data', 'vendor-packages', `teta-models-update-${stamp}.zip`);
+
+    await mkdir(path.dirname(zipPath), { recursive: true });
+    await mkdir(workDir, { recursive: true });
+    await this.addOllamaModels(workDir);
+
+    const models = await this.collectOllamaModelNames(path.join(workDir, 'ollama-models'));
+    const manifest = {
+      format: 'teta-ollama-models',
+      version: '1.0.0',
+      createdAt: new Date().toISOString(),
+      models,
+      notes: 'Paczka modeli Ollama do importu u klienta (pendrive / panel Aktualizacje).',
+    };
+    await writeFile(path.join(workDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    await this.zipDirectory(workDir, zipPath);
+    await rm(workDir, { recursive: true, force: true });
+
+    this.logger.log(`Paczka modeli Ollama: ${zipPath}`);
     return {
       zipPath,
       filename: path.basename(zipPath),

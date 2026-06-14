@@ -9,6 +9,7 @@ export interface ClientUpdatesStatusResponse {
     status: ServiceState;
     modelCount: number;
     chatModels: ChatModel[];
+    installedModels: string[];
   };
   qdrant: QdrantHealthInfo;
 }

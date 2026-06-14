@@ -150,6 +150,14 @@ export class OllamaChatService {
     return base.includes('embed');
   }
 
+  invalidateInstalledModelsCache(): void {
+    this.cachedModelNames = null;
+  }
+
+  async listAllInstalledModels(refresh = false): Promise<string[]> {
+    return this.listInstalledModels(refresh);
+  }
+
   private async listInstalledModels(refresh = false): Promise<string[]> {
     if (!refresh && this.cachedModelNames) {
       return this.cachedModelNames;

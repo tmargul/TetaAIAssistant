@@ -93,6 +93,17 @@ export class VendorPackagesController {
     });
   }
 
+  @Post('models-update/export')
+  async exportModelsUpdate(@Res() res: Response): Promise<void> {
+    const result = await this.offlineBundle.buildModelsUpdateZip();
+    res.download(result.zipPath, result.filename, (err) => {
+      void rm(result.zipPath, { force: true });
+      if (err && !res.headersSent) {
+        res.status(500).json({ message: 'Nie udało się pobrać paczki modeli.' });
+      }
+    });
+  }
+
   @Post('global-rag/export')
   async exportGlobalRag(@Body() body: ExportGlobalRagBody, @Res() res: Response): Promise<void> {
     const version = body.version?.trim();

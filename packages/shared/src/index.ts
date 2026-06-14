@@ -5,6 +5,15 @@ export type {
 } from './updates.js';
 
 export type {
+  OllamaModelPullResult,
+  OllamaModelsImportResult,
+  OllamaModelsPackManifest,
+  OllamaPullModel,
+} from './ollama-models.js';
+
+export { OLLAMA_MODELS_PACK_FORMAT, OLLAMA_PULL_MODELS } from './ollama-models.js';
+
+export type {
   HealthResponse,
   HealthStatus,
   OllamaHealthInfo,

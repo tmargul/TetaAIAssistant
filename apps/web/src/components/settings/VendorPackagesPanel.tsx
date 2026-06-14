@@ -51,6 +51,7 @@ export function VendorPackagesPanel() {
   const [vendorOnlineInstallLoading, setVendorOnlineInstallLoading] = useState(false);
   const [appUpdateLoading, setAppUpdateLoading] = useState(false);
   const [offlineLoading, setOfflineLoading] = useState(false);
+  const [modelsUpdateLoading, setModelsUpdateLoading] = useState(false);
   const [ragLoading, setRagLoading] = useState(false);
   const [ragIngestLoading, setRagIngestLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -202,6 +203,24 @@ export function VendorPackagesPanel() {
       setMessage('Paczka offline pobrana.');
     } finally {
       setOfflineLoading(false);
+    }
+  };
+
+  const handleModelsUpdateExport = async () => {
+    setMessage(null);
+    setError(null);
+    setModelsUpdateLoading(true);
+    try {
+      const result = await downloadPackage('/api/vendor/packages/models-update/export');
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setMessage(
+        'Paczka modeli pobrana. U klienta: skopiuj na pendrive → panel Aktualizacje → Import ze ścieżki lub ZIP.',
+      );
+    } finally {
+      setModelsUpdateLoading(false);
     }
   };
 
@@ -392,14 +411,22 @@ export function VendorPackagesPanel() {
                 infrastruktury AI u klienta bez przebudowy aplikacji.
               </p>
             </div>
-            <div className="settings__package-actions">
+            <div className="settings__package-actions settings__package-actions--stack">
               <button
                 type="button"
                 className="settings__btn"
                 onClick={handleOfflineExport}
-                disabled={offlineLoading}
+                disabled={offlineLoading || modelsUpdateLoading}
               >
                 {offlineLoading ? 'Przygotowywanie…' : 'Pobierz paczkę offline'}
+              </button>
+              <button
+                type="button"
+                className="settings__btn settings__btn--secondary"
+                onClick={handleModelsUpdateExport}
+                disabled={modelsUpdateLoading || offlineLoading}
+              >
+                {modelsUpdateLoading ? 'Pakowanie…' : 'Pobierz paczkę modeli'}
               </button>
             </div>
           </article>
