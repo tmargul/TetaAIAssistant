@@ -4,10 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useSystemHealth } from '../../hooks/useSystemHealth';
 import { authFetch } from '../../lib/auth-storage';
 import { VendorPackagesPanel } from './VendorPackagesPanel';
+import { ClientUpdatesPanel } from './ClientUpdatesPanel';
 import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
 import './settings.css';
 
-type SettingsTab = 'users' | 'servers' | 'oracle' | 'packages';
+type SettingsTab = 'users' | 'servers' | 'oracle' | 'packages' | 'updates';
 
 export function AdminSettingsView() {
   const { user } = useAuth();
@@ -145,6 +146,15 @@ export function AdminSettingsView() {
             Paczki wdrożeniowe
           </button>
         )}
+        {!isVendorMode && (
+          <button
+            type="button"
+            className={`settings__tab${activeTab === 'updates' ? ' settings__tab--active' : ''}`}
+            onClick={() => setActiveTab('updates')}
+          >
+            Aktualizacje
+          </button>
+        )}
       </div>
 
       <section className="panel settings__panel">
@@ -228,6 +238,8 @@ export function AdminSettingsView() {
         )}
 
         {activeTab === 'packages' && isVendorMode && <VendorPackagesPanel />}
+
+        {activeTab === 'updates' && !isVendorMode && <ClientUpdatesPanel />}
 
         {activeTab === 'oracle' && (
           <>

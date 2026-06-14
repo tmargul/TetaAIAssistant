@@ -9,5 +9,6 @@ import { OllamaChatService } from './ollama-chat.service';
   imports: [AuthModule, RagCoreModule],
   controllers: [ChatController],
   providers: [ChatService, OllamaChatService],
+  exports: [OllamaChatService],
 })
 export class ChatModule {}

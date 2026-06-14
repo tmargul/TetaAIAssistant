@@ -1,6 +1,10 @@
 export const APP_NAME = 'Teta AI Assistant';
 
 export type {
+  ClientUpdatesStatusResponse,
+} from './updates.js';
+
+export type {
   HealthResponse,
   HealthStatus,
   OllamaHealthInfo,
