@@ -17,6 +17,9 @@ export const RAG_SOURCE_EXTENSIONS = [
   '.xlsx',
   '.html',
   '.htm',
+  '.vtt',
+  '.srt',
+  '.pptx',
 ] as const;
 export type RagSourceExtension = (typeof RAG_SOURCE_EXTENSIONS)[number];
 
@@ -37,6 +40,8 @@ const RAG_SOURCE_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/vtt',
 ] as const;
 
 /** Wartość atrybutu `accept` dla input[type=file] w UI. */
@@ -80,16 +85,90 @@ export interface RagChunkPayload {
   text: string;
   source: string;
   chunkIndex: number;
+  source_type?: KnowledgeSourceType;
+  start?: number;
+  end?: number;
+  summary?: string;
+  keywords?: string[];
+  concepts?: string[];
+  plugin_names?: string[];
+  form_names?: string[];
+  business_objects?: string[];
+  datasets?: string[];
+  tables?: string[];
+  packages?: string[];
+  shortcuts?: string[];
+  module?: string;
+  topic?: string;
+  teta_version?: string;
+  training_date?: string;
+  knowledge_version?: string;
+  frames?: string[];
+}
+
+export const TETA_KNOWLEDGE_CHUNK_FORMAT = 'teta-knowledge-chunk-v1' as const;
+
+export const KNOWLEDGE_SOURCE_TYPES = [
+  'training_video',
+  'documentation',
+  'faq',
+  'oracle_package',
+  'client_document',
+  'other',
+] as const;
+
+export type KnowledgeSourceType = (typeof KNOWLEDGE_SOURCE_TYPES)[number];
+
+/** Rekord w pliku knowledge-chunks.jsonl (pipeline szkoleń). */
+export interface TetaKnowledgeChunkInput {
+  id?: string;
+  source: string;
+  source_type?: KnowledgeSourceType;
+  start?: number;
+  end?: number;
+  text: string;
+  summary?: string;
+  keywords?: string[];
+  concepts?: string[];
+  plugin_names?: string[];
+  form_names?: string[];
+  business_objects?: string[];
+  datasets?: string[];
+  tables?: string[];
+  packages?: string[];
+  shortcuts?: string[];
+  module?: string;
+  topic?: string;
+  teta_version?: string;
+  training_date?: string;
+  knowledge_version?: string;
+  frames?: string[];
+}
+
+export type RagImportMode = 'replace' | 'merge';
+
+export interface GlobalRagChunksImportResult {
+  chunkCount: number;
+  sources: string[];
+  collection: string;
+  inputPath: string;
+  importMode: RagImportMode;
 }
 
 export interface RagPackManifest {
   format: typeof RAG_PACK_FORMAT;
+  /** 1 = legacy, 2 = statystyki metadanych (Faza D). */
+  schemaVersion?: 1 | 2;
   version: string;
   embeddingModel: string;
   embeddingDimensions: number;
   chunkCount: number;
   builtAt: string;
   sources: string[];
+  sourceTypeCounts?: Partial<Record<KnowledgeSourceType, number>>;
+  modules?: string[];
+  topics?: string[];
+  trainingVideoChunks?: number;
 }
 
 export interface RagPackVectorRecord {

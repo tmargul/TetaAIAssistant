@@ -18,7 +18,7 @@ Obsługiwane formaty (takie same jak w RAG klienta):
 
 | Tak | Nie (na razie) |
 |-----|----------------|
-| Dokumenty i arkusze w formatach powyżej | Filmy `.mp4` — wrzuć **transkrypt** jako `.txt` / `.md` |
+| Dokumenty i arkusze w formatach powyżej | Filmy `.mp4` — użyj pipeline → **`knowledge-chunks.jsonl`** (patrz `docs/rag-pipeline-formats.md`) |
 | Eksport FAQ/procedur z Excela (`.xlsx`, `.csv`) | Surowe dumpy bazy Oracle |
 | Zapisane strony szkoleniowe (`.html`) | Prezentacje `.pptx` (na razie — zapisz jako PDF) |
 | FAQ, procedury, słownik pojęć Tety | Surowe dumpy bazy Oracle |
@@ -37,6 +37,17 @@ Po instalacji otwórz **http://localhost:3000**
 3. Wejdź w **Ustawienia → Paczki**
 4. Kliknij **„Zbuduj indeks RAG”**
 5. Podaj wersję (np. `1.0.0`) i kliknij **„Pobierz paczkę RAG”**
+
+### Pipeline wideo (Whisper + Qwen)
+
+Zamiast ręcznego `.txt` z transkryptu — plik **`knowledge-chunks.jsonl`** (format `teta-knowledge-chunk-v1`).
+
+```powershell
+pnpm rag:global:import-chunks -- --input D:\pipeline\knowledge-chunks.jsonl
+pnpm rag:global:export -- --version 2025.06.1 --out dist\global-rag-2025.06.1.zip
+```
+
+Pełna specyfikacja: **`docs/rag-pipeline-formats.md`**.
 
 Paczka `global-rag-1.0.0.zip` trafia do klientów.
 

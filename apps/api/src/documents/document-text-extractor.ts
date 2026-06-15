@@ -8,6 +8,8 @@ import {
   RAG_SOURCE_EXTENSIONS,
   isRagSourceExtension,
 } from '@teta/shared';
+import { extractPptxText } from './pptx-text';
+import { extractSubtitleText } from './subtitle-text';
 
 const wordExtractor = new WordExtractor();
 
@@ -48,6 +50,14 @@ export async function extractDocumentText(filePath: string, displayName: string)
         ],
       }),
     );
+  }
+
+  if (ext === '.pptx') {
+    return normalizeExtractedText(await extractPptxText(filePath));
+  }
+
+  if (ext === '.vtt' || ext === '.srt') {
+    return normalizeExtractedText(await extractSubtitleText(filePath, ext));
   }
 
   const content = await readFile(filePath, 'utf8');

@@ -5,6 +5,8 @@ import {
   type ChatModel,
   type ChatModelsResponse,
   type ChatRagSource,
+  type RagSearchFilter,
+  KNOWLEDGE_SOURCE_TYPES,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
 import { IconChat } from '../layout/icons';
@@ -24,7 +26,80 @@ function createId() {
 
 function formatSourceLabel(source: ChatRagSource): string {
   const scope = source.collection === 'global' ? 'Teta' : 'Klient';
-  return `${scope}: ${source.source}`;
+  const parts = [`${scope}: ${source.source}`];
+  const timestamp = formatTimestampRange(source.startSec, source.endSec);
+  if (timestamp) {
+    parts.push(timestamp);
+  }
+  if (source.module) {
+    parts.push(source.module);
+  }
+  return parts.join(' · ');
+}
+
+function formatTimestamp(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function formatTimestampRange(startSec?: number, endSec?: number): string | undefined {
+  if (startSec === undefined && endSec === undefined) {
+    return undefined;
+  }
+  const start = startSec !== undefined ? formatTimestamp(startSec) : '?';
+  const end = endSec !== undefined ? formatTimestamp(endSec) : '?';
+  return `${start}–${end}`;
+}
+
+const SOURCE_TYPE_LABELS: Record<(typeof KNOWLEDGE_SOURCE_TYPES)[number], string> = {
+  training_video: 'Szkolenie wideo',
+  documentation: 'Dokumentacja',
+  faq: 'FAQ',
+  oracle_package: 'Pakiet Oracle',
+  client_document: 'Dokument klienta',
+  other: 'Inne',
+};
+
+function RagFramePreview({ url }: { url: string }) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    authFetch(url)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setBlobUrl(null);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [url]);
+
+  if (!blobUrl) return null;
+
+  return <img src={blobUrl} alt="Klatka ze szkolenia" className="chat__sources-frame" />;
 }
 
 function ChatSources({ sources }: { sources: ChatRagSource[] }) {
@@ -37,6 +112,13 @@ function ChatSources({ sources }: { sources: ChatRagSource[] }) {
         {sources.map((source, index) => (
           <li key={`${source.collection}-${source.source}-${index}`}>
             <span className="chat__sources-name">{formatSourceLabel(source)}</span>
+            {source.sourceType && (
+              <span className="chat__sources-meta">
+                {SOURCE_TYPE_LABELS[source.sourceType] ?? source.sourceType}
+                {source.topic ? ` · ${source.topic}` : ''}
+              </span>
+            )}
+            {source.previewFrameUrl && <RagFramePreview url={source.previewFrameUrl} />}
             <span className="chat__sources-excerpt">{source.excerpt}</span>
           </li>
         ))}
@@ -84,6 +166,7 @@ export function ChatView() {
   const [isTyping, setIsTyping] = useState(false);
   const [typingHint, setTypingHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ragFilter, setRagFilter] = useState<RagSearchFilter>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -153,6 +236,7 @@ export function ChatView() {
           message: trimmed,
           model,
           history: history.slice(0, -1),
+          ragFilter: buildRagFilterPayload(ragFilter),
         }),
       });
 
@@ -205,6 +289,12 @@ export function ChatView() {
     textareaRef.current?.focus();
   };
 
+  const hasActiveFilters =
+    Boolean(ragFilter.sourceType) ||
+    Boolean(ragFilter.module?.trim()) ||
+    Boolean(ragFilter.topic?.trim()) ||
+    Boolean(ragFilter.pluginName?.trim());
+
   return (
     <div className="chat">
       <div className="chat__toolbar">
@@ -220,9 +310,88 @@ export function ChatView() {
             <p className="chat__model-hint">Brak modeli czatu w Ollama — zainstaluj qwen3.</p>
           )}
         </div>
-        <button type="button" className="chat__new-btn" onClick={handleNewChat}>
-          Nowa rozmowa
-        </button>
+        <div className="chat__toolbar-actions">
+          <details className="chat__filters">
+            <summary>Filtry RAG{hasActiveFilters ? ' •' : ''}</summary>
+            <div className="chat__filters-grid">
+              <label className="chat__filter-field">
+                <span>Typ źródła</span>
+                <select
+                  value={ragFilter.sourceType ?? ''}
+                  onChange={(e) =>
+                    setRagFilter((prev) => ({
+                      ...prev,
+                      sourceType: e.target.value
+                        ? (e.target.value as RagSearchFilter['sourceType'])
+                        : undefined,
+                    }))
+                  }
+                >
+                  <option value="">Wszystkie</option>
+                  {KNOWLEDGE_SOURCE_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {SOURCE_TYPE_LABELS[type]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="chat__filter-field">
+                <span>Moduł</span>
+                <input
+                  type="text"
+                  value={ragFilter.module ?? ''}
+                  onChange={(e) =>
+                    setRagFilter((prev) => ({
+                      ...prev,
+                      module: e.target.value || undefined,
+                    }))
+                  }
+                  placeholder="np. Administracja"
+                />
+              </label>
+              <label className="chat__filter-field">
+                <span>Temat</span>
+                <input
+                  type="text"
+                  value={ragFilter.topic ?? ''}
+                  onChange={(e) =>
+                    setRagFilter((prev) => ({
+                      ...prev,
+                      topic: e.target.value || undefined,
+                    }))
+                  }
+                  placeholder="np. Dataset"
+                />
+              </label>
+              <label className="chat__filter-field">
+                <span>Plugin</span>
+                <input
+                  type="text"
+                  value={ragFilter.pluginName ?? ''}
+                  onChange={(e) =>
+                    setRagFilter((prev) => ({
+                      ...prev,
+                      pluginName: e.target.value || undefined,
+                    }))
+                  }
+                  placeholder="np. Kartoteka użytkowników"
+                />
+              </label>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="chat__filters-clear"
+                  onClick={() => setRagFilter({})}
+                >
+                  Wyczyść filtry
+                </button>
+              )}
+            </div>
+          </details>
+          <button type="button" className="chat__new-btn" onClick={handleNewChat}>
+            Nowa rozmowa
+          </button>
+        </div>
       </div>
 
       {error && <div className="chat__error">{error}</div>}
@@ -305,4 +474,13 @@ export function ChatView() {
       </div>
     </div>
   );
+}
+
+function buildRagFilterPayload(filter: RagSearchFilter): RagSearchFilter | undefined {
+  const payload: RagSearchFilter = {};
+  if (filter.sourceType) payload.sourceType = filter.sourceType;
+  if (filter.module?.trim()) payload.module = filter.module.trim();
+  if (filter.topic?.trim()) payload.topic = filter.topic.trim();
+  if (filter.pluginName?.trim()) payload.pluginName = filter.pluginName.trim();
+  return Object.keys(payload).length > 0 ? payload : undefined;
 }

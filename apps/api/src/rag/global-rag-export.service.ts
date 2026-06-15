@@ -6,8 +6,8 @@ import * as path from 'path';
 import { pipeline } from 'stream/promises';
 import { createGzip } from 'zlib';
 import archiver from 'archiver';
-import type { GlobalRagExportResult, RagPackManifest, RagPackVectorRecord } from '@teta/shared';
-import { RAG_PACK_FORMAT } from '@teta/shared';
+import type { GlobalRagExportResult, KnowledgeSourceType, RagPackManifest, RagPackVectorRecord } from '@teta/shared';
+import { KNOWLEDGE_SOURCE_TYPES, RAG_PACK_FORMAT } from '@teta/shared';
 import { EmbeddingService } from './embedding.service';
 import { QdrantService } from './qdrant.service';
 import { RagGlobalBuildService } from './rag-global-build.service';
@@ -32,14 +32,24 @@ export class GlobalRagExportService {
 
     const sources = [...new Set(points.map((point) => point.payload.source))].sort();
     const builtAt = new Date().toISOString();
+    const sourceTypeCounts = countSourceTypes(points);
+    const modules = collectUniqueStrings(points, (payload) => payload.module);
+    const topics = collectUniqueStrings(points, (payload) => payload.topic);
+    const trainingVideoChunks = sourceTypeCounts.training_video ?? 0;
+
     const manifest: RagPackManifest = {
       format: RAG_PACK_FORMAT,
+      schemaVersion: 2,
       version,
       embeddingModel: this.embedding.model,
       embeddingDimensions: this.embedding.dimensions,
       chunkCount: points.length,
       builtAt,
       sources,
+      sourceTypeCounts,
+      modules,
+      topics,
+      trainingVideoChunks,
     };
 
     const resolvedOutput = path.resolve(outputPath);
@@ -113,4 +123,39 @@ export class GlobalRagExportService {
       void archive.finalize();
     });
   }
+}
+
+function countSourceTypes(
+  points: Array<{ payload: import('@teta/shared').RagChunkPayload }>,
+): Partial<Record<KnowledgeSourceType, number>> {
+  const counts: Partial<Record<KnowledgeSourceType, number>> = {};
+  for (const type of KNOWLEDGE_SOURCE_TYPES) {
+    counts[type] = 0;
+  }
+  for (const point of points) {
+    const type = point.payload.source_type;
+    if (type && counts[type] !== undefined) {
+      counts[type] = (counts[type] ?? 0) + 1;
+    }
+  }
+  for (const type of KNOWLEDGE_SOURCE_TYPES) {
+    if (counts[type] === 0) {
+      delete counts[type];
+    }
+  }
+  return counts;
+}
+
+function collectUniqueStrings(
+  points: Array<{ payload: import('@teta/shared').RagChunkPayload }>,
+  pick: (payload: import('@teta/shared').RagChunkPayload) => string | undefined,
+): string[] {
+  const values = new Set<string>();
+  for (const point of points) {
+    const value = pick(point.payload)?.trim();
+    if (value) {
+      values.add(value);
+    }
+  }
+  return [...values].sort();
 }

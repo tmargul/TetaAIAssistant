@@ -1,5 +1,6 @@
 import { join } from 'path';
 import {
+  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -10,13 +11,18 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
+import { memoryStorage, diskStorage } from 'multer';
+import { unlink } from 'fs/promises';
+import { tmpdir } from 'os';
 import type {
+  GlobalRagChunksImportResult,
   GlobalRagIngestResult,
   GlobalSourceFileRecord,
   GlobalSourcesListResponse,
+  RagImportMode,
 } from '@teta/shared';
 import { getRepoRoot } from '../config/repo-root';
+import { GlobalRagChunksImportService } from './global-rag-chunks-import.service';
 import { GlobalRagIngestService } from './global-rag-ingest.service';
 import { GlobalRagService } from './global-rag.service';
 import { GlobalSourcesService } from './global-sources.service';
@@ -28,6 +34,7 @@ export class VendorRagController {
   constructor(
     private readonly globalRag: GlobalRagService,
     private readonly globalRagIngest: GlobalRagIngestService,
+    private readonly globalRagChunksImport: GlobalRagChunksImportService,
     private readonly globalSources: GlobalSourcesService,
   ) {}
 
@@ -40,6 +47,46 @@ export class VendorRagController {
   ingestFromSources(): Promise<GlobalRagIngestResult> {
     const sourcesDir = join(getRepoRoot(), 'sources', 'global');
     return this.globalRagIngest.ingestFromDirectory(sourcesDir);
+  }
+
+  @Post('ingest/chunks')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: tmpdir(),
+        filename: (_req, file, callback) => {
+          const safeName = file.originalname.replace(/[^\w.\-]+/g, '_');
+          callback(null, `teta-chunks-import-${Date.now()}-${safeName}`);
+        },
+      }),
+      limits: { fileSize: 512 * 1024 * 1024 },
+      fileFilter: (_req, file, callback) => {
+        if (!file.originalname.toLowerCase().endsWith('.jsonl')) {
+          callback(
+            new BadRequestException('Plik musi być knowledge-chunks.jsonl (format teta-knowledge-chunk-v1).'),
+            false,
+          );
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  async ingestFromChunksFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('merge') merge?: string,
+  ): Promise<GlobalRagChunksImportResult> {
+    if (!file?.path) {
+      throw new BadRequestException('Nie przesłano pliku JSONL.');
+    }
+
+    const importMode: RagImportMode = merge === 'true' || merge === '1' ? 'merge' : 'replace';
+
+    try {
+      return await this.globalRagChunksImport.importFromJsonlFile(file.path, importMode);
+    } finally {
+      await unlink(file.path).catch(() => undefined);
+    }
   }
 
   @Get('sources')

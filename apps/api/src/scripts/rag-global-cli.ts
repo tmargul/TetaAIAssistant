@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { formatRagSourceExtensions } from '@teta/shared';
 import { AppModule } from '../app.module';
 import { assertVendorEnabled } from '../rag/vendor-auth';
+import { GlobalRagChunksImportService } from '../rag/global-rag-chunks-import.service';
 import { GlobalRagExportService } from '../rag/global-rag-export.service';
 import { GlobalRagIngestService } from '../rag/global-rag-ingest.service';
 
@@ -9,8 +10,11 @@ function printUsage(): void {
   console.log(`
 Użycie:
   rag-global ingest --input <katalog>
+  rag-global import-chunks --input <plik.jsonl> [--merge]
   rag-global export --version <wersja> --out <plik.zip>
+  rag:validate-chunks -- --input <plik.jsonl>
 
+Format JSONL: teta-knowledge-chunk-v1 (patrz docs/rag-pipeline-formats.md)
 Wymaga TETA_APP_MODE=vendor, TETA_VENDOR_SECRET (min. 32 znaki) oraz uruchomionych Ollama i Qdrant.
 `);
 }
@@ -57,6 +61,20 @@ async function main(): Promise<void> {
       const result = await ingest.ingestFromDirectory(input);
       console.log(
         `Ingest zakończony: ${result.chunkCount} chunków, źródła: ${result.sources.join(', ')}`,
+      );
+      return;
+    }
+
+    if (command === 'import-chunks') {
+      const input = args.input;
+      if (!input) {
+        throw new Error('Podaj --input <plik.jsonl> (format teta-knowledge-chunk-v1)');
+      }
+      const importMode = args.merge !== undefined ? 'merge' : 'replace';
+      const importer = app.get(GlobalRagChunksImportService);
+      const result = await importer.importFromJsonlFile(input, importMode);
+      console.log(
+        `Import JSONL (${result.importMode}) zakończony: ${result.chunkCount} chunków, źródła: ${result.sources.join(', ')}`,
       );
       return;
     }

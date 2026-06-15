@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { RagChunkPayload } from '@teta/shared';
+import type { RagChunkPayload, RagSearchFilter } from '@teta/shared';
 import { RAG_CONSTANTS } from './rag.constants';
+import { buildQdrantFilter } from './rag-search.util';
 
 type QdrantPoint = {
   id: string;
@@ -157,8 +158,10 @@ export class QdrantService {
     collection: string,
     vector: number[],
     limit: number,
+    filter?: RagSearchFilter,
   ): Promise<Array<{ score: number; payload: RagChunkPayload }>> {
     try {
+      const qdrantFilter = buildQdrantFilter(filter);
       const response = await this.request<{
         result: Array<{ score: number; payload: RagChunkPayload }>;
       }>(`/collections/${collection}/points/search`, {
@@ -168,6 +171,7 @@ export class QdrantService {
           vector,
           limit,
           with_payload: true,
+          ...(qdrantFilter ? { filter: qdrantFilter } : {}),
         }),
       });
       return response.result ?? [];

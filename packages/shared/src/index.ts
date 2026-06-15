@@ -4,6 +4,19 @@ export type {
   ClientUpdatesStatusResponse,
 } from './updates.js';
 
+export type { RagSearchFilter } from './rag-search.js';
+
+export type {
+  KnowledgeChunkValidationIssue,
+  KnowledgeChunkValidationResult,
+} from './knowledge-chunk.js';
+
+export {
+  buildKnowledgeEmbeddingText,
+  parseKnowledgeChunkLine,
+  validateKnowledgeChunkLines,
+} from './knowledge-chunk.js';
+
 export type {
   OllamaModelPullProgress,
   OllamaModelPullResult,
@@ -55,6 +68,7 @@ export type {
 
 export type {
   AppMode,
+  GlobalRagChunksImportResult,
   GlobalRagExportResult,
   ClientRagStatusResponse,
   GlobalRagImportResult,
@@ -62,12 +76,15 @@ export type {
   GlobalRagStatusResponse,
   GlobalSourceFileRecord,
   GlobalSourcesListResponse,
+  KnowledgeSourceType,
   RagDocumentRecord,
   RagDocumentStatus,
   RagDocumentUploadResponse,
   RagChunkPayload,
+  RagImportMode,
   RagPackManifest,
   RagPackVectorRecord,
+  TetaKnowledgeChunkInput,
 } from './rag.js';
 
 export {
@@ -77,7 +94,9 @@ export {
   DEFAULT_EMBEDDING_MODEL,
   GLOBAL_RAG_COLLECTION,
   GLOBAL_RAG_SUPPORTED_EXTENSIONS,
+  KNOWLEDGE_SOURCE_TYPES,
   RAG_PACK_FORMAT,
+  TETA_KNOWLEDGE_CHUNK_FORMAT,
   RAG_SOURCE_EXTENSIONS,
   getRagSourceFileAccept,
   formatRagSourceExtensions,

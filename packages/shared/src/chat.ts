@@ -1,5 +1,10 @@
+import type { KnowledgeSourceType } from './rag.js';
+import type { RagSearchFilter } from './rag-search.js';
+
 export const CHAT_MODELS = ['qwen3', 'deepseek-r1'] as const;
 export type ChatModel = (typeof CHAT_MODELS)[number];
+
+export type { KnowledgeSourceType };
 
 export type ChatRole = 'user' | 'assistant';
 
@@ -20,6 +25,7 @@ export interface ChatCompletionRequest {
   message: string;
   model: ChatModel;
   history?: ChatHistoryMessage[];
+  ragFilter?: RagSearchFilter;
 }
 
 export type ChatRagCollection = 'global' | 'client';
@@ -29,6 +35,15 @@ export interface ChatRagSource {
   collection: ChatRagCollection;
   score: number;
   excerpt: string;
+  sourceType?: KnowledgeSourceType;
+  startSec?: number;
+  endSec?: number;
+  module?: string;
+  topic?: string;
+  pluginNames?: string[];
+  framePaths?: string[];
+  /** URL pierwszej klatki (Faza C), np. /api/rag/assets/... */
+  previewFrameUrl?: string;
 }
 
 export interface ChatModelsResponse {

@@ -30,7 +30,9 @@ W `.env`: `TETA_APP_MODE=vendor` lub `client`.
 2. Kolega rozpakowuje ZIP → **`Instaluj-Vendor.bat`** (Administrator).
 3. Uruchamia **`C:\TetaAI\Start-App.bat`** → aplikacja pod **http://localhost:3000** (bez kodu źródłowego, wersja skompilowana).
 4. Instrukcja w paczce: `INSTALACJA-VENDOR.txt` oraz `sources/global/README.md`.
-5. W UI: wrzuca pliki do `sources/global/` → **Zbuduj indeks RAG** → **Pobierz paczkę RAG**.
+5. W UI: wrzuca pliki do `sources/global/` **lub** importuje `knowledge-chunks.jsonl` (pipeline wideo) → **Zbuduj indeks RAG** / eksport → **Pobierz paczkę RAG**.
+
+Szczegóły formatów RAG i pipeline wideo: **`docs/rag-pipeline-formats.md`**.
 
 ### Co wrzucić do repozytorium git
 

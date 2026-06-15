@@ -6,6 +6,7 @@ import type {
   ChatRagSource,
 } from '@teta/shared';
 import { getAppMode } from '../rag/app-mode';
+import { formatTimestampRange, RAG_SOURCE_TYPE_LABELS } from '../rag/rag-search.util';
 import { OllamaChatService } from './ollama-chat.service';
 import { RagRetrievalService } from '../rag/rag-retrieval.service';
 
@@ -31,7 +32,11 @@ export class ChatService {
 
     let sources: ChatRagSource[] = [];
     try {
-      sources = await this.ragRetrieval.retrieve(message, { includeGlobal, includeClient });
+      sources = await this.ragRetrieval.retrieve(message, {
+        includeGlobal,
+        includeClient,
+        filter: input.ragFilter,
+      });
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       throw new ServiceUnavailableException(
@@ -85,10 +90,7 @@ export class ChatService {
     const context =
       sources.length > 0
         ? sources
-            .map(
-              (source, index) =>
-                `[${index + 1}] (${source.collection === 'global' ? 'wiedza Teta' : 'dokument klienta'}: ${source.source})\n${source.excerpt}`,
-            )
+            .map((source, index) => this.formatSourceContext(source, index + 1))
             .join('\n\n')
         : 'Brak dopasowanych fragmentów w bazie wiedzy RAG.';
 
@@ -97,11 +99,36 @@ export class ChatService {
       'Odpowiadaj po polsku, rzeczowo i pomocnie.',
       'Opieraj się wyłącznie na kontekście poniżej oraz wcześniejszej rozmowie.',
       'Jeśli kontekst nie zawiera odpowiedzi, powiedz to wprost — nie wymyślaj faktów.',
+      'Przy cytowaniu szkoleń wideo podawaj źródło i zakres czasu (timestamp), jeśli są dostępne.',
       '',
       'Kontekst z bazy wiedzy (RAG):',
       '---',
       context,
       '---',
     ].join('\n');
+  }
+
+  private formatSourceContext(source: ChatRagSource, index: number): string {
+    const scope = source.collection === 'global' ? 'wiedza Teta' : 'dokument klienta';
+    const meta: string[] = [`[${index}] (${scope}: ${source.source})`];
+
+    if (source.sourceType) {
+      meta.push(`typ: ${RAG_SOURCE_TYPE_LABELS[source.sourceType] ?? source.sourceType}`);
+    }
+    const timestamp = formatTimestampRange(source.startSec, source.endSec);
+    if (timestamp) {
+      meta.push(`czas: ${timestamp}`);
+    }
+    if (source.module) {
+      meta.push(`moduł: ${source.module}`);
+    }
+    if (source.topic) {
+      meta.push(`temat: ${source.topic}`);
+    }
+    if (source.pluginNames?.length) {
+      meta.push(`pluginy: ${source.pluginNames.join(', ')}`);
+    }
+
+    return `${meta.join(' | ')}\n${source.excerpt}`;
   }
 }
