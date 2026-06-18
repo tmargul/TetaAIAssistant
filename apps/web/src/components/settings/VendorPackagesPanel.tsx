@@ -111,7 +111,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka vendor (online) pobrana. U kolegi: rozpakuj ZIP → Instaluj-Vendor-Online.bat (Admin, wymaga internetu).',
+        'Paczka vendor (online) pobrana. Rozpakuj ZIP na docelowym stanowisku i uruchom Instaluj-Vendor-Online.bat (Admin; wymaga internetu).',
       );
     } finally {
       setVendorOnlineInstallLoading(false);
@@ -147,7 +147,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka klienta (online) pobrana. U klienta z internetem: Instaluj-Klienta-Online.bat (Admin), potem import RAG.',
+        'Paczka klienta (online) pobrana. Na stanowisku docelowym (z internetem): Instaluj-Klienta-Online.bat (Admin), następnie import RAG.',
       );
     } finally {
       setClientOnlineInstallLoading(false);
@@ -165,7 +165,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka klienta (offline) pobrana. U klienta bez sieci: Instaluj-Klienta.bat (Admin, ~7 GB).',
+        'Paczka klienta (offline) pobrana. Na stanowisku docelowym (bez sieci): Instaluj-Klienta.bat (Admin, ~7 GB).',
       );
     } finally {
       setClientInstallLoading(false);
@@ -183,7 +183,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka aktualizacji aplikacji pobrana. U klienta: rozpakuj na istniejący katalog → Aktualizuj-Aplikacje.bat.',
+        'Paczka aktualizacji aplikacji pobrana. Rozpakuj na istniejący katalog instalacji i uruchom Aktualizuj-Aplikacje.bat.',
       );
     } finally {
       setAppUpdateLoading(false);
@@ -217,7 +217,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka modeli pobrana. U klienta: skopiuj na pendrive → panel Aktualizacje → Import ze ścieżki lub ZIP.',
+        'Paczka modeli pobrana. Import w panelu Aktualizacje u klienta: ze ścieżki lub z pliku ZIP.',
       );
     } finally {
       setModelsUpdateLoading(false);
@@ -240,7 +240,7 @@ export function VendorPackagesPanel() {
         setError(result.message);
         return;
       }
-      setMessage(`Paczka RAG global ${version} pobrana. U klienta: Aktualizuj-RAG.bat lub pnpm rag:global:import.`);
+      setMessage(`Paczka RAG global ${version} pobrana. Import u klienta: Aktualizuj-RAG.bat lub pnpm rag:global:import.`);
     } finally {
       setRagLoading(false);
     }

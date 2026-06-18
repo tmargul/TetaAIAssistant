@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { AuthSetupStatusResponse, LoginResponse } from '@teta/shared';
+import { fetchWithRetry } from '../../lib/api-fetch';
 import { AuthProvider } from '../../context/AuthContext';
-import { authFetch, setAccessToken } from '../../lib/auth-storage';
+import { setAccessToken } from '../../lib/auth-storage';
 import { AdminBootstrapForm } from './AdminBootstrapForm';
 import { LoginForm } from './LoginForm';
 import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
@@ -16,7 +17,7 @@ export function AuthGate({ children }: AuthGateProps) {
   const [oracleRecovery, setOracleRecovery] = useState(false);
 
   const refreshStatus = () => {
-    authFetch('/api/auth/setup-status')
+    fetchWithRetry('/api/auth/setup-status')
       .then(async (res) => {
         if (!res.ok) throw new Error('HTTP error');
         return res.json() as Promise<AuthSetupStatusResponse>;

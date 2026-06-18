@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { APP_NAME } from '@teta/shared';
 import type { LoginRequest, LoginResponse } from '@teta/shared';
+import { fetchWithRetry } from '../../lib/api-fetch';
 import '../oracle/oracle-setup.css';
 
 type LoginFormProps = {
@@ -17,7 +18,7 @@ export function LoginForm({ onSuccess, onOpenOracleRecovery }: LoginFormProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetchWithRetry('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

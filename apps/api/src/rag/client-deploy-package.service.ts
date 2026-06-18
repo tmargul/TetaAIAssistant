@@ -25,6 +25,8 @@ const PRODUCTION_BUILD_ARTIFACTS = [
   'packages/shared/dist/index.js',
 ] as const;
 
+const PRODUCTION_ENV_EXAMPLE = 'apps/api/.env.example';
+
 export type ClientDeployPackageResult = {
   zipPath: string;
   filename: string;
@@ -330,6 +332,7 @@ export class ClientDeployPackageService {
       'apps/api/dist',
       'apps/web/dist',
       'packages/shared/dist',
+      PRODUCTION_ENV_EXAMPLE,
       'sources/global',
       'scripts/setup',
       'scripts/rag',
@@ -347,6 +350,7 @@ export class ClientDeployPackageService {
         'apps/api/dist',
         'apps/web/dist',
         'packages/shared/dist',
+        PRODUCTION_ENV_EXAMPLE,
         'sources/global',
         'scripts/setup',
         'scripts/rag',
@@ -362,6 +366,7 @@ export class ClientDeployPackageService {
       'apps/api/dist',
       'apps/web/dist',
       'packages/shared/dist',
+      PRODUCTION_ENV_EXAMPLE,
       'scripts/setup',
     ]);
   }
@@ -372,7 +377,7 @@ export class ClientDeployPackageService {
       repoRoot,
       targetDir,
       'client',
-      ['apps/api/dist', 'apps/web/dist', 'packages/shared/dist', 'scripts/setup'],
+      ['apps/api/dist', 'apps/web/dist', 'packages/shared/dist', PRODUCTION_ENV_EXAMPLE, 'scripts/setup'],
       { includeNodeModules: false },
     );
   }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { APP_NAME } from '@teta/shared';
 import type { LoginRequest, LoginResponse, OracleConnectionStatusResponse } from '@teta/shared';
+import { fetchWithRetry } from '../../lib/api-fetch';
 import '../oracle/oracle-setup.css';
 
 type AdminBootstrapFormProps = {
@@ -15,7 +16,7 @@ export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBoo
   const [isFakeMode, setIsFakeMode] = useState(false);
 
   useEffect(() => {
-    fetch('/api/oracle/status')
+    fetchWithRetry('/api/oracle/status')
       .then(async (res) => res.json() as Promise<OracleConnectionStatusResponse>)
       .then((status) => {
         const fake = status.backendMode === 'fake';
@@ -31,7 +32,7 @@ export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBoo
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/bootstrap-admin', {
+      const res = await fetchWithRetry('/api/auth/bootstrap-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

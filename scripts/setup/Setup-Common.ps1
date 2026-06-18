@@ -458,13 +458,24 @@ function New-RandomSecret([int]$ByteLength = 48) {
     return [Convert]::ToBase64String($bytes)
 }
 
+function Get-EnvExamplePath {
+    $candidates = @(
+        (Join-Path $script:RepoRoot "apps\api\.env.example"),
+        (Join-Path $script:RepoRoot "scripts\setup\api.env.example")
+    )
+    foreach ($path in $candidates) {
+        if (Test-Path $path) { return $path }
+    }
+    return $null
+}
+
 function Write-EnvFile([string]$AppMode, [bool]$IncludeVendorSecret) {
     Write-Step "Tworzenie apps/api/.env"
-    $examplePath = Join-Path $script:RepoRoot "apps\api\.env.example"
+    $examplePath = Get-EnvExamplePath
     $envPath = Join-Path $script:RepoRoot "apps\api\.env"
 
-    if (-not (Test-Path $examplePath)) {
-        throw "Brak pliku $examplePath"
+    if (-not $examplePath) {
+        throw "Brak pliku apps\api\.env.example ani scripts\setup\api.env.example — uzyj nowszej paczki instalacyjnej."
     }
 
     $content = Get-Content $examplePath -Raw
