@@ -11,12 +11,50 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import shutil
 import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def configure_utf8_stdio() -> None:
+    """Windows: konsola Node często używa cp1250 — wymuszamy UTF-8 dla polskich komunikatów."""
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    os.environ.setdefault("PYTHONUTF8", "1")
+
+
+def resolve_executable(name: str, configured: str) -> str:
+    candidate = configured.strip() or name
+    if Path(candidate).is_file():
+        return str(Path(candidate).resolve())
+    resolved = shutil.which(candidate)
+    if resolved:
+        return resolved
+    label = "ffprobe" if "probe" in candidate.lower() else "ffmpeg" if "ffmpeg" in candidate.lower() else candidate
+    raise RuntimeError(
+        f"Nie znaleziono {label} ({candidate!r}). "
+        f"Zainstaluj ffmpeg (np. winget install Gyan.FFmpeg) i dodaj do PATH, "
+        f"lub ustaw TETA_FFMPEG_PATH / TETA_FFPROBE_PATH w apps/api/.env."
+    )
+
+
+def validate_prerequisites(args: argparse.Namespace) -> tuple[str, str]:
+    ffmpeg = resolve_executable("ffmpeg", args.ffmpeg)
+    ffprobe = resolve_executable("ffprobe", args.ffprobe)
+    try:
+        import faster_whisper  # noqa: F401  # type: ignore[import-not-found]
+    except ImportError as exc:
+        raise RuntimeError(
+            "Brak pakietu faster-whisper. Zainstaluj: pip install -r scripts/rag/requirements-video.txt"
+        ) from exc
+    return ffmpeg, ffprobe
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,19 +87,22 @@ def parse_args() -> argparse.Namespace:
 
 def run_cmd(cmd: list[str], label: str) -> None:
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
     except FileNotFoundError as exc:
-        raise RuntimeError(f"{label}: nie znaleziono polecenia „{cmd[0]}”.") from exc
+        raise RuntimeError(
+            f"{label}: nie znaleziono polecenia „{cmd[0]}”. "
+            "Zainstaluj ffmpeg i dodaj do PATH lub ustaw TETA_FFMPEG_PATH / TETA_FFPROBE_PATH."
+        ) from exc
     except subprocess.CalledProcessError as exc:
         stderr = (exc.stderr or exc.stdout or "").strip()
         raise RuntimeError(f"{label} nie powiodło się: {stderr or exc}") from exc
-
-
-def sec_to_hhmmss(seconds: float) -> str:
-    total = max(0, int(seconds))
-    hours, rem = divmod(total, 3600)
-    minutes, secs = divmod(rem, 60)
-    return f"{hours}:{minutes:02d}:{secs:02d}"
 
 
 def probe_duration(video_path: Path, ffprobe: str) -> float:
@@ -75,8 +116,31 @@ def probe_duration(video_path: Path, ffprobe: str) -> float:
         "default=noprint_wrappers=1:nokey=1",
         str(video_path),
     ]
-    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    try:
+        result = subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"Nie znaleziono ffprobe ({ffprobe!r}). "
+            "Zainstaluj ffmpeg (np. winget install Gyan.FFmpeg)."
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or exc.stdout or "").strip()
+        raise RuntimeError(f"ffprobe nie powiodło się: {stderr or exc}") from exc
     return float(result.stdout.strip())
+
+
+def sec_to_hhmmss(seconds: float) -> str:
+    total = max(0, int(seconds))
+    hours, rem = divmod(total, 3600)
+    minutes, secs = divmod(rem, 60)
+    return f"{hours}:{minutes:02d}:{secs:02d}"
 
 
 def extract_audio(video_path: Path, wav_path: Path, ffmpeg: str) -> None:
@@ -291,7 +355,10 @@ def write_jsonl(chunks: list[dict], jsonl_path: Path) -> None:
 
 
 def main() -> int:
+    configure_utf8_stdio()
     args = parse_args()
+    ffmpeg, ffprobe = validate_prerequisites(args)
+
     video_path = Path(args.input).resolve()
     if not video_path.exists():
         raise RuntimeError(f"Nie znaleziono pliku wideo: {video_path}")
@@ -313,10 +380,10 @@ def main() -> int:
     print(f"[video-ingest] Wejście: {video_path}", file=sys.stderr)
     print(f"[video-ingest] Wyjście: {output_dir}", file=sys.stderr)
 
-    duration = probe_duration(video_path, args.ffprobe)
+    duration = probe_duration(video_path, ffprobe)
     print(f"[video-ingest] Długość nagrania: {duration:.1f}s", file=sys.stderr)
 
-    extract_audio(video_path, wav_path, args.ffmpeg)
+    extract_audio(video_path, wav_path, ffmpeg)
     segments = transcribe_audio(wav_path, args.whisper_model, args.language, args.device)
 
     chunks = build_chunks(
@@ -328,7 +395,7 @@ def main() -> int:
         assets_rel_prefix=assets_rel_prefix,
         video_path=video_path,
         frames_dir=frames_dir,
-        ffmpeg=args.ffmpeg,
+        ffmpeg=ffmpeg,
         frames_per_chunk=args.frames_per_chunk,
     )
 

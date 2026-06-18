@@ -19,6 +19,12 @@ const EXCLUDED_DIRS = new Set([
   'offline-bundle',
 ]);
 
+const PRODUCTION_BUILD_ARTIFACTS = [
+  'apps/api/dist/main.js',
+  'apps/web/dist/index.html',
+  'packages/shared/dist/index.js',
+] as const;
+
 export type ClientDeployPackageResult = {
   zipPath: string;
   filename: string;
@@ -47,8 +53,7 @@ export class ClientDeployPackageService {
 
   async buildAppUpdateZip(): Promise<AppUpdatePackageResult> {
     const repoRoot = this.offlineBundle.getRepoRoot();
-    this.logger.log('Budowanie aplikacji klienckiej (build:client) przed pakowaniem aktualizacji…');
-    execSync('pnpm run build:client', { cwd: repoRoot, stdio: 'inherit' });
+    await this.ensureProductionBuild(repoRoot, 'build:client');
 
     const stamp = Date.now();
     const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `app-update-${stamp}`);
@@ -76,8 +81,7 @@ export class ClientDeployPackageService {
 
   async buildAndZip(): Promise<ClientDeployPackageResult> {
     const repoRoot = this.offlineBundle.getRepoRoot();
-    this.logger.log('Budowanie aplikacji klienckiej (build:client) przed pakowaniem instalacji…');
-    execSync('pnpm run build:client', { cwd: repoRoot, stdio: 'inherit' });
+    await this.ensureProductionBuild(repoRoot, 'build:client');
 
     const stamp = Date.now();
     const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `client-install-${stamp}`);
@@ -114,8 +118,7 @@ export class ClientDeployPackageService {
 
   async buildClientOnlineInstallZip(): Promise<ClientDeployPackageResult> {
     const repoRoot = this.offlineBundle.getRepoRoot();
-    this.logger.log('Budowanie aplikacji klienckiej (build:client) przed pakowaniem online…');
-    execSync('pnpm run build:client', { cwd: repoRoot, stdio: 'inherit' });
+    await this.ensureProductionBuild(repoRoot, 'build:client');
 
     const stamp = Date.now();
     const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `client-install-online-${stamp}`);
@@ -148,8 +151,7 @@ export class ClientDeployPackageService {
 
   async buildVendorInstallZip(): Promise<VendorDeployPackageResult> {
     const repoRoot = this.offlineBundle.getRepoRoot();
-    this.logger.log('Budowanie aplikacji vendor (build:vendor) przed pakowaniem offline…');
-    execSync('pnpm run build:vendor', { cwd: repoRoot, stdio: 'inherit' });
+    await this.ensureProductionBuild(repoRoot, 'build:vendor');
 
     const stamp = Date.now();
     const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `vendor-install-${stamp}`);
@@ -160,7 +162,7 @@ export class ClientDeployPackageService {
 
     const appVersion = await this.readAppVersion(repoRoot);
     const offlineStaging = path.join(stagingDir, '_offline-staging');
-    await this.offlineBundle.buildToDirectory(offlineStaging);
+    await this.offlineBundle.buildToDirectory(offlineStaging, { includeVideoIngestTools: true });
     await this.offlineBundle.zipDirectory(
       offlineStaging,
       path.join(appDir, 'offline-bundle.zip'),
@@ -185,8 +187,7 @@ export class ClientDeployPackageService {
 
   async buildVendorOnlineInstallZip(): Promise<VendorDeployPackageResult> {
     const repoRoot = this.offlineBundle.getRepoRoot();
-    this.logger.log('Budowanie aplikacji vendor (build:vendor) przed pakowaniem online…');
-    execSync('pnpm run build:vendor', { cwd: repoRoot, stdio: 'inherit' });
+    await this.ensureProductionBuild(repoRoot, 'build:vendor');
 
     const stamp = Date.now();
     const stagingDir = path.join(repoRoot, 'data', 'vendor-packages', `vendor-install-online-${stamp}`);
@@ -215,6 +216,44 @@ export class ClientDeployPackageService {
       appVersion,
       createdAt,
     };
+  }
+
+  /**
+   * build:vendor / build:client modyfikuje pliki w apps/api/src (prepare-build-profile.mjs),
+   * co przy działającym `nest start --watch` restartuje API i przerywa eksport paczki.
+   * Gdy dist już istnieje (typowy dev vendor), pakujemy bez przebudowy.
+   */
+  private async ensureProductionBuild(
+    repoRoot: string,
+    script: 'build:vendor' | 'build:client',
+  ): Promise<void> {
+    if (await this.productionBuildArtifactsExist(repoRoot)) {
+      this.logger.log(
+        `Build produkcyjny już istnieje — pomijam ${script} (bezpieczne przy działającym pnpm dev). ` +
+          'Aby wymusić świeży build, zatrzymaj API i uruchom pnpm build:vendor w terminalu.',
+      );
+      return;
+    }
+
+    this.logger.log(`Budowanie aplikacji (${script}) przed pakowaniem…`);
+    try {
+      execSync(`pnpm run ${script}`, { cwd: repoRoot, stdio: 'inherit' });
+    } catch (error) {
+      throw new Error(
+        `Nie udało się zbudować aplikacji (${script}). ` +
+          'Przy działającym pnpm dev zatrzymaj API i uruchom build ręcznie w terminalu, potem ponów eksport.',
+        { cause: error },
+      );
+    }
+  }
+
+  private async productionBuildArtifactsExist(repoRoot: string): Promise<boolean> {
+    for (const relative of PRODUCTION_BUILD_ARTIFACTS) {
+      if (!(await this.pathExists(path.join(repoRoot, relative)))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private async ensureRagPackage(repoRoot: string): Promise<void> {
@@ -293,6 +332,8 @@ export class ClientDeployPackageService {
       'packages/shared/dist',
       'sources/global',
       'scripts/setup',
+      'scripts/rag',
+      'docs/rag-pipeline-formats.md',
     ]);
   }
 
@@ -308,6 +349,8 @@ export class ClientDeployPackageService {
         'packages/shared/dist',
         'sources/global',
         'scripts/setup',
+        'scripts/rag',
+        'docs/rag-pipeline-formats.md',
       ],
       { includeNodeModules: false },
     );
@@ -344,6 +387,7 @@ export class ClientDeployPackageService {
     for (const relative of copyPaths) {
       const source = path.join(repoRoot, relative);
       const target = path.join(targetDir, relative);
+      await mkdir(path.dirname(target), { recursive: true });
       await cp(source, target, { recursive: true });
     }
 
@@ -415,7 +459,7 @@ export class ClientDeployPackageService {
       `Wersja aplikacji: ${appVersion}`,
       '',
       'Paczka OFFLINE (~6–9 GB): aplikacja + offline-bundle.zip (modele, Qdrant, RAG, node_modules).',
-      'Bez internetu u celu. Jesli klient ma internet, uzyj paczki client ONLINE (~100 MB).',
+      'Bez internetu u celu. Jesli masz internet, uzyj paczki client ONLINE (ZIP ~1–5 MB).',
       '1. Rozpakuj caly archiwum ZIP na serwerze klienta.',
       '2. Wejdz do katalogu TetaAIAssistant.',
       '3. Uruchom PowerShell jako Administrator:',
@@ -485,8 +529,11 @@ export class ClientDeployPackageService {
       '',
       `Wersja aplikacji: ${appVersion}`,
       '',
-      'Paczka ONLINE (~50–150 MB): skompilowana aplikacja bez modeli AI i bez offline-bundle.',
-      'Wymaga internetu podczas instalacji (Node, Ollama, Qdrant, modele, pnpm install).',
+      'Paczka ONLINE (ZIP ~1–5 MB): skompilowana aplikacja + skrypty setup, bez node_modules i bez offline-bundle.',
+      'Wymaga internetu podczas instalacji:',
+      '  - pnpm install (zaleznosci npm, ok. 100–300 MB)',
+      '  - Node, Ollama, Qdrant (winget)',
+      '  - modele Ollama (nomic-embed-text + qwen3, ok. 5–6 GB)',
       '',
       '=== INSTALACJA ===',
       '',
@@ -602,8 +649,8 @@ export class ClientDeployPackageService {
       '',
       `Wersja aplikacji: ${appVersion}`,
       '',
-      'Paczka OFFLINE (~6–9 GB): aplikacja + offline-bundle.zip (modele Ollama, Qdrant, node_modules).',
-      'Bez internetu u celu. Jesli masz internet, uzyj paczki vendor ONLINE (~100 MB).',
+      'Paczka OFFLINE (~8–12 GB): aplikacja + offline-bundle.zip (modele Ollama, Qdrant, ffmpeg, Python, node_modules).',
+      'Bez internetu u celu. Jesli masz internet, uzyj paczki vendor ONLINE (ZIP ~1–5 MB).',
       '',
       '=== INSTALACJA ===',
       '',
@@ -623,8 +670,15 @@ export class ClientDeployPackageService {
       '',
       'Skrot w aplikacji (http://localhost:3000 -> Zrodla globalne / Ustawienia -> Paczki):',
       `  1. Dodaj pliki (${formatRagSourceExtensions()}) w menu Zrodla globalne lub w sources\\global\\.`,
-      '  2. Kliknij „Zbuduj indeks RAG” w panelu vendor.',
-      '  3. Kliknij „Pobierz paczke RAG” (podaj wersje, np. 1.0.0).',
+      '  2. LUB wrzuc plik .mp4 w sekcji „Ingest wideo MP4” (transkrypcja Whisper + indeks Qdrant).',
+      '  3. Kliknij „Zbuduj indeks RAG” w panelu vendor (dla samych dokumentow).',
+      '  4. Kliknij „Pobierz paczke RAG” (podaj wersje, np. 1.0.0).',
+      '',
+      '=== INGEST WIDEO (MP4) ===',
+      '',
+      'Paczka offline zawiera: ffmpeg, Python 3.12, faster-whisper (python-wheels).',
+      'Setup ustawia TETA_FFMPEG_PATH / TETA_FFPROBE_PATH / TETA_PYTHON w apps\\api\\.env.',
+      'Pierwszy upload MP4 moze pobrac model Whisper (~1–3 GB) — wymaga internetu raz.',
       '',
       '=== PO ZAKONCZENIU PRACY ===',
       '',
@@ -668,8 +722,12 @@ export class ClientDeployPackageService {
       '',
       `Wersja aplikacji: ${appVersion}`,
       '',
-      'Paczka ONLINE (~50–150 MB): skompilowana aplikacja bez modeli AI i bez offline-bundle.',
-      'Wymaga internetu podczas instalacji (Node, Ollama, Qdrant, modele, pnpm install).',
+      'Paczka ONLINE (ZIP ~1–5 MB): skompilowana aplikacja + skrypty setup, bez node_modules i bez offline-bundle.',
+      'Wymaga internetu podczas instalacji:',
+      '  - pnpm install (zaleznosci npm, ok. 100–300 MB)',
+      '  - Node, Ollama, Qdrant (winget)',
+      '  - modele Ollama (nomic-embed-text + qwen3, ok. 5–6 GB)',
+      '  - ffmpeg + Python (winget, ingest MP4)',
       '',
       '=== INSTALACJA ===',
       '',
@@ -690,8 +748,11 @@ export class ClientDeployPackageService {
       '',
       'Skrot:',
       `  1. Dodaj pliki (${formatRagSourceExtensions()}) w menu Zrodla globalne`,
-      '  2. Ustawienia -> Paczki -> Zbuduj indeks RAG',
-      '  3. Pobierz paczke RAG (np. 1.0.0)',
+      '  2. LUB wrzuc plik .mp4 w sekcji „Ingest wideo MP4” (setup instaluje ffmpeg + Python przez winget)',
+      '  3. Ustawienia -> Paczki -> Zbuduj indeks RAG (dla dokumentow)',
+      '  4. Pobierz paczke RAG (np. 1.0.0)',
+      '',
+      'Pierwszy upload MP4 pobiera model Whisper z internetu (~1–3 GB, jednorazowo).',
       '',
       'Adresy:',
       '   Aplikacja:  http://localhost:3000',

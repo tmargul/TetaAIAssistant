@@ -664,6 +664,49 @@ function Install-FfmpegFromBundle([string]$InstallRoot) {
     return $true
 }
 
+function Find-WingetGyanFfmpegExe {
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet("ffmpeg", "ffprobe")][string]$ToolName
+    )
+
+    $root = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages"
+    if (-not (Test-Path $root)) { return $null }
+
+    $matches = @()
+    foreach ($pkgDir in Get-ChildItem $root -Directory -Filter "Gyan.FFmpeg*" -ErrorAction SilentlyContinue) {
+        foreach ($buildDir in Get-ChildItem $pkgDir.FullName -Directory -ErrorAction SilentlyContinue) {
+            $exe = Join-Path (Join-Path $buildDir.FullName "bin") "$ToolName.exe"
+            if (Test-Path $exe) {
+                $matches += Get-Item $exe
+            }
+        }
+    }
+
+    if ($matches.Count -eq 0) { return $null }
+    return ($matches | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
+}
+
+function Register-FfmpegEnvPaths {
+    $ffmpegPath = $null
+    $ffprobePath = $null
+
+    $ffmpegCmd = Get-Command ffmpeg -ErrorAction SilentlyContinue
+    $ffprobeCmd = Get-Command ffprobe -ErrorAction SilentlyContinue
+    if ($ffmpegCmd -and $ffprobeCmd) {
+        $ffmpegPath = $ffmpegCmd.Source
+        $ffprobePath = $ffprobeCmd.Source
+    } else {
+        $ffmpegPath = Find-WingetGyanFfmpegExe -ToolName ffmpeg
+        $ffprobePath = Find-WingetGyanFfmpegExe -ToolName ffprobe
+    }
+
+    if ($ffmpegPath -and $ffprobePath) {
+        Set-VideoIngestEnvPaths -FfmpegPath $ffmpegPath -FfprobePath $ffprobePath
+        return $true
+    }
+    return $false
+}
+
 function Set-VideoIngestEnvPaths {
     param(
         [string]$FfmpegPath = "",
@@ -750,6 +793,7 @@ function Ensure-VideoIngestTools {
     $ffprobeOk = Test-Command ffprobe
     if ($ffmpegOk -and $ffprobeOk) {
         Write-Host "  ffmpeg: OK (PATH)" -ForegroundColor Green
+        Register-FfmpegEnvPaths | Out-Null
     } elseif ($script:OfflineMode) {
         if (Install-FfmpegFromBundle $InstallRoot) {
             $ffmpegOk = $true
@@ -764,6 +808,15 @@ function Ensure-VideoIngestTools {
             Refresh-ShellPath
             $ffmpegOk = Test-Command ffmpeg
             $ffprobeOk = Test-Command ffprobe
+        }
+        if (-not $ffmpegOk -or -not $ffprobeOk) {
+            if (Register-FfmpegEnvPaths) {
+                $ffmpegOk = $true
+                $ffprobeOk = $true
+                Write-Host "  ffmpeg: OK (winget, zapisano do apps\api\.env)" -ForegroundColor Green
+            }
+        } elseif ($ffmpegOk -and $ffprobeOk) {
+            Register-FfmpegEnvPaths | Out-Null
         }
         if (-not $ffmpegOk) {
             Write-Host "  ffmpeg/ffprobe: BRAK w PATH" -ForegroundColor Yellow

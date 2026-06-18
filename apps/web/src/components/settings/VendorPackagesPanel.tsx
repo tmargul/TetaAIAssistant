@@ -329,9 +329,9 @@ export function VendorPackagesPanel() {
             <div className="settings__package-body">
               <h3 className="settings__package-title">Instalacja vendor</h3>
               <p className="settings__package-desc">
-                Stanowisko budowy globalnego RAG u Tety. <strong>Online</strong> (~100 MB) — setup
-                pobiera Node, Ollamę, Qdrant i modele z internetu. <strong>Offline</strong> (~7 GB) —
-                cała paczka bez sieci u celu.
+                Stanowisko budowy globalnego RAG u Tety. <strong>Online</strong> (ZIP ~1–5 MB) —
+                setup pobiera zależności npm (~100–300 MB), Node, Ollamę, Qdrant i modele AI (~5–6 GB).
+                <strong>Offline</strong> (~8–12 GB) — cała paczka bez sieci u celu.
               </p>
             </div>
             <div className="settings__package-actions settings__package-actions--stack">
@@ -358,9 +358,9 @@ export function VendorPackagesPanel() {
             <div className="settings__package-body">
               <h3 className="settings__package-title">Instalacja klienta</h3>
               <p className="settings__package-desc">
-                Pełna instalacja u klienta. <strong>Online</strong> (~100 MB) — setup pobiera silnik z
-                internetu; RAG osobno (<code>global-rag-X.zip</code>). <strong>Offline</strong> (~7 GB)
-                — wszystko w jednym ZIP, bez sieci u celu.
+                Pełna instalacja u klienta. <strong>Online</strong> (ZIP ~1–5 MB) — setup pobiera
+                zależności npm i silnik AI z internetu; RAG osobno (<code>global-rag-X.zip</code>).
+                <strong>Offline</strong> (~8–12 GB) — wszystko w jednym ZIP, bez sieci u celu.
               </p>
             </div>
             <div className="settings__package-actions settings__package-actions--stack">
