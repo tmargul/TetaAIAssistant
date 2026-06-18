@@ -619,3 +619,201 @@ function Test-ServicesHealth {
 
     return $ok
 }
+
+function Refresh-ShellPath {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
+        [System.Environment]::GetEnvironmentVariable("Path", "User")
+}
+
+function Get-PythonExecutable {
+    if (Test-Command python) { return "python" }
+    if (Test-Command py) { return "py" }
+    return $null
+}
+
+function Install-PythonFromBundle {
+    $installersDir = Get-BundleItem "installers"
+    $installer = Get-ChildItem $installersDir -Filter "python-*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $installer) {
+        throw "Brak instalatora Python w paczce offline (installers\python-*.exe). Dolacz python-3.12.x-amd64.exe z python.org."
+    }
+    Write-Host "  Instalacja Python z paczki: $($installer.Name)"
+    $args = "/quiet InstallAllUsers=1 PrependPath=1 Include_pip=1 Include_launcher=0"
+    Start-Process $installer.FullName -ArgumentList $args -Wait
+    Refresh-ShellPath
+}
+
+function Install-FfmpegFromBundle([string]$InstallRoot) {
+    $srcDir = Get-BundleItem "tools\ffmpeg"
+    $ffmpegExe = Join-Path $srcDir "ffmpeg.exe"
+    if (-not (Test-Path $ffmpegExe)) {
+        return $false
+    }
+
+    $targetDir = Join-Path $InstallRoot "tools\ffmpeg"
+    New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+    Copy-Item (Join-Path $srcDir "ffmpeg.exe") $targetDir -Force
+    if (Test-Path (Join-Path $srcDir "ffprobe.exe")) {
+        Copy-Item (Join-Path $srcDir "ffprobe.exe") $targetDir -Force
+    }
+
+    $ffmpegPath = Join-Path $targetDir "ffmpeg.exe"
+    $ffprobePath = Join-Path $targetDir "ffprobe.exe"
+    Set-VideoIngestEnvPaths -FfmpegPath $ffmpegPath -FfprobePath $ffprobePath
+    Write-Host "  ffmpeg: skopiowany do $targetDir" -ForegroundColor Green
+    return $true
+}
+
+function Set-VideoIngestEnvPaths {
+    param(
+        [string]$FfmpegPath = "",
+        [string]$FfprobePath = "",
+        [string]$PythonPath = ""
+    )
+
+    $envPath = Join-Path $script:RepoRoot "apps\api\.env"
+    if (-not (Test-Path $envPath)) { return }
+
+    $content = Get-Content $envPath -Raw
+    if ($FfmpegPath) {
+        $line = "TETA_FFMPEG_PATH=$($FfmpegPath -replace '\\','/')"
+        if ($content -match "(?m)^#?\s*TETA_FFMPEG_PATH=") {
+            $content = $content -replace "(?m)^#?\s*TETA_FFMPEG_PATH=.*$", $line
+        } else {
+            $content += "`n$line`n"
+        }
+    }
+    if ($FfprobePath) {
+        $line = "TETA_FFPROBE_PATH=$($FfprobePath -replace '\\','/')"
+        if ($content -match "(?m)^#?\s*TETA_FFPROBE_PATH=") {
+            $content = $content -replace "(?m)^#?\s*TETA_FFPROBE_PATH=.*$", $line
+        } else {
+            $content += "`n$line`n"
+        }
+    }
+    if ($PythonPath) {
+        $line = "TETA_PYTHON=$PythonPath"
+        if ($content -match "(?m)^#?\s*TETA_PYTHON=") {
+            $content = $content -replace "(?m)^#?\s*TETA_PYTHON=.*$", $line
+        } else {
+            $content += "`n$line`n"
+        }
+    }
+    Set-Content -Path $envPath -Value $content.TrimEnd() -Encoding UTF8
+}
+
+function Install-VideoIngestPipPackages {
+    param(
+        [Parameter(Mandatory = $true)][string]$PythonExe,
+        [string]$PythonArgs = ""
+    )
+
+    $requirements = Join-Path $script:RepoRoot "scripts\rag\requirements-video.txt"
+    if (-not (Test-Path $requirements)) {
+        Write-Host "  Brak requirements-video.txt — pomijam pip." -ForegroundColor Yellow
+        return
+    }
+
+    Write-Host "  Instalacja faster-whisper (pip)..."
+    $pipArgs = @("-m", "pip", "install", "-r", $requirements)
+    if ($script:OfflineMode) {
+        $wheelsDir = Get-BundleItem "python-wheels"
+        if (-not (Test-Path $wheelsDir)) {
+            throw "Brak katalogu python-wheels w paczce offline. Zbuduj paczke ponownie (Prepare-OfflineBundle.ps1) na maszynie z Pythonem."
+        }
+        $pipArgs = @("-m", "pip", "install", "--no-index", "--find-links", $wheelsDir, "-r", $requirements)
+    }
+
+    try {
+        if ($PythonArgs) {
+            & $PythonExe $PythonArgs @pipArgs
+        } else {
+            & $PythonExe @pipArgs
+        }
+        if ($LASTEXITCODE -ne 0) { throw "pip exit code $LASTEXITCODE" }
+        Write-Host "  faster-whisper: OK" -ForegroundColor Green
+    } catch {
+        throw "Instalacja faster-whisper nie powiodla sie: $_"
+    }
+}
+
+function Ensure-VideoIngestTools {
+    param(
+        [string]$InstallRoot = "C:\TetaAI"
+    )
+
+    Write-Step "Narzedzia ingest wideo MP4 (vendor)"
+    $requirements = Join-Path $script:RepoRoot "scripts\rag\requirements-video.txt"
+
+    # --- ffmpeg ---
+    $ffmpegOk = Test-Command ffmpeg
+    $ffprobeOk = Test-Command ffprobe
+    if ($ffmpegOk -and $ffprobeOk) {
+        Write-Host "  ffmpeg: OK (PATH)" -ForegroundColor Green
+    } elseif ($script:OfflineMode) {
+        if (Install-FfmpegFromBundle $InstallRoot) {
+            $ffmpegOk = $true
+            $ffprobeOk = $true
+        } else {
+            Write-Host "  ffmpeg/ffprobe: BRAK w paczce (tools\ffmpeg\ffmpeg.exe)" -ForegroundColor Yellow
+        }
+    } else {
+        if (Test-Command winget) {
+            Write-Host "  Instalacja ffmpeg przez winget..."
+            winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-agreements 2>$null
+            Refresh-ShellPath
+            $ffmpegOk = Test-Command ffmpeg
+            $ffprobeOk = Test-Command ffprobe
+        }
+        if (-not $ffmpegOk) {
+            Write-Host "  ffmpeg/ffprobe: BRAK w PATH" -ForegroundColor Yellow
+            Write-Host "    https://www.gyan.dev/ffmpeg/builds/" -ForegroundColor DarkGray
+        }
+    }
+
+    # --- Python ---
+    $pythonExe = Get-PythonExecutable
+    if (-not $pythonExe) {
+        if ($script:OfflineMode) {
+            Install-PythonFromBundle
+            Refresh-ShellPath
+            $pythonExe = Get-PythonExecutable
+            if (-not $pythonExe) {
+                throw "Python nie jest dostepny po instalacji z paczki offline."
+            }
+        } elseif (Test-Command winget) {
+            Write-Host "  Instalacja Python 3.12 przez winget..."
+            winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements 2>$null
+            Refresh-ShellPath
+            $pythonExe = Get-PythonExecutable
+        }
+    }
+
+    if ($pythonExe) {
+        $version = if ($pythonExe -eq "py") { & py -3 --version 2>&1 } else { & python --version 2>&1 }
+        Write-Host "  Python: OK ($version)" -ForegroundColor Green
+        if ($pythonExe -eq "python") {
+            Set-VideoIngestEnvPaths -PythonPath "python"
+        }
+
+        try {
+            if ($pythonExe -eq "py") {
+                Install-VideoIngestPipPackages -PythonExe "py" -PythonArgs "-3"
+            } else {
+                Install-VideoIngestPipPackages -PythonExe "python"
+            }
+        } catch {
+            Write-Host "  $($_.Exception.Message)" -ForegroundColor Yellow
+            if ($script:OfflineMode) { throw }
+            Write-Host "  Uruchom recznie: pip install -r scripts/rag/requirements-video.txt" -ForegroundColor DarkGray
+        }
+    } else {
+        Write-Host "  Python: BRAK (wymagany do ingest MP4)" -ForegroundColor Yellow
+        Write-Host "    Online: winget install Python.Python.3.12" -ForegroundColor DarkGray
+        Write-Host "    Offline: dolacz installers\python-3.12.x-amd64.exe do paczki" -ForegroundColor DarkGray
+    }
+
+    if ((-not $ffmpegOk) -or (-not $pythonExe)) {
+        Write-Host "  Ingest MP4 w UI/CLI bedzie niedostepny do czasu instalacji ffmpeg + Python." -ForegroundColor Yellow
+    }
+}

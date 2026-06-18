@@ -1,0 +1,3 @@
+# Zależności dla scripts/rag/video-ingest.py (Etap 1 — ingest MP4)
+# Instalacja: pip install -r scripts/rag/requirements-video.txt
+faster-whisper>=1.1.0

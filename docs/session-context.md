@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-06-05**
+> Ostatnia aktualizacja: **2026-06-05** (Etap 1 `rag:video:ingest`)
 
 ---
 
@@ -55,12 +55,76 @@ W trybie **real** logujesz się **prawdziwym kontem Oracle** — `teta_admin` ni
 - Oracle Instant Client w bundle offline — **opcjonalnie**, nie domyślnie
 - Qdrant lokalnie: `C:\TetaAI\qdrant`
 
+### RAG — test fundamentu (ustalenie z zespołu, 2026-06)
+
+**Kolejność prac (nie zmieniać na razie):**
+
+```
+knowledge-chunks.jsonl  →  Importer  →  Qdrant  →  Chat
+```
+
+**Kryterium sukcesu:** w czacie pytanie *„Co to jest dataset w TETA?”* zwraca właściwy chunk ze szkolenia **`zu1.mp4`**.
+
+**Na teraz potwierdzić tylko:**
+- importer działa
+- Qdrant przyjął dane
+- wyszukiwanie semantyczne działa
+
+**Nie ruszać jeszcze:**
+- skracanie chunków (`CHUNK_SECONDS = 180` → docelowo 60–90 s) — to jest w **pipeline wideo**, nie w tej aplikacji
+- enrichment Qwen3 w pipeline
+- OCR/Vision dla screenów
+- dokumentacja i pakiety Oracle
+
+**Import w aplikacji:**
+```bash
+pnpm rag:validate-chunks -- --input <ścieżka/knowledge-chunks.jsonl>
+pnpm rag:global:import-chunks -- --input <ścieżka/knowledge-chunks.jsonl>
+
+# Etap 1 — MP4 → JSONL (+ opcjonalnie Qdrant)
+pnpm rag:video:ingest -- --input <ścieżka/zu1.mp4> --no-index
+pnpm rag:video:ingest -- --input <ścieżka/zu1.mp4> --merge
+```
+Wymaga: `TETA_APP_MODE=vendor`, `TETA_VENDOR_SECRET`, uruchomione **Ollama** (`nomic-embed-text`) i **Qdrant** (dla importu; `--no-index` pomija Qdrant).
+
+Dla `rag:video:ingest` dodatkowo: **Python 3.10+**, `pip install -r scripts/rag/requirements-video.txt`, **ffmpeg** w PATH.
+
+Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
+
+### Etap 1 — CLI `rag:video:ingest` ✅
+
+- `scripts/rag/video-ingest.py` — ffmpeg + faster-whisper → JSONL + klatki
+- `pnpm rag:video:ingest` — walidacja, kopiowanie klatek, opcjonalnie import Qdrant
+
+### Etap 2–3 — API + UI ✅
+
+- SQLite `video_ingest_jobs`, worker w procesie API (1 job naraz)
+- `POST/GET /api/vendor/rag/ingest/video` + strumień NDJSON postępu
+- UI: upload MP4 w **Źródła globalne**
+
+### Etap 4 — setup offline ✅
+
+- `Ensure-VideoIngestTools` w `Setup.ps1` (vendor)
+- **Offline:** instaluje Python z `installers/python-*.exe`, ffmpeg z `tools/ffmpeg/`, pip z `python-wheels/`
+- **Online:** winget (Python 3.12, ffmpeg) + pip z internetu
+- `Prepare-OfflineBundle.ps1` pobiera Python, ffmpeg i `pip download` wheeli
+
+**Do przetestowania end-to-end:** Python + ffmpeg na serwerze, upload prawdziwego `zu1.mp4`
+
+### Decyzja: ingest MP4 w aplikacji (Faza 2, bez Fazy 1)
+
+- **Nie** robimy uploadu paczek `.7z` — tylko **bezpośredni upload `.mp4`** w vendor UI.
+- Pipeline w aplikacji: MP4 → ffmpeg → Whisper → chunki → ten sam JSONL → istniejący import Qdrant.
+- Model Whisper rekomendowany: **`large-v3-turbo`** (polski, szkolenia, szybkość); fallback `large-v3` przy słabej jakości audio.
+- Szczegóły planu: patrz ustalenia w czacie 2026-06-18 / plan implementacji (do dopisania po akceptacji).
+
 ---
 
 ## Otwarte / do sprawdzenia
 
-- [ ] Czy na **tym** komputerze SQLite ma już poprawne Oracle (`172.18.15.116` / `TETAHR`)?
-- [ ] Czy admin aplikacji został zarejestrowany na real Oracle (nie fake `teta_admin`)?
+- [ ] **RAG smoke test:** `_temp/zu1/zu1.jsonl` rozpakowany (44 chunki, `trainings/zu1.mp4`) — import + chat po uruchomieniu Qdrant
+- [ ] SQLite Oracle: `172.18.15.116` / `TETAHR`
+- [ ] Admin zarejestrowany na real Oracle (nie fake `teta_admin`)
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
 
 ---

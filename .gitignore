@@ -13,3 +13,4 @@ Thumbs.db
 *.sqlite-journal
 data/
 .vite
+_temp/

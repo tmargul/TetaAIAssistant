@@ -17,6 +17,7 @@
     "rag:global:export": "pnpm --filter @teta/api run rag:global:export",
     "rag:global:import": "pnpm --filter @teta/api run rag:global:import",
     "rag:validate-chunks": "pnpm --filter @teta/api run rag:validate-chunks",
+    "rag:video:ingest": "pnpm --filter @teta/api run rag:video:ingest",
     "setup:install": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1",
     "setup:vendor": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1 -Mode vendor",
     "setup:client": "powershell -ExecutionPolicy Bypass -File scripts/setup/Setup.ps1 -Mode client",

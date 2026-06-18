@@ -97,6 +97,25 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         created_at TEXT NOT NULL,
         indexed_at TEXT
       );
+
+      CREATE TABLE IF NOT EXISTS video_ingest_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        original_filename TEXT NOT NULL,
+        storage_path TEXT NOT NULL,
+        output_dir TEXT,
+        status TEXT NOT NULL CHECK (status IN ('queued', 'extracting', 'transcribing', 'indexing', 'done', 'failed')),
+        progress INTEGER NOT NULL DEFAULT 0,
+        progress_message TEXT,
+        error_message TEXT,
+        chunk_count INTEGER,
+        source TEXT,
+        film_key TEXT,
+        merge_mode INTEGER NOT NULL DEFAULT 1,
+        uploaded_by INTEGER REFERENCES users(id),
+        created_at TEXT NOT NULL,
+        started_at TEXT,
+        finished_at TEXT
+      );
     `);
   }
 }

@@ -10,16 +10,21 @@ import { VendorAccessGuard } from './vendor-access.guard';
 import { VendorPackagesController } from './vendor-packages.controller';
 import { VendorRagController } from './vendor-rag.controller';
 import { VendorGuard } from './vendor.guard';
+import { VideoIngestJobsService } from './video-ingest/video-ingest-jobs.service';
+import { VideoIngestPipelineService } from './video-ingest/video-ingest-pipeline.service';
+import { VendorVideoIngestController } from './video-ingest/vendor-video-ingest.controller';
 
 @Module({
   imports: [RagCoreModule, AuthModule],
-  controllers: [VendorRagController, VendorPackagesController],
+  controllers: [VendorRagController, VendorPackagesController, VendorVideoIngestController],
   providers: [
     GlobalRagIngestService,
     GlobalSourcesService,
     GlobalRagExportService,
     ClientDeployPackageService,
     OfflineBundleService,
+    VideoIngestPipelineService,
+    VideoIngestJobsService,
     VendorAccessGuard,
     VendorGuard,
   ],

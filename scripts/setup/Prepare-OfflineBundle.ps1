@@ -44,20 +44,74 @@ Copy-Item (Join-Path $env:TEMP "nssm-offline\nssm-2.24\win64\nssm.exe") (Join-Pa
 Remove-Item $nssmZip -Force
 Write-Host "  NSSM: skopiowany"
 
-# --- Modele Ollama (jesli sa lokalnie) ---
-$ollamaSource = Join-Path $env:USERPROFILE ".ollama\models"
-$ollamaTarget = Join-Path $OutputDir "ollama-models"
-if (Test-Path $ollamaSource) {
-    Write-Host "  Kopiowanie modeli Ollama z $ollamaSource ..."
-    Copy-Item $ollamaSource $ollamaTarget -Recurse -Force
+# --- ffmpeg (ingest MP4) ---
+$ffmpegDir = Join-Path $OutputDir "tools\ffmpeg"
+New-Item -ItemType Directory -Force -Path $ffmpegDir | Out-Null
+try {
+    $ffmpegZipUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+    $ffmpegZip = Join-Path $env:TEMP "ffmpeg-essentials-offline.zip"
+    Write-Host "  Pobieranie ffmpeg (essentials)..."
+    Invoke-WebRequest -Uri $ffmpegZipUrl -OutFile $ffmpegZip
+    $ffmpegExtract = Join-Path $env:TEMP "ffmpeg-essentials-extract"
+    if (Test-Path $ffmpegExtract) { Remove-Item $ffmpegExtract -Recurse -Force }
+    Expand-Archive -Path $ffmpegZip -DestinationPath $ffmpegExtract -Force
+    $binDir = Get-ChildItem $ffmpegExtract -Recurse -Directory -Filter "bin" | Select-Object -First 1
+    if ($binDir) {
+        Copy-Item (Join-Path $binDir.FullName "ffmpeg.exe") $ffmpegDir -Force
+        Copy-Item (Join-Path $binDir.FullName "ffprobe.exe") $ffmpegDir -Force
+        Write-Host "  ffmpeg: pobrany do tools\ffmpeg"
+    } else {
+        throw "Brak katalogu bin w archiwum ffmpeg."
+    }
+    Remove-Item $ffmpegZip -Force -ErrorAction SilentlyContinue
+    Remove-Item $ffmpegExtract -Recurse -Force -ErrorAction SilentlyContinue
+} catch {
+    Write-Host "  UWAGA: Nie udalo sie pobrac ffmpeg — dolacz recznie ffmpeg.exe i ffprobe.exe do tools\ffmpeg\" -ForegroundColor Yellow
+    $ffmpegReadme = @"
+Umiesc w tym katalogu:
+  ffmpeg.exe
+  ffprobe.exe
+
+Pobierz build Windows (essentials):
+  https://www.gyan.dev/ffmpeg/builds/
+"@
+    Set-Content (Join-Path $ffmpegDir "README.txt") $ffmpegReadme -Encoding UTF8
+}
+
+# --- Python installer + pip wheels (vendor / ingest MP4) ---
+$installersDir = Join-Path $OutputDir "installers"
+New-Item -ItemType Directory -Force -Path $installersDir | Out-Null
+$pythonVersion = "3.12.9"
+$pythonInstallerName = "python-$pythonVersion-amd64.exe"
+$pythonInstallerPath = Join-Path $installersDir $pythonInstallerName
+try {
+    if (-not (Test-Path $pythonInstallerPath)) {
+        $pythonUrl = "https://www.python.org/ftp/python/$pythonVersion/$pythonInstallerName"
+        Write-Host "  Pobieranie Python $pythonVersion..."
+        Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonInstallerPath
+    }
+    Write-Host "  Python: $pythonInstallerName"
+} catch {
+    Write-Host "  UWAGA: Nie udalo sie pobrac Python — dolacz recznie python-3.12.x-amd64.exe do installers\" -ForegroundColor Yellow
+}
+
+$wheelsDir = Join-Path $OutputDir "python-wheels"
+New-Item -ItemType Directory -Force -Path $wheelsDir | Out-Null
+$requirements = Join-Path $script:RepoRoot "scripts\rag\requirements-video.txt"
+if ((Test-Path $requirements) -and (Get-PythonExecutable)) {
+    Write-Host "  Pobieranie pakietow pip (faster-whisper) do python-wheels..."
+    $py = Get-PythonExecutable
+    if ($py -eq "py") {
+        & py -3 -m pip download -r $requirements -d $wheelsDir
+    } else {
+        & python -m pip download -r $requirements -d $wheelsDir
+    }
+    Write-Host "  python-wheels: gotowe"
 } else {
-    Write-Host "  UWAGA: Brak lokalnych modeli Ollama. Najpierw uruchom: ollama pull nomic-embed-text" -ForegroundColor Yellow
-    New-Item -ItemType Directory -Force -Path $ollamaTarget | Out-Null
+    Write-Host "  UWAGA: Brak Pythona na maszynie budujacej paczke — uruchom ponownie po instalacji Pythona, aby uzupelnic python-wheels" -ForegroundColor Yellow
 }
 
 # --- Instalatory Node + Ollama (recznie lub juz w katalogu) ---
-$installersDir = Join-Path $OutputDir "installers"
-New-Item -ItemType Directory -Force -Path $installersDir | Out-Null
 $installerReadme = @"
 Umiesc w tym katalogu instalatory (pobrane wczesniej z internetu):
 
@@ -69,9 +123,25 @@ Umiesc w tym katalogu instalatory (pobrane wczesniej z internetu):
      https://ollama.com/download
      Przykladowa nazwa: OllamaSetup.exe
 
+  3. Python 3.12 (EXE, x64) — ingest MP4 u vendora
+     Przykladowa nazwa: python-3.12.x-amd64.exe
+     (Prepare-OfflineBundle.ps1 probuje pobrac automatycznie)
+
 Setup offline uruchomi je automatycznie, jesli pliki tu sa.
+Katalog python-wheels\ zawiera faster-whisper do pip install --offline.
 "@
 Set-Content (Join-Path $installersDir "README.txt") $installerReadme -Encoding UTF8
+
+# --- Modele Ollama (jesli sa lokalnie) ---
+$ollamaSource = Join-Path $env:USERPROFILE ".ollama\models"
+$ollamaTarget = Join-Path $OutputDir "ollama-models"
+if (Test-Path $ollamaSource) {
+    Write-Host "  Kopiowanie modeli Ollama z $ollamaSource ..."
+    Copy-Item $ollamaSource $ollamaTarget -Recurse -Force
+} else {
+    Write-Host "  UWAGA: Brak lokalnych modeli Ollama. Najpierw uruchom: ollama pull nomic-embed-text" -ForegroundColor Yellow
+    New-Item -ItemType Directory -Force -Path $ollamaTarget | Out-Null
+}
 
 # --- pnpm store (dla pnpm install --offline) ---
 Write-Step "Przygotowanie pnpm store (pnpm fetch)"
@@ -129,9 +199,11 @@ Write-Host ""
 Write-Host "Paczka offline gotowa: $OutputDir" -ForegroundColor Green
 Write-Host ""
 Write-Host "Przed kopiowaniem na klienta:"
-Write-Host "  1. Sprawdz installers\ - dodaj node MSI i OllamaSetup.exe jesli brak"
-Write-Host "  2. Sprawdz ollama-models\ - wymagane: nomic-embed-text, qwen3; opcjonalnie deepseek-r1"
-Write-Host "  3. Skopiuj ZIP (lub katalog) na nosnik / siec klienta"
+Write-Host "  1. Sprawdz installers\ - node MSI, OllamaSetup.exe, python-3.12.x-amd64.exe"
+Write-Host "  2. Sprawdz python-wheels\ - wymagane dla ingest MP4 offline (vendor)"
+Write-Host "  3. Sprawdz tools\ffmpeg\ - ffmpeg.exe i ffprobe.exe"
+Write-Host "  4. Sprawdz ollama-models\ - wymagane: nomic-embed-text, qwen3; opcjonalnie deepseek-r1"
+Write-Host "  5. Skopiuj ZIP (lub katalog) na nosnik / siec klienta"
 Write-Host ""
 Write-Host "U klienta (bez internetu):"
 Write-Host "  Skopiuj ZIP do katalogu projektu (np. offline-bundle.zip) i uruchom:"

@@ -159,6 +159,48 @@ pnpm rag:validate-chunks -- --input D:\pipeline\out\knowledge-chunks.jsonl
 
 **API (vendor):** `POST /api/vendor/rag/ingest/chunks` — upload pliku `.jsonl` (opcjonalnie `?merge=true`)
 
+### Ingest MP4 (Etap 1 — CLI)
+
+Transkrypcja wideo bezpośrednio w repozytorium: **ffmpeg** + **faster-whisper** → `knowledge-chunks.jsonl` → opcjonalnie Qdrant.
+
+**Wymagania:**
+
+```powershell
+pip install -r scripts/rag/requirements-video.txt
+# ffmpeg i ffprobe w PATH
+```
+
+**CLI:**
+
+```powershell
+# Tylko transkrypcja + walidacja JSONL (bez Qdrant)
+pnpm rag:video:ingest -- --input D:\szkolenia\zu1.mp4 --no-index
+
+# Pełny pipeline: transkrypcja → klatki w sources/global/assets/ → import Qdrant
+# Wymaga: TETA_APP_MODE=vendor, TETA_VENDOR_SECRET, Ollama, Qdrant
+pnpm rag:video:ingest -- --input D:\szkolenia\zu1.mp4 --merge
+```
+
+Zmienne w `apps/api/.env`: `TETA_VIDEO_CHUNK_SECONDS` (domyślnie 180), `TETA_WHISPER_MODEL` (`large-v3-turbo`), `TETA_WHISPER_LANGUAGE` (`pl`), `TETA_FFMPEG_PATH`, `TETA_PYTHON`.
+
+Wynik roboczy trafia do `_temp/video-ingest/<timestamp>/`; klatki kopiowane są do `sources/global/assets/<film_key>/`.
+
+### API + UI (Etap 2–3)
+
+| Endpoint | Rola |
+|----------|------|
+| `POST /api/vendor/rag/ingest/video` | upload `.mp4`, start joba (`?merge=true`) |
+| `GET /api/vendor/rag/ingest/video` | lista zadań |
+| `GET /api/vendor/rag/ingest/video/:id` | status zadania |
+| `GET /api/vendor/rag/ingest/video/:id/events` | strumień NDJSON postępu |
+
+UI: **Źródła globalne** — osobna strefa uploadu MP4 + tabela zadań.
+
+### Offline bundle (Etap 4)
+
+`Setup.ps1 -Mode vendor` sprawdza ffmpeg, Python i instaluje `faster-whisper`.  
+`Prepare-OfflineBundle.ps1` dodaje `tools/ffmpeg/README.txt` z instrukcją.
+
 Potem jak dotychczas: **Zbuduj / eksport paczki RAG** albo `pnpm rag:global:export`.
 
 ---

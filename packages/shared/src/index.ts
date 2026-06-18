@@ -54,6 +54,15 @@ export type {
 export { CHAT_MODELS } from './chat.js';
 
 export type {
+  VideoIngestJobRecord,
+  VideoIngestJobsListResponse,
+  VideoIngestJobStatus,
+  VideoIngestStreamEvent,
+} from './video-ingest.js';
+
+export { VIDEO_INGEST_ACCEPT, VIDEO_INGEST_STATUSES } from './video-ingest.js';
+
+export type {
   AppUserRecord,
   AuthSetupStatusResponse,
   AuthUser,

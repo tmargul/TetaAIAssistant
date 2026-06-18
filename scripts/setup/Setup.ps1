@@ -69,6 +69,7 @@ Wait-OllamaReady
 
 if ($isVendor) {
     Install-OllamaModels @("nomic-embed-text", "qwen3")
+    Ensure-VideoIngestTools -InstallRoot $InstallRoot
 } elseif ($Offline) {
     Install-OllamaModels @("nomic-embed-text", "qwen3")
     Write-Host ""
@@ -116,8 +117,9 @@ if ($isVendor) {
     Write-Host "Vendor - budowa globalnego RAG:"
     Write-Host "  Pelna instrukcja: sources\global\README.md"
     Write-Host "  1. Wrzuc pliki .txt / .md do: sources\global\"
-    Write-Host "  2. W aplikacji: Ustawienia -> Paczki -> Zbuduj indeks RAG"
-    Write-Host "  3. Pobierz paczke RAG global (wersja np. 1.0.0)"
+    Write-Host "  2. Lub upload MP4 w: Zrodla globalne (transkrypcja Whisper)"
+    Write-Host "  3. W aplikacji: Ustawienia -> Paczki -> Zbuduj indeks RAG (dla dokumentow)"
+    Write-Host "  4. Pobierz paczke RAG global (wersja np. 1.0.0)"
 } else {
     Write-Host "Client - aktualizacje niezalezne (gdy system juz dziala):"
     Write-Host "  - RAG:         pnpm rag:global:import --file .\global-rag-X.zip"
