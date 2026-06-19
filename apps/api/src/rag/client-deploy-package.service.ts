@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { execSync } from 'child_process';
+import { existsSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'fs/promises';
 import * as path from 'path';
 import { formatRagSourceExtensions } from '@teta/shared';
 import { GlobalRagExportService } from './global-rag-export.service';
 import { GlobalRagService } from './global-rag.service';
+import { InnoInstallerService, type InnoInstallerVariant } from './inno-installer.service';
 import { OfflineBundleService } from './offline-bundle.service';
 
 const EXCLUDED_DIRS = new Set([
@@ -51,6 +53,7 @@ export class ClientDeployPackageService {
     private readonly offlineBundle: OfflineBundleService,
     private readonly globalRag: GlobalRagService,
     private readonly globalRagExport: GlobalRagExportService,
+    private readonly innoInstaller: InnoInstallerService,
   ) {}
 
   async buildAppUpdateZip(): Promise<AppUpdatePackageResult> {
@@ -67,6 +70,7 @@ export class ClientDeployPackageService {
     const appVersion = await this.readAppVersion(repoRoot);
     await this.copyProductionClientLayout(repoRoot, appDir);
     await this.writeAppUpdateFiles(appDir, appVersion);
+    await this.compilePackageInstaller(stagingDir, appDir, 'app-update', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -104,6 +108,7 @@ export class ClientDeployPackageService {
 
     await this.copyProductionClientLayout(repoRoot, appDir);
     await this.writeClientInstallFiles(appDir, appVersion);
+    await this.compilePackageInstaller(stagingDir, appDir, 'client-offline', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -137,6 +142,7 @@ export class ClientDeployPackageService {
     const appVersion = await this.readAppVersion(repoRoot);
     await this.copyProductionClientOnlineLayout(repoRoot, appDir);
     await this.writeClientOnlineInstallFiles(appDir, appVersion);
+    await this.compilePackageInstaller(stagingDir, appDir, 'client-online', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -173,6 +179,7 @@ export class ClientDeployPackageService {
 
     await this.copyProductionVendorLayout(repoRoot, appDir);
     await this.writeVendorInstallFiles(appDir, appVersion);
+    await this.compilePackageInstaller(stagingDir, appDir, 'vendor-offline', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -205,7 +212,10 @@ export class ClientDeployPackageService {
 
     const appVersion = await this.readAppVersion(repoRoot);
     await this.copyProductionVendorOnlineLayout(repoRoot, appDir);
+    await this.ensureEnvExampleInPackage(repoRoot, appDir);
     await this.writeVendorOnlineInstallFiles(appDir, appVersion);
+    await this.validateVendorOnlinePackage(appDir);
+    await this.compilePackageInstaller(stagingDir, appDir, 'vendor-online', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -220,8 +230,70 @@ export class ClientDeployPackageService {
     };
   }
 
+  private async compilePackageInstaller(
+    stagingDir: string,
+    appDir: string,
+    variant: InnoInstallerVariant,
+    appVersion: string,
+  ): Promise<string | undefined> {
+    try {
+      const result = this.innoInstaller.compileInstaller({
+        variant,
+        payloadDir: appDir,
+        outputDir: stagingDir,
+        appVersion,
+      });
+      this.logger.log(`Instalator Inno: ${result.filename}`);
+      return result.filename;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Instalator .exe nie powstał — zainstaluj Inno Setup 6 (winget install JRSoftware.InnoSetup) i zrestartuj API. ${message}`,
+      );
+      return undefined;
+    }
+  }
+
+  private async ensureEnvExampleInPackage(repoRoot: string, appDir: string): Promise<void> {
+    const target = path.join(appDir, PRODUCTION_ENV_EXAMPLE);
+    if (await this.pathExists(target)) {
+      return;
+    }
+    const fallback = path.join(repoRoot, 'scripts', 'setup', 'api.env.example');
+    if (!(await this.pathExists(fallback))) {
+      throw new Error(
+        'Brak apps/api/.env.example — setup nie utworzy .env. Uzupełnij plik w repozytorium i ponów eksport.',
+      );
+    }
+    await mkdir(path.dirname(target), { recursive: true });
+    await cp(fallback, target);
+    this.logger.warn('Skopiowano scripts/setup/api.env.example jako apps/api/.env.example w paczce.');
+  }
+
+  private async validateVendorOnlinePackage(appDir: string): Promise<void> {
+    const required = [
+      'apps/api/dist/main.js',
+      'apps/web/dist/index.html',
+      'scripts/setup/Setup.ps1',
+      'scripts/setup/Setup-Common.ps1',
+      'scripts/setup/Diagnose-TetaApp.ps1',
+      PRODUCTION_ENV_EXAMPLE,
+      'Instaluj-Vendor-Online.bat',
+    ];
+    const missing = [];
+    for (const relative of required) {
+      if (!(await this.pathExists(path.join(appDir, relative)))) {
+        missing.push(relative);
+      }
+    }
+    if (missing.length > 0) {
+      throw new Error(
+        `Paczka vendor (online) niekompletna — brakuje: ${missing.join(', ')}. Zatrzymaj API, uruchom pnpm build:vendor i ponów eksport.`,
+      );
+    }
+  }
+
   /**
-   * build:vendor / build:client modyfikuje pliki w apps/api/src (prepare-build-profile.mjs),
    * co przy działającym `nest start --watch` restartuje API i przerywa eksport paczki.
    * Gdy dist już istnieje (typowy dev vendor), pakujemy bez przebudowy.
    */
@@ -393,7 +465,16 @@ export class ClientDeployPackageService {
       const source = path.join(repoRoot, relative);
       const target = path.join(targetDir, relative);
       await mkdir(path.dirname(target), { recursive: true });
-      await cp(source, target, { recursive: true });
+      const copyOptions =
+        relative === 'scripts/setup'
+          ? {
+              recursive: true as const,
+              filter: (src: string) =>
+                !src.includes(`${path.sep}inno${path.sep}Output${path.sep}`) &&
+                !src.endsWith(`${path.sep}inno${path.sep}Output`),
+            }
+          : { recursive: true as const };
+      await cp(source, target, copyOptions);
     }
 
     const apiPkgRaw = await readFile(path.join(repoRoot, 'apps/api/package.json'), 'utf8');
@@ -548,6 +629,11 @@ export class ClientDeployPackageService {
       '4. Setup zapyta opcjonalnie o deepseek-r1 (~15 GB) — domyslnie N (wystarczy qwen3).',
       '5. Po zakonczeniu uruchom: C:\\TetaAI\\Start-App.bat',
       '6. Otworz przegladarke: http://localhost:3000',
+      '',
+      '=== PROBLEMY? ===',
+      '',
+      'Diagnostyka: scripts\\setup\\Diagnose-TetaApp.ps1',
+      'Okno Start-App.bat musi pozostac otwarte (serwer API).',
       '',
       '=== PIERWSZE URUCHOMIENIE ===',
       '',
@@ -736,8 +822,9 @@ export class ClientDeployPackageService {
       '',
       '=== INSTALACJA ===',
       '',
-      '1. Rozpakuj archiwum ZIP (np. D:\\TetaAIAssistant).',
-      '2. Kliknij prawym: Instaluj-Vendor-Online.bat -> Uruchom jako administrator.',
+      '1. Rozpakuj archiwum ZIP (np. D:\\TetaAI).',
+      '2. Uruchom TetaAI-Vendor-Setup-Online.exe jako administrator (zalecane).',
+      '   Alternatywa: Instaluj-Vendor-Online.bat (Admin) w folderze TetaAIAssistant.',
       '3. Poczekaj na pobranie modeli Ollama (nomic-embed-text + qwen3, ok. 5–6 GB).',
       '4. Po zakonczeniu uruchom: C:\\TetaAI\\Start-App.bat',
       '5. Otworz przegladarke: http://localhost:3000',

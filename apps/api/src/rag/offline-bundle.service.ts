@@ -6,6 +6,7 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import archiver from 'archiver';
 import extract from 'extract-zip';
+import { InnoInstallerService } from './inno-installer.service';
 
 export type OfflineBundleManifest = {
   format: string;
@@ -48,6 +49,8 @@ const FFMPEG_ESSENTIALS_URL =
 @Injectable()
 export class OfflineBundleService {
   private readonly logger = new Logger(OfflineBundleService.name);
+
+  constructor(private readonly innoInstaller: InnoInstallerService) {}
 
   getRepoRoot(): string {
     return this.resolveRepoRoot();

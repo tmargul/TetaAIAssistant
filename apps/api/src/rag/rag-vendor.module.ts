@@ -4,6 +4,7 @@ import { ClientDeployPackageService } from './client-deploy-package.service';
 import { GlobalRagExportService } from './global-rag-export.service';
 import { GlobalRagIngestService } from './global-rag-ingest.service';
 import { GlobalSourcesService } from './global-sources.service';
+import { InnoInstallerService } from './inno-installer.service';
 import { OfflineBundleService } from './offline-bundle.service';
 import { RagCoreModule } from './rag-core.module';
 import { VendorAccessGuard } from './vendor-access.guard';
@@ -23,6 +24,7 @@ import { VendorVideoIngestController } from './video-ingest/vendor-video-ingest.
     GlobalRagExportService,
     ClientDeployPackageService,
     OfflineBundleService,
+    InnoInstallerService,
     VideoIngestPipelineService,
     VideoIngestJobsService,
     VendorAccessGuard,

@@ -195,6 +195,9 @@ function Install-ProjectDependencies {
     if ((Test-ProductionLayout) -and -not (Test-Path $nodeModules)) {
         Write-Host "  Paczka produkcyjna (online) — instalacja zaleznosci (pnpm install)..."
         pnpm install
+        if ($LASTEXITCODE -ne 0) {
+            throw "pnpm install nie powiodl sie. Sprawdz polaczenie z internetem i uruchom setup ponownie."
+        }
         return
     }
 
@@ -499,18 +502,47 @@ function Write-EnvFile([string]$AppMode, [bool]$IncludeVendorSecret) {
     Write-Host "  Zapisano: $envPath"
 }
 
+function Get-NodeExecutablePath {
+    Refresh-ShellPath
+    $cmd = Get-Command node -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+
+    foreach ($candidate in @(
+        "$env:ProgramFiles\nodejs\node.exe",
+        "${env:ProgramFiles(x86)}\nodejs\node.exe",
+        "$env:LocalAppData\Programs\nodejs\node.exe"
+    )) {
+        if (Test-Path $candidate) { return $candidate }
+    }
+    return "node"
+}
+
 function Write-StartAppScript([string]$InstallRoot) {
     Write-Step "Tworzenie skryptu startowego aplikacji"
     New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
+    $nodeExe = Get-NodeExecutablePath
 
     if (Test-ProductionLayout) {
         $startApp = @"
 @echo off
 title Teta AI Assistant
+set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%LocalAppData%\Programs\nodejs;%PATH%"
 cd /d "$script:RepoRoot\apps\api"
 set TETA_REPO_ROOT=$script:RepoRoot
 set WEB_DIST_PATH=$script:RepoRoot\apps\web\dist
-node dist\main.js
+set PORT=3000
+echo Uruchamianie Teta AI Assistant (API + UI)...
+echo Adres: http://localhost:3000
+echo.
+"$nodeExe" dist\main.js
+if errorlevel 1 (
+  echo.
+  echo Aplikacja nie wystartowala. Uruchom diagnostyke:
+  echo   powershell -ExecutionPolicy Bypass -File "$script:RepoRoot\scripts\setup\Diagnose-TetaApp.ps1"
+  echo.
+  pause
+  exit /b 1
+)
 "@
     } else {
         $startApp = @"
