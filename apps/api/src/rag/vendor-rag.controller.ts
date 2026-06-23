@@ -11,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage, diskStorage } from 'multer';
+import { diskStorage } from 'multer';
 import { unlink } from 'fs/promises';
 import { tmpdir } from 'os';
 import type {
@@ -97,8 +97,13 @@ export class VendorRagController {
   @Post('sources/upload')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: memoryStorage(),
-      limits: { fileSize: 10 * 1024 * 1024 },
+      storage: diskStorage({
+        destination: tmpdir(),
+        filename: (_req, file, callback) => {
+          const safeName = file.originalname.replace(/[^\w.\-]+/g, '_');
+          callback(null, `teta-source-upload-${Date.now()}-${safeName}`);
+        },
+      }),
     }),
   )
   uploadSource(@UploadedFile() file: Express.Multer.File): Promise<GlobalSourceFileRecord> {

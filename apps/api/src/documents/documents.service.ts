@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { mkdir, readFile, rm, writeFile } from 'fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'fs/promises';
 import * as path from 'path';
 import {
   formatRagSourceExtensions,
@@ -118,17 +118,11 @@ export class DocumentsService {
       );
     }
 
-    const maxBytes = Number(this.config.get('RAG_DOCUMENT_MAX_BYTES', 5 * 1024 * 1024));
-    if (file.size > maxBytes) {
-      throw new BadRequestException(`Plik jest za duży (max ${Math.round(maxBytes / 1024 / 1024)} MB).`);
-    }
-
     await mkdir(this.storageDir, { recursive: true });
 
     const storageName = `${randomUUID()}${ext}`;
     const storagePath = path.join(this.storageDir, storageName);
-    const buffer = file.buffer ?? (await readFile(file.path));
-    await writeFile(storagePath, buffer);
+    await this.persistUploadedFile(file, storagePath);
 
     const now = new Date().toISOString();
     const result = this.db.connection
@@ -150,6 +144,26 @@ export class DocumentsService {
 
     const documentId = Number(result.lastInsertRowid);
     return this.indexDocument(documentId);
+  }
+
+  private async persistUploadedFile(
+    file: Express.Multer.File,
+    storagePath: string,
+  ): Promise<void> {
+    if (file.path) {
+      try {
+        await rename(file.path, storagePath);
+      } catch {
+        const { copyFile } = await import('fs/promises');
+        await copyFile(file.path, storagePath);
+        await rm(file.path, { force: true });
+      }
+      return;
+    }
+    if (!file.buffer?.length) {
+      throw new BadRequestException('Brak pliku do uploadu.');
+    }
+    await writeFile(storagePath, file.buffer);
   }
 
   async reindexDocument(documentId: number): Promise<RagDocumentRecord> {

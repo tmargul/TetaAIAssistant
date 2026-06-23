@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { GlobalRagIngestResult, GlobalRagStatusResponse } from '@teta/shared';
+import type {
+  ClientUpdatesStatusResponse,
+  GlobalRagIngestResult,
+  GlobalRagStatusResponse,
+  OllamaModelPullStreamEvent,
+  OllamaPullModel,
+} from '@teta/shared';
 import { formatRagSourceExtensions } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
 
@@ -42,6 +48,22 @@ async function downloadPackage(
   return { ok: true };
 }
 
+function formatPullStatus(
+  status: string,
+  percent: number | null,
+  completed?: number,
+  total?: number,
+): string {
+  if (percent != null && total) {
+    const mb = (n: number) =>
+      n < 1024 * 1024 * 1024
+        ? `${(n / (1024 * 1024)).toFixed(1)} MB`
+        : `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    return `${status} — ${percent}% (${mb(completed ?? 0)} / ${mb(total)})`;
+  }
+  return status;
+}
+
 export function VendorPackagesPanel() {
   const [ragStatus, setRagStatus] = useState<GlobalRagStatusResponse | null>(null);
   const [ragVersion, setRagVersion] = useState('');
@@ -54,6 +76,9 @@ export function VendorPackagesPanel() {
   const [modelsUpdateLoading, setModelsUpdateLoading] = useState(false);
   const [ragLoading, setRagLoading] = useState(false);
   const [ragIngestLoading, setRagIngestLoading] = useState(false);
+  const [ollamaStatus, setOllamaStatus] = useState<ClientUpdatesStatusResponse | null>(null);
+  const [pullingModel, setPullingModel] = useState<OllamaPullModel | null>(null);
+  const [pullProgress, setPullProgress] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const loadRagStatus = () => {
@@ -73,7 +98,90 @@ export function VendorPackagesPanel() {
 
   useEffect(() => {
     loadRagStatus();
+    authFetch('/api/admin/updates/status')
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<ClientUpdatesStatusResponse>;
+      })
+      .then(setOllamaStatus)
+      .catch(() => undefined);
   }, []);
+
+  const refreshOllamaStatus = () => {
+    authFetch('/api/admin/updates/status')
+      .then(async (res) => res.json() as Promise<ClientUpdatesStatusResponse>)
+      .then(setOllamaStatus)
+      .catch(() => undefined);
+  };
+
+  const handlePullModel = async (model: OllamaPullModel) => {
+    setMessage(null);
+    setError(null);
+    setPullingModel(model);
+    setPullProgress('Łączenie z Ollama…');
+
+    try {
+      const res = await authFetch('/api/admin/updates/ollama/pull', {
+        method: 'POST',
+        body: JSON.stringify({ model }),
+      });
+
+      if (!res.ok) {
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          const data = (await res.json()) as { message?: string | string[] };
+          errMsg = Array.isArray(data.message) ? data.message.join(', ') : (data.message ?? errMsg);
+        } catch {
+          // ignore
+        }
+        throw new Error(errMsg);
+      }
+
+      if (!res.body) {
+        throw new Error('Serwer nie zwrócił strumienia postępu pobierania.');
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let completed = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          const event = JSON.parse(trimmed) as OllamaModelPullStreamEvent;
+          if (event.type === 'progress') {
+            setPullProgress(
+              formatPullStatus(event.status, event.percent, event.completed, event.total),
+            );
+          } else if (event.type === 'complete') {
+            completed = true;
+            setMessage(`Model ${event.model} pobrany z Ollama. Wybierz go w czacie (lista modeli).`);
+          } else if (event.type === 'error') {
+            throw new Error(event.message);
+          }
+        }
+      }
+
+      if (!completed) {
+        throw new Error('Pobieranie modelu zakończyło się bez potwierdzenia.');
+      }
+
+      refreshOllamaStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Pobieranie modelu nie powiodło się.');
+    } finally {
+      setPullingModel(null);
+      setPullProgress(null);
+    }
+  };
 
   const handleRagIngest = async () => {
     setMessage(null);
@@ -330,7 +438,8 @@ export function VendorPackagesPanel() {
               <h3 className="settings__package-title">Instalacja vendor</h3>
               <p className="settings__package-desc">
                 Stanowisko budowy globalnego RAG u Tety. <strong>Online</strong> (ZIP ~1–5 MB) —
-                setup pobiera zależności npm (~100–300 MB), Node, Ollamę, Qdrant i modele AI (~5–6 GB).
+                setup pobiera zależności npm (~100–300 MB), Node, Ollamę, Qdrant i modele AI (~5–6 GB;
+                opcjonalnie deepseek-r1 ~15 GB).
                 <strong>Offline</strong> (~8–12 GB) — cała paczka bez sieci u celu.
               </p>
             </div>
@@ -427,6 +536,55 @@ export function VendorPackagesPanel() {
                 disabled={modelsUpdateLoading || offlineLoading}
               >
                 {modelsUpdateLoading ? 'Pakowanie…' : 'Pobierz paczkę modeli'}
+              </button>
+            </div>
+          </article>
+
+          <article className="settings__package-card">
+            <div className="settings__package-body">
+              <h3 className="settings__package-title">Modele czatu (Ollama)</h3>
+              <p className="settings__package-desc">
+                Domyślnie setup instaluje <strong>qwen3</strong> (szybki czat). Opcjonalnie{' '}
+                <strong>deepseek-r1</strong> (~15 GB) — wolniejszy, lepszy do trudniejszych pytań.
+                Wymaga internetu i działającej Ollamy.
+              </p>
+              {ollamaStatus?.ollama && (
+                <p className="settings__package-desc">
+                  Ollama:{' '}
+                  <strong>{ollamaStatus.ollama.status === 'ok' ? 'online' : 'offline'}</strong>
+                  {ollamaStatus.ollama.status === 'ok' && (
+                    <>
+                      {' '}
+                      · zainstalowane modele czatu:{' '}
+                      {ollamaStatus.ollama.chatModels.length > 0
+                        ? ollamaStatus.ollama.chatModels.join(', ')
+                        : 'brak'}
+                    </>
+                  )}
+                </p>
+              )}
+              {pullProgress && (
+                <p className="settings__package-desc settings__hint">{pullProgress}</p>
+              )}
+            </div>
+            <div className="settings__package-actions settings__package-actions--stack">
+              <button
+                type="button"
+                className="settings__btn"
+                onClick={() => void handlePullModel('deepseek-r1')}
+                disabled={pullingModel !== null || ollamaStatus?.ollama?.status !== 'ok'}
+              >
+                {pullingModel === 'deepseek-r1'
+                  ? 'Pobieranie deepseek-r1…'
+                  : 'Pobierz deepseek-r1 (online)'}
+              </button>
+              <button
+                type="button"
+                className="settings__btn settings__btn--secondary"
+                onClick={() => void handlePullModel('qwen3')}
+                disabled={pullingModel !== null || ollamaStatus?.ollama?.status !== 'ok'}
+              >
+                {pullingModel === 'qwen3' ? 'Pobieranie qwen3…' : 'Pobierz / odśwież qwen3'}
               </button>
             </div>
           </article>

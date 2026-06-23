@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { mkdir, readdir, rm, stat, writeFile } from 'fs/promises';
+import { mkdir, readdir, rename, rm, stat, writeFile } from 'fs/promises';
 import { basename, extname, join, normalize, relative, resolve } from 'path';
 import type { GlobalSourceFileRecord, GlobalSourcesListResponse } from '@teta/shared';
 import {
@@ -39,7 +39,10 @@ export class GlobalSourcesService {
   }
 
   async uploadSource(file: Express.Multer.File): Promise<GlobalSourceFileRecord> {
-    if (!file?.buffer?.length) {
+    if (!file) {
+      throw new BadRequestException('Brak pliku do zapisania.');
+    }
+    if (!file.path && !file.buffer?.length) {
       throw new BadRequestException('Brak pliku do zapisania.');
     }
 
@@ -59,7 +62,7 @@ export class GlobalSourcesService {
       throw new BadRequestException('Ten plik jest chroniony i nie może być nadpisany.');
     }
 
-    await writeFile(targetPath, file.buffer);
+    await this.writeSourceFile(targetPath, file);
     const info = await stat(targetPath);
 
     return {
@@ -127,6 +130,20 @@ export class GlobalSourcesService {
         indexed: indexedSet.has(relativeName),
       });
     }
+  }
+
+  private async writeSourceFile(targetPath: string, file: Express.Multer.File): Promise<void> {
+    if (file.path) {
+      try {
+        await rename(file.path, targetPath);
+      } catch {
+        const { copyFile } = await import('fs/promises');
+        await copyFile(file.path, targetPath);
+        await rm(file.path, { force: true });
+      }
+      return;
+    }
+    await writeFile(targetPath, file.buffer!);
   }
 
   private sanitizeFilename(originalName: string): string {

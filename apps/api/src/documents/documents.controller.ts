@@ -11,7 +11,10 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
+import { diskStorage } from 'multer';
+import { randomUUID } from 'crypto';
+import { tmpdir } from 'os';
+import * as path from 'path';
 import type { ClientRagStatusResponse, RagDocumentRecord, RagDocumentUploadResponse } from '@teta/shared';
 import { AdminGuard } from '../auth/admin.guard';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
@@ -37,8 +40,13 @@ export class DocumentsController {
   @UseGuards(AdminGuard)
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: memoryStorage(),
-      limits: { fileSize: 10 * 1024 * 1024 },
+      storage: diskStorage({
+        destination: tmpdir(),
+        filename: (_req, file, callback) => {
+          const ext = path.extname(file.originalname).toLowerCase();
+          callback(null, `teta-doc-upload-${Date.now()}-${randomUUID()}${ext}`);
+        },
+      }),
     }),
   )
   async uploadDocument(
