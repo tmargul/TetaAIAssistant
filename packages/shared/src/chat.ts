@@ -14,6 +14,16 @@ export interface ChatMessage {
   content: string;
   createdAt: string;
   sources?: ChatRagSource[];
+  /** Czas generowania odpowiedzi (z API). */
+  timing?: ChatCompletionTiming;
+  /** Trwa streamowanie odpowiedzi. */
+  streaming?: boolean;
+}
+
+export interface ChatCompletionTiming {
+  totalMs: number;
+  ragMs: number;
+  llmMs: number;
 }
 
 export interface ChatHistoryMessage {
@@ -53,9 +63,30 @@ export interface ChatModelsResponse {
   models: ChatModel[];
 }
 
+/** Czy wybrany model czatu jest już załadowany w RAM Ollamy (/api/ps). */
+export interface ChatRuntimeStatusResponse {
+  chatModel: ChatModel;
+  resolvedModelName: string;
+  loadedInMemory: boolean;
+  loadedModels: string[];
+}
+
 export interface ChatCompletionResponse {
   content: string;
   sources: ChatRagSource[];
   model: ChatModel;
   createdAt: string;
+  timing: ChatCompletionTiming;
 }
+
+export type ChatStreamEvent =
+  | { type: 'rag'; ragMs: number; sourceCount: number }
+  | { type: 'token'; delta: string }
+  | {
+      type: 'done';
+      content: string;
+      model: ChatModel;
+      createdAt: string;
+      timing: ChatCompletionTiming;
+    }
+  | { type: 'error'; message: string };

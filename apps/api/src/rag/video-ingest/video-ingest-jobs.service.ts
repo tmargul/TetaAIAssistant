@@ -6,7 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { mkdir } from 'fs/promises';
+import { mkdir, rm, stat } from 'fs/promises';
 import { join } from 'path';
 import type {
   RagImportMode,
@@ -16,6 +16,8 @@ import type {
   VideoIngestStreamEvent,
 } from '@teta/shared';
 import { DatabaseService } from '../../database/database.service';
+import { getRepoRoot } from '../../config/repo-root';
+import { QdrantService } from '../qdrant.service';
 import { VideoIngestPipelineService } from './video-ingest-pipeline.service';
 
 type JobRow = {
@@ -47,6 +49,7 @@ export class VideoIngestJobsService implements OnModuleInit {
     private readonly db: DatabaseService,
     private readonly config: ConfigService,
     private readonly pipeline: VideoIngestPipelineService,
+    private readonly qdrant: QdrantService,
   ) {}
 
   onModuleInit(): void {
@@ -117,6 +120,120 @@ export class VideoIngestJobsService implements OnModuleInit {
     }
 
     return this.mapRow(row);
+  }
+
+  findJobBySource(source: string): VideoIngestJobRecord | null {
+    const row = this.db.connection
+      .prepare(
+        `SELECT * FROM video_ingest_jobs
+         WHERE source = ? AND status = 'done'
+         ORDER BY id DESC LIMIT 1`,
+      )
+      .get(source) as JobRow | undefined;
+    return row ? this.mapRow(row) : null;
+  }
+
+  listDoneJobs(limit = 100): VideoIngestJobRecord[] {
+    const rows = this.db.connection
+      .prepare(
+        `SELECT * FROM video_ingest_jobs
+         WHERE status = 'done' AND source IS NOT NULL
+         ORDER BY id DESC LIMIT ?`,
+      )
+      .all(limit) as JobRow[];
+    return rows.map((row) => this.mapRow(row));
+  }
+
+  async deleteTraining(input: { jobId?: number; source?: string }): Promise<void> {
+    let job: VideoIngestJobRecord | null = null;
+    if (input.jobId != null) {
+      job = this.getJob(input.jobId);
+    } else if (input.source) {
+      job = this.findJobBySource(input.source);
+    }
+
+    const source = job?.source ?? input.source ?? null;
+    if (!job && !source) {
+      throw new NotFoundException('Nie znaleziono materiału wideo do usunięcia.');
+    }
+
+    if (job && job.status !== 'done' && job.status !== 'failed') {
+      throw new BadRequestException(
+        'Nie można usunąć wideo w trakcie przetwarzania — poczekaj na zakończenie zadania.',
+      );
+    }
+
+    const row = job
+      ? (this.db.connection.prepare('SELECT * FROM video_ingest_jobs WHERE id = ?').get(job.id) as JobRow)
+      : null;
+
+    if (source) {
+      try {
+        await this.qdrant.deletePointsBySource(this.qdrant.globalCollection, source);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Nie udało się usunąć wektorów dla ${source}: ${message}`);
+      }
+    }
+
+    await this.deleteTrainingFiles(source, job?.filmKey ?? null, row?.storage_path ?? null, row?.output_dir ?? null);
+
+    if (job) {
+      this.db.connection.prepare('DELETE FROM video_ingest_jobs WHERE id = ?').run(job.id);
+      this.logger.log(`Usunięto materiał wideo: job #${job.id}, source=${source ?? '—'}`);
+    } else if (source) {
+      this.logger.log(`Usunięto osierocony plik wideo: ${source}`);
+    }
+  }
+
+  private async deleteTrainingFiles(
+    source: string | null,
+    filmKey: string | null,
+    storagePath: string | null,
+    outputDir: string | null,
+  ): Promise<void> {
+    const globalRoot = join(getRepoRoot(), 'sources', 'global');
+    if (source) {
+      await rm(join(globalRoot, source.replace(/\\/g, '/')), { force: true });
+      if (!filmKey) {
+        const inferred = source.replace(/\\/g, '/').split('/').pop()?.replace(/\.mp4$/i, '');
+        if (inferred) {
+          await rm(join(globalRoot, 'assets', inferred), { recursive: true, force: true });
+        }
+      }
+    }
+    if (filmKey) {
+      await rm(join(globalRoot, 'assets', filmKey), { recursive: true, force: true });
+    }
+    if (storagePath) {
+      await rm(storagePath, { force: true });
+    }
+    if (outputDir) {
+      await rm(outputDir, { recursive: true, force: true });
+    }
+  }
+
+  async getTrainingFileSize(job: VideoIngestJobRecord): Promise<number> {
+    const candidates = [
+      job.source ? join(getRepoRoot(), 'sources', 'global', job.source.replace(/\\/g, '/')) : null,
+    ];
+    const row = this.db.connection
+      .prepare('SELECT storage_path FROM video_ingest_jobs WHERE id = ?')
+      .get(job.id) as { storage_path: string } | undefined;
+    if (row?.storage_path) {
+      candidates.push(row.storage_path);
+    }
+
+    for (const path of candidates) {
+      if (!path) continue;
+      try {
+        const info = await stat(path);
+        if (info.isFile()) return info.size;
+      } catch {
+        // spróbuj następną ścieżkę
+      }
+    }
+    return 0;
   }
 
   subscribe(jobId: number, listener: (event: VideoIngestStreamEvent) => void): () => void {

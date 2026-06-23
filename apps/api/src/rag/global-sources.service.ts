@@ -12,12 +12,16 @@ import {
 } from '@teta/shared';
 import { getRepoRoot } from '../config/repo-root';
 import { GlobalRagService } from './global-rag.service';
+import { VideoIngestJobsService } from './video-ingest/video-ingest-jobs.service';
 
 const PROTECTED_FILES = new Set(['README.md']);
 
 @Injectable()
 export class GlobalSourcesService {
-  constructor(private readonly globalRag: GlobalRagService) {}
+  constructor(
+    private readonly globalRag: GlobalRagService,
+    private readonly videoJobs: VideoIngestJobsService,
+  ) {}
 
   getSourcesDir(): string {
     return join(getRepoRoot(), 'sources', 'global');
@@ -32,6 +36,7 @@ export class GlobalSourcesService {
 
     const files: GlobalSourceFileRecord[] = [];
     await this.collectFiles(directory, directory, files, indexedSet);
+    await this.appendVideoSources(files, indexedSet);
 
     files.sort((a, b) => a.name.localeCompare(b.name, 'pl'));
 
@@ -71,6 +76,7 @@ export class GlobalSourcesService {
       modifiedAt: info.mtime.toISOString(),
       protected: false,
       indexed: false,
+      kind: 'document',
     };
   }
 
@@ -80,6 +86,11 @@ export class GlobalSourcesService {
 
     if (PROTECTED_FILES.has(filename)) {
       throw new BadRequestException('Ten plik jest chroniony i nie może być usunięty.');
+    }
+
+    if (this.isVideoSourcePath(safeRelative)) {
+      await this.videoJobs.deleteTraining({ source: safeRelative });
+      return;
     }
 
     const targetPath = join(this.getSourcesDir(), safeRelative);
@@ -94,6 +105,40 @@ export class GlobalSourcesService {
     }
 
     await rm(targetPath, { force: true });
+  }
+
+  private isVideoSourcePath(relativePath: string): boolean {
+    const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
+    return normalized.startsWith('trainings/') && normalized.endsWith('.mp4');
+  }
+
+  private async appendVideoSources(
+    files: GlobalSourceFileRecord[],
+    indexedSet: Set<string>,
+  ): Promise<void> {
+    const existingVideoPaths = new Set(
+      files.filter((file) => file.kind === 'video').map((file) => file.name),
+    );
+
+    for (const job of this.videoJobs.listDoneJobs()) {
+      if (!job.source || existingVideoPaths.has(job.source)) {
+        continue;
+      }
+
+      const sizeBytes = await this.videoJobs.getTrainingFileSize(job);
+      files.push({
+        name: job.source,
+        sizeBytes,
+        modifiedAt: job.finishedAt ?? job.createdAt,
+        protected: false,
+        indexed: indexedSet.has(job.source),
+        kind: 'video',
+        videoJobId: job.id,
+        filmKey: job.filmKey,
+        chunkCount: job.chunkCount,
+      });
+      existingVideoPaths.add(job.source);
+    }
   }
 
   private async collectFiles(
@@ -112,6 +157,28 @@ export class GlobalSourcesService {
       }
 
       const ext = extname(entry.name).toLowerCase();
+      const relativeName = relative(rootDir, fullPath).replace(/\\/g, '/');
+
+      if (ext === '.mp4' && relativeName.startsWith('trainings/')) {
+        const info = await stat(fullPath);
+        if (!info.isFile() || info.size === 0) {
+          continue;
+        }
+        const job = this.videoJobs.findJobBySource(relativeName);
+        files.push({
+          name: relativeName,
+          sizeBytes: info.size,
+          modifiedAt: info.mtime.toISOString(),
+          protected: false,
+          indexed: indexedSet.has(relativeName),
+          kind: 'video',
+          videoJobId: job?.id,
+          filmKey: job?.filmKey ?? null,
+          chunkCount: job?.chunkCount ?? null,
+        });
+        continue;
+      }
+
       if (!isRagSourceExtension(ext)) {
         continue;
       }
@@ -121,13 +188,13 @@ export class GlobalSourcesService {
         continue;
       }
 
-      const relativeName = relative(rootDir, fullPath).replace(/\\/g, '/');
       files.push({
         name: relativeName,
         sizeBytes: info.size,
         modifiedAt: info.mtime.toISOString(),
         protected: PROTECTED_FILES.has(basename(relativeName)),
         indexed: indexedSet.has(relativeName),
+        kind: 'document',
       });
     }
   }

@@ -312,7 +312,11 @@ export function GlobalSourcesView() {
 
   const handleDelete = async (file: GlobalSourceFileRecord) => {
     if (file.protected) return;
-    if (!window.confirm(`Usunąć plik „${file.name}" z katalogu źródeł?`)) return;
+    const isVideo = file.kind === 'video';
+    const confirmText = isVideo
+      ? `Usunąć szkolenie wideo „${file.name}"?\n\nZostanie usunięte z indeksu RAG, klatki w assets/ oraz plik MP4.`
+      : `Usunąć plik „${file.name}" z katalogu źródeł?`;
+    if (!window.confirm(confirmText)) return;
 
     setActionName(file.name);
     setMessage(null);
@@ -326,7 +330,39 @@ export function GlobalSourcesView() {
         const data = (await res.json()) as { message?: string };
         throw new Error(data.message ?? `HTTP ${res.status}`);
       }
-      setMessage(`Usunięto: ${file.name}`);
+      setMessage(isVideo ? `Usunięto wideo: ${file.name}` : `Usunięto: ${file.name}`);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Usuwanie nie powiodło się.');
+    } finally {
+      setActionName(null);
+    }
+  };
+
+  const handleDeleteVideoJob = async (job: VideoIngestJobRecord) => {
+    if (job.status !== 'done' && job.status !== 'failed') {
+      setError('Nie można usunąć zadania w trakcie przetwarzania.');
+      return;
+    }
+    const label = job.source ?? job.originalFilename;
+    if (
+      !window.confirm(
+        `Usunąć zadanie wideo „${job.originalFilename}"${job.source ? ` (${job.source})` : ''}?`,
+      )
+    ) {
+      return;
+    }
+
+    setActionName(label);
+    setMessage(null);
+    setError(null);
+    try {
+      const res = await authFetch(`/api/vendor/rag/ingest/video/${job.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = (await res.json()) as { message?: string };
+        throw new Error(data.message ?? `HTTP ${res.status}`);
+      }
+      setMessage(`Usunięto zadanie wideo: ${job.originalFilename}`);
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Usuwanie nie powiodło się.');
@@ -503,6 +539,7 @@ export function GlobalSourcesView() {
                 <th>Postęp</th>
                 <th>Chunków</th>
                 <th>Utworzono</th>
+                {isAdmin && <th />}
               </tr>
             </thead>
             <tbody>
@@ -531,6 +568,20 @@ export function GlobalSourcesView() {
                   <td>{job.progress}%</td>
                   <td>{job.chunkCount ?? '—'}</td>
                   <td>{formatDate(job.createdAt)}</td>
+                  {isAdmin && (
+                    <td className="documents__actions">
+                      {(job.status === 'done' || job.status === 'failed') && (
+                        <button
+                          type="button"
+                          className="documents__action-btn documents__action-btn--danger"
+                          disabled={actionName === (job.source ?? job.originalFilename)}
+                          onClick={() => handleDeleteVideoJob(job)}
+                        >
+                          Usuń
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -564,6 +615,12 @@ export function GlobalSourcesView() {
                         instrukcja
                       </span>
                     )}
+                    {file.kind === 'video' && (
+                      <span className="documents__badge documents__badge--processing" title="Szkolenie MP4">
+                        {' '}
+                        wideo
+                      </span>
+                    )}
                   </td>
                   <td>
                     <span
@@ -573,6 +630,9 @@ export function GlobalSourcesView() {
                     >
                       {file.indexed ? 'Tak' : 'Nie'}
                     </span>
+                    {file.kind === 'video' && file.chunkCount != null && (
+                      <span className="documents__dropzone-hint"> ({file.chunkCount} chunków)</span>
+                    )}
                   </td>
                   <td>{formatBytes(file.sizeBytes)}</td>
                   <td>{formatDate(file.modifiedAt)}</td>
@@ -595,7 +655,7 @@ export function GlobalSourcesView() {
               {sources.length === 0 && (
                 <tr>
                   <td colSpan={isAdmin ? 5 : 4} className="documents__empty">
-                    Brak plików — dodaj materiały szkoleniowe ({formatRagSourceExtensions()}).
+                    Brak plików — dodaj materiały szkoleniowe ({formatRagSourceExtensions()}) lub prześlij MP4.
                   </td>
                 </tr>
               )}

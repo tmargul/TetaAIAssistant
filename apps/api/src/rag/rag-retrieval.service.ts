@@ -4,6 +4,7 @@ import type { ChatRagCollection, ChatRagSource, RagSearchFilter } from '@teta/sh
 import { EmbeddingService } from './embedding.service';
 import { QdrantService } from './qdrant.service';
 import { RAG_CONSTANTS } from './rag.constants';
+import { rerankChunksByQuery } from './rag-query-rerank.util';
 import { resolvePreviewFrameUrl } from './rag-search.util';
 
 type RetrievedChunk = ChatRagSource & { chunkIndex: number };
@@ -27,8 +28,9 @@ export class RagRetrievalService {
     const excerptChars = Number(
       this.config.get('RAG_UI_EXCERPT_CHARS', RAG_CONSTANTS.uiExcerptChars),
     );
-    // Pobierz więcej kandydatów, potem odfiltruj po score — żeby topK było sensowne.
-    const searchLimit = Math.max(topK * 3, topK);
+    const searchLimit = Number(
+      this.config.get('RAG_CHAT_SEARCH_LIMIT', RAG_CONSTANTS.chatSearchLimit),
+    );
 
     const vector = await this.embedding.embed(query);
     const chunks: RetrievedChunk[] = [];
@@ -53,7 +55,7 @@ export class RagRetrievalService {
       chunks.push(...clientHits.map((hit) => this.toSource(hit, 'client', excerptChars)));
     }
 
-    const merged = this.mergeResults(chunks, topK, minScore);
+    const merged = this.mergeResults(rerankChunksByQuery(query, chunks), topK, minScore);
     const filterInfo = options.filter ? JSON.stringify(options.filter) : 'brak';
     this.logger.log(
       `RAG retrieval: ${merged.length}/${chunks.length} fragmentów po filtrze score>=${minScore} ` +

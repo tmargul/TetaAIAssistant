@@ -1,21 +1,84 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CHAT_MODELS, type ChatModel } from '@teta/shared';
+import { CHAT_MODELS, type ChatModel, type ChatRuntimeStatusResponse } from '@teta/shared';
+import { getOllamaBaseUrl, getOllamaKeepAlive } from './ollama-config.util';
 
 type OllamaMessage = {
   role: 'system' | 'user' | 'assistant';
   content: string;
 };
 
+type OllamaChatOptions = {
+  temperature: number;
+  num_predict: number;
+  num_thread: number;
+  num_ctx: number;
+  num_batch: number;
+};
+
 @Injectable()
-export class OllamaChatService {
+export class OllamaChatService implements OnModuleInit {
   private readonly logger = new Logger(OllamaChatService.name);
   private cachedModelNames: string[] | null = null;
 
   constructor(private readonly config: ConfigService) {}
 
+  onModuleInit(): void {
+    const preload = this.config.get<string>('OLLAMA_PRELOAD_CHAT_MODEL', 'false');
+    if (preload === 'true' || preload === '1') {
+      void this.preloadDefaultChatModel().catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Preload modelu czatu Ollama pominięty: ${message}`);
+      });
+    }
+  }
+
+  private getKeepAlive(): string | number {
+    return getOllamaKeepAlive(this.config);
+  }
+
   private get baseUrl(): string {
-    return this.config.get<string>('OLLAMA_BASE_URL', 'http://127.0.0.1:11434').replace(/\/$/, '');
+    return getOllamaBaseUrl(this.config);
+  }
+
+  private getChatOptions(): OllamaChatOptions {
+    return {
+      temperature: Number(this.config.get('OLLAMA_CHAT_TEMPERATURE', 0.05)),
+      num_predict: Number(this.config.get('OLLAMA_CHAT_NUM_PREDICT', 128)),
+      num_thread: Number(this.config.get('OLLAMA_NUM_THREADS', 8)),
+      num_ctx: Number(this.config.get('OLLAMA_CHAT_NUM_CTX', 4096)),
+      num_batch: Number(this.config.get('OLLAMA_CHAT_NUM_BATCH', 512)),
+    };
+  }
+
+  private getChatTimeoutMs(): number {
+    return Number(this.config.get('OLLAMA_CHAT_TIMEOUT_MS', 600_000));
+  }
+
+  private async preloadDefaultChatModel(): Promise<void> {
+    const model = await this.resolveInstalledModel('qwen3');
+    this.logger.log(`Preload modelu czatu Ollama: ${model} (keep_alive=${this.getKeepAlive()})…`);
+
+    const res = await fetch(`${this.baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'ok' }],
+        stream: false,
+        think: false,
+        keep_alive: this.getKeepAlive(),
+        options: { num_predict: 1, temperature: 0 },
+      }),
+      signal: AbortSignal.timeout(this.getChatTimeoutMs()),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Preload nie powiódł się (${res.status}): ${body}`);
+    }
+
+    this.logger.log(`Model czatu ${model} załadowany do pamięci Ollamy.`);
   }
 
   resolveModelName(model: ChatModel): string {
@@ -47,11 +110,70 @@ export class OllamaChatService {
     );
   }
 
+  async getRuntimeStatus(model: ChatModel): Promise<ChatRuntimeStatusResponse> {
+    let resolvedModelName = this.resolveModelName(model);
+    try {
+      resolvedModelName = await this.resolveInstalledModel(model);
+    } catch {
+      // Ollama offline — pokaż preferowaną nazwę
+    }
+
+    const loadedModels = await this.listLoadedModels();
+    const loadedInMemory = loadedModels.some((name) =>
+      this.modelNameMatches(name, resolvedModelName),
+    );
+
+    return {
+      chatModel: model,
+      resolvedModelName,
+      loadedInMemory,
+      loadedModels,
+    };
+  }
+
+  private modelNameMatches(installedName: string, preferred: string): boolean {
+    const preferredBase = preferred.split(':')[0];
+    const installedBase = installedName.split(':')[0];
+    return (
+      installedName === preferred ||
+      installedName.startsWith(`${preferred}:`) ||
+      installedBase === preferredBase
+    );
+  }
+
+  private async listLoadedModels(): Promise<string[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/ps`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) return [];
+      const data = (await res.json()) as { models?: Array<{ name: string }> };
+      return data.models?.map((item) => item.name) ?? [];
+    } catch {
+      return [];
+    }
+  }
+
   async complete(messages: OllamaMessage[], model: ChatModel): Promise<string> {
+    let content = '';
+    for await (const delta of this.streamTokens(messages, model)) {
+      content += delta;
+    }
+    const trimmed = content.trim();
+    if (!trimmed) {
+      throw new Error('Ollama nie zwróciło treści odpowiedzi.');
+    }
+    return trimmed;
+  }
+
+  async *streamTokens(
+    messages: OllamaMessage[],
+    model: ChatModel,
+  ): AsyncGenerator<string, void, void> {
     const resolvedModel = await this.resolveInstalledModel(model);
     const think = this.shouldUseThinking(resolvedModel);
-    const timeoutMs = Number(this.config.get('OLLAMA_CHAT_TIMEOUT_MS', 180_000));
-    const temperature = Number(this.config.get('OLLAMA_CHAT_TEMPERATURE', 0.15));
+    const options = this.getChatOptions();
+    const promptChars = messages.reduce((sum, item) => sum + item.content.length, 0);
 
     if (model !== this.toChatModel(resolvedModel) && model === 'deepseek-r1') {
       this.logger.warn(
@@ -60,7 +182,10 @@ export class OllamaChatService {
     }
 
     this.logger.log(
-      `Ollama chat: model=${resolvedModel}, think=${think}, temperature=${temperature}, messages=${messages.length}`,
+      `Ollama chat stream: model=${resolvedModel}, think=${think}, ` +
+        `num_predict=${options.num_predict}, num_thread=${options.num_thread}, ` +
+        `num_ctx=${options.num_ctx}, num_batch=${options.num_batch}, ` +
+        `prompt_chars=${promptChars}, messages=${messages.length}`,
     );
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
@@ -69,14 +194,12 @@ export class OllamaChatService {
       body: JSON.stringify({
         model: resolvedModel,
         messages,
-        stream: false,
+        stream: true,
         think,
-        keep_alive: '10m',
-        options: {
-          temperature,
-        },
+        keep_alive: this.getKeepAlive(),
+        options,
       }),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: AbortSignal.timeout(this.getChatTimeoutMs()),
     });
 
     if (!res.ok) {
@@ -84,24 +207,49 @@ export class OllamaChatService {
       throw new Error(`Ollama chat failed (${res.status}): ${body}`);
     }
 
-    const data = (await res.json()) as {
-      message?: { content?: string; thinking?: string };
-    };
-    const content = data.message?.content?.trim();
-    if (!content) {
-      const thinking = data.message?.thinking?.trim();
-      if (thinking) {
-        throw new Error(
-          'Ollama zwróciło tylko ślad rozumowania bez odpowiedzi — wyłącz tryb thinking dla modelu czatu.',
-        );
-      }
-      throw new Error('Ollama nie zwróciło treści odpowiedzi.');
+    if (!res.body) {
+      throw new Error('Ollama nie zwróciło strumienia odpowiedzi.');
     }
 
-    return content;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let sawContent = false;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        const chunk = JSON.parse(trimmed) as {
+          message?: { content?: string; thinking?: string };
+          error?: string;
+        };
+
+        if (chunk.error) {
+          throw new Error(chunk.error);
+        }
+
+        const delta = chunk.message?.content ?? '';
+        if (delta) {
+          sawContent = true;
+          yield delta;
+        }
+      }
+    }
+
+    if (!sawContent) {
+      throw new Error('Ollama nie zwróciło treści odpowiedzi.');
+    }
   }
 
-  /** Thinking tylko dla faktycznie używanego modelu rozumującego — nie dla qwen3-zastępcy. */
   private shouldUseThinking(resolvedModel: string): boolean {
     const base = resolvedModel.split(':')[0].toLowerCase();
 

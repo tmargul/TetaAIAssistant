@@ -16,7 +16,13 @@ export const RAG_CONSTANTS = {
   supportedExtensions: RAG_SOURCE_EXTENSIONS,
   /** Minimalny cosine score z Qdrant — poniżej chunk jest odrzucany. */
   chatMinScore: 0.55,
-  chatTopK: 4,
+  chatTopK: 2,
+  /** Ile kandydatów pobrać z Qdrant przed re-rankingiem (większe = lepsze trafienie procedur). */
+  chatSearchLimit: 16,
+  /** Znaków z najlepszego fragmentu RAG ([1]) w prompcie czatu. */
+  chatContextChars: 1400,
+  /** Znaków z pozostałych fragmentów RAG ([2]…). */
+  chatContextCharsSecondary: 650,
   /** Skrót chunka w panelu „Źródła RAG” w czacie. */
   uiExcerptChars: 320,
 } as const;

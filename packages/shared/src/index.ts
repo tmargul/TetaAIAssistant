@@ -42,13 +42,16 @@ export type {
 export type {
   ChatCompletionRequest,
   ChatCompletionResponse,
+  ChatCompletionTiming,
   ChatHistoryMessage,
   ChatMessage,
   ChatModel,
   ChatModelsResponse,
+  ChatRuntimeStatusResponse,
   ChatRagCollection,
   ChatRagSource,
   ChatRole,
+  ChatStreamEvent,
 } from './chat.js';
 
 export { CHAT_MODELS } from './chat.js';

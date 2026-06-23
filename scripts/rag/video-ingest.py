@@ -161,7 +161,8 @@ def extract_audio(video_path: Path, wav_path: Path, ffmpeg: str) -> None:
     run_cmd(cmd, "Ekstrakcja audio (ffmpeg)")
 
 
-def extract_frame(video_path: Path, timestamp: float, out_path: Path, ffmpeg: str) -> None:
+def extract_frame(video_path: Path, timestamp: float, out_path: Path, ffmpeg: str) -> bool:
+    """Ekstrahuje pojedynczą klatkę. Przy błędzie (uszkodzona klatka) zwraca False zamiast przerywać ingest."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
         ffmpeg,
@@ -176,7 +177,65 @@ def extract_frame(video_path: Path, timestamp: float, out_path: Path, ffmpeg: st
         "2",
         str(out_path),
     ]
-    run_cmd(cmd, f"Ekstrakcja klatki @{timestamp:.1f}s")
+    try:
+        subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            f"Ekstrakcja klatki @{timestamp:.1f}s: nie znaleziono polecenia „{cmd[0]}”. "
+            "Zainstaluj ffmpeg i dodaj do PATH lub ustaw TETA_FFMPEG_PATH / TETA_FFPROBE_PATH."
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or exc.stdout or "").strip()
+        print(
+            f"[video-ingest] Pominięto klatkę @{timestamp:.1f}s: {stderr or exc}",
+            file=sys.stderr,
+        )
+        if out_path.exists():
+            out_path.unlink(missing_ok=True)
+        return False
+
+    if not out_path.is_file() or out_path.stat().st_size == 0:
+        print(
+            f"[video-ingest] Pominięto pustą klatkę @{timestamp:.1f}s",
+            file=sys.stderr,
+        )
+        out_path.unlink(missing_ok=True)
+        return False
+
+    return True
+
+
+def resolve_cached_frame_path(
+    *,
+    second_key: int,
+    timestamp: float,
+    frame_cache: dict[int, str],
+    assets_rel_prefix: str,
+    frames_dir: Path,
+    video_path: Path,
+    ffmpeg: str,
+) -> str | None:
+    if second_key in frame_cache:
+        return frame_cache[second_key]
+
+    frame_name = f"frame_{second_key:05d}.jpg"
+    frame_abs = frames_dir / frame_name
+    if frame_abs.is_file() and frame_abs.stat().st_size > 0:
+        frame_cache[second_key] = f"{assets_rel_prefix}/{frame_name}"
+        return frame_cache[second_key]
+
+    if extract_frame(video_path, timestamp, frame_abs, ffmpeg):
+        frame_cache[second_key] = f"{assets_rel_prefix}/{frame_name}"
+        return frame_cache[second_key]
+
+    return None
 
 
 def resolve_device(device: str) -> tuple[str, str]:
@@ -299,13 +358,17 @@ def build_chunks(
                 window_start, window_end, frames_per_chunk
             ):
                 second_key = int(math.floor(timestamp))
-                if second_key not in frame_cache:
-                    frame_name = f"frame_{second_key:05d}.jpg"
-                    frame_abs = frames_dir / frame_name
-                    if not frame_abs.exists():
-                        extract_frame(video_path, timestamp, frame_abs, ffmpeg)
-                    frame_cache[second_key] = f"{assets_rel_prefix}/{frame_name}"
-                frame_paths.append(frame_cache[second_key])
+                rel_path = resolve_cached_frame_path(
+                    second_key=second_key,
+                    timestamp=timestamp,
+                    frame_cache=frame_cache,
+                    assets_rel_prefix=assets_rel_prefix,
+                    frames_dir=frames_dir,
+                    video_path=video_path,
+                    ffmpeg=ffmpeg,
+                )
+                if rel_path:
+                    frame_paths.append(rel_path)
 
             chunks.append(
                 {

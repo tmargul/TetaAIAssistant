@@ -1,15 +1,26 @@
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import {
-  type ChatCompletionResponse,
+  CHAT_MODELS,
   type ChatMessage,
   type ChatModel,
   type ChatModelsResponse,
-  type ChatRagSource,
+  type ChatRuntimeStatusResponse,
   type RagSearchFilter,
   KNOWLEDGE_SOURCE_TYPES,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
 import { IconChat } from '../layout/icons';
+import {
+  bootstrapConversation,
+  deleteChatConversation,
+  listChatConversations,
+  loadChatConversation,
+  saveChatConversation,
+  startNewConversation,
+  type StoredChatConversation,
+} from './chat-storage';
+import { streamChatCompletion } from './chat-stream';
+import { formatChatTiming } from './format-duration';
 import { ModelSelect } from './ModelSelect';
 import './chat.css';
 
@@ -24,39 +35,6 @@ function createId() {
   return crypto.randomUUID();
 }
 
-function formatSourceLabel(source: ChatRagSource): string {
-  const scope = source.collection === 'global' ? 'Teta' : 'Klient';
-  const parts = [`${scope}: ${source.source}`];
-  const timestamp = formatTimestampRange(source.startSec, source.endSec);
-  if (timestamp) {
-    parts.push(timestamp);
-  }
-  if (source.module) {
-    parts.push(source.module);
-  }
-  return parts.join(' · ');
-}
-
-function formatTimestamp(seconds: number): string {
-  const total = Math.max(0, Math.floor(seconds));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
-function formatTimestampRange(startSec?: number, endSec?: number): string | undefined {
-  if (startSec === undefined && endSec === undefined) {
-    return undefined;
-  }
-  const start = startSec !== undefined ? formatTimestamp(startSec) : '?';
-  const end = endSec !== undefined ? formatTimestamp(endSec) : '?';
-  return `${start}–${end}`;
-}
-
 const SOURCE_TYPE_LABELS: Record<(typeof KNOWLEDGE_SOURCE_TYPES)[number], string> = {
   training_video: 'Szkolenie wideo',
   documentation: 'Dokumentacja',
@@ -66,75 +44,38 @@ const SOURCE_TYPE_LABELS: Record<(typeof KNOWLEDGE_SOURCE_TYPES)[number], string
   other: 'Inne',
 };
 
-function RagFramePreview({ url }: { url: string }) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    let objectUrl: string | null = null;
-
-    authFetch(url)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        return res.blob();
-      })
-      .then((blob) => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        setBlobUrl(objectUrl);
-      })
-      .catch(() => {
-        if (!cancelled) setBlobUrl(null);
-      });
-
-    return () => {
-      cancelled = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [url]);
-
-  if (!blobUrl) return null;
-
-  return <img src={blobUrl} alt="Klatka ze szkolenia" className="chat__sources-frame" />;
+function formatConversationDate(iso: string): string {
+  const date = new Date(iso);
+  return date.toLocaleString('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-function ChatSources({ sources }: { sources: ChatRagSource[] }) {
-  if (sources.length === 0) return null;
-
-  return (
-    <details className="chat__sources">
-      <summary>Źródła RAG ({sources.length})</summary>
-      <ul className="chat__sources-list">
-        {sources.map((source, index) => (
-          <li key={`${source.collection}-${source.source}-${index}`}>
-            <span className="chat__sources-name">{formatSourceLabel(source)}</span>
-            {source.sourceType && (
-              <span className="chat__sources-meta">
-                {SOURCE_TYPE_LABELS[source.sourceType] ?? source.sourceType}
-                {source.topic ? ` · ${source.topic}` : ''}
-              </span>
-            )}
-            {source.previewFrameUrl && <RagFramePreview url={source.previewFrameUrl} />}
-            <span className="chat__sources-excerpt">{source.excerpt}</span>
-          </li>
-        ))}
-      </ul>
-    </details>
-  );
-}
-
-function ChatBubble({ message }: { message: ChatMessage }) {
+function ChatBubble({
+  message,
+  elapsedSec,
+}: {
+  message: ChatMessage;
+  elapsedSec?: number;
+}) {
   const isUser = message.role === 'user';
   return (
     <div className={`chat__message${isUser ? ' chat__message--user' : ' chat__message--assistant'}`}>
       <div className="chat__avatar">{isUser ? 'Ty' : 'AI'}</div>
       <div className="chat__bubble">
-        <div className="chat__bubble-text">{message.content}</div>
-        {!isUser && message.sources && <ChatSources sources={message.sources} />}
+        <div className="chat__bubble-text">
+          {message.content}
+          {message.streaming && <span className="chat__stream-cursor" aria-hidden />}
+        </div>
+        {!isUser && message.streaming && elapsedSec !== undefined && elapsedSec > 0 && (
+          <p className="chat__bubble-timing">Generuję… · {elapsedSec} s</p>
+        )}
+        {!isUser && !message.streaming && message.timing && (
+          <p className="chat__bubble-timing">{formatChatTiming(message.timing)}</p>
+        )}
       </div>
     </div>
   );
@@ -158,36 +99,91 @@ function IconAttach() {
 }
 
 export function ChatView() {
+  const [conversationId, setConversationId] = useState('');
+  const [conversationTitle, setConversationTitle] = useState('Nowa rozmowa');
+  const [conversations, setConversations] = useState<StoredChatConversation[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ChatModel>('qwen3');
   const [availableModels, setAvailableModels] = useState<ChatModel[]>(['qwen3']);
   const [modelsLoading, setModelsLoading] = useState(true);
-  const [isTyping, setIsTyping] = useState(false);
+  const [runtime, setRuntime] = useState<ChatRuntimeStatusResponse | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
   const [typingHint, setTypingHint] = useState<string | null>(null);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ragFilter, setRagFilter] = useState<RagSearchFilter>({});
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const requestStartedRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const skipSaveRef = useRef(true);
+
+  const refreshConversationList = useCallback(() => {
+    setConversations(listChatConversations());
+  }, []);
+
+  useEffect(() => {
+    const initial = bootstrapConversation();
+    setConversationId(initial.id);
+    setConversationTitle(initial.title);
+    setMessages(initial.messages);
+    setModel(initial.model);
+    refreshConversationList();
+  }, [refreshConversationList]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping, typingHint]);
+  }, [messages, isBusy, typingHint, streamingMessageId]);
 
   useEffect(() => {
-    if (!isTyping) {
-      setTypingHint(null);
+    if (!isBusy) {
+      setElapsedSec(0);
+      requestStartedRef.current = null;
       return;
     }
 
-    setTypingHint('Szukam w bazie wiedzy…');
-    const slowHint = window.setTimeout(
-      () => setTypingHint('Generuję odpowiedź (zwykle 15–30 s)…'),
-      4000,
-    );
+    const started = requestStartedRef.current ?? Date.now();
+    requestStartedRef.current = started;
+    const tick = () => setElapsedSec(Math.floor((Date.now() - started) / 1000));
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [isBusy]);
 
-    return () => window.clearTimeout(slowHint);
-  }, [isTyping]);
+  useEffect(() => {
+    if (skipSaveRef.current) {
+      skipSaveRef.current = false;
+      return;
+    }
+    if (!conversationId || isBusy) return;
+
+    saveChatConversation({
+      id: conversationId,
+      title: conversationTitle,
+      model,
+      messages,
+    });
+    refreshConversationList();
+  }, [conversationId, conversationTitle, model, messages, isBusy, refreshConversationList]);
+
+  const refreshRuntime = useCallback(async () => {
+    try {
+      const res = await authFetch(`/api/chat/runtime?model=${encodeURIComponent(model)}`);
+      if (!res.ok) return;
+      setRuntime((await res.json()) as ChatRuntimeStatusResponse);
+    } catch {
+      // Ollama offline — brak bannera
+    }
+  }, [model]);
+
+  useEffect(() => {
+    void refreshRuntime();
+    const timer = window.setInterval(() => {
+      void refreshRuntime();
+    }, 20_000);
+    return () => window.clearInterval(timer);
+  }, [refreshRuntime]);
 
   useEffect(() => {
     authFetch('/api/chat/models')
@@ -209,9 +205,57 @@ export function ChatView() {
       .finally(() => setModelsLoading(false));
   }, []);
 
+  const loadConversation = (id: string) => {
+    if (isBusy) return;
+    const conversation = loadChatConversation(id);
+    if (!conversation) return;
+    skipSaveRef.current = true;
+    setConversationId(conversation.id);
+    setConversationTitle(conversation.title);
+    setMessages(conversation.messages);
+    setModel(conversation.model);
+    setInput('');
+    setError(null);
+    refreshConversationList();
+  };
+
+  const handleNewChat = () => {
+    if (isBusy) return;
+    skipSaveRef.current = true;
+    const fresh = startNewConversation(model);
+    setConversationId(fresh.id);
+    setConversationTitle(fresh.title);
+    setMessages([]);
+    setInput('');
+    setError(null);
+    refreshConversationList();
+    textareaRef.current?.focus();
+  };
+
+  const handleDeleteConversation = (id: string) => {
+    if (isBusy) return;
+    deleteChatConversation(id);
+    refreshConversationList();
+    if (conversationId === id) {
+      skipSaveRef.current = true;
+      const next = listChatConversations()[0];
+      if (next) {
+        setConversationId(next.id);
+        setConversationTitle(next.title);
+        setMessages(next.messages);
+        setModel(next.model);
+      } else {
+        const fresh = startNewConversation(model);
+        setConversationId(fresh.id);
+        setConversationTitle(fresh.title);
+        setMessages([]);
+      }
+    }
+  };
+
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || isTyping || availableModels.length === 0) return;
+    if (!trimmed || isBusy || availableModels.length === 0) return;
 
     const userMessage: ChatMessage = {
       id: createId(),
@@ -220,48 +264,104 @@ export function ChatView() {
       createdAt: new Date().toISOString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
+    if (messages.length === 0) {
+      setConversationTitle(trimmed.slice(0, 48));
+    }
     setInput('');
     setError(null);
-    setIsTyping(true);
+    setStreamingMessageId(null);
+    setTypingHint('Szukam w bazie wiedzy…');
+    requestStartedRef.current = Date.now();
+    setIsBusy(true);
+
+    let assistantId = '';
+    let streamError: string | null = null;
 
     try {
-      const history = [...messages, userMessage]
-        .slice(-8)
+      const history = nextMessages
+        .slice(-2)
         .map((item) => ({ role: item.role, content: item.content }));
 
-      const res = await authFetch('/api/chat/completions', {
-        method: 'POST',
-        body: JSON.stringify({
+      await streamChatCompletion(
+        {
           message: trimmed,
           model,
           history: history.slice(0, -1),
           ragFilter: buildRagFilterPayload(ragFilter),
-        }),
-      });
+        },
+        (event) => {
+          if (event.type === 'rag') {
+            setTypingHint(`Generuję odpowiedź (RAG ${Math.round(event.ragMs / 1000)} s)…`);
+            return;
+          }
 
-      const data = (await res.json()) as ChatCompletionResponse & {
-        message?: string | string[];
-      };
+          if (event.type === 'token') {
+            setTypingHint(null);
+            if (!assistantId) {
+              assistantId = createId();
+              setStreamingMessageId(assistantId);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: assistantId,
+                  role: 'assistant',
+                  content: event.delta,
+                  createdAt: new Date().toISOString(),
+                  streaming: true,
+                },
+              ]);
+              return;
+            }
 
-      if (!res.ok) {
-        const msg = Array.isArray(data.message) ? data.message.join(', ') : data.message;
-        throw new Error(msg ?? `Błąd HTTP ${res.status}`);
+            setMessages((prev) =>
+              prev.map((item) =>
+                item.id === assistantId
+                  ? { ...item, content: item.content + event.delta }
+                  : item,
+              ),
+            );
+            return;
+          }
+
+          if (event.type === 'done') {
+            setMessages((prev) =>
+              prev.map((item) =>
+                item.id === assistantId
+                  ? {
+                      ...item,
+                      content: event.content,
+                      createdAt: event.createdAt,
+                      timing: event.timing,
+                      streaming: false,
+                    }
+                  : item,
+              ),
+            );
+            return;
+          }
+
+          if (event.type === 'error') {
+            streamError = event.message;
+          }
+        },
+      );
+
+      if (streamError) {
+        throw new Error(streamError);
       }
 
-      const assistantMessage: ChatMessage = {
-        id: createId(),
-        role: 'assistant',
-        content: data.content,
-        createdAt: data.createdAt,
-        sources: data.sources,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+      void refreshRuntime();
     } catch (err) {
+      if (assistantId) {
+        setMessages((prev) => prev.filter((item) => item.id !== assistantId));
+      }
       setError(err instanceof Error ? err.message : 'Nie udało się uzyskać odpowiedzi asystenta.');
     } finally {
-      setIsTyping(false);
+      setStreamingMessageId(null);
+      setTypingHint(null);
+      setIsBusy(false);
     }
   };
 
@@ -281,14 +381,6 @@ export function ChatView() {
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
-  const handleNewChat = () => {
-    setMessages([]);
-    setInput('');
-    setError(null);
-    setIsTyping(false);
-    textareaRef.current?.focus();
-  };
-
   const hasActiveFilters =
     Boolean(ragFilter.sourceType) ||
     Boolean(ragFilter.module?.trim()) ||
@@ -304,13 +396,48 @@ export function ChatView() {
             value={model}
             models={availableModels}
             onChange={setModel}
-            disabled={modelsLoading || availableModels.length === 0}
+            disabled={modelsLoading || availableModels.length === 0 || isBusy}
           />
           {!modelsLoading && availableModels.length === 0 && (
             <p className="chat__model-hint">Brak modeli czatu w Ollama — zainstaluj qwen3.</p>
           )}
         </div>
         <div className="chat__toolbar-actions">
+          <details className="chat__history">
+            <summary>Rozmowy ({conversations.length})</summary>
+            <ul className="chat__history-list">
+              {conversations.length === 0 && (
+                <li className="chat__history-empty">Brak zapisanych rozmów</li>
+              )}
+              {conversations.map((item) => (
+                <li
+                  key={item.id}
+                  className={`chat__history-item${item.id === conversationId ? ' chat__history-item--active' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="chat__history-open"
+                    onClick={() => loadConversation(item.id)}
+                    disabled={isBusy}
+                  >
+                    <span className="chat__history-title">{item.title}</span>
+                    <span className="chat__history-meta">
+                      {formatConversationDate(item.updatedAt)} · {item.messages.length} wiad.
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="chat__history-delete"
+                    aria-label="Usuń rozmowę"
+                    onClick={() => handleDeleteConversation(item.id)}
+                    disabled={isBusy}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
           <details className="chat__filters">
             <summary>Filtry RAG{hasActiveFilters ? ' •' : ''}</summary>
             <div className="chat__filters-grid">
@@ -388,11 +515,19 @@ export function ChatView() {
               )}
             </div>
           </details>
-          <button type="button" className="chat__new-btn" onClick={handleNewChat}>
+          <button type="button" className="chat__new-btn" onClick={handleNewChat} disabled={isBusy}>
             Nowa rozmowa
           </button>
         </div>
       </div>
+
+      {runtime && !runtime.loadedInMemory && (
+        <div className="chat__model-banner" role="status">
+          Model <strong>{runtime.resolvedModelName}</strong> nie jest jeszcze w pamięci RAM Ollamy
+          (osobna usługa obok backendu). Pierwsze zapytanie załaduje ok. 5 GB — potem model zostaje
+          w RAM do restartu Ollamy.
+        </div>
+      )}
 
       {error && <div className="chat__error">{error}</div>}
 
@@ -404,8 +539,8 @@ export function ChatView() {
             </div>
             <p className="chat__empty-title">Czym mogę pomóc?</p>
             <p className="chat__empty-desc">
-              Zadaj pytanie na podstawie zindeksowanej bazy wiedzy RAG. Odpowiedź generuje lokalny
-              model Ollama z kontekstem z Qdrant.
+              Zadaj pytanie na podstawie zindeksowanej bazy wiedzy RAG. Odpowiedź pojawi się na
+              bieżąco (streaming).
             </p>
             <div className="chat__suggestions">
               {SUGGESTIONS.map((s) => (
@@ -414,6 +549,7 @@ export function ChatView() {
                   type="button"
                   className="chat__suggestion"
                   onClick={() => sendMessage(s)}
+                  disabled={isBusy}
                 >
                   {s}
                 </button>
@@ -423,13 +559,22 @@ export function ChatView() {
         ) : (
           <div className="chat__thread">
             {messages.map((msg) => (
-              <ChatBubble key={msg.id} message={msg} />
+              <ChatBubble
+                key={msg.id}
+                message={msg}
+                elapsedSec={msg.id === streamingMessageId ? elapsedSec : undefined}
+              />
             ))}
-            {isTyping && (
+            {isBusy && !streamingMessageId && (
               <div className="chat__message chat__message--assistant">
                 <div className="chat__avatar">AI</div>
                 <div className="chat__bubble">
-                  {typingHint && <p className="chat__typing-hint">{typingHint}</p>}
+                  {typingHint && (
+                    <p className="chat__typing-hint">
+                      {typingHint}
+                      {elapsedSec > 0 ? ` · ${elapsedSec} s` : ''}
+                    </p>
+                  )}
                   <div className="chat__typing">
                     <span />
                     <span />
@@ -456,20 +601,20 @@ export function ChatView() {
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             rows={1}
-            disabled={isTyping || availableModels.length === 0}
+            disabled={isBusy || availableModels.length === 0}
           />
           <button
             type="button"
             className="chat__send-btn"
             aria-label="Wyślij"
             onClick={handleSubmit}
-            disabled={!input.trim() || isTyping || availableModels.length === 0}
+            disabled={!input.trim() || isBusy || availableModels.length === 0}
           >
             <IconSend />
           </button>
         </div>
         <p className="chat__hint">
-          Enter — wyślij · Shift+Enter — nowa linia · Odpowiedź: Ollama + kontekst RAG (Qdrant)
+          Enter — wyślij · Shift+Enter — nowa linia · Odpowiedź streamowana na bieżąco
         </p>
       </div>
     </div>

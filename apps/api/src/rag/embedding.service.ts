@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { getOllamaBaseUrl, getOllamaKeepAlive } from '../chat/ollama-config.util';
 import { RAG_CONSTANTS } from './rag.constants';
 
 @Injectable()
@@ -24,7 +25,7 @@ export class EmbeddingService {
   }
 
   private get baseUrl(): string {
-    return this.config.get<string>('OLLAMA_BASE_URL', 'http://127.0.0.1:11434').replace(/\/$/, '');
+    return getOllamaBaseUrl(this.config);
   }
 
   async embed(text: string): Promise<number[]> {
@@ -34,7 +35,11 @@ export class EmbeddingService {
       body: JSON.stringify({
         model: this.model,
         prompt: text,
+        keep_alive: getOllamaKeepAlive(this.config),
       }),
+      signal: AbortSignal.timeout(
+        Number(this.config.get('OLLAMA_EMBEDDING_TIMEOUT_MS', 60_000)),
+      ),
     });
 
     if (!res.ok) {

@@ -1,35 +1,126 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
 import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatHistoryMessage,
   ChatRagSource,
+  ChatStreamEvent,
 } from '@teta/shared';
 import { getAppMode } from '../rag/app-mode';
-import { formatTimestampRange, RAG_SOURCE_TYPE_LABELS } from '../rag/rag-search.util';
+import { RAG_CONSTANTS } from '../rag/rag.constants';
+import { extractQuerySearchTerms } from '../rag/rag-query-rerank.util';
+import { formatTimestampRange } from '../rag/rag-search.util';
+import { buildChatSystemPrompt } from './chat-system-prompt';
+import {
+  extractKnowledgeExcerpt,
+  formatChunkForPrompt,
+  isKnowledgeQuery,
+} from './chat-context.util';
 import { OllamaChatService } from './ollama-chat.service';
 import { RagRetrievalService } from '../rag/rag-retrieval.service';
 
-const MAX_HISTORY = 8;
+type PreparedChat = {
+  ollamaMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  sources: ChatRagSource[];
+  ragMs: number;
+  startedAt: number;
+};
 
 @Injectable()
 export class ChatService {
   constructor(
+    private readonly config: ConfigService,
     private readonly ollama: OllamaChatService,
     private readonly ragRetrieval: RagRetrievalService,
   ) {}
 
   async complete(input: ChatCompletionRequest): Promise<ChatCompletionResponse> {
+    const prepared = await this.prepareChat(input);
+    const llmStartedAt = Date.now();
+
+    try {
+      const content = await this.ollama.complete(prepared.ollamaMessages, input.model);
+      const llmMs = Date.now() - llmStartedAt;
+      const totalMs = Date.now() - prepared.startedAt;
+      return {
+        content,
+        sources: prepared.sources,
+        model: input.model,
+        createdAt: new Date().toISOString(),
+        timing: { totalMs, ragMs: prepared.ragMs, llmMs },
+      };
+    } catch (error) {
+      throw this.toChatUnavailable(error, input.model);
+    }
+  }
+
+  async streamComplete(input: ChatCompletionRequest, res: Response): Promise<void> {
+    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const writeEvent = (event: ChatStreamEvent) => {
+      res.write(`${JSON.stringify(event)}\n`);
+    };
+
+    try {
+      const prepared = await this.prepareChat(input);
+      writeEvent({
+        type: 'rag',
+        ragMs: prepared.ragMs,
+        sourceCount: prepared.sources.length,
+      });
+
+      const llmStartedAt = Date.now();
+      let content = '';
+
+      for await (const delta of this.ollama.streamTokens(prepared.ollamaMessages, input.model)) {
+        content += delta;
+        writeEvent({ type: 'token', delta });
+      }
+
+      const llmMs = Date.now() - llmStartedAt;
+      const totalMs = Date.now() - prepared.startedAt;
+      writeEvent({
+        type: 'done',
+        content: content.trim(),
+        model: input.model,
+        createdAt: new Date().toISOString(),
+        timing: { totalMs, ragMs: prepared.ragMs, llmMs },
+      });
+      res.end();
+    } catch (error) {
+      const message =
+        error instanceof ServiceUnavailableException
+          ? error.message
+          : error instanceof BadRequestException
+            ? error.message
+            : this.formatChatError(error, input.model);
+      writeEvent({ type: 'error', message });
+      res.end();
+    }
+  }
+
+  private async prepareChat(input: ChatCompletionRequest): Promise<PreparedChat> {
+    const startedAt = Date.now();
     const message = input.message.trim();
     if (!message) {
       throw new BadRequestException('Wiadomość nie może być pusta.');
     }
 
     const history = this.normalizeHistory(input.history);
+    const queryTerms = extractQuerySearchTerms(message);
     const appMode = getAppMode();
     const includeGlobal = true;
     const includeClient = appMode === 'client';
 
+    const ragStartedAt = Date.now();
     let sources: ChatRagSource[] = [];
     try {
       sources = await this.ragRetrieval.retrieve(message, {
@@ -44,7 +135,8 @@ export class ChatService {
       );
     }
 
-    const systemPrompt = this.buildSystemPrompt(sources);
+    const ragMs = Date.now() - ragStartedAt;
+    const systemPrompt = this.buildSystemPrompt(sources, queryTerms, message);
     const ollamaMessages = [
       { role: 'system' as const, content: systemPrompt },
       ...history.map((item) => ({
@@ -54,97 +146,112 @@ export class ChatService {
       { role: 'user' as const, content: message },
     ];
 
-    try {
-      const content = await this.ollama.complete(ollamaMessages, input.model);
-      return {
-        content,
-        sources,
-        model: input.model,
-        createdAt: new Date().toISOString(),
-      };
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      if (/timeout|aborted/i.test(detail)) {
-        throw new ServiceUnavailableException(
-          'Ollama nie zdążyła odpowiedzieć w limicie czasu (ok. 3 min). Użyj modelu qwen3, skróć pytanie lub sprawdź obciążenie CPU.',
-        );
-      }
-      throw new ServiceUnavailableException(
-        `Asystent AI jest niedostępny. Upewnij się, że Ollama działa i model jest pobrany. ${detail}`,
-      );
+    return { ollamaMessages, sources, ragMs, startedAt };
+  }
+
+  private toChatUnavailable(error: unknown, model: ChatCompletionRequest['model']) {
+    if (error instanceof ServiceUnavailableException || error instanceof BadRequestException) {
+      return error;
     }
+    return new ServiceUnavailableException(this.formatChatError(error, model));
+  }
+
+  private formatChatError(error: unknown, model: ChatCompletionRequest['model']): string {
+    const detail = error instanceof Error ? error.message : String(error);
+    if (/timeout|aborted/i.test(detail)) {
+      const timeoutHint =
+        model === 'deepseek-r1'
+          ? 'Model rozumujący (deepseek-r1) jest wolniejszy — spróbuj qwen3 lub zwiększ OLLAMA_CHAT_TIMEOUT_MS w apps/api/.env.'
+          : 'qwen3 na CPU bywa wolny przy dużym kontekście — domyślny limit to 10 min; możesz zwiększyć OLLAMA_CHAT_TIMEOUT_MS w apps/api/.env.';
+      return `Ollama nie zdążyła odpowiedzieć w limicie czasu (domyślnie 10 min, model: ${model}). ${timeoutHint}`;
+    }
+    if (/fetch failed|ECONNREFUSED|ENOTFOUND/i.test(detail)) {
+      return 'Ollama nie odpowiada — uruchom ją (ollama serve) i upewnij się, że OLLAMA_BASE_URL w apps/api/.env wskazuje http://127.0.0.1:11434.';
+    }
+    return `Asystent AI jest niedostępny. Upewnij się, że Ollama działa i model jest pobrany. ${detail}`;
+  }
+
+  private get maxHistory(): number {
+    return Number(this.config.get('CHAT_MAX_HISTORY', 2));
+  }
+
+  private get maxHistoryChars(): number {
+    return Number(this.config.get('CHAT_MAX_HISTORY_CHARS', 280));
+  }
+
+  private get chatContextChars(): number {
+    return Number(
+      this.config.get('RAG_CHAT_CONTEXT_CHARS', RAG_CONSTANTS.chatContextChars),
+    );
+  }
+
+  private get chatContextCharsSecondary(): number {
+    return Number(
+      this.config.get(
+        'RAG_CHAT_CONTEXT_CHARS_SECONDARY',
+        RAG_CONSTANTS.chatContextCharsSecondary,
+      ),
+    );
   }
 
   private normalizeHistory(history: ChatHistoryMessage[] | undefined): ChatHistoryMessage[] {
     if (!history?.length) return [];
+    const maxChars = this.maxHistoryChars;
     return history
       .filter((item) => item.content.trim())
-      .slice(-MAX_HISTORY)
-      .map((item) => ({
-        role: item.role,
-        content: item.content.trim(),
-      }));
+      .slice(-this.maxHistory)
+      .map((item) => {
+        const content = item.content.trim();
+        const trimmed =
+          content.length > maxChars ? `${content.slice(0, maxChars - 1)}…` : content;
+        return { role: item.role, content: trimmed };
+      });
   }
 
-  private buildSystemPrompt(sources: ChatRagSource[]): string {
+  private buildSystemPrompt(
+    sources: ChatRagSource[],
+    queryTerms: string[],
+    userMessage: string,
+  ): string {
+    const promptSources = this.selectSourcesForPrompt(sources, userMessage, queryTerms);
     const context =
-      sources.length > 0
-        ? sources
-            .map((source, index) => this.formatSourceContext(source, index + 1))
+      promptSources.length > 0
+        ? promptSources
+            .map((source, index) => this.formatSourceContext(source, index + 1, queryTerms))
             .join('\n\n')
         : null;
 
-    const rules = [
-      'Jesteś asystentem AI systemu Teta AI Assistant.',
-      'Odpowiadaj po polsku, rzeczowo i pomocnie.',
-      'Zasady odpowiedzi (bezwzględne):',
-      '1. Opieraj się WYŁĄCZNIE na numerowanym kontekście RAG poniżej — nie na wiedzy ogólnej ani domysłach.',
-      '2. Każdy fakt merytoryczny poprzedź numerem źródła w nawiasie, np. [1] lub [2].',
-      '3. Gdy kontekst nie zawiera odpowiedzi, napisz jedno zdanie: „Nie mam tej informacji w bazie wiedzy Teta.” i nic więcej.',
-      '4. Nie uzupełniaj luk — lepiej krótka odpowiedź lub odmowa niż zgadywanie.',
-      '5. Przy szkoleniach wideo podawaj zakres czasu (timestamp), jeśli jest w źródle.',
-    ];
-
-    if (!context) {
-      return [
-        ...rules,
-        '',
-        'Kontekst z bazy wiedzy (RAG): brak trafnych fragmentów dla tego pytania.',
-        'Nie odpowiadaj merytorycznie — użyj wyłącznie zdania z punktu 3.',
-      ].join('\n');
-    }
-
-    return [
-      ...rules,
-      '',
-      'Kontekst z bazy wiedzy (RAG):',
-      '---',
-      context,
-      '---',
-    ].join('\n');
+    return buildChatSystemPrompt({ ragContext: context, userMessage });
   }
 
-  private formatSourceContext(source: ChatRagSource, index: number): string {
-    const scope = source.collection === 'global' ? 'wiedza Teta' : 'dokument klienta';
-    const meta: string[] = [`[${index}] (${scope}: ${source.source}, trafność ${source.score.toFixed(2)})`];
-
-    if (source.sourceType) {
-      meta.push(`typ: ${RAG_SOURCE_TYPE_LABELS[source.sourceType] ?? source.sourceType}`);
-    }
+  private formatSourceContext(
+    source: ChatRagSource,
+    index: number,
+    queryTerms: string[],
+  ): string {
     const timestamp = formatTimestampRange(source.startSec, source.endSec);
-    if (timestamp) {
-      meta.push(`czas: ${timestamp}`);
-    }
-    if (source.module) {
-      meta.push(`moduł: ${source.module}`);
-    }
-    if (source.topic) {
-      meta.push(`temat: ${source.topic}`);
-    }
-    if (source.pluginNames?.length) {
-      meta.push(`pluginy: ${source.pluginNames.join(', ')}`);
+    const meta = timestamp
+      ? `[${index}] ${source.source} · ${timestamp}`
+      : `[${index}] ${source.source}`;
+    const maxChars = index === 1 ? this.chatContextChars : this.chatContextCharsSecondary;
+    const contextText = formatChunkForPrompt(source.text, maxChars, queryTerms);
+    return `${meta}\n${contextText}`;
+  }
+
+  private selectSourcesForPrompt(
+    sources: ChatRagSource[],
+    userMessage: string,
+    queryTerms: string[],
+  ): ChatRagSource[] {
+    if (sources.length === 0 || !isKnowledgeQuery(userMessage)) {
+      return sources;
     }
 
-    return `${meta.join(' | ')}\n${source.text}`;
+    const top = sources[0];
+    if (extractKnowledgeExcerpt(top.text, queryTerms)) {
+      return [top];
+    }
+
+    return sources;
   }
 }

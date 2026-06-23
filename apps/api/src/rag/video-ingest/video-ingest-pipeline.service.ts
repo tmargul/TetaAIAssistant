@@ -5,6 +5,7 @@ import type { VideoIngestJobStatus } from '@teta/shared';
 import { GlobalRagChunksImportService } from '../global-rag-chunks-import.service';
 import {
   copyIngestAssetsToGlobalSources,
+  copyMp4ToGlobalTrainings,
   runVideoIngestPython,
   type VideoIngestPythonResult,
 } from './video-ingest-runner';
@@ -66,11 +67,12 @@ export class VideoIngestPipelineService {
       );
     }
 
-    report('indexing', 72, 'Kopiowanie klatek do sources/global…');
+    report('indexing', 72, 'Kopiowanie klatek i pliku MP4 do sources/global…');
     await copyIngestAssetsToGlobalSources(
       pythonResult.assetsDir,
       pythonResult.assetsRelPrefix,
     );
+    await copyMp4ToGlobalTrainings(inputPath, pythonResult.source);
 
     report('indexing', 80, `Indeksacja Qdrant (${importMode})…`);
     const importResult = await this.chunksImport.importFromJsonlFile(

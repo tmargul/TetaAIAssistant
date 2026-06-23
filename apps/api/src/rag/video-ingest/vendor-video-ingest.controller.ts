@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -100,6 +101,12 @@ export class VendorVideoIngestController {
   @Get(':id')
   getJob(@Param('id', ParseIntPipe) id: number) {
     return this.jobs.getJob(id);
+  }
+
+  @Delete(':id')
+  async deleteJob(@Param('id', ParseIntPipe) id: number): Promise<{ ok: true }> {
+    await this.jobs.deleteTraining({ jobId: id });
+    return { ok: true };
   }
 
   @Post()

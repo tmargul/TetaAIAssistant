@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from 'child_process';
 import { existsSync, readdirSync, statSync } from 'fs';
 import { cp, mkdir, readdir } from 'fs/promises';
-import { join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
 import { getRepoRoot } from '../../config/repo-root';
 
 export interface VideoIngestPythonResult {
@@ -127,6 +127,16 @@ export async function copyIngestAssetsToGlobalSources(
   }
 
   return targetDir;
+}
+
+export async function copyMp4ToGlobalTrainings(
+  inputPath: string,
+  sourceRelative: string,
+): Promise<string> {
+  const targetPath = join(getRepoRoot(), 'sources', 'global', sourceRelative.replace(/\\/g, '/'));
+  await mkdir(dirname(targetPath), { recursive: true });
+  await cp(resolve(inputPath), targetPath);
+  return targetPath;
 }
 
 function decodeProcessOutput(chunk: Buffer): string {

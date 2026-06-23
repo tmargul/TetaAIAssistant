@@ -72,6 +72,11 @@ export interface GlobalSourceFileRecord {
   modifiedAt: string;
   protected: boolean;
   indexed: boolean;
+  /** Domyślnie dokument tekstowy; wideo z ingestu MP4 ma kind=video. */
+  kind?: 'document' | 'video';
+  videoJobId?: number;
+  filmKey?: string | null;
+  chunkCount?: number | null;
 }
 
 export interface GlobalSourcesListResponse {
