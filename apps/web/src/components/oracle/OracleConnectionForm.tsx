@@ -75,12 +75,13 @@ export function OracleConnectionForm({
           });
           setLastUpdatedAt(updatedAt);
         } else if (status.backendMode === 'fake') {
+          const admin = status.fakeLoginHint?.adminUsername ?? 'teta_admin';
           setForm((prev) => ({
             ...prev,
             host: '192.168.1.10',
             identifier: 'TETA',
-            username: 'teta',
-            password: 'teta',
+            username: admin,
+            password: 'admin',
           }));
         }
       })
@@ -215,8 +216,9 @@ export function OracleConnectionForm({
       {backendMode === 'fake' && !isSettings && !isRecovery && (
         <div className="oracle-setup__banner">
           <strong>Tryb symulatora (fake)</strong> — bez prawdziwej bazy Oracle. Test połączenia
-          zawsze się powiedzie. Administrator: <code>teta_admin</code> / <code>admin</code>,
-          użytkownik: <code>teta_user</code> / <code>user</code>. Przełącz na{' '}
+          zawsze się powiedzie. <strong>Logowanie do aplikacji</strong> (nie to pole poniżej):{' '}
+          administrator <code>teta_admin</code> / <code>admin</code>, użytkownik{' '}
+          <code>teta_user</code> / <code>user</code>. Przełącz na{' '}
           <code>TETA_ORACLE_MODE=real</code> w <code>.env</code> po podłączeniu VM.
         </div>
       )}

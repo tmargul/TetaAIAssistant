@@ -45,13 +45,22 @@ export class OracleConnectionService {
   getStatus(): OracleConnectionStatusResponse {
     const backendMode = this.getBackendMode();
     const row = this.getRow();
+    const fakeLoginHint =
+      backendMode === 'fake'
+        ? {
+            adminUsername: this.config.get<string>('TETA_FAKE_ADMIN_USER', 'teta_admin'),
+            userUsername: this.config.get<string>('TETA_FAKE_USER', 'teta_user'),
+          }
+        : undefined;
+
     if (!row) {
-      return { configured: false, backendMode };
+      return { configured: false, backendMode, fakeLoginHint };
     }
 
     return {
       configured: true,
       backendMode,
+      fakeLoginHint,
       config: {
         ...this.rowToConfig(row),
         updatedAt: row.updated_at,

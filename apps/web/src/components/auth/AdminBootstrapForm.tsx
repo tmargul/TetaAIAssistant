@@ -14,6 +14,7 @@ export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBoo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFakeMode, setIsFakeMode] = useState(false);
+  const [fakeAdminUser, setFakeAdminUser] = useState('teta_admin');
 
   useEffect(() => {
     fetchWithRetry('/api/oracle/status')
@@ -22,7 +23,9 @@ export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBoo
         const fake = status.backendMode === 'fake';
         setIsFakeMode(fake);
         if (fake) {
-          setForm({ username: 'teta_admin', password: 'admin' });
+          const admin = status.fakeLoginHint?.adminUsername ?? 'teta_admin';
+          setFakeAdminUser(admin);
+          setForm({ username: admin, password: 'admin' });
         }
       })
       .catch(() => undefined);
@@ -67,7 +70,8 @@ export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBoo
         {isFakeMode && (
           <div className="oracle-setup__banner">
             <strong>Tryb symulatora</strong> — użyj konta testowego administratora:{' '}
-            <code>teta_admin</code> / <code>admin</code>
+            <code>{fakeAdminUser}</code> / <code>admin</code> (hasło w{' '}
+            <code>TETA_FAKE_ADMIN_PASSWORD</code> w <code>.env</code>).
           </div>
         )}
 

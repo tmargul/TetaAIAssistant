@@ -23,6 +23,11 @@ export interface OracleConnectionStatusResponse {
   configured: boolean;
   backendMode: TetaOracleBackendMode;
   config?: OracleConnectionConfig & { updatedAt: string };
+  /** Podpowiedź kont testowych (tylko gdy backendMode=fake). */
+  fakeLoginHint?: {
+    adminUsername: string;
+    userUsername: string;
+  };
 }
 
 export interface OracleTestConnectionResponse {

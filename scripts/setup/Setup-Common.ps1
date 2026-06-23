@@ -137,43 +137,154 @@ function Install-OllamaFromBundle {
         [System.Environment]::GetEnvironmentVariable("Path", "User")
 }
 
+function Get-NodeMajorVersion {
+    if (-not (Test-Command node)) { return $null }
+    $version = (node -v 2>&1).ToString().Trim()
+    if ($version -match '^v?(\d+)') { return [int]$Matches[1] }
+    return $null
+}
+
+function Assert-NodeVersionSupported {
+    $major = Get-NodeMajorVersion
+    if (-not $major) {
+        throw "Node.js nie jest dostepny w PATH."
+    }
+    if ($major -ge 24) {
+        throw "Node $(node -v) nie jest wspierany. Wymagany Node 22 LTS (winget install OpenJS.NodeJS.22)."
+    }
+    if ($major -lt 20) {
+        throw "Node $(node -v) jest za stary. Wymagany Node 22 LTS."
+    }
+    if ($major -ne 22) {
+        Write-Host "  Ostrzezenie: zalecany Node 22 LTS, wykryto $(node -v)." -ForegroundColor Yellow
+    }
+}
+
 function Ensure-Node {
-    Write-Step "Sprawdzanie Node.js (>= 20)"
-    if (Test-Command node) {
-        Write-Host "  Node.js: $(node -v)"
+    Write-Step "Sprawdzanie Node.js (22 LTS)"
+    Refresh-ShellPath
+
+    $major = Get-NodeMajorVersion
+    if ($major -eq 22) {
+        Write-Host "  Node.js: $(node -v) (OK)"
         return
+    }
+
+    if ($major) {
+        Write-Host "  Wykryto Node $(node -v) — wymagany Node 22 LTS." -ForegroundColor Yellow
     }
 
     if ($script:OfflineMode) {
         Install-NodeFromBundle
+        Refresh-ShellPath
         if (-not (Test-Command node)) {
             throw "Node.js nie jest dostepny po instalacji z paczki offline."
         }
+        Assert-NodeVersionSupported
         Write-Host "  Node.js: $(node -v)"
         return
     }
 
     if (Test-Command winget) {
-        Write-Host "  Instalacja Node.js LTS przez winget..."
-        winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
-            [System.Environment]::GetEnvironmentVariable("Path", "User")
+        Write-Host "  Instalacja Node.js 22 LTS przez winget..."
+        winget install OpenJS.NodeJS.22 --accept-package-agreements --accept-source-agreements --force
+        Refresh-ShellPath
     }
 
     if (-not (Test-Command node)) {
-        throw "Zainstaluj Node.js >= 20: https://nodejs.org/"
+        throw "Zainstaluj Node.js 22 LTS: https://nodejs.org/ (winget install OpenJS.NodeJS.22)"
     }
+
+    Assert-NodeVersionSupported
+    Write-Host "  Node.js: $(node -v)"
 }
 
 function Ensure-Pnpm {
     Write-Step "Sprawdzanie pnpm"
-    if (Test-Command pnpm) {
-        Write-Host "  pnpm: $(pnpm -v)"
-        return
+    Refresh-ShellPath
+
+    if (-not (Test-Command pnpm)) {
+        Write-Host "  Instalacja pnpm globalnie..."
+        npm install -g pnpm@10.28.1
+        Refresh-ShellPath
     }
 
-    Write-Host "  Instalacja pnpm globalnie..."
-    npm install -g pnpm
+    if (-not (Test-Command pnpm)) {
+        throw "pnpm nie jest dostepny. Uruchom: npm install -g pnpm@10.28.1"
+    }
+
+    Write-Host "  pnpm: $(pnpm -v)"
+}
+
+function Find-BetterSqlite3NativeBinding {
+    $roots = @(
+        (Join-Path $script:RepoRoot "node_modules\better-sqlite3"),
+        (Join-Path $script:RepoRoot "node_modules")
+    )
+    foreach ($root in $roots) {
+        if (-not (Test-Path $root)) { continue }
+        $match = Get-ChildItem -Path $root -Recurse -Filter "better_sqlite3.node" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if ($match) { return $match.FullName }
+    }
+    return $null
+}
+
+function Ensure-PnpmBuildAllowlist {
+    $pkgPath = Join-Path $script:RepoRoot "package.json"
+    if (-not (Test-Path $pkgPath)) { return }
+
+    $raw = Get-Content $pkgPath -Raw
+    $pkg = $raw | ConvertFrom-Json
+    $required = @("better-sqlite3", "oracledb")
+    $list = @()
+    if ($pkg.pnpm -and $pkg.pnpm.onlyBuiltDependencies) {
+        $list = @($pkg.pnpm.onlyBuiltDependencies)
+    }
+
+    $missing = @($required | Where-Object { $list -notcontains $_ })
+    if ($missing.Count -eq 0) { return }
+
+    if (-not $pkg.pnpm) {
+        $pkg | Add-Member -NotePropertyName pnpm -NotePropertyValue ([PSCustomObject]@{}) -Force
+    }
+    $pkg.pnpm | Add-Member -NotePropertyName onlyBuiltDependencies -NotePropertyValue @($list + $missing) -Force
+    $pkg | ConvertTo-Json -Depth 10 | Set-Content $pkgPath -Encoding UTF8
+    Write-Host "  Uzupelniono pnpm.onlyBuiltDependencies: $($missing -join ', ')" -ForegroundColor Yellow
+}
+
+function Assert-PnpmNativeDependencies {
+    Write-Step "Paczki natywne Node (better-sqlite3, oracledb)"
+    Set-Location $script:RepoRoot
+
+    if (-not (Test-Path (Join-Path $script:RepoRoot "node_modules"))) {
+        throw "Brak node_modules — najpierw uruchom pnpm install."
+    }
+
+    Ensure-PnpmBuildAllowlist
+
+    Write-Host "  pnpm approve-builds (better-sqlite3, oracledb)..."
+    pnpm approve-builds better-sqlite3 oracledb 2>&1 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+
+    Write-Host "  pnpm rebuild better-sqlite3..."
+    pnpm rebuild better-sqlite3
+    if ($LASTEXITCODE -ne 0) {
+        throw "pnpm rebuild better-sqlite3 nie powiodl sie (kod $LASTEXITCODE)."
+    }
+
+    Write-Host "  pnpm rebuild oracledb..."
+    pnpm rebuild oracledb
+    if ($LASTEXITCODE -ne 0) {
+        throw "pnpm rebuild oracledb nie powiodl sie (kod $LASTEXITCODE)."
+    }
+
+    $binding = Find-BetterSqlite3NativeBinding
+    if (-not $binding) {
+        throw "Nie znaleziono better_sqlite3.node — aplikacja nie wystartuje. Sprawdz Node 22 LTS i ponow setup."
+    }
+
+    Write-Host "  better_sqlite3.node: OK" -ForegroundColor Green
+    Write-Host "    $binding" -ForegroundColor DarkGray
 }
 
 function Test-ProductionLayout {
@@ -189,6 +300,7 @@ function Install-ProjectDependencies {
     $nodeModules = Join-Path $script:RepoRoot "node_modules"
     if ((Test-ProductionLayout) -and (Test-Path $nodeModules)) {
         Write-Host "  Paczka produkcyjna — zaleznosci juz w paczce, pomijam pnpm install" -ForegroundColor Green
+        Assert-PnpmNativeDependencies
         return
     }
 
@@ -198,6 +310,7 @@ function Install-ProjectDependencies {
         if ($LASTEXITCODE -ne 0) {
             throw "pnpm install nie powiodl sie. Sprawdz polaczenie z internetem i uruchom setup ponownie."
         }
+        Assert-PnpmNativeDependencies
         return
     }
 
@@ -207,12 +320,20 @@ function Install-ProjectDependencies {
             $env:PNPM_STORE_DIR = $bundleStore
             Write-Host "  pnpm install --offline (store z paczki)"
             pnpm install --offline
+            if ($LASTEXITCODE -ne 0) {
+                throw "pnpm install --offline nie powiodl sie."
+            }
+            Assert-PnpmNativeDependencies
             return
         }
         Write-Host "  Brak pnpm-store w paczce - probuje zwyklego pnpm install" -ForegroundColor Yellow
     }
 
     pnpm install
+    if ($LASTEXITCODE -ne 0) {
+        throw "pnpm install nie powiodl sie."
+    }
+    Assert-PnpmNativeDependencies
 }
 
 function Ensure-Ollama {

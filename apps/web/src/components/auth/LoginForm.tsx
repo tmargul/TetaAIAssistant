@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { APP_NAME } from '@teta/shared';
-import type { LoginRequest, LoginResponse } from '@teta/shared';
+import type { LoginRequest, LoginResponse, OracleConnectionStatusResponse } from '@teta/shared';
 import { fetchWithRetry } from '../../lib/api-fetch';
 import '../oracle/oracle-setup.css';
 
@@ -13,6 +13,21 @@ export function LoginForm({ onSuccess, onOpenOracleRecovery }: LoginFormProps) {
   const [form, setForm] = useState<LoginRequest>({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFakeMode, setIsFakeMode] = useState(false);
+  const [fakeUser, setFakeUser] = useState('teta_user');
+
+  useEffect(() => {
+    fetchWithRetry('/api/oracle/status')
+      .then(async (res) => res.json() as Promise<OracleConnectionStatusResponse>)
+      .then((status) => {
+        const fake = status.backendMode === 'fake';
+        setIsFakeMode(fake);
+        if (fake) {
+          setFakeUser(status.fakeLoginHint?.userUsername ?? 'teta_user');
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -48,6 +63,15 @@ export function LoginForm({ onSuccess, onOpenOracleRecovery }: LoginFormProps) {
             skontaktuj się z administratorem Teta.
           </p>
         </div>
+
+        {isFakeMode && (
+          <div className="oracle-setup__banner">
+            <strong>Tryb symulatora</strong> — logowanie testowe: administrator{' '}
+            <code>teta_admin</code> / <code>admin</code>, użytkownik <code>{fakeUser}</code> /{' '}
+            <code>user</code> (po nadaniu dostępu przez admina). Hasła w{' '}
+            <code>TETA_FAKE_*</code> w <code>apps/api/.env</code>.
+          </div>
+        )}
 
         <div className="oracle-setup__form">
           <div className="oracle-setup__field">

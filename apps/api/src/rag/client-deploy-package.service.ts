@@ -491,6 +491,13 @@ export class ClientDeployPackageService {
     await mkdir(path.join(targetDir, 'packages/shared'), { recursive: true });
     await writeFile(path.join(targetDir, 'packages/shared/package.json'), sharedPkg, 'utf8');
 
+    const rootPkgRaw = await readFile(path.join(repoRoot, 'package.json'), 'utf8');
+    const rootPkg = JSON.parse(rootPkgRaw) as {
+      packageManager?: string;
+      engines?: { node?: string };
+      pnpm?: { onlyBuiltDependencies?: string[] };
+    };
+
     const productionRootPkg = {
       name: 'teta-ai-assistant',
       version: await this.readAppVersion(repoRoot),
@@ -499,13 +506,22 @@ export class ClientDeployPackageService {
         profile === 'vendor'
           ? 'Teta AI Assistant — instalacja vendor (produkcja)'
           : 'Teta AI Assistant — instalacja klienta (produkcja)',
-      packageManager: 'pnpm@10.28.1',
+      packageManager: rootPkg.packageManager ?? 'pnpm@10.28.1',
+      engines: rootPkg.engines ?? { node: '>=22 <23' },
+      pnpm: rootPkg.pnpm ?? {
+        onlyBuiltDependencies: ['better-sqlite3', 'oracledb'],
+      },
     };
     await writeFile(
       path.join(targetDir, 'package.json'),
       `${JSON.stringify(productionRootPkg, null, 2)}\n`,
       'utf8',
     );
+
+    const npmrcSource = path.join(repoRoot, '.npmrc');
+    if (await this.pathExists(npmrcSource)) {
+      await cp(npmrcSource, path.join(targetDir, '.npmrc'));
+    }
 
     await writeFile(
       path.join(targetDir, 'pnpm-workspace.yaml'),
@@ -617,8 +633,9 @@ export class ClientDeployPackageService {
       '',
       'Paczka ONLINE (ZIP ~1–5 MB): skompilowana aplikacja + skrypty setup, bez node_modules i bez offline-bundle.',
       'Wymaga internetu podczas instalacji:',
-      '  - pnpm install (zaleznosci npm, ok. 100–300 MB)',
-      '  - Node, Ollama, Qdrant (winget)',
+      '  - Node.js 22 LTS (winget install OpenJS.NodeJS.22 — nie uzywaj Node 24)',
+      '  - pnpm install (zaleznosci npm, ok. 100–300 MB; setup uruchamia approve-builds + rebuild natywnych modulow)',
+      '  - Ollama, Qdrant (winget)',
       '  - modele Ollama (nomic-embed-text + qwen3, ok. 5–6 GB)',
       '',
       '=== INSTALACJA ===',
@@ -815,8 +832,9 @@ export class ClientDeployPackageService {
       '',
       'Paczka ONLINE (ZIP ~1–5 MB): skompilowana aplikacja + skrypty setup, bez node_modules i bez offline-bundle.',
       'Wymaga internetu podczas instalacji:',
-      '  - pnpm install (zaleznosci npm, ok. 100–300 MB)',
-      '  - Node, Ollama, Qdrant (winget)',
+      '  - Node.js 22 LTS (winget install OpenJS.NodeJS.22 — nie uzywaj Node 24)',
+      '  - pnpm install (zaleznosci npm, ok. 100–300 MB; setup uruchamia approve-builds + rebuild natywnych modulow)',
+      '  - Ollama, Qdrant (winget)',
       '  - modele Ollama (nomic-embed-text + qwen3, ok. 5–6 GB)',
       '  - ffmpeg + Python (winget, ingest MP4)',
       '',

@@ -47,9 +47,19 @@ Refresh-ShellPath
 
 Test-ItemOk "Node.js w PATH" { Test-Command node } | Out-Null
 if (Test-Command node) {
-    Write-Host "         wersja: $(node -v 2>&1)" -ForegroundColor DarkGray
+    $nodeVer = (node -v 2>&1).ToString().Trim()
+    Write-Host "         wersja: $nodeVer" -ForegroundColor DarkGray
+    if ($nodeVer -match '^v?(\d+)' -and [int]$Matches[1] -ge 24) {
+        Write-Host "         [UWAGA] Node 24+ nie jest wspierany — zainstaluj Node 22 LTS" -ForegroundColor Yellow
+    } elseif ($nodeVer -notmatch '^v?22') {
+        Write-Host "         [UWAGA] zalecany Node 22 LTS" -ForegroundColor Yellow
+    }
 }
 Test-ItemOk "pnpm w PATH" { Test-Command pnpm } | Out-Null
+if (Test-Command pnpm) {
+    Write-Host "         wersja: $(pnpm -v 2>&1)" -ForegroundColor DarkGray
+}
+Test-ItemOk "better_sqlite3.node" { [bool](Find-BetterSqlite3NativeBinding) } | Out-Null
 Test-ItemOk "apps\api\dist\main.js" { Test-Path (Join-Path $script:RepoRoot "apps\api\dist\main.js") } | Out-Null
 Test-ItemOk "apps\web\dist\index.html" { Test-Path (Join-Path $script:RepoRoot "apps\web\dist\index.html") } | Out-Null
 Test-ItemOk "apps\api\.env" { Test-Path (Join-Path $script:RepoRoot "apps\api\.env") } | Out-Null
@@ -85,9 +95,11 @@ try {
     Write-Host "  C:\TetaAI\Start-App.bat" -ForegroundColor White
     Write-Host ""
     Write-Host "Test reczny (PowerShell, Ctrl+C aby przerwac po starcie):" -ForegroundColor Yellow
-    Write-Host "  cd `"$(Join-Path $script:RepoRoot 'apps\api')`"" -ForegroundColor DarkGray
-    Write-Host "  `$env:TETA_REPO_ROOT='$script:RepoRoot'" -ForegroundColor DarkGray
-    Write-Host "  `$env:WEB_DIST_PATH='$(Join-Path $script:RepoRoot 'apps\web\dist')'" -ForegroundColor DarkGray
+    $apiDir = Join-Path $script:RepoRoot "apps\api"
+    $webDist = Join-Path $script:RepoRoot "apps\web\dist"
+    Write-Host "  cd `"$apiDir`"" -ForegroundColor DarkGray
+    Write-Host "  `$env:TETA_REPO_ROOT=$script:RepoRoot" -ForegroundColor DarkGray
+    Write-Host "  `$env:WEB_DIST_PATH=$webDist" -ForegroundColor DarkGray
     Write-Host "  node dist\main.js" -ForegroundColor DarkGray
 }
 

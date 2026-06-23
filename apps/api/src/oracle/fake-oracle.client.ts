@@ -32,8 +32,10 @@ export class FakeOracleClient implements OracleClient {
   async verifyUserConnection(username: string, password: string, _connectString: string): Promise<void> {
     await this.simulateLatency();
     if (!this.isKnownUser(username, password)) {
+      const adminUser = this.config.get<string>('TETA_FAKE_ADMIN_USER', 'teta_admin');
+      const regularUser = this.config.get<string>('TETA_FAKE_USER', 'teta_user');
       throw new BadRequestException(
-        'Nieprawidłowy login lub hasło Oracle (tryb fake). Użyj kont z TETA_FAKE_* w .env.',
+        `Nieprawidłowy login lub hasło Oracle (tryb fake). Dozwolone loginy: ${adminUser} (admin), ${regularUser} (użytkownik). Hasła: TETA_FAKE_* w apps/api/.env.`,
       );
     }
   }
