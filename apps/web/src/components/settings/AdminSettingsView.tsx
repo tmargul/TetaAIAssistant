@@ -10,11 +10,20 @@ import './settings.css';
 
 type SettingsTab = 'users' | 'servers' | 'oracle' | 'packages' | 'updates';
 
+const SETTINGS_TAB_KEY = 'teta-settings-tab';
+
 export function AdminSettingsView() {
   const { user } = useAuth();
   const { health } = useSystemHealth();
   const isVendorMode = health?.appMode === 'vendor' && health?.vendorEnabled;
-  const [activeTab, setActiveTab] = useState<SettingsTab>('users');
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+    const pending = sessionStorage.getItem(SETTINGS_TAB_KEY) as SettingsTab | null;
+    if (pending && ['users', 'servers', 'oracle', 'packages', 'updates'].includes(pending)) {
+      sessionStorage.removeItem(SETTINGS_TAB_KEY);
+      return pending;
+    }
+    return 'users';
+  });
   const [users, setUsers] = useState<AppUserRecord[]>([]);
   const [servers, setServers] = useState<TetaServer[]>([]);
   const [grantUsername, setGrantUsername] = useState('');

@@ -48,3 +48,26 @@ export interface TnsListResponse {
   entries: TnsEntry[];
   source?: string;
 }
+
+export type OracleMetadataImportStatus = 'idle' | 'running' | 'done' | 'failed';
+
+export interface OracleMetadataCounts {
+  tables: number;
+  views: number;
+  columns: number;
+  packages: number;
+  procedures: number;
+}
+
+/** Status automatycznego importu metadanych Oracle (POC). */
+export interface OracleMetadataStatusResponse {
+  /** Czy endpoint importera jest już podpięty w tej wersji aplikacji. */
+  available: boolean;
+  status: OracleMetadataImportStatus;
+  lastImportedAt: string | null;
+  owners: string[];
+  counts: OracleMetadataCounts;
+  pilotModule: string | null;
+  tetaVersion: string | null;
+  message?: string;
+}

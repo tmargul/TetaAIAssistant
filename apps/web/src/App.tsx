@@ -8,6 +8,8 @@ import { OracleSetupGate } from './components/oracle/OracleSetupGate';
 import { DocumentsView } from './components/documents/DocumentsView';
 import { GlobalSourcesView } from './components/global-sources/GlobalSourcesView';
 import { AdminSettingsView } from './components/settings/AdminSettingsView';
+import { VendorKnowledgeWizard } from './components/vendor-wizard/VendorKnowledgeWizard';
+import { VendorWizardDashboardBanner } from './components/vendor-wizard/VendorWizardDashboardBanner';
 import type { NavItem } from './components/layout/Sidebar';
 import './components/layout/layout.css';
 
@@ -28,6 +30,10 @@ const PAGE_META: Record<NavItem, { title: string; subtitle: string }> = {
     title: 'Źródła globalne',
     subtitle: 'Materiały szkoleniowe do globalnego RAG (teta_global)',
   },
+  vendorWizard: {
+    title: 'Kreator wiedzy',
+    subtitle: 'Monitor postępu: Oracle, RAG i eksport paczki',
+  },
   history: {
     title: 'Historia',
     subtitle: 'Poprzednie sesje i zapytania',
@@ -47,9 +53,13 @@ function serviceLabel(status: 'ok' | 'offline' | 'loading'): string {
 function DashboardView({
   health,
   error,
+  isVendorMode,
+  onNavigate,
 }: {
   health: SystemHealthResponse | null;
   error: string | null;
+  isVendorMode: boolean;
+  onNavigate: (item: NavItem) => void;
 }) {
   const apiStatus = error ? 'offline' : health ? 'ok' : 'loading';
   const ollamaStatus = health?.ollama.status ?? 'loading';
@@ -57,6 +67,8 @@ function DashboardView({
 
   return (
     <>
+      {isVendorMode && <VendorWizardDashboardBanner health={health} onNavigate={onNavigate} />}
+
       <div className="stat-grid">
         <div className="stat-card">
           <p className="stat-card__label">Status API</p>
@@ -172,9 +184,19 @@ export default function App() {
         subtitle={meta.subtitle}
         isVendorMode={isVendorMode}
       >
-        {activeNav === 'dashboard' && <DashboardView health={health} error={error} />}
+        {activeNav === 'dashboard' && (
+          <DashboardView
+            health={health}
+            error={error}
+            isVendorMode={!!isVendorMode}
+            onNavigate={setActiveNav}
+          />
+        )}
         {activeNav === 'chat' && <ChatView />}
         {activeNav === 'documents' && !isVendorMode && <DocumentsView />}
+        {activeNav === 'vendorWizard' && isVendorMode && (
+          <VendorKnowledgeWizard health={health} onNavigate={setActiveNav} />
+        )}
         {activeNav === 'globalSources' && isVendorMode && <GlobalSourcesView />}
         {activeNav === 'history' && (
           <PlaceholderView
