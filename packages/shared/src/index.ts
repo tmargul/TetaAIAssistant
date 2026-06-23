@@ -57,6 +57,14 @@ export type {
 export { CHAT_MODELS } from './chat.js';
 
 export type {
+  ChatConversationRecord,
+  ChatConversationSummary,
+  ChatConversationsListResponse,
+  CreateChatConversationRequest,
+  SaveChatConversationRequest,
+} from './chat-conversations.js';
+
+export type {
   VideoIngestJobRecord,
   VideoIngestJobsListResponse,
   VideoIngestJobStatus,

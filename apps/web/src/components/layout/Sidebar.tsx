@@ -28,10 +28,10 @@ const BASE_NAV_ITEMS: {
 }[] = [
   { id: 'dashboard', label: 'Panel', icon: IconDashboard },
   { id: 'chat', label: 'Asystent AI', icon: IconChat },
+  { id: 'history', label: 'Historia', icon: IconHistory },
   { id: 'vendorWizard', label: 'Kreator wiedzy', icon: IconWizard, vendorOnly: true },
   { id: 'globalSources', label: 'Źródła globalne', icon: IconDocuments, vendorOnly: true },
   { id: 'documents', label: 'Dokumenty', icon: IconDocuments, clientOnly: true },
-  { id: 'history', label: 'Historia', icon: IconHistory },
   { id: 'settings', label: 'Ustawienia', icon: IconSettings },
 ];
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SystemHealthResponse } from '@teta/shared';
 import { useSystemHealth } from './hooks/useSystemHealth';
 import { ChatView } from './components/chat/ChatView';
+import { HistoryView } from './components/chat/HistoryView';
 import { AppShell } from './components/layout/AppShell';
 import { AuthGate } from './components/auth/AuthGate';
 import { OracleSetupGate } from './components/oracle/OracleSetupGate';
@@ -36,7 +37,7 @@ const PAGE_META: Record<NavItem, { title: string; subtitle: string }> = {
   },
   history: {
     title: 'Historia',
-    subtitle: 'Poprzednie sesje i zapytania',
+    subtitle: 'Zapisane rozmowy z asystentem — wspólne dla Twojego konta',
   },
   settings: {
     title: 'Ustawienia',
@@ -169,10 +170,16 @@ function PlaceholderView({ title, description }: { title: string; description: s
 
 export default function App() {
   const [activeNav, setActiveNav] = useState<NavItem>('dashboard');
+  const [pendingOpenConversationId, setPendingOpenConversationId] = useState<string | null>(null);
   const { health, error } = useSystemHealth();
   const isVendorMode = health?.appMode === 'vendor' && health?.vendorEnabled;
 
   const meta = PAGE_META[activeNav];
+
+  const openChatConversation = (id: string) => {
+    setPendingOpenConversationId(id);
+    setActiveNav('chat');
+  };
 
   return (
     <OracleSetupGate>
@@ -192,17 +199,19 @@ export default function App() {
             onNavigate={setActiveNav}
           />
         )}
-        {activeNav === 'chat' && <ChatView />}
+        {activeNav === 'chat' && (
+          <ChatView
+            openConversationId={pendingOpenConversationId}
+            onOpenConversationHandled={() => setPendingOpenConversationId(null)}
+          />
+        )}
         {activeNav === 'documents' && !isVendorMode && <DocumentsView />}
         {activeNav === 'vendorWizard' && isVendorMode && (
           <VendorKnowledgeWizard health={health} onNavigate={setActiveNav} />
         )}
         {activeNav === 'globalSources' && isVendorMode && <GlobalSourcesView />}
         {activeNav === 'history' && (
-          <PlaceholderView
-            title="Historia"
-            description="Lista poprzednich konwersacji i zapytań do asystenta."
-          />
+          <HistoryView onOpenConversation={openChatConversation} />
         )}
         {activeNav === 'settings' && <AdminSettingsView />}
       </AppShell>

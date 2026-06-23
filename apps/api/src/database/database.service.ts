@@ -116,6 +116,19 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         started_at TEXT,
         finished_at TEXT
       );
+
+      CREATE TABLE IF NOT EXISTS chat_conversations (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        model TEXT NOT NULL,
+        messages_json TEXT NOT NULL DEFAULT '[]',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_updated
+        ON chat_conversations(user_id, updated_at DESC);
     `);
   }
 }

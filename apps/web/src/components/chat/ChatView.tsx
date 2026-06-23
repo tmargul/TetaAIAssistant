@@ -12,8 +12,6 @@ import { authFetch } from '../../lib/auth-storage';
 import { IconChat } from '../layout/icons';
 import {
   bootstrapConversation,
-  deleteChatConversation,
-  listChatConversations,
   loadChatConversation,
   saveChatConversation,
   startNewConversation,
@@ -43,16 +41,6 @@ const SOURCE_TYPE_LABELS: Record<(typeof KNOWLEDGE_SOURCE_TYPES)[number], string
   client_document: 'Dokument klienta',
   other: 'Inne',
 };
-
-function formatConversationDate(iso: string): string {
-  const date = new Date(iso);
-  return date.toLocaleString('pl-PL', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function ChatBubble({
   message,
@@ -98,15 +86,23 @@ function IconAttach() {
   );
 }
 
-export function ChatView() {
+type ChatViewProps = {
+  openConversationId?: string | null;
+  onOpenConversationHandled?: () => void;
+};
+
+export function ChatView({
+  openConversationId = null,
+  onOpenConversationHandled,
+}: ChatViewProps) {
   const [conversationId, setConversationId] = useState('');
   const [conversationTitle, setConversationTitle] = useState('Nowa rozmowa');
-  const [conversations, setConversations] = useState<StoredChatConversation[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ChatModel>('qwen3');
   const [availableModels, setAvailableModels] = useState<ChatModel[]>(['qwen3']);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(true);
   const [runtime, setRuntime] = useState<ChatRuntimeStatusResponse | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [typingHint, setTypingHint] = useState<string | null>(null);
@@ -119,18 +115,52 @@ export function ChatView() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const skipSaveRef = useRef(true);
 
-  const refreshConversationList = useCallback(() => {
-    setConversations(listChatConversations());
+  const applyConversation = useCallback((conversation: StoredChatConversation) => {
+    skipSaveRef.current = true;
+    setConversationId(conversation.id);
+    setConversationTitle(conversation.title);
+    setMessages(conversation.messages);
+    setModel(conversation.model);
   }, []);
 
+  const hasBootstrappedRef = useRef(false);
+
   useEffect(() => {
-    const initial = bootstrapConversation();
-    setConversationId(initial.id);
-    setConversationTitle(initial.title);
-    setMessages(initial.messages);
-    setModel(initial.model);
-    refreshConversationList();
-  }, [refreshConversationList]);
+    let cancelled = false;
+
+    void (async () => {
+      setIsLoadingConversation(true);
+      setError(null);
+      try {
+        let conversation: StoredChatConversation;
+        if (openConversationId) {
+          conversation =
+            (await loadChatConversation(openConversationId)) ??
+            (await startNewConversation('qwen3'));
+          if (!cancelled) {
+            onOpenConversationHandled?.();
+          }
+        } else if (!hasBootstrappedRef.current) {
+          hasBootstrappedRef.current = true;
+          conversation = await bootstrapConversation();
+        } else {
+          return;
+        }
+        if (cancelled) return;
+        applyConversation(conversation);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Nie udało się wczytać rozmowy.');
+        }
+      } finally {
+        if (!cancelled) setIsLoadingConversation(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [openConversationId, applyConversation, onOpenConversationHandled]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -156,16 +186,17 @@ export function ChatView() {
       skipSaveRef.current = false;
       return;
     }
-    if (!conversationId || isBusy) return;
+    if (!conversationId || isBusy || isLoadingConversation) return;
 
-    saveChatConversation({
+    void saveChatConversation({
       id: conversationId,
       title: conversationTitle,
       model,
       messages,
+    }).catch((err) => {
+      setError(err instanceof Error ? err.message : 'Nie udało się zapisać rozmowy.');
     });
-    refreshConversationList();
-  }, [conversationId, conversationTitle, model, messages, isBusy, refreshConversationList]);
+  }, [conversationId, conversationTitle, model, messages, isBusy, isLoadingConversation]);
 
   const refreshRuntime = useCallback(async () => {
     try {
@@ -205,52 +236,19 @@ export function ChatView() {
       .finally(() => setModelsLoading(false));
   }, []);
 
-  const loadConversation = (id: string) => {
-    if (isBusy) return;
-    const conversation = loadChatConversation(id);
-    if (!conversation) return;
-    skipSaveRef.current = true;
-    setConversationId(conversation.id);
-    setConversationTitle(conversation.title);
-    setMessages(conversation.messages);
-    setModel(conversation.model);
-    setInput('');
-    setError(null);
-    refreshConversationList();
-  };
-
   const handleNewChat = () => {
-    if (isBusy) return;
-    skipSaveRef.current = true;
-    const fresh = startNewConversation(model);
-    setConversationId(fresh.id);
-    setConversationTitle(fresh.title);
-    setMessages([]);
-    setInput('');
-    setError(null);
-    refreshConversationList();
-    textareaRef.current?.focus();
-  };
-
-  const handleDeleteConversation = (id: string) => {
-    if (isBusy) return;
-    deleteChatConversation(id);
-    refreshConversationList();
-    if (conversationId === id) {
-      skipSaveRef.current = true;
-      const next = listChatConversations()[0];
-      if (next) {
-        setConversationId(next.id);
-        setConversationTitle(next.title);
-        setMessages(next.messages);
-        setModel(next.model);
-      } else {
-        const fresh = startNewConversation(model);
-        setConversationId(fresh.id);
-        setConversationTitle(fresh.title);
-        setMessages([]);
+    if (isBusy || isLoadingConversation) return;
+    void (async () => {
+      try {
+        const fresh = await startNewConversation(model);
+        applyConversation(fresh);
+        setInput('');
+        setError(null);
+        textareaRef.current?.focus();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Nie udało się utworzyć rozmowy.');
       }
-    }
+    })();
   };
 
   const sendMessage = async (text: string) => {
@@ -403,41 +401,6 @@ export function ChatView() {
           )}
         </div>
         <div className="chat__toolbar-actions">
-          <details className="chat__history">
-            <summary>Rozmowy ({conversations.length})</summary>
-            <ul className="chat__history-list">
-              {conversations.length === 0 && (
-                <li className="chat__history-empty">Brak zapisanych rozmów</li>
-              )}
-              {conversations.map((item) => (
-                <li
-                  key={item.id}
-                  className={`chat__history-item${item.id === conversationId ? ' chat__history-item--active' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="chat__history-open"
-                    onClick={() => loadConversation(item.id)}
-                    disabled={isBusy}
-                  >
-                    <span className="chat__history-title">{item.title}</span>
-                    <span className="chat__history-meta">
-                      {formatConversationDate(item.updatedAt)} · {item.messages.length} wiad.
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="chat__history-delete"
-                    aria-label="Usuń rozmowę"
-                    onClick={() => handleDeleteConversation(item.id)}
-                    disabled={isBusy}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </details>
           <details className="chat__filters">
             <summary>Filtry RAG{hasActiveFilters ? ' •' : ''}</summary>
             <div className="chat__filters-grid">
@@ -515,7 +478,12 @@ export function ChatView() {
               )}
             </div>
           </details>
-          <button type="button" className="chat__new-btn" onClick={handleNewChat} disabled={isBusy}>
+          <button
+            type="button"
+            className="chat__new-btn"
+            onClick={handleNewChat}
+            disabled={isBusy || isLoadingConversation}
+          >
             Nowa rozmowa
           </button>
         </div>
@@ -531,6 +499,13 @@ export function ChatView() {
 
       {error && <div className="chat__error">{error}</div>}
 
+      {isLoadingConversation ? (
+        <div className="chat__messages">
+          <div className="chat__empty">
+            <p className="chat__empty-desc">Wczytywanie rozmowy…</p>
+          </div>
+        </div>
+      ) : (
       <div className="chat__messages">
         {messages.length === 0 ? (
           <div className="chat__empty">
@@ -587,6 +562,7 @@ export function ChatView() {
           </div>
         )}
       </div>
+      )}
 
       <div className="chat__input-area">
         <div className="chat__input-wrap">
@@ -601,14 +577,14 @@ export function ChatView() {
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             rows={1}
-            disabled={isBusy || availableModels.length === 0}
+            disabled={isBusy || isLoadingConversation || availableModels.length === 0}
           />
           <button
             type="button"
             className="chat__send-btn"
             aria-label="Wyślij"
             onClick={handleSubmit}
-            disabled={!input.trim() || isBusy || availableModels.length === 0}
+            disabled={!input.trim() || isBusy || isLoadingConversation || availableModels.length === 0}
           >
             <IconSend />
           </button>

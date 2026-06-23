@@ -1,51 +1,27 @@
-import type { ChatMessage, ChatModel } from '@teta/shared';
+import type {
+  ChatConversationRecord,
+  ChatConversationSummary,
+  ChatMessage,
+  ChatModel,
+} from '@teta/shared';
+import { authFetch } from '../../lib/auth-storage';
 
-export interface StoredChatConversation {
-  id: string;
-  title: string;
-  model: ChatModel;
-  messages: ChatMessage[];
-  createdAt: string;
-  updatedAt: string;
-}
+export type StoredChatConversation = ChatConversationRecord;
 
-const CONVERSATIONS_KEY = 'teta_chat_conversations';
+const LEGACY_CONVERSATIONS_KEY = 'teta_chat_conversations';
 const CURRENT_ID_KEY = 'teta_chat_current_id';
-const MAX_CONVERSATIONS = 40;
+const MIGRATION_KEY = 'teta_chat_migrated_to_server';
 
-function readAll(): StoredChatConversation[] {
-  try {
-    const raw = localStorage.getItem(CONVERSATIONS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as StoredChatConversation[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeAll(conversations: StoredChatConversation[]): void {
-  localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
-}
-
-export function listChatConversations(): StoredChatConversation[] {
-  return readAll().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-}
-
-export function getCurrentConversationId(): string | null {
-  return localStorage.getItem(CURRENT_ID_KEY);
+function getCurrentConversationId(): string | null {
+  return sessionStorage.getItem(CURRENT_ID_KEY);
 }
 
 export function setCurrentConversationId(id: string | null): void {
   if (id) {
-    localStorage.setItem(CURRENT_ID_KEY, id);
+    sessionStorage.setItem(CURRENT_ID_KEY, id);
   } else {
-    localStorage.removeItem(CURRENT_ID_KEY);
+    sessionStorage.removeItem(CURRENT_ID_KEY);
   }
-}
-
-export function loadChatConversation(id: string): StoredChatConversation | null {
-  return readAll().find((item) => item.id === id) ?? null;
 }
 
 export function createConversationTitle(firstUserMessage: string): string {
@@ -54,82 +30,125 @@ export function createConversationTitle(firstUserMessage: string): string {
   return `${normalized.slice(0, 47)}…`;
 }
 
-export function saveChatConversation(input: {
+async function migrateLegacyLocalStorage(): Promise<void> {
+  if (localStorage.getItem(MIGRATION_KEY)) return;
+
+  const raw = localStorage.getItem(LEGACY_CONVERSATIONS_KEY);
+  if (!raw) {
+    localStorage.setItem(MIGRATION_KEY, '1');
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as StoredChatConversation[];
+    if (Array.isArray(parsed)) {
+      for (const conversation of parsed) {
+        if (!conversation?.id) continue;
+        await authFetch(`/api/chat/conversations/${encodeURIComponent(conversation.id)}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            id: conversation.id,
+            title: conversation.title ?? 'Nowa rozmowa',
+            model: conversation.model ?? 'qwen3',
+            messages: conversation.messages ?? [],
+          }),
+        });
+      }
+    }
+  } catch {
+    // Ignoruj uszkodzony cache — nie blokuj startu aplikacji.
+  } finally {
+    localStorage.removeItem(LEGACY_CONVERSATIONS_KEY);
+    localStorage.removeItem('teta_chat_current_id');
+    localStorage.setItem(MIGRATION_KEY, '1');
+  }
+}
+
+export async function listChatConversations(): Promise<ChatConversationSummary[]> {
+  await migrateLegacyLocalStorage();
+  const res = await authFetch('/api/chat/conversations');
+  if (!res.ok) {
+    throw new Error(`Nie udało się pobrać historii rozmów (HTTP ${res.status}).`);
+  }
+  const data = (await res.json()) as { conversations: ChatConversationSummary[] };
+  return data.conversations ?? [];
+}
+
+export async function loadChatConversation(id: string): Promise<StoredChatConversation | null> {
+  const res = await authFetch(`/api/chat/conversations/${encodeURIComponent(id)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Nie udało się wczytać rozmowy (HTTP ${res.status}).`);
+  }
+  return (await res.json()) as StoredChatConversation;
+}
+
+export async function saveChatConversation(input: {
   id: string;
   title: string;
   model: ChatModel;
   messages: ChatMessage[];
-  createdAt?: string;
-}): StoredChatConversation {
-  const now = new Date().toISOString();
-  const existing = readAll();
-  const index = existing.findIndex((item) => item.id === input.id);
-  const previous = index >= 0 ? existing[index] : null;
-
-  const conversation: StoredChatConversation = {
-    id: input.id,
-    title: input.title,
-    model: input.model,
-    messages: input.messages.map((message) => ({
-      ...message,
-      streaming: false,
-    })),
-    createdAt: previous?.createdAt ?? input.createdAt ?? now,
-    updatedAt: now,
-  };
-
-  const next =
-    index >= 0
-      ? existing.map((item, itemIndex) => (itemIndex === index ? conversation : item))
-      : [conversation, ...existing];
-
-  writeAll(next.slice(0, MAX_CONVERSATIONS));
-  setCurrentConversationId(conversation.id);
-  return conversation;
+}): Promise<StoredChatConversation> {
+  const res = await authFetch(`/api/chat/conversations/${encodeURIComponent(input.id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      id: input.id,
+      title: input.title,
+      model: input.model,
+      messages: input.messages.map((message) => ({ ...message, streaming: false })),
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Nie udało się zapisać rozmowy (HTTP ${res.status}).`);
+  }
+  const saved = (await res.json()) as StoredChatConversation;
+  setCurrentConversationId(saved.id);
+  return saved;
 }
 
-export function deleteChatConversation(id: string): void {
-  const next = readAll().filter((item) => item.id !== id);
-  writeAll(next);
+export async function deleteChatConversation(id: string): Promise<void> {
+  const res = await authFetch(`/api/chat/conversations/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  if (res.status === 404) return;
+  if (!res.ok) {
+    throw new Error(`Nie udało się usunąć rozmowy (HTTP ${res.status}).`);
+  }
   if (getCurrentConversationId() === id) {
-    setCurrentConversationId(next[0]?.id ?? null);
+    setCurrentConversationId(null);
   }
 }
 
-export function bootstrapConversation(): StoredChatConversation {
+export async function bootstrapConversation(): Promise<StoredChatConversation> {
+  await migrateLegacyLocalStorage();
+
   const currentId = getCurrentConversationId();
   if (currentId) {
-    const current = loadChatConversation(currentId);
+    const current = await loadChatConversation(currentId);
     if (current) return current;
   }
 
-  const latest = listChatConversations()[0];
-  if (latest) {
-    setCurrentConversationId(latest.id);
-    return latest;
+  const summaries = await listChatConversations();
+  if (summaries[0]) {
+    const latest = await loadChatConversation(summaries[0].id);
+    if (latest) {
+      setCurrentConversationId(latest.id);
+      return latest;
+    }
   }
 
-  const fresh: StoredChatConversation = {
-    id: crypto.randomUUID(),
-    title: 'Nowa rozmowa',
-    model: 'qwen3',
-    messages: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  saveChatConversation(fresh);
-  return fresh;
+  return startNewConversation('qwen3');
 }
 
-export function startNewConversation(model: ChatModel): StoredChatConversation {
-  const fresh: StoredChatConversation = {
-    id: crypto.randomUUID(),
-    title: 'Nowa rozmowa',
-    model,
-    messages: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  saveChatConversation(fresh);
-  return fresh;
+export async function startNewConversation(model: ChatModel): Promise<StoredChatConversation> {
+  const res = await authFetch('/api/chat/conversations', {
+    method: 'POST',
+    body: JSON.stringify({ model }),
+  });
+  if (!res.ok) {
+    throw new Error(`Nie udało się utworzyć rozmowy (HTTP ${res.status}).`);
+  }
+  const conversation = (await res.json()) as StoredChatConversation;
+  setCurrentConversationId(conversation.id);
+  return conversation;
 }
