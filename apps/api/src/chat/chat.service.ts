@@ -92,14 +92,30 @@ export class ChatService {
         ? sources
             .map((source, index) => this.formatSourceContext(source, index + 1))
             .join('\n\n')
-        : 'Brak dopasowanych fragmentów w bazie wiedzy RAG.';
+        : null;
 
-    return [
+    const rules = [
       'Jesteś asystentem AI systemu Teta AI Assistant.',
       'Odpowiadaj po polsku, rzeczowo i pomocnie.',
-      'Opieraj się wyłącznie na kontekście poniżej oraz wcześniejszej rozmowie.',
-      'Jeśli kontekst nie zawiera odpowiedzi, powiedz to wprost — nie wymyślaj faktów.',
-      'Przy cytowaniu szkoleń wideo podawaj źródło i zakres czasu (timestamp), jeśli są dostępne.',
+      'Zasady odpowiedzi (bezwzględne):',
+      '1. Opieraj się WYŁĄCZNIE na numerowanym kontekście RAG poniżej — nie na wiedzy ogólnej ani domysłach.',
+      '2. Każdy fakt merytoryczny poprzedź numerem źródła w nawiasie, np. [1] lub [2].',
+      '3. Gdy kontekst nie zawiera odpowiedzi, napisz jedno zdanie: „Nie mam tej informacji w bazie wiedzy Teta.” i nic więcej.',
+      '4. Nie uzupełniaj luk — lepiej krótka odpowiedź lub odmowa niż zgadywanie.',
+      '5. Przy szkoleniach wideo podawaj zakres czasu (timestamp), jeśli jest w źródle.',
+    ];
+
+    if (!context) {
+      return [
+        ...rules,
+        '',
+        'Kontekst z bazy wiedzy (RAG): brak trafnych fragmentów dla tego pytania.',
+        'Nie odpowiadaj merytorycznie — użyj wyłącznie zdania z punktu 3.',
+      ].join('\n');
+    }
+
+    return [
+      ...rules,
       '',
       'Kontekst z bazy wiedzy (RAG):',
       '---',
@@ -110,7 +126,7 @@ export class ChatService {
 
   private formatSourceContext(source: ChatRagSource, index: number): string {
     const scope = source.collection === 'global' ? 'wiedza Teta' : 'dokument klienta';
-    const meta: string[] = [`[${index}] (${scope}: ${source.source})`];
+    const meta: string[] = [`[${index}] (${scope}: ${source.source}, trafność ${source.score.toFixed(2)})`];
 
     if (source.sourceType) {
       meta.push(`typ: ${RAG_SOURCE_TYPE_LABELS[source.sourceType] ?? source.sourceType}`);
@@ -129,6 +145,6 @@ export class ChatService {
       meta.push(`pluginy: ${source.pluginNames.join(', ')}`);
     }
 
-    return `${meta.join(' | ')}\n${source.excerpt}`;
+    return `${meta.join(' | ')}\n${source.text}`;
   }
 }

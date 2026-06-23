@@ -51,6 +51,7 @@ export class OllamaChatService {
     const resolvedModel = await this.resolveInstalledModel(model);
     const think = this.shouldUseThinking(resolvedModel);
     const timeoutMs = Number(this.config.get('OLLAMA_CHAT_TIMEOUT_MS', 180_000));
+    const temperature = Number(this.config.get('OLLAMA_CHAT_TEMPERATURE', 0.15));
 
     if (model !== this.toChatModel(resolvedModel) && model === 'deepseek-r1') {
       this.logger.warn(
@@ -59,7 +60,7 @@ export class OllamaChatService {
     }
 
     this.logger.log(
-      `Ollama chat: model=${resolvedModel}, think=${think}, messages=${messages.length}`,
+      `Ollama chat: model=${resolvedModel}, think=${think}, temperature=${temperature}, messages=${messages.length}`,
     );
 
     const res = await fetch(`${this.baseUrl}/api/chat`, {
@@ -71,6 +72,9 @@ export class OllamaChatService {
         stream: false,
         think,
         keep_alive: '10m',
+        options: {
+          temperature,
+        },
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });

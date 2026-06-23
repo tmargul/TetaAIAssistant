@@ -14,4 +14,9 @@ export const RAG_CONSTANTS = {
   chunkSizeChars: 2000,
   chunkOverlapChars: 200,
   supportedExtensions: RAG_SOURCE_EXTENSIONS,
-};
+  /** Minimalny cosine score z Qdrant — poniżej chunk jest odrzucany. */
+  chatMinScore: 0.55,
+  chatTopK: 4,
+  /** Skrót chunka w panelu „Źródła RAG” w czacie. */
+  uiExcerptChars: 320,
+} as const;

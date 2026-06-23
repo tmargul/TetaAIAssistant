@@ -34,6 +34,9 @@ export interface ChatRagSource {
   source: string;
   collection: ChatRagCollection;
   score: number;
+  /** Pełna treść chunka (kontekst dla modelu). */
+  text: string;
+  /** Skrót do podglądu w UI. */
   excerpt: string;
   sourceType?: KnowledgeSourceType;
   startSec?: number;
