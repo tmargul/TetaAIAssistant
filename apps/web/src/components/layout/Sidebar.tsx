@@ -3,6 +3,7 @@ import { APP_NAME } from '@teta/shared';
 import {
   IconChat,
   IconDashboard,
+  IconDatabase,
   IconDocuments,
   IconHistory,
   IconSettings,
@@ -15,6 +16,7 @@ export type NavItem =
   | 'chat'
   | 'documents'
   | 'globalSources'
+  | 'oracleMetadata'
   | 'vendorWizard'
   | 'history'
   | 'settings';
@@ -31,6 +33,7 @@ const BASE_NAV_ITEMS: {
   { id: 'history', label: 'Historia', icon: IconHistory },
   { id: 'vendorWizard', label: 'Kreator wiedzy', icon: IconWizard, vendorOnly: true },
   { id: 'globalSources', label: 'Źródła globalne', icon: IconDocuments, vendorOnly: true },
+  { id: 'oracleMetadata', label: 'Metadane Oracle', icon: IconDatabase, vendorOnly: true },
   { id: 'documents', label: 'Dokumenty', icon: IconDocuments, clientOnly: true },
   { id: 'settings', label: 'Ustawienia', icon: IconSettings },
 ];

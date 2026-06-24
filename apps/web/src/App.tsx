@@ -9,6 +9,7 @@ import { OracleSetupGate } from './components/oracle/OracleSetupGate';
 import { DocumentsView } from './components/documents/DocumentsView';
 import { GlobalSourcesView } from './components/global-sources/GlobalSourcesView';
 import { AdminSettingsView } from './components/settings/AdminSettingsView';
+import { OracleMetadataView } from './components/oracle-metadata/OracleMetadataView';
 import { VendorKnowledgeWizard } from './components/vendor-wizard/VendorKnowledgeWizard';
 import { VendorWizardDashboardBanner } from './components/vendor-wizard/VendorWizardDashboardBanner';
 import type { NavItem } from './components/layout/Sidebar';
@@ -30,6 +31,10 @@ const PAGE_META: Record<NavItem, { title: string; subtitle: string }> = {
   globalSources: {
     title: 'Źródła globalne',
     subtitle: 'Materiały szkoleniowe do globalnego RAG (teta_global)',
+  },
+  oracleMetadata: {
+    title: 'Metadane Oracle',
+    subtitle: 'Import struktury bazy Teta — tabele, widoki, pakiety, procedury',
   },
   vendorWizard: {
     title: 'Kreator wiedzy',
@@ -210,6 +215,7 @@ export default function App() {
           <VendorKnowledgeWizard health={health} onNavigate={setActiveNav} />
         )}
         {activeNav === 'globalSources' && isVendorMode && <GlobalSourcesView />}
+        {activeNav === 'oracleMetadata' && isVendorMode && <OracleMetadataView />}
         {activeNav === 'history' && (
           <HistoryView onOpenConversation={openChatConversation} />
         )}

@@ -138,6 +138,8 @@ export type {
   OracleConnectionStatusResponse,
   OracleMetadataCounts,
   OracleMetadataImportStatus,
+  OracleMetadataObjectKind,
+  OracleMetadataObjects,
   OracleMetadataStatusResponse,
   OracleIdentifierType,
   OracleTestConnectionResponse,

@@ -10,7 +10,7 @@ import { WIZARD_STEP_ORDER } from './vendor-wizard.storage';
 export const WIZARD_STEP_LABELS: Record<VendorWizardStepId, string> = {
   environment: 'Środowisko',
   'oracle-access': 'Dostęp Oracle',
-  'oracle-import': 'Import metadanych',
+  'oracle-import': 'Import metadanych Oracle',
   'doc-sources': 'Dokumentacja (DOC_RAG)',
   'video-sources': 'Materiały wideo',
   'build-rag': 'Indeks RAG',
@@ -173,11 +173,8 @@ export function buildWizardExportPayload(
 }
 
 export function downloadWizardExport(payload: VendorWizardExportPayload): void {
-  const moduleSlug =
-    payload.oracleSnapshot.metadata?.pilotModule?.replace(/[^\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ-]+/gi, '-').slice(0, 40) ??
-    'poc';
   const date = payload.exportedAt.slice(0, 10);
-  const filename = `teta-wizard-${moduleSlug}-${date}.json`;
+  const filename = `teta-wizard-${date}.json`;
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -190,17 +187,4 @@ export function downloadWizardExport(payload: VendorWizardExportPayload): void {
 
 export function countMp4Sources(files: { name: string }[]): number {
   return files.filter((f) => f.name.toLowerCase().endsWith('.mp4')).length;
-}
-
-export function oracleImportStatusLabel(status: OracleMetadataStatusResponse['status']): string {
-  switch (status) {
-    case 'running':
-      return 'Import w toku…';
-    case 'done':
-      return 'Import zakończony';
-    case 'failed':
-      return 'Błąd importu';
-    default:
-      return 'Oczekuje na start';
-  }
 }

@@ -290,6 +290,12 @@
   color: var(--text-muted);
 }
 
+.vendor-wizard__oracle-form {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
 .vendor-wizard__actions {
   display: flex;
   flex-wrap: wrap;

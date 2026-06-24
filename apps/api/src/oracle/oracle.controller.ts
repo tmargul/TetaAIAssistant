@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotImplementedException, Post, UseGuards } from '@nestjs/common';
 import type {
   OracleConnectionInput,
   OracleConnectionStatusResponse,
@@ -48,12 +48,28 @@ export class OracleController {
         columns: 0,
         packages: 0,
         procedures: 0,
+        functions: 0,
       },
-      pilotModule: 'Kadry / Wykształcenie',
+      objects: {
+        tables: [],
+        views: [],
+        packages: [],
+        procedures: [],
+        functions: [],
+      },
+      pilotModule: null,
       tetaVersion: null,
       message: configured
-        ? 'Połączenie Oracle skonfigurowane. Importer metadanych uruchomi się automatycznie po wdrożeniu — kreator odświeży postęp.'
-        : 'Skonfiguruj konto read-only Oracle (Ustawienia → Oracle), potem importer sam pobierze metadane.',
+        ? 'Połączenie skonfigurowane. Uruchom import w menu Metadane Oracle.'
+        : 'Skonfiguruj konto read-only w menu Metadane Oracle, potem uruchom import.',
     };
+  }
+
+  @Post('metadata/import')
+  @UseGuards(OracleConfigGuard)
+  startMetadataImport(): never {
+    throw new NotImplementedException(
+      'Importer metadanych Oracle jest w przygotowaniu — dostępny w kolejnej wersji aplikacji.',
+    );
   }
 }

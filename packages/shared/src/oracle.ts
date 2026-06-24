@@ -57,6 +57,22 @@ export interface OracleMetadataCounts {
   columns: number;
   packages: number;
   procedures: number;
+  functions: number;
+}
+
+export type OracleMetadataObjectKind =
+  | 'tables'
+  | 'views'
+  | 'packages'
+  | 'procedures'
+  | 'functions';
+
+export interface OracleMetadataObjects {
+  tables: string[];
+  views: string[];
+  packages: string[];
+  procedures: string[];
+  functions: string[];
 }
 
 /** Status automatycznego importu metadanych Oracle (POC). */
@@ -67,6 +83,8 @@ export interface OracleMetadataStatusResponse {
   lastImportedAt: string | null;
   owners: string[];
   counts: OracleMetadataCounts;
+  /** Nazwy obiektów — wypełniane po imporcie (owner.object). */
+  objects: OracleMetadataObjects;
   pilotModule: string | null;
   tetaVersion: string | null;
   message?: string;

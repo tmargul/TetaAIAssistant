@@ -6,10 +6,10 @@ import {
   buildWizardExportPayload,
   computeWizardCompletedMap,
   downloadWizardExport,
-  oracleImportStatusLabel,
   WIZARD_STEP_LABELS,
   wizardStepIndex,
 } from './vendor-wizard.logic';
+import { oracleImportStatusLabel } from '../../lib/oracle-metadata';
 import {
   loadWizardState,
   resetWizardState,
@@ -95,8 +95,8 @@ export function VendorKnowledgeWizard({ health, onNavigate }: VendorKnowledgeWiz
       <div className="vendor-wizard__header">
         <p className="vendor-wizard__intro">
           Kreator nie zastępuje pracy — <strong>potwierdza postęp</strong> automatów: połączenie Oracle,
-          import metadanych, dokumentacja RAG i eksport paczki. Nie trzeba ręcznie budować schematu —
-          importer sam odczyta ALL_TABLES, widoki i zależności w podanym zakresie ownerów.
+          import metadanych, dokumentacja RAG i eksport paczki. Konfigurację Oracle i import metadanych
+          wykonujesz w menu <strong>Metadane Oracle</strong>.
         </p>
         <button type="button" className="vendor-wizard__btn" onClick={handleExportJson}>
           Eksportuj JSON (postęp POC)
@@ -152,8 +152,8 @@ export function VendorKnowledgeWizard({ health, onNavigate }: VendorKnowledgeWiz
             <>
               <h2 className="vendor-wizard__title">Dostęp Oracle (read-only)</h2>
               <p className="vendor-wizard__desc">
-                Zespół Tety dostarcza konto techniczne i listę ownerów (np. TETA_ADMIN, KP). Ty tylko
-                konfigurujesz połączenie — resztę zrobi importer.
+                Konto techniczne read-only od zespołu Tety — tylko widoki katalogowe. Skonfiguruj je w
+                menu Metadane Oracle.
               </p>
               <ul className="vendor-wizard__checklist vendor-wizard__checklist--status">
                 <StatusRow ok={oracleConfigured} label="Połączenie Oracle skonfigurowane" />
@@ -162,21 +162,16 @@ export function VendorKnowledgeWizard({ health, onNavigate }: VendorKnowledgeWiz
                   label={`Tryb: ${ctx.oracleStatus?.backendMode === 'real' ? 'prawdziwa baza' : 'fake (dev)'}`}
                 />
               </ul>
-              {metadata?.message && (
-                <div className={`vendor-wizard__status${oracleConfigured ? ' vendor-wizard__status--ok' : ' vendor-wizard__status--warn'}`}>
-                  {metadata.message}
-                </div>
-              )}
               <div className="vendor-wizard__actions">
                 <button
                   type="button"
                   className="vendor-wizard__btn vendor-wizard__btn--primary"
-                  onClick={() => navigateToSettings('oracle')}
+                  onClick={() => onNavigate('oracleMetadata')}
                 >
-                  Ustawienia → Oracle
+                  Metadane Oracle
                 </button>
-                <button type="button" className="vendor-wizard__btn" onClick={() => refresh()}>
-                  Odśwież
+                <button type="button" className="vendor-wizard__btn" onClick={() => void refresh()}>
+                  Odśwież status
                 </button>
               </div>
             </>
@@ -184,10 +179,10 @@ export function VendorKnowledgeWizard({ health, onNavigate }: VendorKnowledgeWiz
 
           {stepId === 'oracle-import' && (
             <>
-              <h2 className="vendor-wizard__title">Import metadanych (automat)</h2>
+              <h2 className="vendor-wizard__title">Import metadanych Oracle</h2>
               <p className="vendor-wizard__desc">
-                Importer sam pobierze tabele, kolumny, widoki, pakiety, procedury i zależności z Oracle.
-                Moduł pilotażowy POC: <strong>{metadata?.pilotModule ?? 'Kadry / Wykształcenie'}</strong>.
+                Importer pobierze tabele, kolumny, widoki, pakiety, procedury i zależności z Oracle.
+                Uruchamiasz go w menu Metadane Oracle — kreator pokazuje tu tylko postęp.
               </p>
               <ul className="vendor-wizard__checklist vendor-wizard__checklist--status">
                 <StatusRow ok={oracleConfigured} label="Połączenie Oracle" />
@@ -210,7 +205,7 @@ export function VendorKnowledgeWizard({ health, onNavigate }: VendorKnowledgeWiz
               </ul>
               {importRunning && (
                 <div className="vendor-wizard__status vendor-wizard__status--warn">
-                  Import w toku — postęp odświeża się automatycznie.
+                  Import w toku — postęp odświeża się automatycznie co ok. 20 s.
                 </div>
               )}
               {metadata?.status === 'done' && metadata.lastImportedAt && (
@@ -219,14 +214,20 @@ export function VendorKnowledgeWizard({ health, onNavigate }: VendorKnowledgeWiz
                   {metadata.tetaVersion ? ` · Teta ${metadata.tetaVersion}` : ''}
                 </div>
               )}
-              {!metadata?.available && metadata?.status !== 'done' && (
-                <div className="vendor-wizard__status vendor-wizard__status--soon">
-                  Importer w przygotowaniu — po wdrożeniu uruchomi się sam po skonfigurowaniu Oracle.
-                  Kreator pokaże liczniki obiektów bez ręcznego eksportu SQL.
+              {!oracleConfigured && (
+                <div className="vendor-wizard__status vendor-wizard__status--warn">
+                  Najpierw skonfiguruj połączenie w menu Metadane Oracle.
                 </div>
               )}
               <div className="vendor-wizard__actions">
-                <button type="button" className="vendor-wizard__btn" onClick={() => refresh()}>
+                <button
+                  type="button"
+                  className="vendor-wizard__btn vendor-wizard__btn--primary"
+                  onClick={() => onNavigate('oracleMetadata')}
+                >
+                  Metadane Oracle
+                </button>
+                <button type="button" className="vendor-wizard__btn" onClick={() => void refresh()}>
                   Odśwież postęp
                 </button>
               </div>
