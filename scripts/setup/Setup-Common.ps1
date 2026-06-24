@@ -216,6 +216,33 @@ function Ensure-Pnpm {
     Write-Host "  pnpm: $(pnpm -v)"
 }
 
+function Invoke-Pnpm {
+    param(
+        [Parameter(Mandatory = $true, ValueFromRemainingArguments = $true)]
+        [string[]]$Arguments
+    )
+
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & pnpm @Arguments 2>&1 | ForEach-Object {
+            if ($_ -is [System.Management.Automation.ErrorRecord]) {
+                $msg = $_.Exception.Message
+                if ($msg -match '\[WARN\]' -or $msg -match 'no longer read by pnpm') {
+                    Write-Host "    $msg" -ForegroundColor Yellow
+                } else {
+                    Write-Host "    $msg" -ForegroundColor DarkGray
+                }
+            } else {
+                Write-Host "    $_"
+            }
+        }
+        return $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prevEap
+    }
+}
+
 function Find-BetterSqlite3NativeBinding {
     $roots = @(
         (Join-Path $script:RepoRoot "node_modules\better-sqlite3"),
@@ -231,26 +258,41 @@ function Find-BetterSqlite3NativeBinding {
 }
 
 function Ensure-PnpmBuildAllowlist {
-    $pkgPath = Join-Path $script:RepoRoot "package.json"
-    if (-not (Test-Path $pkgPath)) { return }
+    $workspacePath = Join-Path $script:RepoRoot "pnpm-workspace.yaml"
+    $required = @('better-sqlite3', 'oracledb', '@nestjs/core', 'esbuild')
 
-    $raw = Get-Content $pkgPath -Raw
-    $pkg = $raw | ConvertFrom-Json
-    $required = @("better-sqlite3", "oracledb")
-    $list = @()
-    if ($pkg.pnpm -and $pkg.pnpm.onlyBuiltDependencies) {
-        $list = @($pkg.pnpm.onlyBuiltDependencies)
+    if (-not (Test-Path $workspacePath)) {
+        @"
+packages:
+  - 'apps/api'
+  - 'packages/*'
+onlyBuiltDependencies:
+  - better-sqlite3
+  - oracledb
+  - '@nestjs/core'
+  - esbuild
+"@ | Set-Content $workspacePath -Encoding UTF8
+        Write-Host "  Utworzono pnpm-workspace.yaml (onlyBuiltDependencies)" -ForegroundColor Yellow
+        return
     }
 
-    $missing = @($required | Where-Object { $list -notcontains $_ })
+    $content = Get-Content $workspacePath -Raw
+    $missing = @($required | Where-Object { $content -notmatch [regex]::Escape($_) })
     if ($missing.Count -eq 0) { return }
 
-    if (-not $pkg.pnpm) {
-        $pkg | Add-Member -NotePropertyName pnpm -NotePropertyValue ([PSCustomObject]@{}) -Force
+    if ($content -notmatch '(?m)^onlyBuiltDependencies\s*:') {
+        $content = $content.TrimEnd() + "`n`nonlyBuiltDependencies:`n"
+        foreach ($pkg in $required) {
+            $content += "  - $pkg`n"
+        }
+    } else {
+        foreach ($pkg in $missing) {
+            $content += "  - $pkg`n"
+        }
     }
-    $pkg.pnpm | Add-Member -NotePropertyName onlyBuiltDependencies -NotePropertyValue @($list + $missing) -Force
-    $pkg | ConvertTo-Json -Depth 10 | Set-Content $pkgPath -Encoding UTF8
-    Write-Host "  Uzupelniono pnpm.onlyBuiltDependencies: $($missing -join ', ')" -ForegroundColor Yellow
+
+    Set-Content $workspacePath -Value $content.TrimEnd() -Encoding UTF8
+    Write-Host "  Uzupelniono pnpm-workspace.yaml: $($missing -join ', ')" -ForegroundColor Yellow
 }
 
 function Assert-PnpmNativeDependencies {
@@ -263,19 +305,23 @@ function Assert-PnpmNativeDependencies {
 
     Ensure-PnpmBuildAllowlist
 
-    Write-Host "  pnpm approve-builds (better-sqlite3, oracledb)..."
-    pnpm approve-builds better-sqlite3 oracledb 2>&1 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+    $binding = Find-BetterSqlite3NativeBinding
+    if ($binding) {
+        Write-Host "  better_sqlite3.node: OK (bez przebudowy)" -ForegroundColor Green
+        Write-Host "    $binding" -ForegroundColor DarkGray
+        return
+    }
 
     Write-Host "  pnpm rebuild better-sqlite3..."
-    pnpm rebuild better-sqlite3
-    if ($LASTEXITCODE -ne 0) {
-        throw "pnpm rebuild better-sqlite3 nie powiodl sie (kod $LASTEXITCODE)."
+    $rebuildSqliteExit = Invoke-Pnpm rebuild better-sqlite3
+    if ($rebuildSqliteExit -ne 0) {
+        throw "pnpm rebuild better-sqlite3 nie powiodl sie (kod $rebuildSqliteExit)."
     }
 
     Write-Host "  pnpm rebuild oracledb..."
-    pnpm rebuild oracledb
-    if ($LASTEXITCODE -ne 0) {
-        throw "pnpm rebuild oracledb nie powiodl sie (kod $LASTEXITCODE)."
+    $rebuildOracleExit = Invoke-Pnpm rebuild oracledb
+    if ($rebuildOracleExit -ne 0) {
+        throw "pnpm rebuild oracledb nie powiodl sie (kod $rebuildOracleExit)."
     }
 
     $binding = Find-BetterSqlite3NativeBinding
@@ -306,8 +352,8 @@ function Install-ProjectDependencies {
 
     if ((Test-ProductionLayout) -and -not (Test-Path $nodeModules)) {
         Write-Host "  Paczka produkcyjna (online) — instalacja zaleznosci (pnpm install)..."
-        pnpm install
-        if ($LASTEXITCODE -ne 0) {
+        $installExit = Invoke-Pnpm install
+        if ($installExit -ne 0) {
             throw "pnpm install nie powiodl sie. Sprawdz polaczenie z internetem i uruchom setup ponownie."
         }
         Assert-PnpmNativeDependencies
@@ -319,8 +365,8 @@ function Install-ProjectDependencies {
         if (Test-Path $bundleStore) {
             $env:PNPM_STORE_DIR = $bundleStore
             Write-Host "  pnpm install --offline (store z paczki)"
-            pnpm install --offline
-            if ($LASTEXITCODE -ne 0) {
+            $offlineExit = Invoke-Pnpm install --offline
+            if ($offlineExit -ne 0) {
                 throw "pnpm install --offline nie powiodl sie."
             }
             Assert-PnpmNativeDependencies
@@ -329,8 +375,8 @@ function Install-ProjectDependencies {
         Write-Host "  Brak pnpm-store w paczce - probuje zwyklego pnpm install" -ForegroundColor Yellow
     }
 
-    pnpm install
-    if ($LASTEXITCODE -ne 0) {
+    $installExit = Invoke-Pnpm install
+    if ($installExit -ne 0) {
         throw "pnpm install nie powiodl sie."
     }
     Assert-PnpmNativeDependencies
@@ -698,8 +744,8 @@ function Import-GlobalRagFromBundle {
 
     Set-Location $script:RepoRoot
     Write-Host "  Import: $($ragFile.Name)"
-    pnpm rag:global:import --file "$($ragFile.FullName)"
-    if ($LASTEXITCODE -ne 0) {
+    $importExit = Invoke-Pnpm rag:global:import --file "$($ragFile.FullName)"
+    if ($importExit -ne 0) {
         throw "Import globalnego RAG nie powiódł się."
     }
     Write-Host "  RAG zaimportowany pomyślnie." -ForegroundColor Green

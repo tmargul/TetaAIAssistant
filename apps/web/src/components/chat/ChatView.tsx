@@ -506,8 +506,8 @@ export function ChatView({
           </div>
         </div>
       ) : (
-      <div className="chat__messages">
-        {messages.length === 0 ? (
+        <div className="chat__messages">
+          {messages.length === 0 ? (
           <div className="chat__empty">
             <div className="chat__empty-icon">
               <IconChat />
@@ -561,7 +561,7 @@ export function ChatView({
             <div ref={messagesEndRef} />
           </div>
         )}
-      </div>
+        </div>
       )}
 
       <div className="chat__input-area">

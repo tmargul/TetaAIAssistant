@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import type {
   ClientUpdatesStatusResponse,
+  GlobalRagImportResult,
   GlobalRagIngestResult,
   GlobalRagStatusResponse,
   OllamaModelPullStreamEvent,
   OllamaPullModel,
 } from '@teta/shared';
-import { formatRagSourceExtensions } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
+import { GlobalRagImportButton } from './GlobalRagImportButton';
 
 async function downloadPackage(
   url: string,
@@ -365,21 +366,16 @@ export function VendorPackagesPanel() {
       {message && <div className="settings__message settings__message--ok">{message}</div>}
       {error && <div className="settings__message settings__message--error">{error}</div>}
 
-      <div className="settings__package-layout">
-        <article className="settings__package-card settings__package-card--accent settings__package-card--rag">
+      <div className="settings__packages-grid">
+        <article className="settings__package-card settings__package-card--accent">
           <div className="settings__package-body">
             <h3 className="settings__package-title">RAG globalny</h3>
             <p className="settings__package-desc">
-              Po dodaniu materiałów w <strong>Źródła globalne</strong> zbuduj indeks wektorów w Qdrant,
-              a następnie pobierz paczkę <code>global-rag-X.zip</code> do wdrożeń u wszystkich klientów.
+              Źródła w <strong>Źródła globalne</strong>, budowa indeksu i eksport{' '}
+              <code>global-rag-X.zip</code>. Możesz też importować gotową paczkę.
             </p>
-            <ol className="settings__package-steps">
-              <li>Dodaj pliki ({formatRagSourceExtensions()}) w menu Źródła globalne</li>
-              <li>Kliknij „Zbuduj indeks RAG”</li>
-              <li>Podaj wersję i pobierz paczkę dla klientów</li>
-            </ol>
             {ragStatus && (
-              <dl className="settings__package-stats">
+              <dl className="settings__package-stats settings__package-stats--row">
                 <div>
                   <dt>Chunków</dt>
                   <dd>{ragStatus.chunkCount}</dd>
@@ -400,7 +396,7 @@ export function VendorPackagesPanel() {
             )}
             {!ragStatus?.chunkCount && (
               <p className="settings__package-warn">
-                Indeks pusty — najpierw dodaj pliki w Źródła globalne.
+                Indeks pusty — dodaj pliki w Źródła globalne lub importuj ZIP.
               </p>
             )}
           </div>
@@ -413,6 +409,20 @@ export function VendorPackagesPanel() {
             >
               {ragIngestLoading ? 'Indeksowanie…' : 'Zbuduj indeks RAG'}
             </button>
+            <GlobalRagImportButton
+              disabled={ragIngestLoading || ragLoading}
+              onStarted={() => {
+                setMessage(null);
+                setError(null);
+              }}
+              onSuccess={(imported: GlobalRagImportResult) => {
+                setMessage(
+                  `Zaimportowano RAG ${imported.version}: ${imported.chunkCount} chunków z ${imported.sources.length} plików.`,
+                );
+                loadRagStatus();
+              }}
+              onError={setError}
+            />
             <div className="settings__package-form">
               <input
                 className="settings__input"
@@ -432,163 +442,161 @@ export function VendorPackagesPanel() {
           </div>
         </article>
 
-        <div className="settings__package-grid">
-          <article className="settings__package-card">
-            <div className="settings__package-body">
-              <h3 className="settings__package-title">Instalacja vendor</h3>
-              <p className="settings__package-desc">
-                Stanowisko budowy globalnego RAG u Tety. <strong>Online</strong> (ZIP ~1–5 MB) —
-                setup pobiera zależności npm (~100–300 MB), Node, Ollamę, Qdrant i modele AI (~5–6 GB;
-                opcjonalnie deepseek-r1 ~15 GB).
-                <strong>Offline</strong> (~8–12 GB) — cała paczka bez sieci u celu.
-              </p>
-            </div>
-            <div className="settings__package-actions settings__package-actions--stack">
-              <button
-                type="button"
-                className="settings__btn"
-                onClick={handleVendorOnlineInstallExport}
-                disabled={vendorOnlineInstallLoading || vendorInstallLoading}
-              >
-                {vendorOnlineInstallLoading ? 'Przygotowywanie…' : 'Paczka vendor (online)'}
-              </button>
-              <button
-                type="button"
-                className="settings__btn settings__btn--secondary"
-                onClick={handleVendorInstallExport}
-                disabled={vendorInstallLoading || vendorOnlineInstallLoading}
-              >
-                {vendorInstallLoading ? 'Przygotowywanie…' : 'Paczka vendor (offline)'}
-              </button>
-            </div>
-          </article>
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">Instalacja vendor</h3>
+            <p className="settings__package-desc">
+              Stanowisko budowy globalnego RAG u Tety. <strong>Online</strong> (ZIP ~1–5 MB) —
+              setup pobiera zależności npm (~100–300 MB), Node, Ollamę, Qdrant i modele AI (~5–6 GB;
+              opcjonalnie deepseek-r1 ~15 GB).
+              <strong>Offline</strong> (~8–12 GB) — cała paczka bez sieci u celu.
+            </p>
+          </div>
+          <div className="settings__package-actions settings__package-actions--stack">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={handleVendorOnlineInstallExport}
+              disabled={vendorOnlineInstallLoading || vendorInstallLoading}
+            >
+              {vendorOnlineInstallLoading ? 'Przygotowywanie…' : 'Paczka vendor (online)'}
+            </button>
+            <button
+              type="button"
+              className="settings__btn settings__btn--secondary"
+              onClick={handleVendorInstallExport}
+              disabled={vendorInstallLoading || vendorOnlineInstallLoading}
+            >
+              {vendorInstallLoading ? 'Przygotowywanie…' : 'Paczka vendor (offline)'}
+            </button>
+          </div>
+        </article>
 
-          <article className="settings__package-card">
-            <div className="settings__package-body">
-              <h3 className="settings__package-title">Instalacja klienta</h3>
-              <p className="settings__package-desc">
-                Pełna instalacja u klienta. <strong>Online</strong> (ZIP ~1–5 MB) — setup pobiera
-                zależności npm i silnik AI z internetu; RAG osobno (<code>global-rag-X.zip</code>).
-                <strong>Offline</strong> (~8–12 GB) — wszystko w jednym ZIP, bez sieci u celu.
-              </p>
-            </div>
-            <div className="settings__package-actions settings__package-actions--stack">
-              <button
-                type="button"
-                className="settings__btn"
-                onClick={handleClientOnlineInstallExport}
-                disabled={clientOnlineInstallLoading || clientInstallLoading}
-              >
-                {clientOnlineInstallLoading ? 'Przygotowywanie…' : 'Paczka klienta (online)'}
-              </button>
-              <button
-                type="button"
-                className="settings__btn settings__btn--secondary"
-                onClick={handleClientInstallExport}
-                disabled={clientInstallLoading || clientOnlineInstallLoading}
-              >
-                {clientInstallLoading ? 'Przygotowywanie…' : 'Paczka klienta (offline)'}
-              </button>
-            </div>
-          </article>
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">Instalacja klienta</h3>
+            <p className="settings__package-desc">
+              Pełna instalacja u klienta. <strong>Online</strong> (ZIP ~1–5 MB) — setup pobiera
+              zależności npm i silnik AI z internetu; RAG osobno (<code>global-rag-X.zip</code>).
+              <strong>Offline</strong> (~8–12 GB) — wszystko w jednym ZIP, bez sieci u celu.
+            </p>
+          </div>
+          <div className="settings__package-actions settings__package-actions--stack">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={handleClientOnlineInstallExport}
+              disabled={clientOnlineInstallLoading || clientInstallLoading}
+            >
+              {clientOnlineInstallLoading ? 'Przygotowywanie…' : 'Paczka klienta (online)'}
+            </button>
+            <button
+              type="button"
+              className="settings__btn settings__btn--secondary"
+              onClick={handleClientInstallExport}
+              disabled={clientInstallLoading || clientOnlineInstallLoading}
+            >
+              {clientInstallLoading ? 'Przygotowywanie…' : 'Paczka klienta (offline)'}
+            </button>
+          </div>
+        </article>
 
-          <article className="settings__package-card">
-            <div className="settings__package-body">
-              <h3 className="settings__package-title">Aktualizacja aplikacji</h3>
-              <p className="settings__package-desc">
-                Tylko kod aplikacji (React + NestJS) — bez zmiany Ollamy, Qdrant ani bazy RAG. Rozpakuj
-                na istniejący katalog instalacji i uruchom <code>Aktualizuj-Aplikacje.bat</code>.
-              </p>
-            </div>
-            <div className="settings__package-actions">
-              <button
-                type="button"
-                className="settings__btn"
-                onClick={handleAppUpdateExport}
-                disabled={appUpdateLoading}
-              >
-                {appUpdateLoading ? 'Pakowanie…' : 'Pobierz paczkę aktualizacji'}
-              </button>
-            </div>
-          </article>
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">Aktualizacja aplikacji</h3>
+            <p className="settings__package-desc">
+              Tylko kod aplikacji (React + NestJS) — bez zmiany Ollamy, Qdrant ani bazy RAG. Rozpakuj
+              na istniejący katalog instalacji i uruchom <code>Aktualizuj-Aplikacje.bat</code>.
+            </p>
+          </div>
+          <div className="settings__package-actions">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={handleAppUpdateExport}
+              disabled={appUpdateLoading}
+            >
+              {appUpdateLoading ? 'Pakowanie…' : 'Pobierz paczkę aktualizacji'}
+            </button>
+          </div>
+        </article>
 
-          <article className="settings__package-card">
-            <div className="settings__package-body">
-              <h3 className="settings__package-title">Setup offline</h3>
-              <p className="settings__package-desc">
-                Sam silnik offline: Qdrant, Ollama, modele embedding/czat i pnpm store. Do odświeżenia
-                infrastruktury AI u klienta bez przebudowy aplikacji.
-              </p>
-            </div>
-            <div className="settings__package-actions settings__package-actions--stack">
-              <button
-                type="button"
-                className="settings__btn"
-                onClick={handleOfflineExport}
-                disabled={offlineLoading || modelsUpdateLoading}
-              >
-                {offlineLoading ? 'Przygotowywanie…' : 'Pobierz paczkę offline'}
-              </button>
-              <button
-                type="button"
-                className="settings__btn settings__btn--secondary"
-                onClick={handleModelsUpdateExport}
-                disabled={modelsUpdateLoading || offlineLoading}
-              >
-                {modelsUpdateLoading ? 'Pakowanie…' : 'Pobierz paczkę modeli'}
-              </button>
-            </div>
-          </article>
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">Setup offline</h3>
+            <p className="settings__package-desc">
+              Sam silnik offline: Qdrant, Ollama, modele embedding/czat i pnpm store. Do odświeżenia
+              infrastruktury AI u klienta bez przebudowy aplikacji.
+            </p>
+          </div>
+          <div className="settings__package-actions settings__package-actions--stack">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={handleOfflineExport}
+              disabled={offlineLoading || modelsUpdateLoading}
+            >
+              {offlineLoading ? 'Przygotowywanie…' : 'Pobierz paczkę offline'}
+            </button>
+            <button
+              type="button"
+              className="settings__btn settings__btn--secondary"
+              onClick={handleModelsUpdateExport}
+              disabled={modelsUpdateLoading || offlineLoading}
+            >
+              {modelsUpdateLoading ? 'Pakowanie…' : 'Pobierz paczkę modeli'}
+            </button>
+          </div>
+        </article>
 
-          <article className="settings__package-card">
-            <div className="settings__package-body">
-              <h3 className="settings__package-title">Modele czatu (Ollama)</h3>
+        <article className="settings__package-card">
+          <div className="settings__package-body">
+            <h3 className="settings__package-title">Modele czatu (Ollama)</h3>
+            <p className="settings__package-desc">
+              Domyślnie setup instaluje <strong>qwen3</strong> (szybki czat). Opcjonalnie{' '}
+              <strong>deepseek-r1</strong> (~15 GB) — wolniejszy, lepszy do trudniejszych pytań.
+              Wymaga internetu i działającej Ollamy.
+            </p>
+            {ollamaStatus?.ollama && (
               <p className="settings__package-desc">
-                Domyślnie setup instaluje <strong>qwen3</strong> (szybki czat). Opcjonalnie{' '}
-                <strong>deepseek-r1</strong> (~15 GB) — wolniejszy, lepszy do trudniejszych pytań.
-                Wymaga internetu i działającej Ollamy.
+                Ollama:{' '}
+                <strong>{ollamaStatus.ollama.status === 'ok' ? 'online' : 'offline'}</strong>
+                {ollamaStatus.ollama.status === 'ok' && (
+                  <>
+                    {' '}
+                    · zainstalowane modele czatu:{' '}
+                    {ollamaStatus.ollama.chatModels.length > 0
+                      ? ollamaStatus.ollama.chatModels.join(', ')
+                      : 'brak'}
+                  </>
+                )}
               </p>
-              {ollamaStatus?.ollama && (
-                <p className="settings__package-desc">
-                  Ollama:{' '}
-                  <strong>{ollamaStatus.ollama.status === 'ok' ? 'online' : 'offline'}</strong>
-                  {ollamaStatus.ollama.status === 'ok' && (
-                    <>
-                      {' '}
-                      · zainstalowane modele czatu:{' '}
-                      {ollamaStatus.ollama.chatModels.length > 0
-                        ? ollamaStatus.ollama.chatModels.join(', ')
-                        : 'brak'}
-                    </>
-                  )}
-                </p>
-              )}
-              {pullProgress && (
-                <p className="settings__package-desc settings__hint">{pullProgress}</p>
-              )}
-            </div>
-            <div className="settings__package-actions settings__package-actions--stack">
-              <button
-                type="button"
-                className="settings__btn"
-                onClick={() => void handlePullModel('deepseek-r1')}
-                disabled={pullingModel !== null || ollamaStatus?.ollama?.status !== 'ok'}
-              >
-                {pullingModel === 'deepseek-r1'
-                  ? 'Pobieranie deepseek-r1…'
-                  : 'Pobierz deepseek-r1 (online)'}
-              </button>
-              <button
-                type="button"
-                className="settings__btn settings__btn--secondary"
-                onClick={() => void handlePullModel('qwen3')}
-                disabled={pullingModel !== null || ollamaStatus?.ollama?.status !== 'ok'}
-              >
-                {pullingModel === 'qwen3' ? 'Pobieranie qwen3…' : 'Pobierz / odśwież qwen3'}
-              </button>
-            </div>
-          </article>
-        </div>
+            )}
+            {pullProgress && (
+              <p className="settings__package-desc settings__hint">{pullProgress}</p>
+            )}
+          </div>
+          <div className="settings__package-actions settings__package-actions--stack">
+            <button
+              type="button"
+              className="settings__btn"
+              onClick={() => void handlePullModel('deepseek-r1')}
+              disabled={pullingModel !== null || ollamaStatus?.ollama?.status !== 'ok'}
+            >
+              {pullingModel === 'deepseek-r1'
+                ? 'Pobieranie deepseek-r1…'
+                : 'Pobierz deepseek-r1 (online)'}
+            </button>
+            <button
+              type="button"
+              className="settings__btn settings__btn--secondary"
+              onClick={() => void handlePullModel('qwen3')}
+              disabled={pullingModel !== null || ollamaStatus?.ollama?.status !== 'ok'}
+            >
+              {pullingModel === 'qwen3' ? 'Pobieranie qwen3…' : 'Pobierz / odśwież qwen3'}
+            </button>
+          </div>
+        </article>
       </div>
     </div>
   );

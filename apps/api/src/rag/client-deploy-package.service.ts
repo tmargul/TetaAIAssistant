@@ -68,7 +68,7 @@ export class ClientDeployPackageService {
     await mkdir(appDir, { recursive: true });
 
     const appVersion = await this.readAppVersion(repoRoot);
-    await this.copyProductionClientLayout(repoRoot, appDir);
+    await this.copyProductionClientLayout(repoRoot, appDir, { includeNodeModules: false });
     await this.writeAppUpdateFiles(appDir, appVersion);
     await this.compilePackageInstaller(stagingDir, appDir, 'app-update', appVersion);
 
@@ -433,14 +433,25 @@ export class ClientDeployPackageService {
   }
 
   /** Paczka klienta: build client — bez modułu vendor w dist API. */
-  private async copyProductionClientLayout(repoRoot: string, targetDir: string): Promise<void> {
-    await this.copyProductionLayout(repoRoot, targetDir, 'client', [
-      'apps/api/dist',
-      'apps/web/dist',
-      'packages/shared/dist',
-      PRODUCTION_ENV_EXAMPLE,
-      'scripts/setup',
-    ]);
+  private async copyProductionClientLayout(
+    repoRoot: string,
+    targetDir: string,
+    options?: { includeNodeModules?: boolean },
+  ): Promise<void> {
+    await this.copyProductionLayout(
+      repoRoot,
+      targetDir,
+      'client',
+      [
+        'apps/api/dist',
+        'apps/web/dist',
+        'packages/shared/dist',
+        PRODUCTION_ENV_EXAMPLE,
+        'scripts/setup',
+        'pnpm-lock.yaml',
+      ],
+      options,
+    );
   }
 
   /** Paczka klienta online: bez offline-bundle i bez node_modules (setup pobiera z internetu). */
@@ -449,7 +460,7 @@ export class ClientDeployPackageService {
       repoRoot,
       targetDir,
       'client',
-      ['apps/api/dist', 'apps/web/dist', 'packages/shared/dist', PRODUCTION_ENV_EXAMPLE, 'scripts/setup'],
+      ['apps/api/dist', 'apps/web/dist', 'packages/shared/dist', PRODUCTION_ENV_EXAMPLE, 'scripts/setup', 'pnpm-lock.yaml'],
       { includeNodeModules: false },
     );
   }
@@ -495,7 +506,6 @@ export class ClientDeployPackageService {
     const rootPkg = JSON.parse(rootPkgRaw) as {
       packageManager?: string;
       engines?: { node?: string };
-      pnpm?: { onlyBuiltDependencies?: string[] };
     };
 
     const productionRootPkg = {
@@ -508,9 +518,6 @@ export class ClientDeployPackageService {
           : 'Teta AI Assistant — instalacja klienta (produkcja)',
       packageManager: rootPkg.packageManager ?? 'pnpm@10.28.1',
       engines: rootPkg.engines ?? { node: '>=22 <23' },
-      pnpm: rootPkg.pnpm ?? {
-        onlyBuiltDependencies: ['better-sqlite3', 'oracledb'],
-      },
     };
     await writeFile(
       path.join(targetDir, 'package.json'),
@@ -525,7 +532,18 @@ export class ClientDeployPackageService {
 
     await writeFile(
       path.join(targetDir, 'pnpm-workspace.yaml'),
-      "packages:\n  - 'apps/api'\n  - 'packages/*'\n",
+      [
+        "packages:",
+        "  - 'apps/api'",
+        "  - 'packages/*'",
+        '',
+        'onlyBuiltDependencies:',
+        '  - better-sqlite3',
+        '  - oracledb',
+        "  - '@nestjs/core'",
+        '  - esbuild',
+        '',
+      ].join('\n'),
       'utf8',
     );
 
@@ -537,6 +555,7 @@ export class ClientDeployPackageService {
         this.logger.log('Kopiowanie node_modules do paczki (może chwilę potrwać)…');
         await cp(nodeModulesSource, path.join(targetDir, 'node_modules'), {
           recursive: true,
+          dereference: true,
           filter: (src) => !src.includes(`${path.sep}.cache${path.sep}`),
         });
       } else {

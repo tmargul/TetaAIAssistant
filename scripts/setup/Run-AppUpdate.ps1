@@ -13,11 +13,11 @@ Write-Host "Aktualizacja aplikacji Teta AI w: $AppRoot" -ForegroundColor Green
 Ensure-Node
 Ensure-Pnpm
 
-pnpm install --offline
-if ($LASTEXITCODE -ne 0) {
+$offlineExit = Invoke-Pnpm install --offline
+if ($offlineExit -ne 0) {
     Write-Host "Probuje standardowy pnpm install..." -ForegroundColor Yellow
-    pnpm install
-    if ($LASTEXITCODE -ne 0) {
+    $installExit = Invoke-Pnpm install
+    if ($installExit -ne 0) {
         throw "Aktualizacja zaleznosci nie powiodla sie."
     }
 }

@@ -7,13 +7,9 @@ import type {
   OllamaPullModel,
 } from '@teta/shared';
 import { getAccessToken, authFetch } from '../../lib/auth-storage';
+import { GlobalRagImportButton } from './GlobalRagImportButton';
 import { ServerPathPicker } from './ServerPathPicker';
 import './settings.css';
-
-function formatDate(value: string | null): string {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('pl-PL');
-}
 
 function hasEmbeddingModel(models: string[]): boolean {
   return models.some((name) => name.split(':')[0].toLowerCase().includes('embed'));
@@ -45,11 +41,9 @@ function formatPullStatus(
 }
 
 export function ClientUpdatesPanel() {
-  const ragFileInputRef = useRef<HTMLInputElement>(null);
   const modelsFileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<ClientUpdatesStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [ragImporting, setRagImporting] = useState(false);
   const [modelsImporting, setModelsImporting] = useState(false);
   const [modelsPathImporting, setModelsPathImporting] = useState(false);
   const [pullingModel, setPullingModel] = useState<OllamaPullModel | null>(null);
@@ -130,14 +124,10 @@ export function ClientUpdatesPanel() {
     }
   };
 
-  const handleRagImport = (file: File) => {
-    void handleImportFile(file, '/api/admin/updates/global-rag/import', setRagImporting, (result) => {
-      const imported = result as GlobalRagImportResult;
-      setMessage(
-        `Zaimportowano RAG ${imported.version}: ${imported.chunkCount} chunków z ${imported.sources.length} plików.`,
-      );
-      if (ragFileInputRef.current) ragFileInputRef.current.value = '';
-    });
+  const handleRagImportSuccess = (imported: GlobalRagImportResult) => {
+    setMessage(
+      `Zaimportowano RAG ${imported.version}: ${imported.chunkCount} chunków z ${imported.sources.length} plików.`,
+    );
   };
 
   const handleModelsImport = (file: File) => {
@@ -304,20 +294,16 @@ export function ClientUpdatesPanel() {
         lub sieć). Przy dostępnym internecie modele można też pobrać bezpośrednio z Ollama.
       </p>
 
-      <div className="settings__updates-grid">
+      <div className="settings__packages-grid">
         <article className="settings__package-card settings__package-card--accent">
           <div className="settings__package-body">
             <h3 className="settings__package-title">RAG globalny (Teta)</h3>
             <p className="settings__package-desc">
-              Paczka <code>global-rag-X.zip</code> od zespołu Tety. Zastępuje bazę wiedzy w Qdrant
-              (<code>teta_global</code>).
+              Paczka <code>global-rag-X.zip</code> od zespołu Tety. Zastępuje bazę wiedzy w Qdrant (
+              <code>teta_global</code>).
             </p>
             {rag && (
-              <dl className="settings__package-stats">
-                <div>
-                  <dt>Wersja</dt>
-                  <dd>{rag.lastVersion ?? '—'}</dd>
-                </div>
+              <dl className="settings__package-stats settings__package-stats--row">
                 <div>
                   <dt>Chunków</dt>
                   <dd>{rag.chunkCount}</dd>
@@ -327,37 +313,34 @@ export function ClientUpdatesPanel() {
                   <dd>{rag.sources.length}</dd>
                 </div>
                 <div>
-                  <dt>Ostatni import</dt>
-                  <dd>{formatDate(rag.lastBuiltAt)}</dd>
+                  <dt>Wersja</dt>
+                  <dd>{rag.lastVersion ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Model</dt>
+                  <dd>{rag.embeddingModel}</dd>
                 </div>
               </dl>
             )}
             {!rag?.chunkCount && (
               <p className="settings__package-warn">
-                Baza RAG pusta — zaimportuj paczkę od Tety lub poproś IT o instalację.
+                Baza RAG pusta — zaimportuj paczkę od Tety.
               </p>
             )}
           </div>
           <div className="settings__package-actions settings__package-actions--stack">
-            <input
-              ref={ragFileInputRef}
-              type="file"
-              accept=".zip,application/zip"
-              className="settings__updates-file"
-              disabled={ragImporting}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleRagImport(file);
+            <GlobalRagImportButton
+              secondary={false}
+              onStarted={() => {
+                setMessage(null);
+                setError(null);
               }}
+              onSuccess={async (imported) => {
+                handleRagImportSuccess(imported);
+                await refreshStatus();
+              }}
+              onError={setError}
             />
-            <button
-              type="button"
-              className="settings__btn"
-              disabled={ragImporting}
-              onClick={() => ragFileInputRef.current?.click()}
-            >
-              {ragImporting ? 'Importowanie…' : 'Importuj paczkę RAG (ZIP)'}
-            </button>
           </div>
         </article>
 
@@ -485,6 +468,11 @@ export function ClientUpdatesPanel() {
               Aktualna wersja: <strong>{status?.appVersion ?? '—'}</strong>. Aktualizacja kodu wymaga
               dostępu IT — paczka od Tety, rozpakowanie na katalog instalacji i{' '}
               <code>Aktualizuj-Aplikacje.bat</code> (bez przycisku w panelu — restart aplikacji).
+            </p>
+          </div>
+          <div className="settings__package-actions">
+            <p className="settings__package-desc settings__package-desc--muted">
+              Aktualizacja przez IT — brak importu z panelu.
             </p>
           </div>
         </article>

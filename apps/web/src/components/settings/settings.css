@@ -210,6 +210,11 @@
   color: var(--text-primary);
 }
 
+.settings__packages,
+.settings__updates {
+  width: 100%;
+}
+
 .settings__packages-lead {
   margin: 0 0 0.75rem;
   font-size: 0.75rem;
@@ -217,7 +222,7 @@
   line-height: 1.4;
 }
 
-.settings__updates-grid {
+.settings__packages-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
@@ -225,11 +230,7 @@
   width: 100%;
 }
 
-.settings__updates-file {
-  display: none;
-}
-
-.settings__updates-grid .settings__package-card {
+.settings__packages-grid .settings__package-card {
   overflow: visible;
 }
 
@@ -452,27 +453,8 @@
   word-break: break-word;
 }
 
-.settings__package-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 2fr);
-  grid-template-rows: minmax(0, 1fr);
-  align-items: stretch;
-  gap: 0.75rem;
-  min-height: 18rem;
-}
-
-.settings__package-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  align-items: stretch;
-  gap: 0.75rem;
-  min-height: 0;
-}
-
-.settings__package-card--rag {
-  height: 100%;
-  min-height: 0;
+.settings__updates-file {
+  display: none;
 }
 
 .settings__package-card {
@@ -540,6 +522,11 @@
   font-size: 0.6875rem;
 }
 
+.settings__package-desc--muted {
+  font-size: 0.6875rem;
+  font-style: italic;
+}
+
 .settings__package-list {
   margin: 0.35rem 0 0;
   padding-left: 1rem;
@@ -565,6 +552,11 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.35rem 0.75rem;
   margin: 0.625rem 0 0;
+}
+
+.settings__package-stats--row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem 0.5rem;
 }
 
 .settings__package-stats div {
@@ -629,21 +621,9 @@
   background: var(--bg-card);
 }
 
-@media (max-width: 1024px) {
-  .settings__updates-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 900px) {
-  .settings__package-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    min-height: 0;
-  }
-
-  .settings__package-card--rag {
-    min-height: 0;
+@media (max-width: 1200px) {
+  .settings__packages-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -661,12 +641,15 @@
     grid-template-columns: 1fr;
   }
 
-  .settings__package-grid {
+  .settings__packages-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
   }
 
   .settings__package-card {
     min-height: 0;
+  }
+
+  .settings__package-stats--row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -29,13 +29,21 @@ export class VendorPackagesController {
 
   @Post('app-update/export')
   async exportAppUpdate(@Res() res: Response): Promise<void> {
-    const result = await this.clientDeployPackage.buildAppUpdateZip();
-    res.download(result.zipPath, result.filename, (err) => {
-      void rm(result.zipPath, { force: true });
-      if (err && !res.headersSent) {
-        res.status(500).json({ message: 'Nie udało się pobrać paczki aktualizacji aplikacji.' });
+    try {
+      const result = await this.clientDeployPackage.buildAppUpdateZip();
+      res.download(result.zipPath, result.filename, (err) => {
+        void rm(result.zipPath, { force: true });
+        if (err && !res.headersSent) {
+          res.status(500).json({ message: 'Nie udało się pobrać paczki aktualizacji aplikacji.' });
+        }
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Nie udało się zbudować paczki aktualizacji aplikacji.';
+      if (!res.headersSent) {
+        res.status(500).json({ message });
       }
-    });
+    }
   }
 
   @Post('client-install/export')
