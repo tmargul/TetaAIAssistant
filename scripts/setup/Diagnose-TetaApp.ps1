@@ -10,7 +10,14 @@ $ErrorActionPreference = "Continue"
 
 if (-not $InstallRoot) {
     $startBat = "C:\TetaAI\Start-App.bat"
-    if (Test-Path $startBat) {
+    $runner = "C:\TetaAI\run-api.cmd"
+    if (Test-Path $runner) {
+        $content = Get-Content $runner -Raw
+        if ($content -match 'set TETA_REPO_ROOT=(.+)') {
+            $InstallRoot = $Matches[1].Trim()
+            $script:RepoRoot = $InstallRoot
+        }
+    } elseif (Test-Path $startBat) {
         $content = Get-Content $startBat -Raw
         if ($content -match 'set TETA_REPO_ROOT=(.+)') {
             $InstallRoot = $Matches[1].Trim()
@@ -65,6 +72,16 @@ Test-ItemOk "apps\web\dist\index.html" { Test-Path (Join-Path $script:RepoRoot "
 Test-ItemOk "apps\api\.env" { Test-Path (Join-Path $script:RepoRoot "apps\api\.env") } | Out-Null
 Test-ItemOk "node_modules (pnpm install)" { Test-Path (Join-Path $script:RepoRoot "node_modules") } | Out-Null
 Test-ItemOk "C:\TetaAI\Start-App.bat" { Test-Path "C:\TetaAI\Start-App.bat" } | Out-Null
+$apiSvc = Get-Service "TetaAI-API" -ErrorAction SilentlyContinue
+if ($apiSvc) {
+    if ($apiSvc.Status -eq "Running") {
+        Write-Host "  [OK]   Usluga TetaAI-API" -ForegroundColor Green
+    } else {
+        Write-Host "  [BRAK] Usluga TetaAI-API zatrzymana" -ForegroundColor Red
+    }
+} else {
+    Write-Host "  [BRAK] Usluga TetaAI-API (uruchom setup jako Admin)" -ForegroundColor Yellow
+}
 
 Write-Host ""
 Write-Host "Usługi:" -ForegroundColor Cyan
@@ -91,16 +108,10 @@ try {
 } catch {
     Write-Host "  [BRAK] API nie odpowiada na http://localhost:3000" -ForegroundColor Red
     Write-Host ""
-    Write-Host "Uruchom aplikacje (okno CMD musi pozostac otwarte):" -ForegroundColor Yellow
+    Write-Host "Uruchom aplikacje (skrot otwiera przegladarke, backend dziala jako usluga):" -ForegroundColor Yellow
     Write-Host "  C:\TetaAI\Start-App.bat" -ForegroundColor White
-    Write-Host ""
-    Write-Host "Test reczny (PowerShell, Ctrl+C aby przerwac po starcie):" -ForegroundColor Yellow
-    $apiDir = Join-Path $script:RepoRoot "apps\api"
-    $webDist = Join-Path $script:RepoRoot "apps\web\dist"
-    Write-Host "  cd `"$apiDir`"" -ForegroundColor DarkGray
-    Write-Host "  `$env:TETA_REPO_ROOT=$script:RepoRoot" -ForegroundColor DarkGray
-    Write-Host "  `$env:WEB_DIST_PATH=$webDist" -ForegroundColor DarkGray
-    Write-Host "  node dist\main.js" -ForegroundColor DarkGray
+    Write-Host "  lub: net start TetaAI-API" -ForegroundColor White
+    Write-Host "  logi: C:\TetaAI\logs\api-service*.log" -ForegroundColor DarkGray
 }
 
 Write-Host ""

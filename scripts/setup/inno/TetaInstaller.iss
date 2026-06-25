@@ -26,18 +26,18 @@
 #if MyAppMode == "vendor"
   #if MyOffline == "1"
     #define MyAppName "Teta AI Assistant — Vendor (offline)"
-    #define MySetupArgs "-Mode vendor -Offline -BundlePath \"{app}\offline-bundle.zip\""
+    #define MySetupArgs "-Mode vendor -Offline -BundlePath \"{app}\offline-bundle.zip\" -NonInteractive"
   #else
     #define MyAppName "Teta AI Assistant — Vendor (online)"
-    #define MySetupArgs "-Mode vendor"
+    #define MySetupArgs "-Mode vendor -NonInteractive"
   #endif
 #else
   #if MyOffline == "1"
     #define MyAppName "Teta AI Assistant — Klient (offline)"
-    #define MySetupArgs "-Mode client -Offline -BundlePath \"{app}\offline-bundle.zip\""
+    #define MySetupArgs "-Mode client -Offline -BundlePath \"{app}\offline-bundle.zip\" -NonInteractive"
   #else
     #define MyAppName "Teta AI Assistant — Klient (online)"
-    #define MySetupArgs "-Mode client"
+    #define MySetupArgs "-Mode client -NonInteractive"
   #endif
 #endif
 
@@ -84,6 +84,12 @@ Filename: "powershell.exe"; \
   StatusMsg: "Konfiguracja środowiska (Node, Ollama, Qdrant, modele)…"; \
   Flags: runhidden waituntilterminated; \
   Description: "Konfiguracja Teta AI Assistant"
+
+[UninstallRun]
+Filename: "C:\TetaAI\tools\nssm.exe"; Parameters: "stop TetaAI-API"; Flags: runhidden skipifdoesntexist
+Filename: "C:\TetaAI\tools\nssm.exe"; Parameters: "remove TetaAI-API confirm"; Flags: runhidden skipifdoesntexist
+Filename: "C:\TetaAI\tools\nssm.exe"; Parameters: "stop TetaAI-Qdrant"; Flags: runhidden skipifdoesntexist
+Filename: "C:\TetaAI\tools\nssm.exe"; Parameters: "remove TetaAI-Qdrant confirm"; Flags: runhidden skipifdoesntexist
 
 [UninstallDelete]
 Type: filesandordirs; Name: "C:\TetaAI"

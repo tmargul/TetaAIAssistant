@@ -143,6 +143,49 @@ export class QdrantService {
     });
   }
 
+  /** Usuwa punkty, których source zaczyna się od podanego prefiksu (jedno żądanie Qdrant). */
+  async deletePointsBySourcePrefix(collection: string, sourcePrefix: string): Promise<void> {
+    const prefix = sourcePrefix.trim();
+    if (!prefix) return;
+
+    await this.request(`/collections/${collection}/points/delete?wait=true`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filter: {
+          must: [{ key: 'source', match: { text: prefix } }],
+        },
+      }),
+    });
+  }
+
+  /** Usuwa wiele źródeł w paczkach (OR w filtrze) zamiast pojedynczych żądań. */
+  async deletePointsBySourcesBatched(
+    collection: string,
+    sources: string[],
+    batchSize = 150,
+    onBatch?: (done: number, total: number) => void,
+  ): Promise<void> {
+    if (sources.length === 0) return;
+
+    for (let index = 0; index < sources.length; index += batchSize) {
+      const batch = sources.slice(index, index + batchSize);
+      await this.request(`/collections/${collection}/points/delete?wait=true`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filter: {
+            should: batch.map((source) => ({
+              key: 'source',
+              match: { value: source },
+            })),
+          },
+        }),
+      });
+      onBatch?.(Math.min(index + batch.length, sources.length), sources.length);
+    }
+  }
+
   async getPointsCount(collection: string): Promise<number> {
     try {
       const info = await this.request<{

@@ -108,10 +108,14 @@ export class RealOracleClient implements OracleClient {
 
   private formatOracleError(err: unknown): string {
     if (err instanceof Error) {
-      if (err.message.includes('NJS-')) {
-        return `${err.message} — upewnij się, że Oracle Instant Client jest zainstalowany na serwerze.`;
+      const message = err.message;
+      if (message.includes('NJS-510') || message.includes('transportConnectTimeout')) {
+        return `${message} — host Oracle jest nieosiągalny (sprawdź, czy VM działa, IP i firewall na porcie 1521).`;
       }
-      return err.message;
+      if (message.includes('NJS-')) {
+        return message;
+      }
+      return message;
     }
     return 'Nieznany błąd połączenia z Oracle.';
   }

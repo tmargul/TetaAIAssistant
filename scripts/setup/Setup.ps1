@@ -7,7 +7,7 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode vendor
 #   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode client
 #   powershell -ExecutionPolicy Bypass -File scripts\setup\Setup.ps1 -Mode client -Offline -BundlePath D:\media\teta-offline-bundle.zip
-#   Setup online (vendor i client) pyta opcjonalnie o deepseek-r1 (~15 GB, wymaga internetu).
+#   Domyślnie bez pytań w terminalu. Opcjonalnie: -Interactive (wybór trybu, deepseek-r1).
 
 param(
     [Parameter()]
@@ -20,13 +20,21 @@ param(
 
     [string]$BundlePath = "",
 
-    [switch]$NoStart
+    [switch]$NoStart,
+
+    [switch]$NonInteractive,
+
+    [switch]$Interactive
 )
 
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\Setup-Common.ps1"
 
 if (-not $Mode) {
+    if (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Interactive) {
+        throw "Parametr -Mode (vendor|client) jest wymagany. Przyklad: -Mode vendor"
+    }
+
     Write-Host ""
     Write-Host "Teta AI Assistant - instalacja" -ForegroundColor Green
     Write-Host "  1  client  - instalacja u klienta (intranet)"
@@ -70,7 +78,7 @@ Wait-OllamaReady
 if ($isVendor) {
     Install-OllamaModels @("nomic-embed-text", "qwen3")
     if (-not $Offline) {
-        Invoke-OptionalDeepseekInstall
+        Invoke-OptionalDeepseekInstall -Interactive:$Interactive
     }
     Ensure-VideoIngestTools -InstallRoot $InstallRoot
 } elseif ($Offline) {
@@ -79,7 +87,7 @@ if ($isVendor) {
     Write-Host "Modele offline: skopiowano z paczki (deepseek-r1 tylko jesli byl w paczce IT)." -ForegroundColor DarkGray
 } else {
     Install-OllamaModels @("nomic-embed-text", "qwen3")
-    Invoke-OptionalDeepseekInstall
+    Invoke-OptionalDeepseekInstall -Interactive:$Interactive
 }
 
 Register-QdrantService -NssmExe $nssmExe -QdrantExe $qdrantExe
@@ -90,6 +98,7 @@ if (-not $isVendor -and $Offline) {
 }
 
 Write-StartAppScript -InstallRoot $InstallRoot
+Register-ApiService -NssmExe $nssmExe -InstallRoot $InstallRoot
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
@@ -98,9 +107,10 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Usługi:"
 Write-Host "  Qdrant  - usługa Windows: TetaAI-Qdrant (autostart)"
+Write-Host "  API     - usługa Windows: TetaAI-API (autostart, bez terminala)"
 Write-Host "  Ollama  - autostart przez instalator Ollama"
 Write-Host ""
-Write-Host "Uruchom aplikację:"
+Write-Host "Uruchom aplikację (otwiera przeglądarkę):"
 Write-Host "  $InstallRoot\Start-App.bat"
 if (-not (Test-ProductionLayout)) {
     Write-Host "  lub: pnpm dev"
@@ -155,4 +165,8 @@ if (-not $NoStart) {
             Write-Host "Pamietaj: zaimportuj RAG — Aktualizuj-RAG.bat lub pnpm rag:global:import" -ForegroundColor Yellow
         }
     }
+}
+
+if (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Interactive) {
+    exit 0
 }

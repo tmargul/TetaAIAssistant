@@ -4,8 +4,28 @@ $ErrorActionPreference = "Stop"
 
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $script:QdrantServiceName = "TetaAI-Qdrant"
+$script:ApiServiceName = "TetaAI-API"
 $script:OfflineMode = $false
 $script:OfflineBundlePath = $null
+
+function Test-SetupNonInteractive {
+    param(
+        [switch]$NonInteractive,
+        [switch]$Interactive
+    )
+
+    if ($Interactive) {
+        return $false
+    }
+    if ($NonInteractive) {
+        return $true
+    }
+    if ($env:TETA_SETUP_NONINTERACTIVE -eq '1') {
+        return $true
+    }
+    # Domyślnie bez pytań w terminalu (instalatory, .bat, pnpm setup:*).
+    return $true
+}
 
 function Find-DefaultOfflineBundlePath {
     $repo = $script:RepoRoot
@@ -449,12 +469,20 @@ function Install-OllamaModels([string[]]$Models) {
 }
 
 function Invoke-OptionalDeepseekInstall {
+    param([switch]$Interactive)
+
     Write-Host ""
     Write-Host "Opcjonalny model deepseek-r1 (~15 GB):" -ForegroundColor Yellow
     Write-Host "  - wolniejszy (szczegolnie na CPU), do trudniejszych pytan w czacie"
     Write-Host "  - wymaga internetu podczas instalacji (ollama pull)"
     Write-Host "  - w wiekszosci wdrozen wystarczy domyslny czat: qwen3"
     Write-Host ""
+    if (Test-SetupNonInteractive -Interactive:$Interactive) {
+        Write-Host "  Instalacja nieinteraktywna — pomijam deepseek-r1 (domyslnie: qwen3)." -ForegroundColor Green
+        Write-Host "  Pozniej recznie: ollama pull deepseek-r1"
+        return
+    }
+
     $answer = Read-Host "Doinstalowac deepseek-r1 teraz? [t/N]"
     if ($answer -match '^[tTyY]') {
         Install-OllamaModels @("deepseek-r1")
@@ -606,6 +634,77 @@ function Register-QdrantService([string]$NssmExe, [string]$QdrantExe) {
     Write-Host "  Usluga $script:QdrantServiceName uruchomiona (autostart po restarcie Windows)." -ForegroundColor Green
 }
 
+function Write-ApiServiceRunnerScript([string]$InstallRoot) {
+    $nodeExe = Get-NodeExecutablePath
+    $runnerPath = Join-Path $InstallRoot "run-api.cmd"
+    $apiDir = Join-Path $script:RepoRoot "apps\api"
+    $webDist = Join-Path $script:RepoRoot "apps\web\dist"
+
+    $runner = @"
+@echo off
+set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%LocalAppData%\Programs\nodejs;%PATH%"
+cd /d "$apiDir"
+set TETA_REPO_ROOT=$script:RepoRoot
+set WEB_DIST_PATH=$webDist
+set PORT=3000
+"$nodeExe" dist\main.js
+"@
+
+    Set-Content -Path $runnerPath -Value $runner -Encoding ASCII
+    return $runnerPath
+}
+
+function Register-ApiService([string]$NssmExe, [string]$InstallRoot) {
+    if (-not (Test-ProductionLayout)) {
+        Write-Host "  Pomijam usluge API (brak buildu produkcyjnego — tryb dev)." -ForegroundColor DarkGray
+        return
+    }
+
+    Write-Step "Rejestracja uslugi Windows: $script:ApiServiceName"
+    $runner = Write-ApiServiceRunnerScript $InstallRoot
+    $logDir = Join-Path $InstallRoot "logs"
+    New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+
+    $existing = Get-Service $script:ApiServiceName -ErrorAction SilentlyContinue
+    if ($existing) {
+        Write-Host "  Usuwanie poprzedniej konfiguracji uslugi API..."
+        if ($existing.Status -eq "Running") {
+            Stop-Service $script:ApiServiceName -Force
+        }
+        Invoke-Nssm -NssmExe $NssmExe -Arguments @('remove', $script:ApiServiceName, 'confirm')
+        Start-Sleep -Seconds 2
+    }
+
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('install', $script:ApiServiceName, $runner)
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('set', $script:ApiServiceName, 'AppDirectory', $InstallRoot)
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('set', $script:ApiServiceName, 'DisplayName', 'Teta AI Assistant API')
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('set', $script:ApiServiceName, 'Description', 'Backend NestJS + UI Teta AI Assistant (port 3000)')
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('set', $script:ApiServiceName, 'Start', 'SERVICE_AUTO_START')
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('set', $script:ApiServiceName, 'AppStdout', (Join-Path $logDir 'api-service.log'))
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('set', $script:ApiServiceName, 'AppStderr', (Join-Path $logDir 'api-service-error.log'))
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('set', $script:ApiServiceName, 'AppRotateFiles', '1')
+    Invoke-Nssm -NssmExe $NssmExe -Arguments @('set', $script:ApiServiceName, 'AppRotateBytes', '1048576')
+
+    Start-Service $script:ApiServiceName
+    Write-Host "  Usluga $script:ApiServiceName uruchomiona (autostart, bez okna terminala)." -ForegroundColor Green
+}
+
+function Start-ApiService {
+    $existing = Get-Service $script:ApiServiceName -ErrorAction SilentlyContinue
+    if (-not $existing) {
+        return $false
+    }
+    if ($existing.Status -ne "Running") {
+        Start-Service $script:ApiServiceName
+    }
+    return $true
+}
+
+function Open-TetaApplicationInBrowser {
+    $url = if (Test-ProductionLayout) { "http://localhost:3000/" } else { "http://localhost:5173/" }
+    Start-Process $url | Out-Null
+}
+
 function Wait-QdrantReady([string]$InstallRoot) {
     Write-Step "Oczekiwanie na uruchomienie Qdrant"
     $deadline = (Get-Date).AddMinutes(2)
@@ -687,29 +786,16 @@ function Get-NodeExecutablePath {
 function Write-StartAppScript([string]$InstallRoot) {
     Write-Step "Tworzenie skryptu startowego aplikacji"
     New-Item -ItemType Directory -Force -Path $InstallRoot | Out-Null
-    $nodeExe = Get-NodeExecutablePath
 
     if (Test-ProductionLayout) {
         $startApp = @"
 @echo off
 title Teta AI Assistant
-set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%LocalAppData%\Programs\nodejs;%PATH%"
-cd /d "$script:RepoRoot\apps\api"
-set TETA_REPO_ROOT=$script:RepoRoot
-set WEB_DIST_PATH=$script:RepoRoot\apps\web\dist
-set PORT=3000
-echo Uruchamianie Teta AI Assistant (API + UI)...
-echo Adres: http://localhost:3000
-echo.
-"$nodeExe" dist\main.js
-if errorlevel 1 (
-  echo.
-  echo Aplikacja nie wystartowala. Uruchom diagnostyke:
-  echo   powershell -ExecutionPolicy Bypass -File "$script:RepoRoot\scripts\setup\Diagnose-TetaApp.ps1"
-  echo.
-  pause
-  exit /b 1
-)
+REM Skrot uzytkownika: uruchamia usluge API w tle i otwiera przegladarke.
+net start $script:ApiServiceName >nul 2>&1
+timeout /t 2 /nobreak >nul
+start "" "http://localhost:3000/"
+exit /b 0
 "@
     } else {
         $startApp = @"
@@ -798,6 +884,15 @@ function Wait-ApplicationReady {
 
 function Start-Application([string]$InstallRoot) {
     Write-Step "Uruchamianie aplikacji Teta AI"
+    if (Test-ProductionLayout) {
+        if (-not (Start-ApiService)) {
+            throw "Brak uslugi $script:ApiServiceName. Uruchom setup ponownie jako Administrator."
+        }
+        Wait-ApplicationReady
+        Open-TetaApplicationInBrowser
+        return
+    }
+
     $batPath = Join-Path $InstallRoot "Start-App.bat"
     if (-not (Test-Path $batPath)) {
         throw "Brak skryptu startowego: $batPath"
@@ -824,6 +919,26 @@ function Test-ServicesHealth {
         Write-Host "  Qdrant: OK (usługa $script:QdrantServiceName)" -ForegroundColor Green
     } catch {
         Write-Host "  Qdrant: niedostępna - sprawdź usługę $script:QdrantServiceName" -ForegroundColor Yellow
+        $ok = $false
+    }
+
+    $apiSvc = Get-Service $script:ApiServiceName -ErrorAction SilentlyContinue
+    if ($apiSvc) {
+        if ($apiSvc.Status -eq "Running") {
+            Write-Host "  API: OK (usługa $script:ApiServiceName)" -ForegroundColor Green
+        } else {
+            Write-Host "  API: usługa $script:ApiServiceName zatrzymana" -ForegroundColor Yellow
+            $ok = $false
+        }
+    }
+
+    try {
+        Invoke-RestMethod -Uri "http://127.0.0.1:3000/api/health" -TimeoutSec 5 | Out-Null
+        Write-Host "  Aplikacja: OK (http://localhost:3000)" -ForegroundColor Green
+    } catch {
+        if ($apiSvc) {
+            Write-Host "  Aplikacja: API nie odpowiada — sprawdź logi w C:\TetaAI\logs" -ForegroundColor Yellow
+        }
         $ok = $false
     }
 

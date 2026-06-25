@@ -60,12 +60,23 @@ export interface OracleMetadataCounts {
   functions: number;
 }
 
+/** Rzeczywiste liczby obiektów w katalogu Oracle (z ostatniego importu). */
+export type OracleMetadataCatalogTotals = OracleMetadataCounts;
+
 export type OracleMetadataObjectKind =
   | 'tables'
   | 'views'
   | 'packages'
   | 'procedures'
   | 'functions';
+
+export interface OracleMetadataObjectsPageResponse {
+  kind: OracleMetadataObjectKind;
+  total: number;
+  offset: number;
+  limit: number;
+  items: string[];
+}
 
 export interface OracleMetadataObjects {
   tables: string[];
@@ -83,9 +94,17 @@ export interface OracleMetadataStatusResponse {
   lastImportedAt: string | null;
   owners: string[];
   counts: OracleMetadataCounts;
-  /** Nazwy obiektów — wypełniane po imporcie (owner.object). */
+  /** Nazwy obiektów — pobieraj przez GET /api/oracle/metadata/objects (paginacja). */
   objects: OracleMetadataObjects;
+  /** Czy listy nazw są dostępne po zakończonym imporcie. */
+  objectListsAvailable?: boolean;
   pilotModule: string | null;
   tetaVersion: string | null;
+  /** Pełne liczby w katalogu Oracle (jeśli znane z ostatniego importu). */
+  catalogTotals?: OracleMetadataCatalogTotals | null;
+  /** 0–100 podczas importu (queued/running). */
+  progress?: number | null;
+  /** Szczegółowy opis etapu importu. */
+  progressMessage?: string | null;
   message?: string;
 }

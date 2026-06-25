@@ -42,7 +42,7 @@ Source: "{#PayloadDir}\scripts\setup\*"; DestDir: "{app}\scripts\setup"; Flags: 
 
 [Run]
 Filename: "powershell.exe"; \
-  Parameters: "-ExecutionPolicy Bypass -NoProfile -File ""{app}\scripts\setup\Run-OfflineBundleSetup.ps1"" -BundlePath ""{app}"" -Mode {#MyAppMode}"; \
+  Parameters: "-ExecutionPolicy Bypass -NoProfile -File ""{app}\scripts\setup\Run-OfflineBundleSetup.ps1"" -BundlePath ""{app}"" -Mode {#MyAppMode} -NonInteractive"; \
   WorkingDir: "{app}"; \
   StatusMsg: "Instalacja Qdrant, Ollama i modeli…"; \
   Flags: runhidden waituntilterminated

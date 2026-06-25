@@ -34,6 +34,12 @@ export class GlobalRagChunksImportService {
   async importFromJsonlFile(
     inputPath: string,
     importMode: RagImportMode = 'replace',
+    options?: {
+      onEmbedProgress?: (embedded: number, total: number) => void;
+      onPrepareProgress?: (message: string, done: number, total: number) => void;
+      /** Zamiast kasować każde źródło osobno — jedno kasowanie po prefiksie (np. oracle-metadata/). */
+      replaceSourcePrefix?: string;
+    },
   ): Promise<GlobalRagChunksImportResult> {
     const resolved = path.resolve(inputPath);
     await access(resolved);
@@ -74,8 +80,35 @@ export class GlobalRagChunksImportService {
         this.qdrant.globalCollection,
         this.embedding.dimensions,
       );
-      for (const source of sources) {
-        await this.qdrant.deletePointsBySource(this.qdrant.globalCollection, source);
+
+      const prefix = options?.replaceSourcePrefix?.trim();
+      if (prefix) {
+        options?.onPrepareProgress?.(`Usuwanie poprzednich chunków (${prefix}*)…`, 0, 1);
+        try {
+          await this.qdrant.deletePointsBySourcePrefix(this.qdrant.globalCollection, prefix);
+        } catch (err) {
+          this.logger.warn(
+            `Kasowanie po prefiksie nie powiodło się, fallback na paczki źródeł: ${String(err)}`,
+          );
+          await this.qdrant.deletePointsBySourcesBatched(
+            this.qdrant.globalCollection,
+            sources,
+            150,
+            (done, total) => {
+              options?.onPrepareProgress?.(`Czyszczenie starych chunków: ${done}/${total} źródeł…`, done, total);
+            },
+          );
+        }
+        options?.onPrepareProgress?.('Przygotowanie indeksu zakończone.', 1, 1);
+      } else {
+        await this.qdrant.deletePointsBySourcesBatched(
+          this.qdrant.globalCollection,
+          sources,
+          150,
+          (done, total) => {
+            options?.onPrepareProgress?.(`Czyszczenie starych chunków: ${done}/${total} źródeł…`, done, total);
+          },
+        );
       }
     }
 
@@ -91,6 +124,7 @@ export class GlobalRagChunksImportService {
           payload: item.payload,
         })),
       );
+      options?.onEmbedProgress?.(Math.min(i + batch.length, prepared.length), prepared.length);
     }
 
     const chunkCount =

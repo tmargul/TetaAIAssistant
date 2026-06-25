@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { ChunkingService } from './chunking.service';
@@ -12,7 +12,7 @@ import { RagRetrievalService } from './rag-retrieval.service';
 import { RagAssetsController } from './rag-assets.controller';
 
 @Module({
-  imports: [DatabaseModule, AuthModule],
+  imports: [DatabaseModule, forwardRef(() => AuthModule)],
   controllers: [RagAssetsController],
   providers: [
     ChunkingService,

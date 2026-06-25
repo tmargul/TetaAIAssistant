@@ -32,3 +32,27 @@ export function formatOracleConnectionSummary(config: OracleConnectionConfig): s
   const idLabel = config.identifierType === 'serviceName' ? 'Service' : 'SID';
   return `${config.host ?? '—'}:${config.port ?? 1521} · ${idLabel}: ${config.identifier ?? '—'} · ${config.username}`;
 }
+
+export function formatOracleMetadataStatValue(
+  imported: number,
+  total?: number | null,
+): string {
+  if (total != null && total > imported) {
+    return `${imported} / ${total}`;
+  }
+  return String(imported);
+}
+
+export function hasOracleMetadataTruncation(
+  counts: { tables: number; views: number; packages: number; procedures: number; functions: number },
+  totals?: { tables: number; views: number; packages: number; procedures: number; functions: number } | null,
+): boolean {
+  if (!totals) return false;
+  return (
+    totals.tables > counts.tables ||
+    totals.views > counts.views ||
+    totals.packages > counts.packages ||
+    totals.procedures > counts.procedures ||
+    totals.functions > counts.functions
+  );
+}

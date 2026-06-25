@@ -31,3 +31,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "Import RAG nie powiodl sie (kod $LASTEXITCODE)."
 }
 Write-Host "Import RAG zakonczony." -ForegroundColor Green
+exit 0

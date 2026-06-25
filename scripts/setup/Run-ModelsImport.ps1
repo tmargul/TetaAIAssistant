@@ -32,3 +32,4 @@ Get-ChildItem $modelsSource -Recurse -File | ForEach-Object {
 
 Write-Host "Modele skopiowane do $ollamaModels" -ForegroundColor Green
 Write-Host "Import modeli zakonczony. Uruchom ponownie Ollama jesli modele nie sa widoczne." -ForegroundColor Yellow
+exit 0

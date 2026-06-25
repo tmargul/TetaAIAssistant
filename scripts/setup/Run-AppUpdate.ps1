@@ -25,11 +25,16 @@ if ($offlineExit -ne 0) {
 Assert-PnpmNativeDependencies
 
 $startBat = "C:\TetaAI\Start-App.bat"
-if (Test-Path $startBat) {
-    Write-Host "Uruchamianie aplikacji..." -ForegroundColor Green
+$apiService = "TetaAI-API"
+$apiSvc = Get-Service $apiService -ErrorAction SilentlyContinue
+if ($apiSvc) {
+    Write-Host "Restart uslugi $apiService..." -ForegroundColor Green
+    Restart-Service $apiService -Force
+} elseif (Test-Path $startBat) {
     Start-Process $startBat
 } else {
-    Write-Host "Brak C:\TetaAI\Start-App.bat — uruchom aplikacje recznie." -ForegroundColor Yellow
+    Write-Host "Brak uslugi $apiService i $startBat — uruchom aplikacje recznie." -ForegroundColor Yellow
 }
 
 Write-Host "Aktualizacja zakonczona." -ForegroundColor Green
+exit 0

@@ -8,6 +8,7 @@ import type {
   VideoIngestJobsListResponse,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
+import { readResponseJson } from '../../lib/read-response-json';
 import {
   computeWizardCompletedMap,
   countMp4Sources,
@@ -68,7 +69,7 @@ export function useVendorWizardSnapshot(health: SystemHealthResponse | null): Ve
         setOracleStatus((await oracleRes.json()) as OracleConnectionStatusResponse);
       }
       if (metadataRes.ok) {
-        setOracleMetadata((await metadataRes.json()) as OracleMetadataStatusResponse);
+        setOracleMetadata(await readResponseJson<OracleMetadataStatusResponse>(metadataRes));
       }
     } catch {
       // opcjonalne — kreator działa na danych lokalnych

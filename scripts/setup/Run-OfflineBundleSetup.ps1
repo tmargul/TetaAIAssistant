@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$BundlePath,
     [ValidateSet("vendor", "client")]
-    [string]$Mode = "client"
+    [string]$Mode = "client",
+    [switch]$NonInteractive
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,7 +12,8 @@ if (-not (Test-Path $setupScript)) {
     throw "Brak Setup.ps1 obok tego skryptu."
 }
 
-& $setupScript -Mode $Mode -Offline -BundlePath $BundlePath -NoStart
+& $setupScript -Mode $Mode -Offline -BundlePath $BundlePath -NoStart -NonInteractive
 if ($LASTEXITCODE -ne 0) {
     throw "Instalacja silnika offline nie powiodla sie."
 }
+exit 0

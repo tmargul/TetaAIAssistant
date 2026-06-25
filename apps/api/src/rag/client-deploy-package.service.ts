@@ -588,7 +588,7 @@ export class ClientDeployPackageService {
       '   .\\Instaluj-Klienta.bat',
       '',
       '   lub recznie:',
-      '   powershell -ExecutionPolicy Bypass -File scripts\\setup\\Setup.ps1 -Mode client -Offline -BundlePath .\\offline-bundle.zip',
+      '   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\setup\\Setup.ps1 -Mode client -Offline -BundlePath .\\offline-bundle.zip -NonInteractive',
       '',
       '4. Setup automatycznie:',
       '   - zainstaluje Node, Ollama, Qdrant, zaleznosci',
@@ -611,7 +611,7 @@ export class ClientDeployPackageService {
       '@echo off',
       'title Teta AI Assistant - instalacja klienta (offline)',
       'cd /d "%~dp0"',
-      'powershell -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -Offline -BundlePath "%~dp0offline-bundle.zip"',
+      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -Offline -BundlePath "%~dp0offline-bundle.zip" -NonInteractive',
       'if errorlevel 1 (',
       '  echo.',
       '  echo Instalacja nie powiodla sie.',
@@ -620,8 +620,8 @@ export class ClientDeployPackageService {
       ')',
       'echo.',
       'echo Instalacja zakonczona — aplikacja powinna byc juz uruchomiona.',
-      'echo Jesli nie: C:\\TetaAI\\Start-App.bat',
-      'pause',
+      'echo Otworz przegladarke: C:\\TetaAI\\Start-App.bat',
+      'exit /b 0',
     ].join('\r\n');
 
     const updateRagBat = [
@@ -634,7 +634,13 @@ export class ClientDeployPackageService {
       '  exit /b 1',
       ')',
       'pnpm rag:global:import --file "%~1"',
-      'pause',
+      'if errorlevel 1 (',
+      '  echo Import RAG nie powiodl sie.',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      'echo Import RAG zakonczony.',
+      'exit /b 0',
     ].join('\r\n');
 
     await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA-OFFLINE.txt'), `${readme}\n`, 'utf8');
@@ -663,13 +669,13 @@ export class ClientDeployPackageService {
       '2. Kliknij prawym: Instaluj-Klienta-Online.bat -> Uruchom jako administrator.',
       '3. Poczekaj na pobranie modeli Ollama (nomic-embed-text + qwen3, ok. 5–6 GB).',
       '4. Setup zapyta opcjonalnie o deepseek-r1 (~15 GB) — domyslnie N (wystarczy qwen3).',
-      '5. Po zakonczeniu uruchom: C:\\TetaAI\\Start-App.bat',
+      '5. Po zakonczeniu kliknij: C:\\TetaAI\\Start-App.bat (otwiera przegladarke; API dziala jako usluga Windows)',
       '6. Otworz przegladarke: http://localhost:3000',
       '',
       '=== PROBLEMY? ===',
       '',
       'Diagnostyka: scripts\\setup\\Diagnose-TetaApp.ps1',
-      'Okno Start-App.bat musi pozostac otwarte (serwer API).',
+      'Backend: usluga Windows TetaAI-API (services.msc), logi: C:\\TetaAI\\logs',
       '',
       '=== PIERWSZE URUCHOMIENIE ===',
       '',
@@ -692,7 +698,7 @@ export class ClientDeployPackageService {
       'title Teta AI Assistant - instalacja klienta ONLINE',
       'cd /d "%~dp0"',
       'echo Wymagane polaczenie z internetem (Node, Ollama, Qdrant, modele AI).',
-      'powershell -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client',
+      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -NonInteractive',
       'if errorlevel 1 (',
       '  echo.',
       '  echo Instalacja nie powiodla sie.',
@@ -701,10 +707,10 @@ export class ClientDeployPackageService {
       ')',
       'echo.',
       'echo Instalacja klienta (online) zakonczona.',
-      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat',
+      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat  (otwiera przegladarke)',
       'echo Zaimportuj RAG: Aktualizuj-RAG.bat sciezka\\do\\global-rag-X.zip',
       'echo Adres: http://localhost:3000',
-      'pause',
+      'exit /b 0',
     ].join('\r\n');
 
     const updateRagBat = [
@@ -717,7 +723,13 @@ export class ClientDeployPackageService {
       '  exit /b 1',
       ')',
       'pnpm rag:global:import --file "%~1"',
-      'pause',
+      'if errorlevel 1 (',
+      '  echo Import RAG nie powiodl sie.',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      'echo Import RAG zakonczony.',
+      'exit /b 0',
     ].join('\r\n');
 
     await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA-ONLINE.txt'), `${readme}\n`, 'utf8');
@@ -731,7 +743,7 @@ export class ClientDeployPackageService {
       '',
       `Wersja: ${appVersion}`,
       '',
-      '1. Zatrzymaj dzialajaca aplikacje (zamknij okno Start-App.bat).',
+      '1. Zatrzymaj usluge TetaAI-API (services.msc) lub: net stop TetaAI-API',
       '2. Rozpakuj zawartosc ZIP na ISTNIEJACY katalog instalacji (nadpisz pliki).',
       '3. Uruchom: .\\Aktualizuj-Aplikacje.bat',
       '',
@@ -745,6 +757,7 @@ export class ClientDeployPackageService {
       'cd /d "%~dp0"',
       'echo Aktualizacja aplikacji Teta AI...',
       'echo.',
+      'net stop TetaAI-API >nul 2>&1',
       'pnpm install --offline',
       'if errorlevel 1 (',
       '  echo Probuje standardowy pnpm install...',
@@ -756,14 +769,12 @@ export class ClientDeployPackageService {
       '  )',
       ')',
       'echo.',
-      'echo Uruchamianie aplikacji...',
-      'if exist "C:\\TetaAI\\Start-App.bat" (',
-      '  start "" "C:\\TetaAI\\Start-App.bat"',
-      ') else (',
-      '  call pnpm dev',
-      ')',
+      'echo Uruchamianie uslugi API...',
+      'net start TetaAI-API >nul 2>&1',
+      'timeout /t 2 /nobreak >nul',
+      'start "" "http://localhost:3000/"',
       'echo Aktualizacja zakonczona.',
-      'pause',
+      'exit /b 0',
     ].join('\r\n');
 
     await writeFile(path.join(appDir, 'AKTUALIZACJA-APLIKACJI.txt'), `${readme}\n`, 'utf8');
@@ -822,7 +833,7 @@ export class ClientDeployPackageService {
       '@echo off',
       'title Teta AI Assistant - instalacja vendor (budowa RAG)',
       'cd /d "%~dp0"',
-      'powershell -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip"',
+      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip" -NonInteractive',
       'if errorlevel 1 (',
       '  echo.',
       '  echo Instalacja nie powiodla sie.',
@@ -831,10 +842,10 @@ export class ClientDeployPackageService {
       ')',
       'echo.',
       'echo Instalacja vendor zakonczona.',
-      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat',
+      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat  (otwiera przegladarke)',
       'echo Adres: http://localhost:3000',
       'echo Instrukcja: sources\\global\\README.md',
-      'pause',
+      'exit /b 0',
     ].join('\r\n');
 
     await writeFile(path.join(appDir, 'INSTALACJA-VENDOR-OFFLINE.txt'), `${readme}\n`, 'utf8');
@@ -896,7 +907,7 @@ export class ClientDeployPackageService {
       'title Teta AI Assistant - instalacja vendor ONLINE',
       'cd /d "%~dp0"',
       'echo Wymagane polaczenie z internetem (Node, Ollama, Qdrant, modele AI).',
-      'powershell -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor',
+      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -NonInteractive',
       'if errorlevel 1 (',
       '  echo.',
       '  echo Instalacja nie powiodla sie.',
@@ -905,9 +916,9 @@ export class ClientDeployPackageService {
       ')',
       'echo.',
       'echo Instalacja vendor (online) zakonczona.',
-      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat',
+      'echo Uruchom aplikacje: C:\\TetaAI\\Start-App.bat  (otwiera przegladarke)',
       'echo Adres: http://localhost:3000',
-      'pause',
+      'exit /b 0',
     ].join('\r\n');
 
     await writeFile(path.join(appDir, 'INSTALACJA-VENDOR-ONLINE.txt'), `${readme}\n`, 'utf8');

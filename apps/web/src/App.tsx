@@ -5,7 +5,6 @@ import { ChatView } from './components/chat/ChatView';
 import { HistoryView } from './components/chat/HistoryView';
 import { AppShell } from './components/layout/AppShell';
 import { AuthGate } from './components/auth/AuthGate';
-import { OracleSetupGate } from './components/oracle/OracleSetupGate';
 import { DocumentsView } from './components/documents/DocumentsView';
 import { GlobalSourcesView } from './components/global-sources/GlobalSourcesView';
 import { AdminSettingsView } from './components/settings/AdminSettingsView';
@@ -187,8 +186,7 @@ export default function App() {
   };
 
   return (
-    <OracleSetupGate>
-      <AuthGate>
+    <AuthGate>
       <AppShell
         activeNav={activeNav}
         onNavigate={setActiveNav}
@@ -221,7 +219,6 @@ export default function App() {
         )}
         {activeNav === 'settings' && <AdminSettingsView />}
       </AppShell>
-      </AuthGate>
-    </OracleSetupGate>
+    </AuthGate>
   );
 }

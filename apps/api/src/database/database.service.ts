@@ -117,6 +117,24 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         finished_at TEXT
       );
 
+      CREATE TABLE IF NOT EXISTS oracle_metadata_import_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'done', 'failed')),
+        progress INTEGER NOT NULL DEFAULT 0,
+        progress_message TEXT,
+        error_message TEXT,
+        chunk_count INTEGER,
+        jsonl_path TEXT,
+        counts_json TEXT,
+        objects_json TEXT,
+        owners_json TEXT,
+        teta_version TEXT,
+        pilot_module TEXT,
+        created_at TEXT NOT NULL,
+        started_at TEXT,
+        finished_at TEXT
+      );
+
       CREATE TABLE IF NOT EXISTS chat_conversations (
         id TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -130,5 +148,17 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_updated
         ON chat_conversations(user_id, updated_at DESC);
     `);
+
+    this.ensureColumn('oracle_metadata_import_jobs', 'catalog_totals_json', 'TEXT');
+    this.ensureColumn('oracle_metadata_import_jobs', 'import_limits_json', 'TEXT');
+  }
+
+  private ensureColumn(table: string, column: string, definition: string) {
+    const columns = this.db
+      .prepare(`PRAGMA table_info(${table})`)
+      .all() as { name: string }[];
+    if (!columns.some((entry) => entry.name === column)) {
+      this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
   }
 }

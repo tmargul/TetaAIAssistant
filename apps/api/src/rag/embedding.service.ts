@@ -28,13 +28,35 @@ export class EmbeddingService {
     return getOllamaBaseUrl(this.config);
   }
 
+  private get maxChars(): number {
+    const raw = this.config.get<string>(
+      'OLLAMA_EMBEDDING_MAX_CHARS',
+      String(RAG_CONSTANTS.embeddingMaxChars),
+    );
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 256 ? parsed : RAG_CONSTANTS.embeddingMaxChars;
+  }
+
+  private preparePrompt(text: string): string {
+    const trimmed = text.trim();
+    if (trimmed.length <= this.maxChars) {
+      return trimmed;
+    }
+
+    this.logger.warn(
+      `Embedding input truncated from ${trimmed.length} to ${this.maxChars} characters.`,
+    );
+    return trimmed.slice(0, this.maxChars);
+  }
+
   async embed(text: string): Promise<number[]> {
+    const prompt = this.preparePrompt(text);
     const res = await fetch(`${this.baseUrl}/api/embeddings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: this.model,
-        prompt: text,
+        prompt,
         keep_alive: getOllamaKeepAlive(this.config),
       }),
       signal: AbortSignal.timeout(

@@ -50,6 +50,15 @@ export function AuthGate({ children }: AuthGateProps) {
     });
   };
 
+  if (!status.oracleConfigured && !status.adminBootstrapped) {
+    return (
+      <OracleConnectionForm
+        variant="setup"
+        onConfigured={() => refreshStatus()}
+      />
+    );
+  }
+
   if (!status.adminBootstrapped) {
     if (oracleRecovery) {
       return (

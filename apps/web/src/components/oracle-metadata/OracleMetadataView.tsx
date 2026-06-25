@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type {
   OracleConnectionStatusResponse,
   OracleMetadataObjectKind,
+  OracleMetadataObjectsPageResponse,
   OracleMetadataStatusResponse,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
+import { readResponseJson } from '../../lib/read-response-json';
 import {
   formatOracleConnectionSummary,
+  formatOracleMetadataStatValue,
+  hasOracleMetadataTruncation,
   ORACLE_METADATA_OBJECT_LABELS,
   oracleImportStatusLabel,
 } from '../../lib/oracle-metadata';
@@ -30,6 +34,9 @@ export function OracleMetadataView() {
   const [error, setError] = useState<string | null>(null);
   const [selectedKind, setSelectedKind] = useState<OracleMetadataObjectKind | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [objectItems, setObjectItems] = useState<string[]>([]);
+  const [objectTotal, setObjectTotal] = useState(0);
+  const [objectsLoading, setObjectsLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -39,36 +46,73 @@ export function OracleMetadataView() {
         authFetch('/api/oracle/metadata/status'),
       ]);
       if (oracleRes.ok) {
-        setOracleStatus((await oracleRes.json()) as OracleConnectionStatusResponse);
+        setOracleStatus(await readResponseJson<OracleConnectionStatusResponse>(oracleRes));
       }
       if (metadataRes.ok) {
-        setMetadata((await metadataRes.json()) as OracleMetadataStatusResponse);
+        setMetadata(await readResponseJson<OracleMetadataStatusResponse>(metadataRes));
       }
-    } catch {
-      setError('Nie udało się wczytać statusu metadanych Oracle.');
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Nie udało się wczytać statusu metadanych Oracle.',
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const loadObjectPage = useCallback(
+    async (kind: OracleMetadataObjectKind, offset: number, append: boolean) => {
+      setObjectsLoading(true);
+      try {
+        const res = await authFetch(
+          `/api/oracle/metadata/objects?kind=${encodeURIComponent(kind)}&offset=${offset}&limit=200`,
+        );
+        if (!res.ok) {
+          const body = await readResponseJson<{ message?: string | string[] }>(res).catch(() => null);
+          const msg = body?.message;
+          throw new Error(
+            Array.isArray(msg) ? msg.join(', ') : msg ?? `HTTP ${res.status}`,
+          );
+        }
+        const page = await readResponseJson<OracleMetadataObjectsPageResponse>(res);
+        setObjectTotal(page.total);
+        setObjectItems((prev) => (append ? [...prev, ...page.items] : page.items));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Nie udało się wczytać listy obiektów.');
+        if (!append) {
+          setObjectItems([]);
+          setObjectTotal(0);
+        }
+      } finally {
+        setObjectsLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!selectedKind || !metadata?.objectListsAvailable) {
+      setObjectItems([]);
+      setObjectTotal(0);
+      return;
+    }
+    void loadObjectPage(selectedKind, 0, false);
+  }, [selectedKind, metadata?.objectListsAvailable, loadObjectPage]);
+
   useEffect(() => {
     void refresh();
+    const intervalMs = metadata?.status === 'running' ? 3000 : 20000;
     const timer = window.setInterval(() => {
       void refresh();
-    }, 20000);
+    }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [refresh]);
+  }, [refresh, metadata?.status]);
 
   const oracleConfigured = oracleStatus?.configured === true;
   const importRunning = metadata?.status === 'running';
   const connectionSummary = oracleStatus?.config
     ? formatOracleConnectionSummary(oracleStatus.config)
     : null;
-
-  const selectedItems = useMemo(() => {
-    if (!metadata || !selectedKind) return [];
-    return metadata.objects[selectedKind] ?? [];
-  }, [metadata, selectedKind]);
 
   const handleStartImport = async () => {
     if (!metadata?.available || importRunning || importStarting) return;
@@ -77,11 +121,14 @@ export function OracleMetadataView() {
     setImportStarting(true);
     try {
       const res = await authFetch('/api/oracle/metadata/import', { method: 'POST' });
-      const body = (await res.json()) as { message?: string | string[] };
       if (!res.ok) {
-        const msg = Array.isArray(body.message) ? body.message.join(', ') : body.message;
-        throw new Error(msg ?? `HTTP ${res.status}`);
+        const body = await readResponseJson<{ message?: string | string[] }>(res).catch(() => null);
+        const msg = body?.message;
+        throw new Error(
+          Array.isArray(msg) ? msg.join(', ') : msg ?? `HTTP ${res.status}`,
+        );
       }
+      await readResponseJson<OracleMetadataStatusResponse>(res);
       setMessage('Import metadanych Oracle uruchomiony.');
       await refresh();
     } catch (err) {
@@ -96,6 +143,10 @@ export function OracleMetadataView() {
     if (count === 0) return;
     setSelectedKind((prev) => (prev === kind ? null : kind));
   };
+
+  const importTruncated =
+    metadata?.catalogTotals != null &&
+    hasOracleMetadataTruncation(metadata.counts, metadata.catalogTotals);
 
   return (
     <div className="oracle-metadata">
@@ -125,13 +176,38 @@ export function OracleMetadataView() {
             {metadata.tetaVersion ? ` · Teta ${metadata.tetaVersion}` : ''}
           </>
         )}
-        {metadata?.message && (
+        {metadata?.message && !importRunning && (
           <>
             <br />
             {metadata.message}
           </>
         )}
       </div>
+
+      {importRunning && (
+        <div className="oracle-metadata__progress">
+          <div className="oracle-metadata__progress-header">
+            <span>Postęp importu</span>
+            <strong>{metadata?.progress ?? 0}%</strong>
+          </div>
+          <div className="oracle-metadata__progress-bar">
+            <div
+              className="oracle-metadata__progress-fill"
+              style={{ width: `${Math.max(0, Math.min(100, metadata?.progress ?? 0))}%` }}
+            />
+          </div>
+          <p className="oracle-metadata__progress-label">
+            {metadata?.progressMessage ?? metadata?.message ?? 'Import metadanych Oracle w toku…'}
+          </p>
+        </div>
+      )}
+
+      {importTruncated && (
+        <div className="oracle-metadata__banner oracle-metadata__banner--warn">
+          Liczby w statystykach różnią się od katalogu Oracle — część obiektów mogła nie zostać
+          zaimportowana. Uruchom import ponownie lub sprawdź logi API.
+        </div>
+      )}
 
       <div className="oracle-metadata__grid">
         <div className="oracle-metadata__connection">
@@ -160,6 +236,8 @@ export function OracleMetadataView() {
         <div className="oracle-metadata__stats">
           {STAT_KINDS.map((kind) => {
             const count = metadata?.counts[kind] ?? 0;
+            const total = metadata?.catalogTotals?.[kind];
+            const label = formatOracleMetadataStatValue(count, total);
             return (
               <button
                 key={kind}
@@ -169,18 +247,29 @@ export function OracleMetadataView() {
                 }`}
                 disabled={count === 0}
                 onClick={() => handleStatClick(kind)}
-                title={count === 0 ? 'Brak obiektów — uruchom import' : 'Pokaż listę nazw'}
+                title={
+                  count === 0
+                    ? 'Brak obiektów — uruchom import'
+                    : total != null && total > count
+                      ? `Zaimportowano ${count} z ${total} w katalogu Oracle`
+                      : 'Pokaż listę nazw'
+                }
               >
                 <span className="oracle-metadata__stat-label">
                   {ORACLE_METADATA_OBJECT_LABELS[kind]}
                 </span>
-                <span className="oracle-metadata__stat-value">{count}</span>
+                <span className="oracle-metadata__stat-value">{label}</span>
               </button>
             );
           })}
           <div className="oracle-metadata__stat" aria-hidden style={{ cursor: 'default', opacity: 0.85 }}>
             <span className="oracle-metadata__stat-label">Kolumny</span>
-            <span className="oracle-metadata__stat-value">{metadata?.counts.columns ?? 0}</span>
+            <span className="oracle-metadata__stat-value">
+              {formatOracleMetadataStatValue(
+                metadata?.counts.columns ?? 0,
+                metadata?.catalogTotals?.columns,
+              )}
+            </span>
           </div>
         </div>
       </div>
@@ -189,7 +278,8 @@ export function OracleMetadataView() {
         <section className="oracle-metadata__detail">
           <div className="oracle-metadata__detail-header">
             <h3 className="oracle-metadata__detail-title">
-              {ORACLE_METADATA_OBJECT_LABELS[selectedKind]} ({selectedItems.length})
+              {ORACLE_METADATA_OBJECT_LABELS[selectedKind]} (
+              {objectTotal > 0 ? objectTotal : metadata?.counts[selectedKind] ?? 0})
             </h3>
             <button
               type="button"
@@ -199,16 +289,34 @@ export function OracleMetadataView() {
               Zamknij
             </button>
           </div>
-          {selectedItems.length === 0 ? (
+          {objectsLoading && objectItems.length === 0 ? (
+            <p className="oracle-metadata__detail-empty">Wczytywanie listy…</p>
+          ) : objectItems.length === 0 ? (
             <p className="oracle-metadata__detail-empty">
               Brak nazw obiektów — lista pojawi się po zakończeniu importu metadanych.
             </p>
           ) : (
-            <ul className="oracle-metadata__object-list">
-              {selectedItems.map((name) => (
-                <li key={name}>{name}</li>
-              ))}
-            </ul>
+            <>
+              <ul className="oracle-metadata__object-list">
+                {objectItems.map((name) => (
+                  <li key={name}>{name}</li>
+                ))}
+              </ul>
+              {objectItems.length < objectTotal && (
+                <div className="oracle-metadata__actions" style={{ marginTop: '0.75rem' }}>
+                  <button
+                    type="button"
+                    className="oracle-metadata__btn oracle-metadata__btn--secondary"
+                    disabled={objectsLoading}
+                    onClick={() => void loadObjectPage(selectedKind, objectItems.length, true)}
+                  >
+                    {objectsLoading
+                      ? 'Wczytywanie…'
+                      : `Pokaż więcej (${objectItems.length} / ${objectTotal})`}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       )}
@@ -221,14 +329,7 @@ export function OracleMetadataView() {
 
       {importRunning && (
         <div className="oracle-metadata__banner oracle-metadata__banner--warn">
-          Import w toku — status odświeża się automatycznie co ok. 20 s.
-        </div>
-      )}
-
-      {!metadata?.available && metadata?.status !== 'done' && oracleConfigured && (
-        <div className="oracle-metadata__banner oracle-metadata__banner--muted">
-          Importer w przygotowaniu — po wdrożeniu przycisk poniżej uruchomi import bez ręcznego
-          eksportu SQL.
+          Import w toku — status odświeża się automatycznie co ok. 3 s.
         </div>
       )}
 
