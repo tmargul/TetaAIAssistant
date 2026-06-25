@@ -8,22 +8,13 @@ param(
 $ErrorActionPreference = "Continue"
 . "$PSScriptRoot\Setup-Common.ps1"
 
-if (-not $InstallRoot) {
-    $startBat = "C:\TetaAI\Start-App.bat"
-    $runner = "C:\TetaAI\run-api.cmd"
-    if (Test-Path $runner) {
-        $content = Get-Content $runner -Raw
-        if ($content -match 'set TETA_REPO_ROOT=(.+)') {
-            $InstallRoot = $Matches[1].Trim()
-            $script:RepoRoot = $InstallRoot
-        }
-    } elseif (Test-Path $startBat) {
-        $content = Get-Content $startBat -Raw
-        if ($content -match 'set TETA_REPO_ROOT=(.+)') {
-            $InstallRoot = $Matches[1].Trim()
-            $script:RepoRoot = $InstallRoot
-        }
-    }
+$appRoot = Find-TetaApplicationRoot -HintPath $InstallRoot
+if ($appRoot) {
+    $script:RepoRoot = $appRoot
+    $InstallRoot = Resolve-InstallRoot -InstallRoot $InstallRoot -RepoRoot $appRoot
+} elseif ($InstallRoot) {
+    $script:RepoRoot = (Resolve-Path $InstallRoot).Path
+    $InstallRoot = Resolve-InstallRoot -InstallRoot $InstallRoot -RepoRoot $script:RepoRoot
 }
 
 if (-not $script:RepoRoot -or -not (Test-Path $script:RepoRoot)) {
@@ -31,9 +22,13 @@ if (-not $script:RepoRoot -or -not (Test-Path $script:RepoRoot)) {
     exit 1
 }
 
+$startBat = Join-Path $InstallRoot "Start-App.bat"
+$logDir = Join-Path $InstallRoot "logs"
+
 Write-Host ""
 Write-Host "=== Diagnostyka Teta AI ===" -ForegroundColor Cyan
 Write-Host "Katalog aplikacji: $script:RepoRoot"
+Write-Host "Katalog uslug (Qdrant, Ollama, logi): $InstallRoot"
 Write-Host ""
 
 function Test-ItemOk([string]$Label, [scriptblock]$Check) {
@@ -71,7 +66,10 @@ Test-ItemOk "apps\api\dist\main.js" { Test-Path (Join-Path $script:RepoRoot "app
 Test-ItemOk "apps\web\dist\index.html" { Test-Path (Join-Path $script:RepoRoot "apps\web\dist\index.html") } | Out-Null
 Test-ItemOk "apps\api\.env" { Test-Path (Join-Path $script:RepoRoot "apps\api\.env") } | Out-Null
 Test-ItemOk "node_modules (pnpm install)" { Test-Path (Join-Path $script:RepoRoot "node_modules") } | Out-Null
-Test-ItemOk "C:\TetaAI\Start-App.bat" { Test-Path "C:\TetaAI\Start-App.bat" } | Out-Null
+Test-ItemOk "Start-App.bat" { Test-Path $startBat } | Out-Null
+Test-ItemOk "qdrant\qdrant.exe" { Test-Path (Join-Path $InstallRoot "qdrant\qdrant.exe") } | Out-Null
+Test-ItemOk "ollama (silnik)" { Test-OllamaInInstallRoot $InstallRoot } | Out-Null
+
 $apiSvc = Get-Service "TetaAI-API" -ErrorAction SilentlyContinue
 if ($apiSvc) {
     if ($apiSvc.Status -eq "Running") {
@@ -96,7 +94,7 @@ try {
     Invoke-RestMethod -Uri "http://127.0.0.1:11434/api/tags" -TimeoutSec 3 | Out-Null
     Write-Host "  [OK]   Ollama (11434)" -ForegroundColor Green
 } catch {
-    Write-Host "  [BRAK] Ollama — uruchom z menu Start" -ForegroundColor Yellow
+    Write-Host "  [BRAK] Ollama — uruchom z $InstallRoot\ollama" -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -109,9 +107,9 @@ try {
     Write-Host "  [BRAK] API nie odpowiada na http://localhost:3000" -ForegroundColor Red
     Write-Host ""
     Write-Host "Uruchom aplikacje (skrot otwiera przegladarke, backend dziala jako usluga):" -ForegroundColor Yellow
-    Write-Host "  C:\TetaAI\Start-App.bat" -ForegroundColor White
+    Write-Host "  $startBat" -ForegroundColor White
     Write-Host "  lub: net start TetaAI-API" -ForegroundColor White
-    Write-Host "  logi: C:\TetaAI\logs\api-service*.log" -ForegroundColor DarkGray
+    Write-Host "  logi: $logDir\api-service*.log" -ForegroundColor DarkGray
 }
 
 Write-Host ""

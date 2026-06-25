@@ -1,6 +1,7 @@
 # Import modeli Ollama z paczki models-update (katalog ollama-models + manifest).
 param(
-    [Parameter(Mandatory = $true)][string]$ModelsDir
+    [Parameter(Mandatory = $true)][string]$ModelsDir,
+    [string]$InstallRoot = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,11 +17,17 @@ if (-not (Test-Path $modelsSource)) {
     throw "Brak katalogu ollama-models w paczce."
 }
 
+$appRoot = Find-TetaApplicationRoot -HintPath $InstallRoot
+if (-not $appRoot) {
+    throw "Nie wykryto instalacji Teta AI. Podaj -InstallRoot lub uruchom setup aplikacji."
+}
+$InstallRoot = Resolve-InstallRoot -InstallRoot $InstallRoot -RepoRoot $appRoot
+
 Write-Host "Import modeli Ollama z: $ModelsDir" -ForegroundColor Green
-Ensure-Ollama
+Ensure-Ollama -InstallRoot $InstallRoot
 Wait-OllamaReady
 
-$ollamaModels = Join-Path $env:USERPROFILE ".ollama\models"
+$ollamaModels = Get-OllamaModelsDir $InstallRoot
 New-Item -ItemType Directory -Force -Path $ollamaModels | Out-Null
 
 Get-ChildItem $modelsSource -Recurse -File | ForEach-Object {

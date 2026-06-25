@@ -14,7 +14,9 @@ param(
     [ValidateSet("vendor", "client")]
     [string]$Mode,
 
-    [string]$InstallRoot = "C:\TetaAI",
+    [string]$InstallRoot = "",
+
+    [string]$RepoRoot = "",
 
     [switch]$Offline,
 
@@ -29,6 +31,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\Setup-Common.ps1"
+
+if ($RepoRoot) {
+    $script:RepoRoot = (Resolve-Path $RepoRoot).Path
+}
+
+$InstallRoot = Resolve-InstallRoot -InstallRoot $InstallRoot -RepoRoot $script:RepoRoot
 
 if (-not $Mode) {
     if (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Interactive) {
@@ -63,7 +71,7 @@ Write-Host "========================================" -ForegroundColor Green
 
 Ensure-Node
 Ensure-Pnpm
-Ensure-Ollama
+Ensure-Ollama -InstallRoot $InstallRoot
 Install-ProjectDependencies
 
 $qdrantExe = Ensure-Qdrant $InstallRoot
@@ -72,21 +80,21 @@ $nssmExe = Ensure-Nssm $InstallRoot
 $isVendor = $Mode -eq "vendor"
 Write-EnvFile -AppMode $Mode -IncludeVendorSecret $isVendor
 
-Ensure-Ollama
+Ensure-Ollama -InstallRoot $InstallRoot
 Wait-OllamaReady
 
 if ($isVendor) {
-    Install-OllamaModels @("nomic-embed-text", "qwen3")
+    Install-OllamaModels -Models @("nomic-embed-text", "qwen3") -InstallRoot $InstallRoot
     if (-not $Offline) {
         Invoke-OptionalDeepseekInstall -Interactive:$Interactive
     }
     Ensure-VideoIngestTools -InstallRoot $InstallRoot
 } elseif ($Offline) {
-    Install-OllamaModels @("nomic-embed-text", "qwen3")
+    Install-OllamaModels -Models @("nomic-embed-text", "qwen3") -InstallRoot $InstallRoot
     Write-Host ""
     Write-Host "Modele offline: skopiowano z paczki (deepseek-r1 tylko jesli byl w paczce IT)." -ForegroundColor DarkGray
 } else {
-    Install-OllamaModels @("nomic-embed-text", "qwen3")
+    Install-OllamaModels -Models @("nomic-embed-text", "qwen3") -InstallRoot $InstallRoot
     Invoke-OptionalDeepseekInstall -Interactive:$Interactive
 }
 
@@ -99,16 +107,20 @@ if (-not $isVendor -and $Offline) {
 
 Write-StartAppScript -InstallRoot $InstallRoot
 Register-ApiService -NssmExe $nssmExe -InstallRoot $InstallRoot
+Write-InstallManifest -InstallRoot $InstallRoot -RepoRoot $script:RepoRoot
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host " Instalacja zakończona ($Mode)" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
+Write-Host "Katalog instalacji (aplikacja + usługi):"
+Write-Host "  $InstallRoot"
+Write-Host ""
 Write-Host "Usługi:"
 Write-Host "  Qdrant  - usługa Windows: TetaAI-Qdrant (autostart)"
 Write-Host "  API     - usługa Windows: TetaAI-API (autostart, bez terminala)"
-Write-Host "  Ollama  - autostart przez instalator Ollama"
+Write-Host "  Ollama  - $InstallRoot\ollama (modele: $InstallRoot\ollama\models)"
 Write-Host ""
 Write-Host "Uruchom aplikację (otwiera przeglądarkę):"
 Write-Host "  $InstallRoot\Start-App.bat"
@@ -142,7 +154,7 @@ if ($isVendor) {
 }
 
 Write-Host ""
-Test-ServicesHealth | Out-Null
+Test-ServicesHealth -InstallRoot $InstallRoot | Out-Null
 
 if (-not $NoStart) {
     if (-not $isVendor -and $Offline) {

@@ -24,7 +24,7 @@ if ($offlineExit -ne 0) {
 
 Assert-PnpmNativeDependencies
 
-$startBat = "C:\TetaAI\Start-App.bat"
+$startBat = Join-Path $AppRoot "Start-App.bat"
 $apiService = "TetaAI-API"
 $apiSvc = Get-Service $apiService -ErrorAction SilentlyContinue
 if ($apiSvc) {

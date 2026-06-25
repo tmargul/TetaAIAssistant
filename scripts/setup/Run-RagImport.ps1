@@ -5,19 +5,14 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+. "$PSScriptRoot\Setup-Common.ps1"
 
 if (-not (Test-Path $RagZipPath)) {
     throw "Nie znaleziono pliku RAG: $RagZipPath"
 }
 
 if (-not $AppRoot) {
-    $startBat = "C:\TetaAI\Start-App.bat"
-    if (Test-Path $startBat) {
-        $content = Get-Content $startBat -Raw
-        if ($content -match 'cd /d "([^"]+)"') {
-            $AppRoot = Split-Path $Matches[1] -Parent
-        }
-    }
+    $AppRoot = Find-TetaApplicationRoot
 }
 
 if (-not $AppRoot -or -not (Test-Path (Join-Path $AppRoot "apps\api\dist\main.js"))) {

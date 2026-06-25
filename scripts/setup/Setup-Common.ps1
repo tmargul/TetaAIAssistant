@@ -3,6 +3,8 @@
 $ErrorActionPreference = "Stop"
 
 $script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+$script:InstallRoot = $null
+$script:LegacyInstallRoot = "C:\TetaAI"
 $script:QdrantServiceName = "TetaAI-Qdrant"
 $script:ApiServiceName = "TetaAI-API"
 $script:OfflineMode = $false
@@ -122,6 +124,174 @@ function Write-Step([string]$Message) {
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
+function Resolve-InstallRoot {
+    param(
+        [string]$InstallRoot = "",
+        [string]$RepoRoot = ""
+    )
+
+    if (-not $RepoRoot) {
+        $RepoRoot = $script:RepoRoot
+    }
+
+    if ($InstallRoot) {
+        $resolved = (Resolve-Path (New-Item -ItemType Directory -Force -Path $InstallRoot)).Path
+        $script:InstallRoot = $resolved
+        return $resolved
+    }
+
+    $resolved = (Resolve-Path $RepoRoot).Path
+    $script:InstallRoot = $resolved
+    return $resolved
+}
+
+function Get-InstallManifestPath([string]$RepoRoot = "") {
+    if (-not $RepoRoot) { $RepoRoot = $script:RepoRoot }
+    return Join-Path $RepoRoot "install-root.json"
+}
+
+function Write-InstallManifest {
+    param(
+        [Parameter(Mandatory = $true)][string]$InstallRoot,
+        [string]$RepoRoot = ""
+    )
+
+    if (-not $RepoRoot) { $RepoRoot = $script:RepoRoot }
+    $manifest = @{
+        installRoot = $InstallRoot
+        repoRoot    = $RepoRoot
+        createdAt   = (Get-Date).ToString("o")
+    } | ConvertTo-Json -Depth 3
+
+    $path = Get-InstallManifestPath $RepoRoot
+    Set-Content -Path $path -Value $manifest -Encoding UTF8
+    Write-Host "  Zapisano manifest instalacji: $path" -ForegroundColor DarkGray
+}
+
+function Read-InstallManifest([string]$StartDir = "") {
+    $candidates = @()
+    if ($StartDir) { $candidates += $StartDir }
+    if ($script:RepoRoot) { $candidates += $script:RepoRoot }
+
+    foreach ($dir in $candidates) {
+        $path = Join-Path $dir "install-root.json"
+        if (-not (Test-Path $path)) { continue }
+        try {
+            return Get-Content $path -Raw | ConvertFrom-Json
+        } catch { }
+    }
+    return $null
+}
+
+function Find-TetaApplicationRoot {
+    param([string]$HintPath = "")
+
+    if ($HintPath -and (Test-Path (Join-Path $HintPath "apps\api\dist\main.js"))) {
+        return (Resolve-Path $HintPath).Path
+    }
+
+    $manifest = Read-InstallManifest $HintPath
+    if ($manifest -and $manifest.repoRoot -and (Test-Path (Join-Path $manifest.repoRoot "apps\api\dist\main.js"))) {
+        return (Resolve-Path $manifest.repoRoot).Path
+    }
+
+    $runner = Join-Path $script:LegacyInstallRoot "run-api.cmd"
+    if (Test-Path $runner) {
+        $content = Get-Content $runner -Raw
+        if ($content -match 'set TETA_REPO_ROOT=(.+)') {
+            $legacyRoot = $Matches[1].Trim()
+            if (Test-Path (Join-Path $legacyRoot "apps\api\dist\main.js")) {
+                return (Resolve-Path $legacyRoot).Path
+            }
+        }
+    }
+
+    $uninstallKeys = @(
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    )
+    foreach ($keyPath in $uninstallKeys) {
+        foreach ($key in Get-ItemProperty $keyPath -ErrorAction SilentlyContinue) {
+            if ($key.DisplayName -notmatch 'Teta AI') { continue }
+            if (-not $key.InstallLocation) { continue }
+            $loc = $key.InstallLocation.TrimEnd('\')
+            if (Test-Path (Join-Path $loc "apps\api\dist\main.js")) {
+                return (Resolve-Path $loc).Path
+            }
+        }
+    }
+
+    return $null
+}
+
+function Get-OllamaInstallDir([string]$InstallRoot) {
+    return Join-Path $InstallRoot "ollama"
+}
+
+function Get-OllamaModelsDir([string]$InstallRoot) {
+    return Join-Path (Get-OllamaInstallDir $InstallRoot) "models"
+}
+
+function Set-OllamaInstallEnv([string]$InstallRoot) {
+    $modelsDir = Get-OllamaModelsDir $InstallRoot
+    New-Item -ItemType Directory -Force -Path $modelsDir | Out-Null
+    [System.Environment]::SetEnvironmentVariable("OLLAMA_MODELS", $modelsDir, "Machine")
+    $env:OLLAMA_MODELS = $modelsDir
+}
+
+function Test-OllamaInInstallRoot([string]$InstallRoot) {
+    $ollamaDir = Get-OllamaInstallDir $InstallRoot
+    foreach ($name in @("ollama.exe", "Ollama.exe")) {
+        if (Test-Path (Join-Path $ollamaDir $name)) { return $true }
+    }
+    return $false
+}
+
+function Get-OllamaSetupExeFromBundle {
+    $installersDir = Get-BundleItem "installers"
+    return Get-ChildItem $installersDir -Filter "OllamaSetup*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+
+function Install-OllamaToInstallRoot {
+    param(
+        [Parameter(Mandatory = $true)][string]$InstallRoot,
+        [string]$SetupExePath = ""
+    )
+
+    $ollamaDir = Get-OllamaInstallDir $InstallRoot
+    New-Item -ItemType Directory -Force -Path $ollamaDir | Out-Null
+    Set-OllamaInstallEnv $InstallRoot
+
+    if (Test-OllamaInInstallRoot $InstallRoot) {
+        Write-Host "  Ollama w katalogu instalacji: $ollamaDir"
+        return
+    }
+
+    if (-not $SetupExePath) {
+        if ($script:OfflineMode) {
+            $bundleSetup = Get-OllamaSetupExeFromBundle
+            if (-not $bundleSetup) {
+                throw "Brak OllamaSetup.exe w paczce offline (installers\)."
+            }
+            $SetupExePath = $bundleSetup.FullName
+        } else {
+            $SetupExePath = Join-Path $env:TEMP "OllamaSetup.exe"
+            if (-not (Test-Path $SetupExePath)) {
+                Write-Host "  Pobieranie OllamaSetup.exe..."
+                Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $SetupExePath
+            }
+        }
+    }
+
+    Write-Host "  Instalacja Ollama w: $ollamaDir"
+    Start-Process $SetupExePath -ArgumentList "/S", "/DIR=$ollamaDir" -Wait
+    Refresh-ShellPath
+
+    if (-not (Test-OllamaInInstallRoot $InstallRoot)) {
+        throw "Ollama nie zostala zainstalowana w $ollamaDir"
+    }
+}
+
 function Test-Command([string]$Name) {
     return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
@@ -146,15 +316,15 @@ function Install-NodeFromBundle {
 }
 
 function Install-OllamaFromBundle {
-    $installersDir = Get-BundleItem "installers"
-    $setup = Get-ChildItem $installersDir -Filter "OllamaSetup*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+    param([Parameter(Mandatory = $true)][string]$InstallRoot)
+
+    $setup = Get-OllamaSetupExeFromBundle
     if (-not $setup) {
         throw "Brak OllamaSetup.exe w paczce offline (installers\). Zainstaluj Ollama recznie lub dolacz instalator do paczki."
     }
     Write-Host "  Instalacja Ollama z paczki: $($setup.Name)"
-    Start-Process $setup.FullName -ArgumentList "/S" -Wait
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
-        [System.Environment]::GetEnvironmentVariable("Path", "User")
+    Install-OllamaToInstallRoot -InstallRoot $InstallRoot -SetupExePath $setup.FullName
+    Refresh-ShellPath
 }
 
 function Get-NodeMajorVersion {
@@ -403,32 +573,34 @@ function Install-ProjectDependencies {
 }
 
 function Ensure-Ollama {
-    Write-Step "Sprawdzanie Ollama"
+    param([Parameter(Mandatory = $true)][string]$InstallRoot)
 
-    if (Test-Command ollama) {
-        Write-Host "  Ollama: $(ollama -v 2>&1 | Select-Object -First 1)"
+    Write-Step "Sprawdzanie Ollama"
+    Set-OllamaInstallEnv $InstallRoot
+
+    if (Test-OllamaInInstallRoot $InstallRoot) {
+        Write-Host "  Ollama: $(Get-OllamaInstallDir $InstallRoot)"
+        Write-Host "  Modele: $(Get-OllamaModelsDir $InstallRoot)"
         return
     }
 
     if ($script:OfflineMode) {
-        Install-OllamaFromBundle
-        if (-not (Test-Command ollama)) {
+        Install-OllamaFromBundle -InstallRoot $InstallRoot
+        if (-not (Test-OllamaInInstallRoot $InstallRoot) -and -not (Test-Command ollama)) {
             throw "Ollama nie jest dostepna po instalacji z paczki offline."
         }
-        Write-Host "  Ollama: $(ollama -v 2>&1 | Select-Object -First 1)"
+        Write-Host "  Ollama: $(Get-OllamaInstallDir $InstallRoot)"
         return
     }
 
-    if (Test-Command winget) {
-        Write-Host "  Instalacja Ollama przez winget..."
-        winget install Ollama.Ollama --accept-package-agreements --accept-source-agreements
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
-            [System.Environment]::GetEnvironmentVariable("Path", "User")
-    }
+    Install-OllamaToInstallRoot -InstallRoot $InstallRoot
 
-    if (-not (Test-Command ollama)) {
-        throw "Ollama nie jest zainstalowana. Pobierz: https://ollama.com/download"
+    if (Test-Command ollama) {
+        Write-Host "  Ollama: $(ollama -v 2>&1 | Select-Object -First 1)"
+    } else {
+        Write-Host "  Ollama: $(Get-OllamaInstallDir $InstallRoot)"
     }
+    Write-Host "  Modele: $(Get-OllamaModelsDir $InstallRoot)"
 }
 
 function Wait-OllamaReady {
@@ -446,15 +618,19 @@ function Wait-OllamaReady {
     throw "Ollama nie odpowiada na http://127.0.0.1:11434 - uruchom Ollama z menu Start i ponów setup."
 }
 
-function Install-OllamaModels([string[]]$Models) {
+function Install-OllamaModels {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Models,
+        [Parameter(Mandatory = $true)][string]$InstallRoot
+    )
+
     if ($script:OfflineMode) {
         Write-Step "Kopiowanie modeli Ollama z paczki offline"
         $source = Get-BundleItem "ollama-models"
         if (-not (Test-Path $source)) {
             throw "Brak katalogu ollama-models w paczce offline."
         }
-        $target = Join-Path $env:USERPROFILE ".ollama\models"
-        New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
+        $target = Get-OllamaModelsDir $InstallRoot
         if (Test-Path $target) { Remove-Item $target -Recurse -Force }
         Copy-Item $source $target -Recurse -Force
         Write-Host "  Modele skopiowane do $target"
@@ -485,7 +661,7 @@ function Invoke-OptionalDeepseekInstall {
 
     $answer = Read-Host "Doinstalowac deepseek-r1 teraz? [t/N]"
     if ($answer -match '^[tTyY]') {
-        Install-OllamaModels @("deepseek-r1")
+        Install-OllamaModels -Models @("deepseek-r1") -InstallRoot $script:InstallRoot
         return
     }
 
@@ -903,6 +1079,11 @@ function Start-Application([string]$InstallRoot) {
 }
 
 function Test-ServicesHealth {
+    param([string]$InstallRoot = "")
+
+    if (-not $InstallRoot) { $InstallRoot = $script:InstallRoot }
+    if (-not $InstallRoot) { $InstallRoot = $script:LegacyInstallRoot }
+
     Write-Step "Sprawdzanie usług"
     $ok = $true
 
@@ -937,7 +1118,8 @@ function Test-ServicesHealth {
         Write-Host "  Aplikacja: OK (http://localhost:3000)" -ForegroundColor Green
     } catch {
         if ($apiSvc) {
-            Write-Host "  Aplikacja: API nie odpowiada — sprawdź logi w C:\TetaAI\logs" -ForegroundColor Yellow
+            $logDir = Join-Path $InstallRoot "logs"
+            Write-Host "  Aplikacja: API nie odpowiada — sprawdź logi w $logDir" -ForegroundColor Yellow
         }
         $ok = $false
     }
@@ -1107,8 +1289,11 @@ function Install-VideoIngestPipPackages {
 
 function Ensure-VideoIngestTools {
     param(
-        [string]$InstallRoot = "C:\TetaAI"
+        [string]$InstallRoot = ""
     )
+
+    if (-not $InstallRoot) { $InstallRoot = $script:InstallRoot }
+    if (-not $InstallRoot) { $InstallRoot = $script:RepoRoot }
 
     Write-Step "Narzedzia ingest wideo MP4 (vendor)"
     $requirements = Join-Path $script:RepoRoot "scripts\rag\requirements-video.txt"

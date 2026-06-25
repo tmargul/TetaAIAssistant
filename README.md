@@ -28,7 +28,7 @@ W `.env`: `TETA_APP_MODE=vendor` lub `client`.
 
 1. Wygeneruj paczkę: **Ustawienia → Paczki → Instalacja vendor (Teta)**.
 2. Kolega rozpakowuje ZIP → **`Instaluj-Vendor.bat`** (Administrator).
-3. Uruchamia **`C:\TetaAI\Start-App.bat`** → otwiera przeglądarkę pod **http://localhost:3000** (backend jako usługa Windows, bez terminala).
+3. Uruchamia **`Start-App.bat`** w katalogu instalacji → otwiera przeglądarkę pod **http://localhost:3000** (backend jako usługa Windows, bez terminala). Qdrant, Ollama i logi są w tym samym katalogu (`qdrant\`, `ollama\`, `logs\`).
 4. Instrukcja w paczce: `INSTALACJA-VENDOR.txt` oraz `sources/global/README.md`.
 5. W UI: wrzuca pliki do `sources/global/` **lub** importuje `knowledge-chunks.jsonl` (pipeline wideo) → **Zbuduj indeks RAG** / eksport → **Pobierz paczkę RAG**.
 

@@ -12,5 +12,11 @@ Thumbs.db
 *.sqlite
 *.sqlite-journal
 data/
+.qdrant/
+qdrant/
+ollama/
+logs/
+offline-bundle/
+install-root.json
 .vite
 _temp/

@@ -26,18 +26,18 @@
 #if MyAppMode == "vendor"
   #if MyOffline == "1"
     #define MyAppName "Teta AI Assistant — Vendor (offline)"
-    #define MySetupArgs "-Mode vendor -Offline -BundlePath \"{app}\offline-bundle.zip\" -NonInteractive"
+    #define MySetupArgs "-Mode vendor -Offline -BundlePath \"{app}\offline-bundle.zip\" -InstallRoot \"{app}\" -NonInteractive"
   #else
     #define MyAppName "Teta AI Assistant — Vendor (online)"
-    #define MySetupArgs "-Mode vendor -NonInteractive"
+    #define MySetupArgs "-Mode vendor -InstallRoot \"{app}\" -NonInteractive"
   #endif
 #else
   #if MyOffline == "1"
     #define MyAppName "Teta AI Assistant — Klient (offline)"
-    #define MySetupArgs "-Mode client -Offline -BundlePath \"{app}\offline-bundle.zip\" -NonInteractive"
+    #define MySetupArgs "-Mode client -Offline -BundlePath \"{app}\offline-bundle.zip\" -InstallRoot \"{app}\" -NonInteractive"
   #else
     #define MyAppName "Teta AI Assistant — Klient (online)"
-    #define MySetupArgs "-Mode client -NonInteractive"
+    #define MySetupArgs "-Mode client -InstallRoot \"{app}\" -NonInteractive"
   #endif
 #endif
 
@@ -73,9 +73,9 @@ Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: external ignoreversion recur
 #endif
 
 [Icons]
-Name: "{group}\Teta AI Assistant"; Filename: "C:\TetaAI\Start-App.bat"; Comment: "Uruchom aplikację"
+Name: "{group}\Teta AI Assistant"; Filename: "{app}\Start-App.bat"; Comment: "Uruchom aplikację"
 Name: "{group}\Odinstaluj {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Teta AI Assistant"; Filename: "C:\TetaAI\Start-App.bat"; Tasks: desktopicon
+Name: "{autodesktop}\Teta AI Assistant"; Filename: "{app}\Start-App.bat"; Tasks: desktopicon
 
 [Run]
 Filename: "powershell.exe"; \
@@ -86,13 +86,10 @@ Filename: "powershell.exe"; \
   Description: "Konfiguracja Teta AI Assistant"
 
 [UninstallRun]
-Filename: "C:\TetaAI\tools\nssm.exe"; Parameters: "stop TetaAI-API"; Flags: runhidden skipifdoesntexist
-Filename: "C:\TetaAI\tools\nssm.exe"; Parameters: "remove TetaAI-API confirm"; Flags: runhidden skipifdoesntexist
-Filename: "C:\TetaAI\tools\nssm.exe"; Parameters: "stop TetaAI-Qdrant"; Flags: runhidden skipifdoesntexist
-Filename: "C:\TetaAI\tools\nssm.exe"; Parameters: "remove TetaAI-Qdrant confirm"; Flags: runhidden skipifdoesntexist
-
-[UninstallDelete]
-Type: filesandordirs; Name: "C:\TetaAI"
+Filename: "{app}\tools\nssm.exe"; Parameters: "stop TetaAI-API"; Flags: runhidden skipifdoesntexist
+Filename: "{app}\tools\nssm.exe"; Parameters: "remove TetaAI-API confirm"; Flags: runhidden skipifdoesntexist
+Filename: "{app}\tools\nssm.exe"; Parameters: "stop TetaAI-Qdrant"; Flags: runhidden skipifdoesntexist
+Filename: "{app}\tools\nssm.exe"; Parameters: "remove TetaAI-Qdrant confirm"; Flags: runhidden skipifdoesntexist
 
 [Code]
 function InitializeSetup(): Boolean;
