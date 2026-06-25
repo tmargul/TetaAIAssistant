@@ -16,7 +16,13 @@ export class SchemaGraphService {
 
   constructor(private readonly db: DatabaseService) {}
 
-  buildFromCatalog(catalog: OracleMetadataCatalogSnapshot, crawlJobId: number): GraphBuildResult {
+  buildFromCatalog(
+    catalog: OracleMetadataCatalogSnapshot,
+    crawlJobId: number,
+    onProgress?: (percent: number, message: string) => void,
+  ): GraphBuildResult {
+    const report = (percent: number, message: string) => onProgress?.(percent, message);
+    report(5, 'Czyszczenie poprzedniego grafu…');
     const conn = this.db.connection;
     const clear = conn.transaction(() => {
       conn.prepare('DELETE FROM schema_edges').run();
@@ -82,8 +88,13 @@ export class SchemaGraphService {
       return id;
     };
 
+    report(12, 'Przygotowanie metadanych (komentarze, klucze PK)…');
+
     let columnCount = 0;
-    for (const table of catalog.tables) {
+    const tableTotal = catalog.tables.length;
+    report(18, `Zapisywanie tabel: 0 / ${tableTotal}…`);
+    for (let tableIndex = 0; tableIndex < catalog.tables.length; tableIndex += 1) {
+      const table = catalog.tables[tableIndex]!;
       const tableKey = `${table.owner}\0${table.name}`;
       const comment = tableCommentMap.get(tableKey) ?? null;
       const nodeId = registerNode(table.owner, table.name, 'table', comment);
@@ -99,8 +110,16 @@ export class SchemaGraphService {
         );
         columnCount += 1;
       }
+      if (tableIndex % 250 === 0 || tableIndex === tableTotal - 1) {
+        const pct = 18 + Math.round(((tableIndex + 1) / Math.max(tableTotal, 1)) * 42);
+        report(
+          pct,
+          `Zapisywanie tabel: ${tableIndex + 1} / ${tableTotal} (${columnCount} kolumn)…`,
+        );
+      }
     }
 
+    report(62, `Zapisywanie widoków: ${catalog.views.length}…`);
     for (const view of catalog.views) {
       const tableKey = `${view.owner}\0${view.name}`;
       registerNode(view.owner, view.name, 'view', tableCommentMap.get(tableKey) ?? null);
@@ -108,6 +127,7 @@ export class SchemaGraphService {
 
     const edgeKeys = new Set<string>();
     let edgeCount = 0;
+    report(68, 'Budowanie krawędzi FK z Oracle…');
     for (const constraint of catalog.constraints) {
       if (constraint.constraintType !== 'R') continue;
       if (!constraint.refOwner || !constraint.refTableName || !constraint.refColumnName) continue;
@@ -140,6 +160,7 @@ export class SchemaGraphService {
       if (pks?.size) pkByNode.set(nodeId, pks);
     }
 
+    report(78, 'Heurystyki relacji (L_, SL_, wzorce _ID)…');
     const inferred = inferSchemaEdges(graphNodes, pkByNode, edgeKeys);
     for (const edge of inferred) {
       insertEdge.run(
@@ -156,10 +177,18 @@ export class SchemaGraphService {
     }
 
     let sourceLineCount = 0;
+    if (catalog.sources.length > 0) {
+      report(88, `Zapisywanie źródeł PL/SQL: ${catalog.sources.length} linii…`);
+    }
     for (const line of catalog.sources) {
       insertSource.run(line.owner, line.name, line.objectType, line.line, line.text);
       sourceLineCount += 1;
     }
+
+    report(
+      100,
+      `Graf gotowy: ${graphNodes.length} węzłów, ${columnCount} kolumn, ${edgeCount} krawędzi.`,
+    );
 
     this.logger.log(
       `Graf schematu: ${graphNodes.length} węzłów, ${columnCount} kolumn, ${edgeCount} krawędzi, ${sourceLineCount} linii źródła.`,

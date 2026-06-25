@@ -6,13 +6,17 @@ import { ChatConversationsController } from './chat-conversations.controller';
 import { ChatConversationsService } from './chat-conversations.service';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
-import { OllamaChatService } from './ollama-chat.service';
-import { OllamaModelsService } from './ollama-models.service';
+import { OllamaModule } from './ollama.module';
 
 @Module({
-  imports: [AuthModule, RagCoreModule, forwardRef(() => SchemaModule)],
+  imports: [
+    forwardRef(() => AuthModule),
+    RagCoreModule,
+    OllamaModule,
+    forwardRef(() => SchemaModule),
+  ],
   controllers: [ChatController, ChatConversationsController],
-  providers: [ChatService, ChatConversationsService, OllamaChatService, OllamaModelsService],
-  exports: [OllamaChatService, OllamaModelsService, ChatService],
+  providers: [ChatService, ChatConversationsService],
+  exports: [ChatService, OllamaModule],
 })
 export class ChatModule {}

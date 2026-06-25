@@ -16,6 +16,7 @@ import type {
   OracleSourceLineMeta,
   OracleTableMeta,
 } from './oracle-metadata.types';
+import { ProgressHeartbeat, type CatalogProgressCallback } from './oracle-metadata-progress.util';
 
 const SYSTEM_OWNERS = new Set([
   'SYS',
@@ -102,10 +103,13 @@ export class OracleMetadataCatalogService {
     private readonly oracleConnection: OracleConnectionService,
   ) {}
 
-  async fetchCatalog(onProgress?: (message: string) => void): Promise<OracleMetadataFetchResult> {
+  async fetchCatalog(onProgress?: CatalogProgressCallback): Promise<OracleMetadataFetchResult> {
+    const report = (progress: number, message: string) => onProgress?.(progress, message);
+
     if (getOracleBackendMode(this.config) === 'fake') {
-      onProgress?.('Symulator — wczytywanie przykładowego katalogu…');
+      report(10, 'Symulator — wczytywanie przykładowego katalogu…');
       const catalog = this.buildFakeCatalog();
+      report(55, 'Katalog Oracle odczytany (symulator).');
       const catalogTotals = this.snapshotToTotals(catalog);
       return { catalog, catalogTotals };
     }
@@ -118,39 +122,84 @@ export class OracleMetadataCatalogService {
     const connectString = this.oracleConnection.buildConnectString(stored);
     const databaseLabel = this.resolveDatabaseLabel(stored);
     const ownerFilter = this.resolveOwnerFilter(stored.username);
+    const ownerLabel = ownerFilter?.join(', ') ?? stored.username;
 
-    onProgress?.('Łączenie z Oracle i odczyt katalogu…');
+    report(5, `Łączenie z Oracle (${ownerLabel})…`);
+
+    const heartbeat = new ProgressHeartbeat();
 
     return this.withConnection(stored.username, stored.password, connectString, async (connection) => {
-      const tetaVersion = await this.fetchDatabaseVersion(connection);
-      const owners = await this.fetchOwners(connection, ownerFilter, stored.username);
-      onProgress?.(`Właściciele schematów: ${owners.length} — zliczanie obiektów…`);
-
-      const catalogTotals = await this.fetchDatabaseTotals(connection, owners);
-      onProgress?.(
-        `W katalogu: ${catalogTotals.tables} tabel, ${catalogTotals.views} widoków — import wszystkich obiektów…`,
+      report(8, 'Odczyt wersji bazy…');
+      const tetaVersion = await heartbeat.run('Odczyt wersji bazy', (msg) => report(8, msg), () =>
+        this.fetchDatabaseVersion(connection),
       );
 
-      const tables = await this.fetchTables(connection, owners);
-      onProgress?.(`Tabele: ${tables.length} — kolumny…`);
+      report(12, 'Właściciele schematów…');
+      const owners = await heartbeat.run('Lista schematów', (msg) => report(12, msg), () =>
+        this.fetchOwners(connection, ownerFilter, stored.username),
+      );
+      report(14, `Schematy: ${owners.join(', ')} — zliczanie obiektów…`);
 
-      const tablesWithColumns = await this.attachColumns(connection, tables, owners);
-      onProgress?.(`Kolumny: ${tablesWithColumns.reduce((sum, table) => sum + table.columns.length, 0)} — widoki…`);
+      const catalogTotals = await heartbeat.run(
+        'Zliczanie obiektów w katalogu',
+        (msg) => report(16, msg),
+        () => this.fetchDatabaseTotals(connection, owners),
+      );
+      report(
+        20,
+        `W katalogu: ${catalogTotals.tables} tabel, ${catalogTotals.columns} kolumn, ${catalogTotals.views} widoków…`,
+      );
 
-      const views = await this.fetchViews(connection, owners);
-      onProgress?.(`Widoki: ${views.length} — obiekty PL/SQL…`);
+      report(22, 'Pobieranie listy tabel…');
+      const tables = await heartbeat.run('Pobieranie listy tabel', (msg) => report(22, msg), () =>
+        this.fetchTables(connection, owners),
+      );
+      report(26, `Tabele: ${tables.length} — pobieranie kolumn (ALL_TAB_COLUMNS)…`);
 
-      const plsql = await this.fetchPlsqlObjects(connection, owners);
-      onProgress?.(`Obiekty PL/SQL: ${plsql.packages.length} pakietów — ograniczenia…`);
+      const tablesWithColumns = await heartbeat.run(
+        `Pobieranie kolumn dla ${tables.length} tabel`,
+        (msg) => report(28, msg),
+        () => this.attachColumns(connection, tables, owners),
+      );
+      const columnTotal = tablesWithColumns.reduce((sum, table) => sum + table.columns.length, 0);
+      report(34, `Kolumny: ${columnTotal} — pobieranie widoków…`);
 
-      const constraints = await this.fetchConstraints(connection, owners);
-      onProgress?.(`Ograniczenia: ${constraints.length} — komentarze…`);
+      const views = await heartbeat.run('Pobieranie widoków', (msg) => report(36, msg), () =>
+        this.fetchViews(connection, owners),
+      );
+      report(38, `Widoki: ${views.length} — obiekty PL/SQL…`);
 
-      const comments = await this.fetchComments(connection, owners);
-      onProgress?.(`Komentarze: ${comments.length} — źródła pakietów…`);
+      const plsql = await heartbeat.run('Pobieranie pakietów i procedur', (msg) => report(40, msg), () =>
+        this.fetchPlsqlObjects(connection, owners),
+      );
+      report(
+        42,
+        `PL/SQL: ${plsql.packages.length} pakietów, ${plsql.procedures.length} procedur — ograniczenia (FK/PK)…`,
+      );
 
-      const sources = await this.fetchSources(connection, owners, onProgress);
-      onProgress?.('Katalog Oracle odczytany.');
+      const constraints = await heartbeat.run(
+        'Pobieranie ograniczeń i kluczy obcych',
+        (msg) => report(44, msg),
+        () => this.fetchConstraints(connection, owners),
+      );
+      report(46, `Ograniczenia: ${constraints.length} — komentarze tabel i kolumn…`);
+
+      const comments = await heartbeat.run(
+        'Pobieranie komentarzy (ALL_TAB/COL_COMMENTS)',
+        (msg) => report(48, msg),
+        () => this.fetchComments(connection, owners),
+      );
+      report(50, `Komentarze: ${comments.length}…`);
+
+      let sources: OracleSourceLineMeta[] = [];
+      if (this.shouldFetchSources()) {
+        report(52, 'Pobieranie źródeł PL/SQL (ALL_SOURCE) — może potrwać…');
+        sources = await this.fetchSources(connection, owners, (pct, msg) => report(pct, msg));
+      } else {
+        report(52, 'Źródła PL/SQL pominięte — budowa grafu nie wymaga ALL_SOURCE.');
+      }
+
+      report(55, 'Katalog Oracle odczytany.');
 
       const catalog: OracleMetadataCatalogSnapshot = {
         owners,
@@ -263,13 +312,25 @@ export class OracleMetadataCatalogService {
     return 'ORACLE';
   }
 
+  private shouldFetchSources(): boolean {
+    const raw = this.config.get<string>('TETA_ORACLE_FETCH_SOURCES', 'false')?.trim().toLowerCase();
+    return raw === 'true' || raw === '1';
+  }
+
   private resolveOwnerFilter(_connectionUsername: string): string[] | null {
     const raw = this.config.get<string>('TETA_ORACLE_METADATA_OWNERS')?.trim();
-    if (!raw) return null;
-    return raw
-      .split(',')
-      .map((item) => item.trim().toUpperCase())
-      .filter(Boolean);
+    if (raw) {
+      return raw
+        .split(',')
+        .map((item) => item.trim().toUpperCase())
+        .filter(Boolean);
+    }
+
+    if (getOracleBackendMode(this.config) === 'real') {
+      return ['TETA_ADMIN'];
+    }
+
+    return null;
   }
 
   private async fetchDatabaseVersion(
@@ -469,15 +530,18 @@ export class OracleMetadataCatalogService {
               acc.column_name AS "COLUMN_NAME",
               acc.position AS "POSITION",
               ac.r_owner AS "R_OWNER",
-              ac.r_table_name AS "R_TABLE_NAME",
+              r_ac.table_name AS "R_TABLE_NAME",
               acc_ref.column_name AS "R_COLUMN_NAME"
        FROM all_constraints ac
        JOIN all_cons_columns acc
          ON ac.owner = acc.owner
         AND ac.constraint_name = acc.constraint_name
+       LEFT JOIN all_constraints r_ac
+         ON ac.r_owner = r_ac.owner
+        AND ac.r_constraint_name = r_ac.constraint_name
        LEFT JOIN all_cons_columns acc_ref
-         ON ac.r_owner = acc_ref.owner
-        AND ac.r_constraint_name = acc_ref.constraint_name
+         ON r_ac.owner = acc_ref.owner
+        AND r_ac.constraint_name = acc_ref.constraint_name
         AND acc.position = acc_ref.position
        WHERE ac.owner IN (${ownerBinds.placeholders})
          AND ac.constraint_type IN ('P', 'R', 'U', 'C')
@@ -553,40 +617,68 @@ export class OracleMetadataCatalogService {
   private async fetchSources(
     connection: import('oracledb').Connection,
     owners: string[],
-    onProgress?: (message: string) => void,
+    onProgress?: (progress: number, message: string) => void,
   ): Promise<OracleSourceLineMeta[]> {
     if (owners.length === 0) return [];
 
     const maxLines = Number(this.config.get('TETA_ORACLE_SOURCE_MAX_LINES', 50_000));
+    const pageSize = Number(this.config.get('TETA_ORACLE_SOURCE_PAGE_SIZE', 2000));
     const ownerBinds = this.buildInBinds(owners, 'owner');
-    const result = await connection.execute<SourceRow>(
-      `SELECT owner AS "OWNER",
-              name AS "NAME",
-              type AS "TYPE",
-              line AS "LINE",
-              text AS "TEXT"
-       FROM all_source
-       WHERE owner IN (${ownerBinds.placeholders})
-         AND type IN ('PACKAGE', 'PACKAGE BODY', 'PROCEDURE', 'FUNCTION', 'TRIGGER')
-       ORDER BY owner, name, type, line`,
-      ownerBinds.binds,
-      { outFormat: oracledb.OUT_FORMAT_OBJECT },
-    );
-
     const items: OracleSourceLineMeta[] = [];
-    for (const row of result.rows ?? []) {
-      if (items.length >= maxLines) {
-        onProgress?.(`Źródła PL/SQL: osiągnięto limit ${maxLines} linii — reszta pominięta.`);
-        break;
+    let offset = 0;
+
+    while (items.length < maxLines) {
+      const pageBinds = {
+        ...ownerBinds.binds,
+        offset,
+        limitEnd: offset + pageSize,
+      };
+      const result = await connection.execute<SourceRow>(
+        `SELECT owner AS "OWNER",
+                name AS "NAME",
+                type AS "TYPE",
+                line AS "LINE",
+                text AS "TEXT"
+         FROM (
+           SELECT owner, name, type, line, text,
+                  ROW_NUMBER() OVER (ORDER BY owner, name, type, line) AS rn
+           FROM all_source
+           WHERE owner IN (${ownerBinds.placeholders})
+             AND type IN ('PACKAGE', 'PACKAGE BODY', 'PROCEDURE', 'FUNCTION', 'TRIGGER')
+         )
+         WHERE rn > :offset AND rn <= :limitEnd`,
+        pageBinds,
+        { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      );
+
+      const rows = result.rows ?? [];
+      if (rows.length === 0) break;
+
+      for (const row of rows) {
+        if (items.length >= maxLines) break;
+        items.push({
+          owner: row.OWNER,
+          name: row.NAME,
+          objectType: row.TYPE,
+          line: Number(row.LINE) || 0,
+          text: row.TEXT ?? '',
+        });
       }
-      items.push({
-        owner: row.OWNER,
-        name: row.NAME,
-        objectType: row.TYPE,
-        line: Number(row.LINE) || 0,
-        text: row.TEXT ?? '',
-      });
+
+      const pct = 52 + Math.min(2, Math.round((items.length / maxLines) * 2));
+      onProgress?.(
+        pct,
+        `Źródła PL/SQL: ${items.length} linii (partia ${Math.floor(offset / pageSize) + 1})…`,
+      );
+
+      offset += pageSize;
+      if (rows.length < pageSize) break;
     }
+
+    if (items.length >= maxLines) {
+      onProgress?.(54, `Źródła PL/SQL: osiągnięto limit ${maxLines} linii.`);
+    }
+
     return items;
   }
 

@@ -145,6 +145,7 @@ export type {
   ChatSourceMode,
   OracleAgentDomain,
   OracleAgentSqlStep,
+  OracleReport,
   SchemaColumnInfo,
   SchemaCrawlStatus,
   SchemaDescribeColumnResponse,

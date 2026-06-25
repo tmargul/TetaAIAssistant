@@ -1,7 +1,7 @@
 import type { KnowledgeSourceType } from './rag.js';
 import type { RagSearchFilter } from './rag-search.js';
 import type { ChatQualityMode } from './chat-quality.js';
-import type { ChatOracleStep, ChatSourceMode, OracleAgentDomain, OracleAgentSqlStep } from './schema.js';
+import type { ChatOracleStep, ChatSourceMode, OracleAgentDomain, OracleAgentSqlStep, OracleReport } from './schema.js';
 
 export const CHAT_MODELS = ['qwen3', 'deepseek-r1'] as const;
 export type ChatModel = (typeof CHAT_MODELS)[number];
@@ -18,6 +18,8 @@ export interface ChatMessage {
   sources?: ChatRagSource[];
   oracleSteps?: ChatOracleStep[];
   oracleSql?: OracleAgentSqlStep[];
+  /** Raporty tabelaryczne z wykonanego SQL (tryb Baza Oracle). */
+  oracleReports?: OracleReport[];
   /** Czas generowania odpowiedzi (z API). */
   timing?: ChatCompletionTiming;
   /** Trwa streamowanie odpowiedzi. */
@@ -78,6 +80,8 @@ export interface ChatRuntimeStatusResponse {
   resolvedModelName: string;
   loadedInMemory: boolean;
   loadedModels: string[];
+  /** false gdy Ollama nie odpowiada na GET /api/ps — wtedy nie pokazuj ostrzeżenia o RAM. */
+  psAvailable: boolean;
 }
 
 export interface ChatCompletionResponse {
@@ -92,6 +96,7 @@ export type ChatStreamEvent =
   | { type: 'rag'; ragMs: number; sourceCount: number }
   | { type: 'oracle_step'; step: ChatOracleStep }
   | { type: 'oracle_sql'; sql: string; rowCount: number; preview: string[] }
+  | { type: 'oracle_report'; report: OracleReport }
   | { type: 'token'; delta: string }
   | {
       type: 'done';
@@ -101,5 +106,6 @@ export type ChatStreamEvent =
       timing: ChatCompletionTiming;
       oracleSteps?: ChatOracleStep[];
       oracleSql?: OracleAgentSqlStep[];
+      oracleReports?: OracleReport[];
     }
   | { type: 'error'; message: string };

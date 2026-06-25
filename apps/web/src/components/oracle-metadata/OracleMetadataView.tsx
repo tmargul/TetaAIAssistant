@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   OracleConnectionStatusResponse,
   OracleMetadataObjectKind,
@@ -40,6 +40,8 @@ export function OracleMetadataView() {
   const [objectItems, setObjectItems] = useState<string[]>([]);
   const [objectTotal, setObjectTotal] = useState(0);
   const [objectsLoading, setObjectsLoading] = useState(false);
+  const [importElapsedSec, setImportElapsedSec] = useState(0);
+  const importStartedRef = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -108,12 +110,30 @@ export function OracleMetadataView() {
 
   useEffect(() => {
     void refresh();
-    const intervalMs = metadata?.status === 'running' ? 3000 : 20000;
+    const intervalMs = metadata?.status === 'running' ? 1500 : 20000;
     const timer = window.setInterval(() => {
       void refresh();
     }, intervalMs);
     return () => window.clearInterval(timer);
   }, [refresh, metadata?.status]);
+
+  useEffect(() => {
+    if (metadata?.status !== 'running') {
+      importStartedRef.current = null;
+      setImportElapsedSec(0);
+      return;
+    }
+    if (!importStartedRef.current) {
+      importStartedRef.current = Date.now();
+    }
+    const tick = () => {
+      const started = importStartedRef.current ?? Date.now();
+      setImportElapsedSec(Math.floor((Date.now() - started) / 1000));
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [metadata?.status]);
 
   const oracleConfigured = oracleStatus?.configured === true;
   const importRunning = metadata?.status === 'running';
@@ -199,19 +219,22 @@ export function OracleMetadataView() {
       </div>
 
       {importRunning && (
-        <div className="oracle-metadata__progress">
+        <div className="oracle-metadata__progress oracle-metadata__progress--active">
           <div className="oracle-metadata__progress-header">
-            <span>Postęp importu</span>
+            <span>Postęp analizy</span>
             <strong>{metadata?.progress ?? 0}%</strong>
           </div>
           <div className="oracle-metadata__progress-bar">
             <div
               className="oracle-metadata__progress-fill"
-              style={{ width: `${Math.max(0, Math.min(100, metadata?.progress ?? 0))}%` }}
+              style={{ width: `${Math.max(2, Math.min(100, metadata?.progress ?? 0))}%` }}
             />
           </div>
           <p className="oracle-metadata__progress-label">
-            {metadata?.progressMessage ?? metadata?.message ?? 'Import metadanych Oracle w toku…'}
+            {metadata?.progressMessage ?? metadata?.message ?? 'Analiza bazy Oracle w toku…'}
+          </p>
+          <p className="oracle-metadata__progress-meta">
+            Czas: {importElapsedSec} s · odświeżanie statusu co 1,5 s
           </p>
         </div>
       )}

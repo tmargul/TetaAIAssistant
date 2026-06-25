@@ -105,10 +105,22 @@ export const CHAT_SOURCE_LABELS: Record<ChatSourceMode, string> = {
   oracle: 'Baza Oracle',
 };
 
+export interface OracleReport {
+  sql: string;
+  columns: string[];
+  rows: string[][];
+  rowCount: number;
+  truncated: boolean;
+}
+
 export interface OracleAgentSqlStep {
   sql: string;
   rowCount: number;
-  preview: string[];
+  columns: string[];
+  rows: string[][];
+  truncated: boolean;
+  /** @deprecated Użyj columns/rows — zachowane dla kompatybilności */
+  preview?: string[];
 }
 
 export interface ChatOracleStep {

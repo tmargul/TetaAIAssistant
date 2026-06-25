@@ -7,6 +7,7 @@ import type {
   ChatStreamEvent,
   OracleAgentDomain,
   OracleAgentSqlStep,
+  OracleReport,
 } from '@teta/shared';
 import { OllamaChatService } from '../chat/ollama-chat.service';
 import { resolveChatQualityProfile } from '../chat/chat-quality.profile';
@@ -56,6 +57,7 @@ export class OracleAgentService {
     const domain = input.oracleDomain ?? 'general';
     const steps: ChatOracleStep[] = [];
     const sqlSteps: OracleAgentSqlStep[] = [];
+    const reports: OracleReport[] = [];
 
     try {
       const stats = this.crawl.getStats();
@@ -99,8 +101,16 @@ export class OracleAgentService {
 
         if (action.action === 'answer') {
           if (action.sql?.trim()) {
-            const exec = await this.runSql(action.sql, userId, domain, writeEvent, steps, sqlSteps);
-            finalAnswer = `${action.text.trim()}\n\n${exec.summary}`;
+            await this.runSql(
+              action.sql,
+              userId,
+              domain,
+              writeEvent,
+              steps,
+              sqlSteps,
+              reports,
+            );
+            finalAnswer = action.text.trim();
           } else {
             finalAnswer = action.text.trim();
           }
@@ -135,6 +145,7 @@ export class OracleAgentService {
         timing: { totalMs, ragMs: 0, llmMs: totalMs },
         oracleSteps: steps,
         oracleSql: sqlSteps,
+        oracleReports: reports,
       });
       res.end();
     } catch (error) {
@@ -234,29 +245,38 @@ export class OracleAgentService {
     writeEvent: (event: ChatStreamEvent) => void,
     steps: ChatOracleStep[],
     sqlSteps: OracleAgentSqlStep[],
-  ): Promise<{ summary: string }> {
+    reports: OracleReport[],
+  ): Promise<OracleReport> {
     const result = await this.query.executeSelect(sql, { userId, domain });
+    const maxRows = Number(this.config.get('TETA_ORACLE_AGENT_MAX_ROWS', 200));
+    const truncated = result.rowCount >= maxRows;
     const preview = result.rows.slice(0, 5).map((row) => row.join(' | '));
+
+    const report: OracleReport = {
+      sql: result.sql,
+      columns: result.columns,
+      rows: result.rows,
+      rowCount: result.rowCount,
+      truncated,
+    };
+
     const step: ChatOracleStep = { tool: 'execute_sql', summary: `${result.rowCount} wierszy` };
     steps.push(step);
     writeEvent({ type: 'oracle_step', step });
+    writeEvent({ type: 'oracle_report', report });
     writeEvent({ type: 'oracle_sql', sql: result.sql, rowCount: result.rowCount, preview });
 
     const sqlStep: OracleAgentSqlStep = {
       sql: result.sql,
       rowCount: result.rowCount,
+      columns: result.columns,
+      rows: result.rows,
+      truncated,
       preview,
     };
     sqlSteps.push(sqlStep);
-
-    const header = result.columns.join(' | ');
-    const body = result.rows
-      .slice(0, 10)
-      .map((row) => row.join(' | '))
-      .join('\n');
-    return {
-      summary: `Wynik (${result.rowCount} wierszy):\n${header}\n${body}`,
-    };
+    reports.push(report);
+    return report;
   }
 
   private buildSystemPrompt(domain: OracleAgentDomain, toolContext: string[]): string {
@@ -275,7 +295,12 @@ Dostępne narzędzia (zwróć JSON):
 Format odpowiedzi (jeden obiekt JSON, bez markdown):
 {"action":"tool","name":"describe_table","args":{"table":"NAZWA"}}
 lub po zebraniu faktów:
-{"action":"answer","text":"odpowiedź po polsku","sql":"opcjonalne SELECT"}
+{"action":"answer","text":"krótkie podsumowanie po polsku","sql":"SELECT ..."}
+
+Raporty danych:
+- Gdy użytkownik prosi o listę, zestawienie, raport, tabelę lub konkretne dane z bazy — ZAWSZE zakończ odpowiedzią z polem sql (SELECT).
+- Pole text to wyłącznie 1–3 zdania podsumowania (liczba wierszy, co pokazuje raport). NIE wklejaj danych tabelarycznych do text — system wyświetli tabelę raportu automatycznie.
+- Najpierw zbierz schemat (search_tables, describe_table, find_path), potem zbuduj poprawne SELECT.
 
 Zasady SQL:
 - tylko SELECT

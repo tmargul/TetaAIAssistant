@@ -133,39 +133,61 @@ export class OllamaChatService implements OnModuleInit {
       // Ollama offline — pokaż preferowaną nazwę
     }
 
-    const loadedModels = await this.listLoadedModels();
-    const loadedInMemory = loadedModels.some((name) =>
-      this.modelNameMatches(name, resolvedModelName),
-    );
+    const { models: loadedModels, available: psAvailable } = await this.listLoadedModels();
+    const loadedInMemory = psAvailable
+      ? loadedModels.some((name) => this.modelNameMatches(name, resolvedModelName))
+      : false;
 
     return {
       chatModel: model,
       resolvedModelName,
       loadedInMemory,
       loadedModels,
+      psAvailable,
     };
   }
 
+  private normalizeModelRef(name: string): string {
+    const withoutDigest = name.split('@')[0]?.trim() ?? name;
+    const segments = withoutDigest.split('/');
+    return segments[segments.length - 1] ?? withoutDigest;
+  }
+
   private modelNameMatches(installedName: string, preferred: string): boolean {
-    const preferredBase = preferred.split(':')[0];
-    const installedBase = installedName.split(':')[0];
+    const installed = this.normalizeModelRef(installedName);
+    const target = this.normalizeModelRef(preferred);
+    const installedBase = installed.split(':')[0];
+    const targetBase = target.split(':')[0];
     return (
-      installedName === preferred ||
-      installedName.startsWith(`${preferred}:`) ||
-      installedBase === preferredBase
+      installed === target ||
+      installed.startsWith(`${target}:`) ||
+      target.startsWith(`${installed}:`) ||
+      installedBase === targetBase
     );
   }
 
-  private async listLoadedModels(): Promise<string[]> {
+  private async listLoadedModels(): Promise<{ models: string[]; available: boolean }> {
     try {
       const res = await fetch(`${this.baseUrl}/api/ps`, {
         signal: AbortSignal.timeout(5000),
       });
-      if (!res.ok) return [];
-      const data = (await res.json()) as { models?: Array<{ name: string }> };
-      return data.models?.map((item) => item.name) ?? [];
-    } catch {
-      return [];
+      if (!res.ok) {
+        this.logger.debug(`Ollama /api/ps HTTP ${res.status}`);
+        return { models: [], available: false };
+      }
+      const data = (await res.json()) as {
+        models?: Array<{ name?: string; model?: string }>;
+      };
+      const names = new Set<string>();
+      for (const item of data.models ?? []) {
+        if (item.name?.trim()) names.add(item.name.trim());
+        if (item.model?.trim()) names.add(item.model.trim());
+      }
+      return { models: [...names], available: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.debug(`Ollama /api/ps niedostępne: ${message}`);
+      return { models: [], available: false };
     }
   }
 

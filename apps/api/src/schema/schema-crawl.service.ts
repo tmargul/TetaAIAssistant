@@ -102,8 +102,10 @@ export class SchemaCrawlService implements OnModuleInit {
     const jobId = Number(insert.lastInsertRowid);
 
     try {
-      onProgress?.(55, 'Budowanie grafu relacji (węzły, krawędzie)…');
-      const result = this.graph.buildFromCatalog(catalog, jobId);
+      onProgress?.(58, 'Budowanie grafu relacji (węzły, krawędzie)…');
+      const result = this.graph.buildFromCatalog(catalog, jobId, (pct, message) => {
+        onProgress?.(pct, message);
+      });
       const finishedAt = new Date().toISOString();
 
       this.db.connection

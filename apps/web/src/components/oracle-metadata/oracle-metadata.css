@@ -65,6 +65,37 @@
   background: var(--accent);
   border-radius: 999px;
   transition: width 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.oracle-metadata__progress--active .oracle-metadata__progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  animation: oracle-progress-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes oracle-progress-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.oracle-metadata__progress-meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  opacity: 0.9;
 }
 
 .oracle-metadata__progress-label {

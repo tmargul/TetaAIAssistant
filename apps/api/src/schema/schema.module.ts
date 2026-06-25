@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { ChatModule } from '../chat/chat.module';
+import { AuthModule } from '../auth/auth.module';
+import { OllamaModule } from '../chat/ollama.module';
 import { OracleModule } from '../oracle/oracle.module';
 import { SchemaController } from './schema.controller';
 import { SchemaCrawlService } from './schema-crawl.service';
@@ -11,7 +12,7 @@ import { SchemaProcedureService } from './schema-procedure.service';
 import { SqlValidatorService } from './sql-validator.service';
 
 @Module({
-  imports: [forwardRef(() => OracleModule), forwardRef(() => ChatModule)],
+  imports: [forwardRef(() => AuthModule), forwardRef(() => OracleModule), OllamaModule],
   controllers: [SchemaController],
   providers: [
     SchemaGraphService,

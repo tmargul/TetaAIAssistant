@@ -9,6 +9,7 @@ import {
   type ChatSourceMode,
   type OracleAgentDomain,
   type OracleAgentSqlStep,
+  type OracleReport,
   type RagSearchFilter,
   KNOWLEDGE_SOURCE_TYPES,
 } from '@teta/shared';
@@ -32,6 +33,7 @@ import { ModelSelect } from './ModelSelect';
 import { QualitySelect } from './QualitySelect';
 import { SourceSelect } from './SourceSelect';
 import { DomainSelect } from './DomainSelect';
+import { ReportTable } from './ReportTable';
 import {
   loadChatSourcePreference,
   loadOracleDomainPreference,
@@ -81,6 +83,13 @@ function ChatBubble({
         )}
         {!isUser && !message.streaming && message.timing && (
           <p className="chat__bubble-timing">{formatChatTiming(message.timing)}</p>
+        )}
+        {!isUser && message.oracleReports && message.oracleReports.length > 0 && (
+          <div className="chat__reports">
+            {message.oracleReports.map((report, index) => (
+              <ReportTable key={`${report.sql}-${index}`} report={report} />
+            ))}
+          </div>
         )}
         {!isUser && message.oracleSteps && message.oracleSteps.length > 0 && (
           <details className="chat__oracle-steps">
@@ -272,11 +281,19 @@ export function ChatView({
 
   useEffect(() => {
     void refreshRuntime();
-    const timer = window.setInterval(() => {
-      void refreshRuntime();
-    }, 20_000);
-    return () => window.clearInterval(timer);
   }, [refreshRuntime]);
+
+  const hasAssistantReply = messages.some(
+    (item) =>
+      item.role === 'assistant' &&
+      (item.content.trim().length > 0 || (item.oracleReports?.length ?? 0) > 0),
+  );
+
+  const showModelWarmupBanner =
+    Boolean(runtime?.psAvailable) &&
+    !runtime?.loadedInMemory &&
+    !hasAssistantReply &&
+    !isBusy;
 
   useEffect(() => {
     authFetch('/api/chat/models')
@@ -346,6 +363,7 @@ export function ChatView({
     let streamError: string | null = null;
     let oracleSteps: ChatOracleStep[] = [];
     let oracleSql: OracleAgentSqlStep[] = [];
+    let oracleReports: OracleReport[] = [];
 
     try {
       const history = nextMessages
@@ -369,11 +387,35 @@ export function ChatView({
             return;
           }
 
+          if (event.type === 'oracle_report') {
+            oracleReports = [...oracleReports, event.report];
+            setTypingHint(`Raport: ${event.report.rowCount} wierszy`);
+            if (!assistantId) {
+              assistantId = createId();
+              setStreamingMessageId(assistantId);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: assistantId,
+                  role: 'assistant',
+                  content: '',
+                  createdAt: new Date().toISOString(),
+                  streaming: true,
+                  oracleReports,
+                  oracleSteps,
+                },
+              ]);
+            } else {
+              setMessages((prev) =>
+                prev.map((item) =>
+                  item.id === assistantId ? { ...item, oracleReports, oracleSteps } : item,
+                ),
+              );
+            }
+            return;
+          }
+
           if (event.type === 'oracle_sql') {
-            oracleSql = [
-              ...oracleSql,
-              { sql: event.sql, rowCount: event.rowCount, preview: event.preview },
-            ];
             return;
           }
 
@@ -426,6 +468,7 @@ export function ChatView({
                       streaming: false,
                       oracleSteps: event.oracleSteps ?? oracleSteps,
                       oracleSql: event.oracleSql ?? oracleSql,
+                      oracleReports: event.oracleReports ?? oracleReports,
                     }
                   : item,
               ),
@@ -443,6 +486,9 @@ export function ChatView({
         throw new Error(streamError);
       }
 
+      setRuntime((prev) =>
+        prev ? { ...prev, loadedInMemory: true, psAvailable: true } : prev,
+      );
       void refreshRuntime();
     } catch (err) {
       if (assistantId) {
@@ -483,7 +529,7 @@ export function ChatView({
       <div className="chat__toolbar">
         <div className="chat__toolbar-models">
           <div className="chat__toolbar-field">
-            <span className="chat__model-label">Model: </span>
+            <span className="chat__model-label">Model:</span>
             <ModelSelect
               value={model}
               models={availableModels}
@@ -491,8 +537,8 @@ export function ChatView({
               disabled={modelsLoading || availableModels.length === 0 || isBusy}
             />
           </div>
-          <div className="chat__toolbar-field">
-            <span className="chat__model-label">Źródło: </span>
+          <div className="chat__toolbar-field chat__toolbar-field--source">
+            <span className="chat__model-label">Źródło:</span>
             <SourceSelect
               value={chatSource}
               onChange={setChatSource}
@@ -500,8 +546,8 @@ export function ChatView({
             />
           </div>
           {chatSource === 'oracle' && (
-            <div className="chat__toolbar-field">
-              <span className="chat__model-label">Agent: </span>
+            <div className="chat__toolbar-field chat__toolbar-field--domain">
+              <span className="chat__model-label">Agent:</span>
               <DomainSelect
                 value={oracleDomain}
                 onChange={setOracleDomain}
@@ -510,16 +556,13 @@ export function ChatView({
             </div>
           )}
           <div className="chat__toolbar-field">
-            <span className="chat__model-label">Jakość rozmowy: </span>
+            <span className="chat__model-label">Jakość:</span>
             <QualitySelect
               value={quality}
               onChange={handleQualityChange}
               disabled={isBusy}
             />
           </div>
-          {!modelsLoading && availableModels.length === 0 && (
-            <p className="chat__model-hint">Brak modeli czatu w Ollama — zainstaluj qwen3.</p>
-          )}
         </div>
         <div className="chat__toolbar-actions">
           {chatSource === 'docs' && (
@@ -612,9 +655,13 @@ export function ChatView({
         </div>
       </div>
 
-      {runtime && !runtime.loadedInMemory && (
+      {!modelsLoading && availableModels.length === 0 && (
+        <p className="chat__model-hint">Brak modeli czatu w Ollama — zainstaluj qwen3.</p>
+      )}
+
+      {showModelWarmupBanner && (
         <div className="chat__model-banner" role="status">
-          Model <strong>{runtime.resolvedModelName}</strong> nie jest jeszcze w pamięci RAM Ollamy
+          Model <strong>{runtime!.resolvedModelName}</strong> nie jest jeszcze w pamięci RAM Ollamy
           (osobna usługa obok backendu). Pierwsze zapytanie załaduje ok. 5 GB — potem model zostaje
           w RAM do restartu Ollamy.
         </div>
