@@ -815,6 +815,7 @@ function Write-ApiServiceRunnerScript([string]$InstallRoot) {
     $runnerPath = Join-Path $InstallRoot "run-api.cmd"
     $apiDir = Join-Path $script:RepoRoot "apps\api"
     $webDist = Join-Path $script:RepoRoot "apps\web\dist"
+    $ollamaModels = Get-OllamaModelsDir $InstallRoot
 
     $runner = @"
 @echo off
@@ -822,6 +823,7 @@ set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%LocalAppData%\Progra
 cd /d "$apiDir"
 set TETA_REPO_ROOT=$script:RepoRoot
 set WEB_DIST_PATH=$webDist
+set OLLAMA_MODELS=$ollamaModels
 set PORT=3000
 "$nodeExe" dist\main.js
 "@
@@ -914,7 +916,7 @@ function Get-EnvExamplePath {
     return $null
 }
 
-function Write-EnvFile([string]$AppMode, [bool]$IncludeVendorSecret) {
+function Write-EnvFile([string]$AppMode, [bool]$IncludeVendorSecret, [string]$InstallRoot = "") {
     Write-Step "Tworzenie apps/api/.env"
     $examplePath = Get-EnvExamplePath
     $envPath = Join-Path $script:RepoRoot "apps\api\.env"
@@ -926,6 +928,16 @@ function Write-EnvFile([string]$AppMode, [bool]$IncludeVendorSecret) {
     $content = Get-Content $examplePath -Raw
     $content = $content -replace "(?m)^TETA_APP_MODE=.*$", "TETA_APP_MODE=$AppMode"
     $content = $content -replace "(?m)^JWT_SECRET=.*$", "JWT_SECRET=$(New-RandomSecret)"
+
+    if ($InstallRoot) {
+        $modelsDir = Get-OllamaModelsDir $InstallRoot
+        $line = "OLLAMA_MODELS=$($modelsDir -replace '\\','/')"
+        if ($content -match "(?m)^#?\s*OLLAMA_MODELS=") {
+            $content = $content -replace "(?m)^#?\s*OLLAMA_MODELS=.*$", $line
+        } else {
+            $content += "`n$line`n"
+        }
+    }
 
     if ($IncludeVendorSecret) {
         if ($content -match "(?m)^#\s*TETA_VENDOR_SECRET=") {

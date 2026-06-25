@@ -11,6 +11,33 @@ export interface OracleColumnMeta {
   nullable?: boolean;
 }
 
+export interface OracleConstraintMeta {
+  owner: string;
+  tableName: string;
+  constraintName: string;
+  constraintType: 'P' | 'R' | 'U' | 'C';
+  columnName: string;
+  position: number;
+  refOwner?: string;
+  refTableName?: string;
+  refColumnName?: string;
+}
+
+export interface OracleCommentMeta {
+  owner: string;
+  tableName: string;
+  columnName: string | null;
+  comments: string;
+}
+
+export interface OracleSourceLineMeta {
+  owner: string;
+  name: string;
+  objectType: string;
+  line: number;
+  text: string;
+}
+
 export interface OracleTableMeta {
   owner: string;
   name: string;
@@ -31,6 +58,9 @@ export interface OracleMetadataCatalogSnapshot {
   packages: OracleNamedObjectMeta[];
   procedures: OracleNamedObjectMeta[];
   functions: OracleNamedObjectMeta[];
+  constraints: OracleConstraintMeta[];
+  comments: OracleCommentMeta[];
+  sources: OracleSourceLineMeta[];
   tetaVersion: string | null;
   pilotModule: string | null;
   databaseLabel: string;

@@ -4,6 +4,7 @@ import type {
   OracleMetadataObjectKind,
   OracleMetadataObjectsPageResponse,
   OracleMetadataStatusResponse,
+  SchemaGraphStatsResponse,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
 import { readResponseJson } from '../../lib/read-response-json';
@@ -15,6 +16,7 @@ import {
   oracleImportStatusLabel,
 } from '../../lib/oracle-metadata';
 import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
+import { SchemaExplorerPanel } from './SchemaExplorerPanel';
 import './oracle-metadata.css';
 
 const STAT_KINDS: OracleMetadataObjectKind[] = [
@@ -28,6 +30,7 @@ const STAT_KINDS: OracleMetadataObjectKind[] = [
 export function OracleMetadataView() {
   const [oracleStatus, setOracleStatus] = useState<OracleConnectionStatusResponse | null>(null);
   const [metadata, setMetadata] = useState<OracleMetadataStatusResponse | null>(null);
+  const [graphStats, setGraphStats] = useState<SchemaGraphStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [importStarting, setImportStarting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -41,15 +44,19 @@ export function OracleMetadataView() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [oracleRes, metadataRes] = await Promise.all([
+      const [oracleRes, metadataRes, graphRes] = await Promise.all([
         authFetch('/api/oracle/status'),
         authFetch('/api/oracle/metadata/status'),
+        authFetch('/api/schema/stats'),
       ]);
       if (oracleRes.ok) {
         setOracleStatus(await readResponseJson<OracleConnectionStatusResponse>(oracleRes));
       }
       if (metadataRes.ok) {
         setMetadata(await readResponseJson<OracleMetadataStatusResponse>(metadataRes));
+      }
+      if (graphRes.ok) {
+        setGraphStats(await readResponseJson<SchemaGraphStatsResponse>(graphRes));
       }
     } catch (err) {
       setError(
@@ -129,7 +136,7 @@ export function OracleMetadataView() {
         );
       }
       await readResponseJson<OracleMetadataStatusResponse>(res);
-      setMessage('Import metadanych Oracle uruchomiony.');
+      setMessage('Analiza bazy Oracle uruchomiona (graf + indeks).');
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nie udało się uruchomić importu.');
@@ -151,12 +158,19 @@ export function OracleMetadataView() {
   return (
     <div className="oracle-metadata">
       <p className="oracle-metadata__lead">
-        Import struktury bazy Teta (tabele, widoki, pakiety, procedury, funkcje) do warstwy wiedzy RAG.
-        Wymaga konta read-only z dostępem do widoków katalogowych — bez danych operacyjnych.
+        Analiza struktury bazy Teta: crawler Oracle buduje graf relacji (SQLite), a opcjonalny indeks
+        Qdrant służy wyłącznie do pytań merytorycznych w trybie Dokumentacja.
       </p>
 
       {message && <p className="oracle-metadata__message oracle-metadata__message--ok">{message}</p>}
       {error && <p className="oracle-metadata__message oracle-metadata__message--error">{error}</p>}
+
+      {graphStats && graphStats.nodeCount > 0 && (
+        <div className="oracle-metadata__banner oracle-metadata__banner--ok">
+          <strong>Graf schematu:</strong> {graphStats.nodeCount} tabel/widoków · {graphStats.columnCount}{' '}
+          kolumn · {graphStats.edgeCount} relacji · {graphStats.experiencePathCount} zapamiętanych ścieżek
+        </div>
+      )}
 
       <div
         className={`oracle-metadata__banner${
@@ -343,8 +357,8 @@ export function OracleMetadataView() {
           {importStarting
             ? 'Uruchamianie…'
             : importRunning
-              ? 'Import w toku…'
-              : 'Rozpocznij import metadanych'}
+              ? 'Analiza w toku…'
+              : 'Analizuj bazę'}
         </button>
         <button
           type="button"
@@ -379,6 +393,8 @@ export function OracleMetadataView() {
           </div>
         )}
       </section>
+
+      <SchemaExplorerPanel />
     </div>
   );
 }

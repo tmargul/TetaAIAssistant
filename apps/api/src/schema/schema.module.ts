@@ -1,0 +1,33 @@
+import { Module, forwardRef } from '@nestjs/common';
+import { ChatModule } from '../chat/chat.module';
+import { OracleModule } from '../oracle/oracle.module';
+import { SchemaController } from './schema.controller';
+import { SchemaCrawlService } from './schema-crawl.service';
+import { SchemaExplorerService } from './schema-explorer.service';
+import { SchemaGraphService } from './schema-graph.service';
+import { OracleAgentService } from './oracle-agent.service';
+import { OracleQueryService } from './oracle-query.service';
+import { SchemaProcedureService } from './schema-procedure.service';
+import { SqlValidatorService } from './sql-validator.service';
+
+@Module({
+  imports: [forwardRef(() => OracleModule), forwardRef(() => ChatModule)],
+  controllers: [SchemaController],
+  providers: [
+    SchemaGraphService,
+    SchemaCrawlService,
+    SchemaExplorerService,
+    SqlValidatorService,
+    OracleQueryService,
+    SchemaProcedureService,
+    OracleAgentService,
+  ],
+  exports: [
+    SchemaGraphService,
+    SchemaCrawlService,
+    SchemaExplorerService,
+    OracleAgentService,
+    OracleQueryService,
+  ],
+})
+export class SchemaModule {}

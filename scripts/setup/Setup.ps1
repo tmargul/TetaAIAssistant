@@ -78,7 +78,7 @@ $qdrantExe = Ensure-Qdrant $InstallRoot
 $nssmExe = Ensure-Nssm $InstallRoot
 
 $isVendor = $Mode -eq "vendor"
-Write-EnvFile -AppMode $Mode -IncludeVendorSecret $isVendor
+Write-EnvFile -AppMode $Mode -IncludeVendorSecret $isVendor -InstallRoot $InstallRoot
 
 Ensure-Ollama -InstallRoot $InstallRoot
 Wait-OllamaReady

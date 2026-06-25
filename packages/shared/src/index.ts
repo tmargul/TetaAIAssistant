@@ -56,6 +56,15 @@ export type {
 
 export { CHAT_MODELS } from './chat.js';
 
+export {
+  CHAT_QUALITY_HINTS,
+  CHAT_QUALITY_LABELS,
+  CHAT_QUALITY_MODES,
+  DEFAULT_CHAT_QUALITY,
+  resolveChatQualityMode,
+} from './chat-quality.js';
+export type { ChatQualityMode } from './chat-quality.js';
+
 export type {
   ChatConversationRecord,
   ChatConversationSummary,
@@ -130,6 +139,31 @@ export type {
   GlobalRagSupportedExtension,
   RagSourceExtension,
 } from './rag.js';
+
+export type {
+  ChatOracleStep,
+  ChatSourceMode,
+  OracleAgentDomain,
+  OracleAgentSqlStep,
+  SchemaColumnInfo,
+  SchemaCrawlStatus,
+  SchemaDescribeColumnResponse,
+  SchemaDescribeTableResponse,
+  SchemaEdgeType,
+  SchemaFindPathResponse,
+  SchemaGraphStatsResponse,
+  SchemaNodeType,
+  SchemaPathStep,
+  SchemaSearchTablesResponse,
+  SchemaTableInfo,
+} from './schema.js';
+
+export {
+  CHAT_SOURCE_LABELS,
+  CHAT_SOURCE_MODES,
+  ORACLE_AGENT_DOMAIN_LABELS,
+  ORACLE_AGENT_DOMAINS,
+} from './schema.js';
 
 export type {
   OracleConnectionConfig,

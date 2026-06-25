@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { existsSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm } from 'fs/promises';
-import { homedir, tmpdir } from 'os';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import extract from 'extract-zip';
 import {
@@ -14,6 +14,7 @@ import {
   type OllamaModelsPackManifest,
   type OllamaPullModel,
 } from '@teta/shared';
+import { getOllamaModelsDir } from '../config/ollama-paths';
 import { OllamaChatService } from './ollama-chat.service';
 
 @Injectable()
@@ -30,7 +31,7 @@ export class OllamaModelsService {
   }
 
   private get modelsTargetDir(): string {
-    return path.join(homedir(), '.ollama', 'models');
+    return getOllamaModelsDir();
   }
 
   async importFromZipPackage(packagePath: string): Promise<OllamaModelsImportResult> {

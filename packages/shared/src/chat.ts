@@ -1,5 +1,7 @@
 import type { KnowledgeSourceType } from './rag.js';
 import type { RagSearchFilter } from './rag-search.js';
+import type { ChatQualityMode } from './chat-quality.js';
+import type { ChatOracleStep, ChatSourceMode, OracleAgentDomain, OracleAgentSqlStep } from './schema.js';
 
 export const CHAT_MODELS = ['qwen3', 'deepseek-r1'] as const;
 export type ChatModel = (typeof CHAT_MODELS)[number];
@@ -14,6 +16,8 @@ export interface ChatMessage {
   content: string;
   createdAt: string;
   sources?: ChatRagSource[];
+  oracleSteps?: ChatOracleStep[];
+  oracleSql?: OracleAgentSqlStep[];
   /** Czas generowania odpowiedzi (z API). */
   timing?: ChatCompletionTiming;
   /** Trwa streamowanie odpowiedzi. */
@@ -34,8 +38,13 @@ export interface ChatHistoryMessage {
 export interface ChatCompletionRequest {
   message: string;
   model: ChatModel;
+  quality?: ChatQualityMode;
   history?: ChatHistoryMessage[];
   ragFilter?: RagSearchFilter;
+  /** docs = RAG dokumentacji; oracle = agent schematu + SQL */
+  source?: ChatSourceMode;
+  /** Kontekst domenowy agenta Oracle (faza D). */
+  oracleDomain?: OracleAgentDomain;
 }
 
 export type ChatRagCollection = 'global' | 'client';
@@ -81,6 +90,8 @@ export interface ChatCompletionResponse {
 
 export type ChatStreamEvent =
   | { type: 'rag'; ragMs: number; sourceCount: number }
+  | { type: 'oracle_step'; step: ChatOracleStep }
+  | { type: 'oracle_sql'; sql: string; rowCount: number; preview: string[] }
   | { type: 'token'; delta: string }
   | {
       type: 'done';
@@ -88,5 +99,7 @@ export type ChatStreamEvent =
       model: ChatModel;
       createdAt: string;
       timing: ChatCompletionTiming;
+      oracleSteps?: ChatOracleStep[];
+      oracleSql?: OracleAgentSqlStep[];
     }
   | { type: 'error'; message: string };

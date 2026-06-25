@@ -1,7 +1,15 @@
-import { Body, Controller, Get, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
-import { CHAT_MODELS, type ChatCompletionRequest, type ChatCompletionResponse, type ChatModel, type ChatModelsResponse, type ChatRuntimeStatusResponse } from '@teta/shared';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  CHAT_MODELS,
+  type ChatCompletionRequest,
+  type ChatCompletionResponse,
+  type ChatModel,
+  type ChatModelsResponse,
+  type ChatRuntimeStatusResponse,
+} from '@teta/shared';
+import { JwtAuthGuard, type AuthenticatedRequest } from '../auth/jwt-auth.guard';
+import { OracleAgentService } from '../schema/oracle-agent.service';
 import { ChatService } from './chat.service';
 import { OllamaChatService } from './ollama-chat.service';
 
@@ -11,6 +19,7 @@ export class ChatController {
   constructor(
     private readonly chat: ChatService,
     private readonly ollama: OllamaChatService,
+    private readonly oracleAgent: OracleAgentService,
   ) {}
 
   @Get('models')
@@ -34,8 +43,12 @@ export class ChatController {
   @Post('completions/stream')
   streamComplete(
     @Body() body: ChatCompletionRequest,
+    @Req() req: AuthenticatedRequest,
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
+    if (body.source === 'oracle') {
+      return this.oracleAgent.streamComplete(body, res, req.user.id);
+    }
     return this.chat.streamComplete(body, res);
   }
 }

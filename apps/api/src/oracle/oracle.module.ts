@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module';
 import { RagCoreModule } from '../rag/rag-core.module';
+import { SchemaModule } from '../schema/schema.module';
 import { FakeOracleClient } from './fake-oracle.client';
 import { ORACLE_CLIENT } from './oracle-client.interface';
 import { OracleConfigGuard } from './oracle-config.guard';
@@ -14,7 +15,7 @@ import { OracleMetadataImportPipelineService } from './metadata/oracle-metadata-
 import { OracleMetadataImportService } from './metadata/oracle-metadata-import.service';
 
 @Module({
-  imports: [forwardRef(() => AuthModule), forwardRef(() => RagCoreModule)],
+  imports: [forwardRef(() => AuthModule), forwardRef(() => RagCoreModule), forwardRef(() => SchemaModule)],
   controllers: [OracleController],
   providers: [
     OracleConfigGuard,
@@ -34,6 +35,6 @@ import { OracleMetadataImportService } from './metadata/oracle-metadata-import.s
     OracleMetadataImportPipelineService,
     OracleMetadataImportService,
   ],
-  exports: [OracleConnectionService],
+  exports: [OracleConnectionService, OracleMetadataCatalogService, OracleMetadataImportService],
 })
 export class OracleModule {}

@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import {
-  CHAT_MODELS,
   type ChatMessage,
   type ChatModel,
   type ChatModelsResponse,
+  type ChatOracleStep,
+  type ChatQualityMode,
   type ChatRuntimeStatusResponse,
+  type ChatSourceMode,
+  type OracleAgentDomain,
+  type OracleAgentSqlStep,
   type RagSearchFilter,
   KNOWLEDGE_SOURCE_TYPES,
 } from '@teta/shared';
@@ -18,8 +22,22 @@ import {
   type StoredChatConversation,
 } from './chat-storage';
 import { streamChatCompletion } from './chat-stream';
+import {
+  historyClientLimit,
+  loadChatQualityPreference,
+  saveChatQualityPreference,
+} from './chat-quality-preference';
 import { formatChatTiming } from './format-duration';
 import { ModelSelect } from './ModelSelect';
+import { QualitySelect } from './QualitySelect';
+import { SourceSelect } from './SourceSelect';
+import { DomainSelect } from './DomainSelect';
+import {
+  loadChatSourcePreference,
+  loadOracleDomainPreference,
+  saveChatSourcePreference,
+  saveOracleDomainPreference,
+} from './chat-source-preference';
 import './chat.css';
 
 const SUGGESTIONS = [
@@ -64,6 +82,29 @@ function ChatBubble({
         {!isUser && !message.streaming && message.timing && (
           <p className="chat__bubble-timing">{formatChatTiming(message.timing)}</p>
         )}
+        {!isUser && message.oracleSteps && message.oracleSteps.length > 0 && (
+          <details className="chat__oracle-steps">
+            <summary>Kroki agenta Oracle ({message.oracleSteps.length})</summary>
+            <ul>
+              {message.oracleSteps.map((step, index) => (
+                <li key={`${step.tool}-${index}`}>
+                  <strong>{step.tool}</strong>: {step.summary}
+                </li>
+              ))}
+            </ul>
+            {message.oracleSql && message.oracleSql.length > 0 && (
+              <div>
+                {message.oracleSql.map((item, index) => (
+                  <pre key={index} className="chat__oracle-sql">
+                    {item.sql}
+                    {'\n'}
+                    ({item.rowCount} wierszy)
+                  </pre>
+                ))}
+              </div>
+            )}
+          </details>
+        )}
       </div>
     </div>
   );
@@ -100,6 +141,11 @@ export function ChatView({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ChatModel>('qwen3');
+  const [quality, setQuality] = useState<ChatQualityMode>(() => loadChatQualityPreference());
+  const [chatSource, setChatSource] = useState<ChatSourceMode>(() => loadChatSourcePreference());
+  const [oracleDomain, setOracleDomain] = useState<OracleAgentDomain>(() =>
+    loadOracleDomainPreference(),
+  );
   const [availableModels, setAvailableModels] = useState<ChatModel[]>(['qwen3']);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [isLoadingConversation, setIsLoadingConversation] = useState(true);
@@ -198,6 +244,22 @@ export function ChatView({
     });
   }, [conversationId, conversationTitle, model, messages, isBusy, isLoadingConversation]);
 
+  useEffect(() => {
+    saveChatQualityPreference(quality);
+  }, [quality]);
+
+  useEffect(() => {
+    saveChatSourcePreference(chatSource);
+  }, [chatSource]);
+
+  useEffect(() => {
+    saveOracleDomainPreference(oracleDomain);
+  }, [oracleDomain]);
+
+  const handleQualityChange = (next: ChatQualityMode) => {
+    setQuality(next);
+  };
+
   const refreshRuntime = useCallback(async () => {
     try {
       const res = await authFetch(`/api/chat/runtime?model=${encodeURIComponent(model)}`);
@@ -270,28 +332,57 @@ export function ChatView({
     setInput('');
     setError(null);
     setStreamingMessageId(null);
-    setTypingHint('Szukam w bazie wiedzy…');
+    setTypingHint(
+      chatSource === 'oracle'
+        ? 'Agent Oracle analizuje schemat…'
+        : quality === 'high'
+          ? 'Szukam w bazie wiedzy (tryb najlepszej jakości)…'
+          : 'Szukam w bazie wiedzy…',
+    );
     requestStartedRef.current = Date.now();
     setIsBusy(true);
 
     let assistantId = '';
     let streamError: string | null = null;
+    let oracleSteps: ChatOracleStep[] = [];
+    let oracleSql: OracleAgentSqlStep[] = [];
 
     try {
       const history = nextMessages
-        .slice(-2)
+        .slice(-historyClientLimit(quality))
         .map((item) => ({ role: item.role, content: item.content }));
 
       await streamChatCompletion(
         {
           message: trimmed,
           model,
+          quality,
           history: history.slice(0, -1),
           ragFilter: buildRagFilterPayload(ragFilter),
+          source: chatSource,
+          oracleDomain: chatSource === 'oracle' ? oracleDomain : undefined,
         },
         (event) => {
+          if (event.type === 'oracle_step') {
+            oracleSteps = [...oracleSteps, event.step];
+            setTypingHint(`${event.step.tool}: ${event.step.summary}`);
+            return;
+          }
+
+          if (event.type === 'oracle_sql') {
+            oracleSql = [
+              ...oracleSql,
+              { sql: event.sql, rowCount: event.rowCount, preview: event.preview },
+            ];
+            return;
+          }
+
           if (event.type === 'rag') {
-            setTypingHint(`Generuję odpowiedź (RAG ${Math.round(event.ragMs / 1000)} s)…`);
+            setTypingHint(
+              quality === 'high'
+                ? `Model rozumuje (RAG ${Math.round(event.ragMs / 1000)} s, najlepsza jakość)…`
+                : `Generuję odpowiedź (RAG ${Math.round(event.ragMs / 1000)} s)…`,
+            );
             return;
           }
 
@@ -333,6 +424,8 @@ export function ChatView({
                       createdAt: event.createdAt,
                       timing: event.timing,
                       streaming: false,
+                      oracleSteps: event.oracleSteps ?? oracleSteps,
+                      oracleSql: event.oracleSql ?? oracleSql,
                     }
                   : item,
               ),
@@ -388,19 +481,48 @@ export function ChatView({
   return (
     <div className="chat">
       <div className="chat__toolbar">
-        <div>
-          <span className="chat__model-label">Model: </span>
-          <ModelSelect
-            value={model}
-            models={availableModels}
-            onChange={setModel}
-            disabled={modelsLoading || availableModels.length === 0 || isBusy}
-          />
+        <div className="chat__toolbar-models">
+          <div className="chat__toolbar-field">
+            <span className="chat__model-label">Model: </span>
+            <ModelSelect
+              value={model}
+              models={availableModels}
+              onChange={setModel}
+              disabled={modelsLoading || availableModels.length === 0 || isBusy}
+            />
+          </div>
+          <div className="chat__toolbar-field">
+            <span className="chat__model-label">Źródło: </span>
+            <SourceSelect
+              value={chatSource}
+              onChange={setChatSource}
+              disabled={isBusy}
+            />
+          </div>
+          {chatSource === 'oracle' && (
+            <div className="chat__toolbar-field">
+              <span className="chat__model-label">Agent: </span>
+              <DomainSelect
+                value={oracleDomain}
+                onChange={setOracleDomain}
+                disabled={isBusy}
+              />
+            </div>
+          )}
+          <div className="chat__toolbar-field">
+            <span className="chat__model-label">Jakość rozmowy: </span>
+            <QualitySelect
+              value={quality}
+              onChange={handleQualityChange}
+              disabled={isBusy}
+            />
+          </div>
           {!modelsLoading && availableModels.length === 0 && (
             <p className="chat__model-hint">Brak modeli czatu w Ollama — zainstaluj qwen3.</p>
           )}
         </div>
         <div className="chat__toolbar-actions">
+          {chatSource === 'docs' && (
           <details className="chat__filters">
             <summary>Filtry RAG{hasActiveFilters ? ' •' : ''}</summary>
             <div className="chat__filters-grid">
@@ -478,6 +600,7 @@ export function ChatView({
               )}
             </div>
           </details>
+          )}
           <button
             type="button"
             className="chat__new-btn"

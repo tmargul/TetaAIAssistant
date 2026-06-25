@@ -221,6 +221,41 @@
   font-size: 0.625rem;
 }
 
+.chat__toolbar-models {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem 1.5rem;
+}
+
+.chat__toolbar-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+}
+
+.chat__select--quality .chat__select-trigger {
+  min-width: 11rem;
+}
+
+.chat__select-menu--quality {
+  min-width: 18rem;
+}
+
+.chat__select-option-label {
+  display: block;
+  font-weight: 500;
+}
+
+.chat__select-option-hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
 .chat__select {
   position: relative;
   display: inline-block;
@@ -662,4 +697,19 @@
     padding-left: 1rem;
     padding-right: 1rem;
   }
+}
+
+.chat__oracle-steps {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.chat__oracle-sql {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem;
+  background: var(--bg-subtle, #f4f4f5);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  overflow-x: auto;
 }

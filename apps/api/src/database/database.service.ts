@@ -147,6 +147,102 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
       CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_updated
         ON chat_conversations(user_id, updated_at DESC);
+
+      CREATE TABLE IF NOT EXISTS schema_crawl_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'done', 'failed')),
+        progress INTEGER NOT NULL DEFAULT 0,
+        progress_message TEXT,
+        error_message TEXT,
+        node_count INTEGER,
+        column_count INTEGER,
+        edge_count INTEGER,
+        source_line_count INTEGER,
+        owners_json TEXT,
+        teta_version TEXT,
+        created_at TEXT NOT NULL,
+        started_at TEXT,
+        finished_at TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS schema_nodes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner TEXT NOT NULL,
+        name TEXT NOT NULL,
+        node_type TEXT NOT NULL CHECK (node_type IN ('table', 'view')),
+        comment TEXT,
+        crawl_job_id INTEGER REFERENCES schema_crawl_jobs(id),
+        UNIQUE(owner, name, node_type)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_schema_nodes_name ON schema_nodes(name);
+      CREATE INDEX IF NOT EXISTS idx_schema_nodes_owner_name ON schema_nodes(owner, name);
+
+      CREATE TABLE IF NOT EXISTS schema_columns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        node_id INTEGER NOT NULL REFERENCES schema_nodes(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        data_type TEXT NOT NULL,
+        nullable INTEGER NOT NULL DEFAULT 1,
+        is_pk INTEGER NOT NULL DEFAULT 0,
+        comment TEXT,
+        UNIQUE(node_id, name)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_schema_columns_node ON schema_columns(node_id);
+
+      CREATE TABLE IF NOT EXISTS schema_edges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_node_id INTEGER NOT NULL REFERENCES schema_nodes(id) ON DELETE CASCADE,
+        to_node_id INTEGER NOT NULL REFERENCES schema_nodes(id) ON DELETE CASCADE,
+        from_column TEXT NOT NULL,
+        to_column TEXT NOT NULL,
+        edge_type TEXT NOT NULL CHECK (edge_type IN ('fk', 'inferred', 'learned')),
+        confidence REAL NOT NULL DEFAULT 1.0,
+        source TEXT,
+        crawl_job_id INTEGER REFERENCES schema_crawl_jobs(id),
+        UNIQUE(from_node_id, to_node_id, from_column, to_column)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_schema_edges_from ON schema_edges(from_node_id);
+      CREATE INDEX IF NOT EXISTS idx_schema_edges_to ON schema_edges(to_node_id);
+
+      CREATE TABLE IF NOT EXISTS experience_paths (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_table TEXT NOT NULL,
+        to_table TEXT NOT NULL,
+        path_json TEXT NOT NULL,
+        use_count INTEGER NOT NULL DEFAULT 1,
+        last_used_at TEXT,
+        created_by TEXT,
+        UNIQUE(from_table, to_table, path_json)
+      );
+
+      CREATE TABLE IF NOT EXISTS schema_sources (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner TEXT NOT NULL,
+        name TEXT NOT NULL,
+        object_type TEXT NOT NULL,
+        line INTEGER NOT NULL,
+        text TEXT NOT NULL,
+        UNIQUE(owner, name, object_type, line)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_schema_sources_object
+        ON schema_sources(owner, name, object_type);
+
+      CREATE TABLE IF NOT EXISTS oracle_agent_audit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER REFERENCES users(id),
+        domain TEXT,
+        action_type TEXT NOT NULL,
+        sql_text TEXT,
+        success INTEGER NOT NULL,
+        row_count INTEGER,
+        error_message TEXT,
+        duration_ms INTEGER,
+        created_at TEXT NOT NULL
+      );
     `);
 
     this.ensureColumn('oracle_metadata_import_jobs', 'catalog_totals_json', 'TEXT');

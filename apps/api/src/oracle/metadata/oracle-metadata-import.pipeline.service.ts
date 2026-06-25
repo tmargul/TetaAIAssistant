@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { validateKnowledgeChunkLines } from '@teta/shared';
 import { GlobalRagChunksImportService } from '../../rag/global-rag-chunks-import.service';
+import { SchemaCrawlService } from '../../schema/schema-crawl.service';
 import { OracleMetadataCatalogService } from './oracle-metadata-catalog.service';
 import {
   buildOracleMetadataChunks,
@@ -31,6 +32,7 @@ export class OracleMetadataImportPipelineService {
   constructor(
     private readonly catalog: OracleMetadataCatalogService,
     private readonly chunksImport: GlobalRagChunksImportService,
+    private readonly schemaCrawl: SchemaCrawlService,
   ) {}
 
   async run(
@@ -48,7 +50,12 @@ export class OracleMetadataImportPipelineService {
       report(catalogProgress, message);
     });
 
-    report(42, 'Budowanie chunków wiedzy…');
+    report(40, 'Budowanie grafu schematu (węzły, krawędzie)…');
+    await this.schemaCrawl.buildGraphFromCatalog(fetchResult.catalog, (progress, message) => {
+      report(progress, message);
+    });
+
+    report(45, 'Budowanie chunków wiedzy (RAG dokumentacji)…');
     const { chunks } = buildOracleMetadataChunks(fetchResult.catalog);
     if (chunks.length === 0) {
       throw new Error('Katalog Oracle nie zawiera obiektów do importu.');

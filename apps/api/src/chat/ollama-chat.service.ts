@@ -1,7 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CHAT_MODELS, type ChatModel, type ChatRuntimeStatusResponse } from '@teta/shared';
+import { CHAT_MODELS, type ChatModel, type ChatQualityMode, type ChatRuntimeStatusResponse } from '@teta/shared';
 import { getOllamaBaseUrl, getOllamaKeepAlive } from './ollama-config.util';
+import { resolveChatQualityProfile, type ChatQualityProfile } from './chat-quality.profile';
 
 type OllamaMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -48,6 +49,20 @@ export class OllamaChatService implements OnModuleInit {
       num_thread: Number(this.config.get('OLLAMA_NUM_THREADS', 8)),
       num_ctx: Number(this.config.get('OLLAMA_CHAT_NUM_CTX', 4096)),
       num_batch: Number(this.config.get('OLLAMA_CHAT_NUM_BATCH', 512)),
+    };
+  }
+
+  private getChatOptionsFromProfile(
+    resolvedModel: string,
+    profile: ChatQualityProfile,
+  ): OllamaChatOptions {
+    const useThinking = this.shouldUseThinking(resolvedModel, profile);
+    return {
+      temperature: profile.temperature,
+      num_predict: useThinking ? profile.num_predict_reasoning : profile.num_predict,
+      num_thread: Number(this.config.get('OLLAMA_NUM_THREADS', 8)),
+      num_ctx: profile.num_ctx,
+      num_batch: profile.num_batch,
     };
   }
 
@@ -154,9 +169,13 @@ export class OllamaChatService implements OnModuleInit {
     }
   }
 
-  async complete(messages: OllamaMessage[], model: ChatModel): Promise<string> {
+  async complete(
+    messages: OllamaMessage[],
+    model: ChatModel,
+    quality?: ChatQualityMode,
+  ): Promise<string> {
     let content = '';
-    for await (const delta of this.streamTokens(messages, model)) {
+    for await (const delta of this.streamTokens(messages, model, quality)) {
       content += delta;
     }
     const trimmed = content.trim();
@@ -169,10 +188,12 @@ export class OllamaChatService implements OnModuleInit {
   async *streamTokens(
     messages: OllamaMessage[],
     model: ChatModel,
+    quality?: ChatQualityMode,
   ): AsyncGenerator<string, void, void> {
+    const profile = resolveChatQualityProfile(quality, this.config);
     const resolvedModel = await this.resolveInstalledModel(model);
-    const think = this.shouldUseThinking(resolvedModel);
-    const options = this.getChatOptions();
+    const think = this.shouldUseThinking(resolvedModel, profile);
+    const options = this.getChatOptionsFromProfile(resolvedModel, profile);
     const promptChars = messages.reduce((sum, item) => sum + item.content.length, 0);
 
     if (model !== this.toChatModel(resolvedModel) && model === 'deepseek-r1') {
@@ -182,7 +203,7 @@ export class OllamaChatService implements OnModuleInit {
     }
 
     this.logger.log(
-      `Ollama chat stream: model=${resolvedModel}, think=${think}, ` +
+      `Ollama chat stream: model=${resolvedModel}, quality=${quality ?? 'low'}, think=${think}, ` +
         `num_predict=${options.num_predict}, num_thread=${options.num_thread}, ` +
         `num_ctx=${options.num_ctx}, num_batch=${options.num_batch}, ` +
         `prompt_chars=${promptChars}, messages=${messages.length}`,
@@ -215,6 +236,8 @@ export class OllamaChatService implements OnModuleInit {
     const decoder = new TextDecoder();
     let buffer = '';
     let sawContent = false;
+    let sawThinking = false;
+    let doneReason: string | undefined;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -231,10 +254,21 @@ export class OllamaChatService implements OnModuleInit {
         const chunk = JSON.parse(trimmed) as {
           message?: { content?: string; thinking?: string };
           error?: string;
+          done?: boolean;
+          done_reason?: string;
         };
 
         if (chunk.error) {
           throw new Error(chunk.error);
+        }
+
+        if (chunk.done_reason) {
+          doneReason = chunk.done_reason;
+        }
+
+        const thinkingDelta = chunk.message?.thinking ?? '';
+        if (thinkingDelta) {
+          sawThinking = true;
         }
 
         const delta = chunk.message?.content ?? '';
@@ -246,11 +280,21 @@ export class OllamaChatService implements OnModuleInit {
     }
 
     if (!sawContent) {
+      if (sawThinking) {
+        const limitHint =
+          doneReason === 'length'
+            ? ' Limit tokenów (num_predict) wyczerpany podczas rozumowania.'
+            : '';
+        throw new Error(
+          `Ollama nie zwróciło treści odpowiedzi (model rozumujący: ${resolvedModel}).${limitHint} ` +
+            'Zwiększ OLLAMA_CHAT_NUM_PREDICT_REASONING w apps/api/.env lub wybierz qwen3.',
+        );
+      }
       throw new Error('Ollama nie zwróciło treści odpowiedzi.');
     }
   }
 
-  private shouldUseThinking(resolvedModel: string): boolean {
+  private shouldUseThinking(resolvedModel: string, profile: ChatQualityProfile): boolean {
     const base = resolvedModel.split(':')[0].toLowerCase();
 
     if (base.includes('deepseek') || base.endsWith('-r1') || base === 'r1') {
@@ -258,6 +302,10 @@ export class OllamaChatService implements OnModuleInit {
       if (configured === 'false' || configured === '0') {
         return false;
       }
+      return true;
+    }
+
+    if (profile.qwenThinking && base.includes('qwen')) {
       return true;
     }
 

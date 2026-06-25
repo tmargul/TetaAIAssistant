@@ -3,8 +3,8 @@ declare module 'oracledb' {
     execute<T = unknown>(
       sql: string,
       bindParams?: unknown,
-      options?: { outFormat?: number },
-    ): Promise<{ rows?: T[] }>;
+      options?: { outFormat?: number; maxRows?: number; autoCommit?: boolean },
+    ): Promise<{ rows?: T[]; metaData?: Array<{ name: string }> }>;
     close(): Promise<void>;
   }
 

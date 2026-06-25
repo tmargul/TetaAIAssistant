@@ -53,7 +53,8 @@ W trybie **real** logujesz się **prawdziwym kontem Oracle** — `teta_admin` ni
 ### Paczki / offline
 
 - Oracle Instant Client w bundle offline — **opcjonalnie**, nie domyślnie
-- Qdrant lokalnie: `C:\TetaAI\qdrant`
+- Qdrant lokalnie: `{katalog_instalacji}/qdrant`
+- Modele Ollama: `{katalog_instalacji}/ollama/models` (OLLAMA_MODELS)
 
 ### RAG — test fundamentu (ustalenie z zespołu, 2026-06)
 

@@ -163,14 +163,6 @@ function DashboardView({
   );
 }
 
-function PlaceholderView({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="placeholder-view">
-      <p className="placeholder-view__title">{title}</p>
-      <p className="placeholder-view__desc">{description}</p>
-    </div>
-  );
-}
 
 export default function App() {
   const [activeNav, setActiveNav] = useState<NavItem>('dashboard');

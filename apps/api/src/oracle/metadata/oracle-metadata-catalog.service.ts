@@ -8,9 +8,12 @@ import type {
 } from '@teta/shared';
 import type {
   OracleColumnMeta,
+  OracleCommentMeta,
+  OracleConstraintMeta,
   OracleMetadataCatalogSnapshot,
   OracleMetadataFetchResult,
   OracleNamedObjectMeta,
+  OracleSourceLineMeta,
   OracleTableMeta,
 } from './oracle-metadata.types';
 
@@ -57,6 +60,33 @@ type ObjectRow = {
   OBJECT_NAME: string;
   OBJECT_TYPE: string;
   STATUS: string | null;
+};
+
+type ConstraintRow = {
+  OWNER: string;
+  TABLE_NAME: string;
+  CONSTRAINT_NAME: string;
+  CONSTRAINT_TYPE: string;
+  COLUMN_NAME: string;
+  POSITION: number;
+  R_OWNER: string | null;
+  R_TABLE_NAME: string | null;
+  R_COLUMN_NAME: string | null;
+};
+
+type CommentRow = {
+  OWNER: string;
+  TABLE_NAME: string;
+  COLUMN_NAME: string | null;
+  COMMENTS: string | null;
+};
+
+type SourceRow = {
+  OWNER: string;
+  NAME: string;
+  TYPE: string;
+  LINE: number;
+  TEXT: string | null;
 };
 
 type VersionRow = {
@@ -111,6 +141,15 @@ export class OracleMetadataCatalogService {
       onProgress?.(`Widoki: ${views.length} — obiekty PL/SQL…`);
 
       const plsql = await this.fetchPlsqlObjects(connection, owners);
+      onProgress?.(`Obiekty PL/SQL: ${plsql.packages.length} pakietów — ograniczenia…`);
+
+      const constraints = await this.fetchConstraints(connection, owners);
+      onProgress?.(`Ograniczenia: ${constraints.length} — komentarze…`);
+
+      const comments = await this.fetchComments(connection, owners);
+      onProgress?.(`Komentarze: ${comments.length} — źródła pakietów…`);
+
+      const sources = await this.fetchSources(connection, owners, onProgress);
       onProgress?.('Katalog Oracle odczytany.');
 
       const catalog: OracleMetadataCatalogSnapshot = {
@@ -120,6 +159,9 @@ export class OracleMetadataCatalogService {
         packages: plsql.packages,
         procedures: plsql.procedures,
         functions: plsql.functions,
+        constraints,
+        comments,
+        sources,
         tetaVersion,
         pilotModule: this.config.get<string>('TETA_ORACLE_METADATA_PILOT_MODULE')?.trim() || null,
         databaseLabel,
@@ -412,6 +454,142 @@ export class OracleMetadataCatalogService {
     return { packages, procedures, functions };
   }
 
+  private async fetchConstraints(
+    connection: import('oracledb').Connection,
+    owners: string[],
+  ): Promise<OracleConstraintMeta[]> {
+    if (owners.length === 0) return [];
+
+    const ownerBinds = this.buildInBinds(owners, 'owner');
+    const result = await connection.execute<ConstraintRow>(
+      `SELECT ac.owner AS "OWNER",
+              ac.table_name AS "TABLE_NAME",
+              ac.constraint_name AS "CONSTRAINT_NAME",
+              ac.constraint_type AS "CONSTRAINT_TYPE",
+              acc.column_name AS "COLUMN_NAME",
+              acc.position AS "POSITION",
+              ac.r_owner AS "R_OWNER",
+              ac.r_table_name AS "R_TABLE_NAME",
+              acc_ref.column_name AS "R_COLUMN_NAME"
+       FROM all_constraints ac
+       JOIN all_cons_columns acc
+         ON ac.owner = acc.owner
+        AND ac.constraint_name = acc.constraint_name
+       LEFT JOIN all_cons_columns acc_ref
+         ON ac.r_owner = acc_ref.owner
+        AND ac.r_constraint_name = acc_ref.constraint_name
+        AND acc.position = acc_ref.position
+       WHERE ac.owner IN (${ownerBinds.placeholders})
+         AND ac.constraint_type IN ('P', 'R', 'U', 'C')
+       ORDER BY ac.owner, ac.table_name, ac.constraint_name, acc.position`,
+      ownerBinds.binds,
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+
+    const items: OracleConstraintMeta[] = [];
+    for (const row of result.rows ?? []) {
+      const type = row.CONSTRAINT_TYPE as OracleConstraintMeta['constraintType'];
+      if (!['P', 'R', 'U', 'C'].includes(type)) continue;
+      items.push({
+        owner: row.OWNER,
+        tableName: row.TABLE_NAME,
+        constraintName: row.CONSTRAINT_NAME,
+        constraintType: type,
+        columnName: row.COLUMN_NAME,
+        position: Number(row.POSITION) || 1,
+        refOwner: row.R_OWNER ?? undefined,
+        refTableName: row.R_TABLE_NAME ?? undefined,
+        refColumnName: row.R_COLUMN_NAME ?? undefined,
+      });
+    }
+    return items;
+  }
+
+  private async fetchComments(
+    connection: import('oracledb').Connection,
+    owners: string[],
+  ): Promise<OracleCommentMeta[]> {
+    if (owners.length === 0) return [];
+
+    const ownerBinds = this.buildInBinds(owners, 'owner');
+    const [tableComments, columnComments] = await Promise.all([
+      connection.execute<CommentRow>(
+        `SELECT owner AS "OWNER",
+                table_name AS "TABLE_NAME",
+                NULL AS "COLUMN_NAME",
+                comments AS "COMMENTS"
+         FROM all_tab_comments
+         WHERE owner IN (${ownerBinds.placeholders})
+           AND comments IS NOT NULL`,
+        ownerBinds.binds,
+        { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      ),
+      connection.execute<CommentRow>(
+        `SELECT owner AS "OWNER",
+                table_name AS "TABLE_NAME",
+                column_name AS "COLUMN_NAME",
+                comments AS "COMMENTS"
+         FROM all_col_comments
+         WHERE owner IN (${ownerBinds.placeholders})
+           AND comments IS NOT NULL`,
+        ownerBinds.binds,
+        { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      ),
+    ]);
+
+    const items: OracleCommentMeta[] = [];
+    for (const row of [...(tableComments.rows ?? []), ...(columnComments.rows ?? [])]) {
+      if (!row.COMMENTS?.trim()) continue;
+      items.push({
+        owner: row.OWNER,
+        tableName: row.TABLE_NAME,
+        columnName: row.COLUMN_NAME,
+        comments: row.COMMENTS.trim(),
+      });
+    }
+    return items;
+  }
+
+  private async fetchSources(
+    connection: import('oracledb').Connection,
+    owners: string[],
+    onProgress?: (message: string) => void,
+  ): Promise<OracleSourceLineMeta[]> {
+    if (owners.length === 0) return [];
+
+    const maxLines = Number(this.config.get('TETA_ORACLE_SOURCE_MAX_LINES', 50_000));
+    const ownerBinds = this.buildInBinds(owners, 'owner');
+    const result = await connection.execute<SourceRow>(
+      `SELECT owner AS "OWNER",
+              name AS "NAME",
+              type AS "TYPE",
+              line AS "LINE",
+              text AS "TEXT"
+       FROM all_source
+       WHERE owner IN (${ownerBinds.placeholders})
+         AND type IN ('PACKAGE', 'PACKAGE BODY', 'PROCEDURE', 'FUNCTION', 'TRIGGER')
+       ORDER BY owner, name, type, line`,
+      ownerBinds.binds,
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+
+    const items: OracleSourceLineMeta[] = [];
+    for (const row of result.rows ?? []) {
+      if (items.length >= maxLines) {
+        onProgress?.(`Źródła PL/SQL: osiągnięto limit ${maxLines} linii — reszta pominięta.`);
+        break;
+      }
+      items.push({
+        owner: row.OWNER,
+        name: row.NAME,
+        objectType: row.TYPE,
+        line: Number(row.LINE) || 0,
+        text: row.TEXT ?? '',
+      });
+    }
+    return items;
+  }
+
   private buildFakeCatalog(): OracleMetadataCatalogSnapshot {
     const tables: OracleTableMeta[] = [
       {
@@ -422,6 +600,15 @@ export class OracleMetadataCatalogService {
           { name: 'NAZWISKO', dataType: 'VARCHAR2', nullable: false },
           { name: 'IMIE', dataType: 'VARCHAR2', nullable: true },
           { name: 'DATA_ZATRUDNIENIA', dataType: 'DATE', nullable: true },
+        ],
+      },
+      {
+        owner: 'TETA',
+        name: 'T_PRAC',
+        columns: [
+          { name: 'PRAC_ID', dataType: 'NUMBER', nullable: false },
+          { name: 'NAZWISKO', dataType: 'VARCHAR2', nullable: false },
+          { name: 'IMIE', dataType: 'VARCHAR2', nullable: true },
         ],
       },
       {
@@ -450,6 +637,25 @@ export class OracleMetadataCatalogService {
           { name: 'DATA_DO', dataType: 'DATE', nullable: true },
         ],
       },
+      {
+        owner: 'TETA',
+        name: 'L_BADANIA_BHP',
+        columns: [
+          { name: 'BADANIE_ID', dataType: 'NUMBER', nullable: false },
+          { name: 'PRAC_ID', dataType: 'NUMBER', nullable: false },
+          { name: 'DATA_OD', dataType: 'DATE', nullable: true },
+          { name: 'DATA_DO', dataType: 'DATE', nullable: true },
+        ],
+      },
+      {
+        owner: 'TETA',
+        name: 'SL_BADANIA_BHP',
+        columns: [
+          { name: 'BADANIE_ID', dataType: 'NUMBER', nullable: false },
+          { name: 'FIRM_ID', dataType: 'NUMBER', nullable: true },
+          { name: 'NAZWA', dataType: 'VARCHAR2', nullable: true },
+        ],
+      },
     ];
 
     return {
@@ -469,6 +675,88 @@ export class OracleMetadataCatalogService {
       ],
       functions: [
         { owner: 'TETA', name: 'GET_PRACOWNIK_NAZWA', objectType: 'FUNCTION', status: 'VALID' },
+      ],
+      constraints: [
+        {
+          owner: 'TETA',
+          tableName: 'PRACOWNICY',
+          constraintName: 'PK_PRACOWNICY',
+          constraintType: 'P',
+          columnName: 'ID',
+          position: 1,
+        },
+        {
+          owner: 'HR',
+          tableName: 'ABSENCJE',
+          constraintName: 'FK_ABSENCJE_PRAC',
+          constraintType: 'R',
+          columnName: 'PRACOWNIK_ID',
+          position: 1,
+          refOwner: 'TETA',
+          refTableName: 'PRACOWNICY',
+          refColumnName: 'ID',
+        },
+        {
+          owner: 'TETA',
+          tableName: 'T_PRAC',
+          constraintName: 'PK_T_PRAC',
+          constraintType: 'P',
+          columnName: 'PRAC_ID',
+          position: 1,
+        },
+        {
+          owner: 'TETA',
+          tableName: 'L_BADANIA_BHP',
+          constraintName: 'PK_L_BADANIA',
+          constraintType: 'P',
+          columnName: 'BADANIE_ID',
+          position: 1,
+        },
+        {
+          owner: 'TETA',
+          tableName: 'L_BADANIA_BHP',
+          constraintName: 'FK_L_BADANIA_PRAC',
+          constraintType: 'R',
+          columnName: 'PRAC_ID',
+          position: 1,
+          refOwner: 'TETA',
+          refTableName: 'T_PRAC',
+          refColumnName: 'PRAC_ID',
+        },
+        {
+          owner: 'TETA',
+          tableName: 'SL_BADANIA_BHP',
+          constraintName: 'FK_SL_BADANIA_L',
+          constraintType: 'R',
+          columnName: 'BADANIE_ID',
+          position: 1,
+          refOwner: 'TETA',
+          refTableName: 'L_BADANIA_BHP',
+          refColumnName: 'BADANIE_ID',
+        },
+      ],
+      comments: [
+        {
+          owner: 'TETA',
+          tableName: 'L_BADANIA_BHP',
+          columnName: 'DATA_DO',
+          comments: 'Data końca badania',
+        },
+        {
+          owner: 'TETA',
+          tableName: 'PRACOWNICY',
+          columnName: null,
+          comments: 'Tabela pracowników',
+        },
+      ],
+      sources: [
+        {
+          owner: 'TETA',
+          name: 'HR_PACKAGE',
+          objectType: 'PACKAGE',
+          line: 1,
+          text: 'PACKAGE HR_PACKAGE AS',
+        },
       ],
       tetaVersion: 'Oracle Database 19c Enterprise Edition (symulator)',
       pilotModule: this.config.get<string>('TETA_ORACLE_METADATA_PILOT_MODULE')?.trim() || 'HR',

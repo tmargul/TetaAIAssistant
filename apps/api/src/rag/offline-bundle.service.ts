@@ -1,11 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createWriteStream, existsSync } from 'fs';
 import { cp, mkdir, readdir, readFile, rm, writeFile } from 'fs/promises';
-import { homedir, tmpdir } from 'os';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import archiver from 'archiver';
 import extract from 'extract-zip';
+import { getOllamaModelsDir } from '../config/ollama-paths';
 import { InnoInstallerService } from './inno-installer.service';
 
 export type OfflineBundleManifest = {
@@ -215,7 +216,7 @@ export class OfflineBundleService {
   }
 
   private async addOllamaModels(outputDir: string): Promise<void> {
-    const source = path.join(homedir(), '.ollama', 'models');
+    const source = getOllamaModelsDir();
     const target = path.join(outputDir, 'ollama-models');
     if (existsSync(source)) {
       await cp(source, target, { recursive: true });
