@@ -9,7 +9,10 @@ import {
 import type { Response } from 'express';
 import { rm } from 'fs/promises';
 import * as path from 'path';
-import { ClientDeployPackageService } from './client-deploy-package.service';
+import {
+  ClientDeployPackageService,
+  type PackageInstallerInfo,
+} from './client-deploy-package.service';
 import { GlobalRagExportService } from './global-rag-export.service';
 import { OfflineBundleService } from './offline-bundle.service';
 import { VendorAccessGuard } from './vendor-access.guard';
@@ -27,16 +30,32 @@ export class VendorPackagesController {
     private readonly globalRagExport: GlobalRagExportService,
   ) {}
 
+  private applyInstallerHeaders(res: Response, installer: PackageInstallerInfo): void {
+    res.setHeader('X-Teta-Installer-Exe', installer.installerExe ?? 'missing');
+    if (installer.installerWarning) {
+      res.setHeader('X-Teta-Installer-Warning', installer.installerWarning);
+    }
+  }
+
+  private downloadPackage(
+    res: Response,
+    result: PackageInstallerInfo & { zipPath: string; filename: string },
+    errorMessage: string,
+  ): void {
+    this.applyInstallerHeaders(res, result);
+    res.download(result.zipPath, result.filename, (err) => {
+      void rm(result.zipPath, { force: true });
+      if (err && !res.headersSent) {
+        res.status(500).json({ message: errorMessage });
+      }
+    });
+  }
+
   @Post('app-update/export')
   async exportAppUpdate(@Res() res: Response): Promise<void> {
     try {
       const result = await this.clientDeployPackage.buildAppUpdateZip();
-      res.download(result.zipPath, result.filename, (err) => {
-        void rm(result.zipPath, { force: true });
-        if (err && !res.headersSent) {
-          res.status(500).json({ message: 'Nie udało się pobrać paczki aktualizacji aplikacji.' });
-        }
-      });
+      this.downloadPackage(res, result, 'Nie udało się pobrać paczki aktualizacji aplikacji.');
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Nie udało się zbudować paczki aktualizacji aplikacji.';
@@ -49,45 +68,25 @@ export class VendorPackagesController {
   @Post('client-install/export')
   async exportClientInstall(@Res() res: Response): Promise<void> {
     const result = await this.clientDeployPackage.buildAndZip();
-    res.download(result.zipPath, result.filename, (err) => {
-      void rm(result.zipPath, { force: true });
-      if (err && !res.headersSent) {
-        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji klienta (offline).' });
-      }
-    });
+    this.downloadPackage(res, result, 'Nie udało się pobrać paczki instalacji klienta (offline).');
   }
 
   @Post('client-install-online/export')
   async exportClientOnlineInstall(@Res() res: Response): Promise<void> {
     const result = await this.clientDeployPackage.buildClientOnlineInstallZip();
-    res.download(result.zipPath, result.filename, (err) => {
-      void rm(result.zipPath, { force: true });
-      if (err && !res.headersSent) {
-        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji klienta (online).' });
-      }
-    });
+    this.downloadPackage(res, result, 'Nie udało się pobrać paczki instalacji klienta (online).');
   }
 
   @Post('vendor-install/export')
   async exportVendorInstall(@Res() res: Response): Promise<void> {
     const result = await this.clientDeployPackage.buildVendorInstallZip();
-    res.download(result.zipPath, result.filename, (err) => {
-      void rm(result.zipPath, { force: true });
-      if (err && !res.headersSent) {
-        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji vendor (offline).' });
-      }
-    });
+    this.downloadPackage(res, result, 'Nie udało się pobrać paczki instalacji vendor (offline).');
   }
 
   @Post('vendor-install-online/export')
   async exportVendorOnlineInstall(@Res() res: Response): Promise<void> {
     const result = await this.clientDeployPackage.buildVendorOnlineInstallZip();
-    res.download(result.zipPath, result.filename, (err) => {
-      void rm(result.zipPath, { force: true });
-      if (err && !res.headersSent) {
-        res.status(500).json({ message: 'Nie udało się pobrać paczki instalacji vendor (online).' });
-      }
-    });
+    this.downloadPackage(res, result, 'Nie udało się pobrać paczki instalacji vendor (online).');
   }
 
   @Post('offline-bundle/export')

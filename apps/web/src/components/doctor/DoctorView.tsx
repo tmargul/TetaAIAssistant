@@ -79,7 +79,7 @@ export function DoctorView() {
       <section className="panel doctor__panel">
         <div className="doctor__header">
           <div>
-            <h2 className="panel__title doctor__title">AIA Doctor</h2>
+            <h2 className="panel__title doctor__title">AI Doctor</h2>
             <p className="doctor__subtitle">
               Diagnostyka Ollama, Qdrant, embeddingów, bazy wiedzy i serwera HTTP.
             </p>

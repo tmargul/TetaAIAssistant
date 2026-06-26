@@ -29,14 +29,19 @@ const PRODUCTION_BUILD_ARTIFACTS = [
 
 const PRODUCTION_ENV_EXAMPLE = 'apps/api/.env.example';
 
-export type ClientDeployPackageResult = {
+export type PackageInstallerInfo = {
+  installerExe: string | null;
+  installerWarning?: string;
+};
+
+export type ClientDeployPackageResult = PackageInstallerInfo & {
   zipPath: string;
   filename: string;
   appVersion: string;
   createdAt: string;
 };
 
-export type AppUpdatePackageResult = {
+export type AppUpdatePackageResult = PackageInstallerInfo & {
   zipPath: string;
   filename: string;
   appVersion: string;
@@ -70,7 +75,7 @@ export class ClientDeployPackageService {
     const appVersion = await this.readAppVersion(repoRoot);
     await this.copyProductionClientLayout(repoRoot, appDir, { includeNodeModules: false });
     await this.writeAppUpdateFiles(appDir, appVersion);
-    await this.compilePackageInstaller(stagingDir, appDir, 'app-update', appVersion);
+    const installer = await this.compilePackageInstaller(stagingDir, appDir, 'app-update', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -82,6 +87,7 @@ export class ClientDeployPackageService {
       filename: path.basename(zipPath),
       appVersion,
       createdAt,
+      ...installer,
     };
   }
 
@@ -112,7 +118,7 @@ export class ClientDeployPackageService {
       'Paczka KLIENT OFFLINE (~6–9 GB).',
       'Bez internetu u celu.',
     ]);
-    await this.compilePackageInstaller(stagingDir, appDir, 'client-offline', appVersion);
+    const installer = await this.compilePackageInstaller(stagingDir, appDir, 'client-offline', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -124,6 +130,7 @@ export class ClientDeployPackageService {
       filename: path.basename(zipPath),
       appVersion,
       createdAt,
+      ...installer,
     };
   }
 
@@ -150,7 +157,7 @@ export class ClientDeployPackageService {
       'Paczka KLIENT ONLINE.',
       'Wymaga internetu podczas instalacji.',
     ]);
-    await this.compilePackageInstaller(stagingDir, appDir, 'client-online', appVersion);
+    const installer = await this.compilePackageInstaller(stagingDir, appDir, 'client-online', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -162,6 +169,7 @@ export class ClientDeployPackageService {
       filename: path.basename(zipPath),
       appVersion,
       createdAt,
+      ...installer,
     };
   }
 
@@ -191,7 +199,7 @@ export class ClientDeployPackageService {
       'Paczka VENDOR OFFLINE (~8–12 GB).',
       'Bez internetu u celu.',
     ]);
-    await this.compilePackageInstaller(stagingDir, appDir, 'vendor-offline', appVersion);
+    const installer = await this.compilePackageInstaller(stagingDir, appDir, 'vendor-offline', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -203,6 +211,7 @@ export class ClientDeployPackageService {
       filename: path.basename(zipPath),
       appVersion,
       createdAt,
+      ...installer,
     };
   }
 
@@ -231,7 +240,7 @@ export class ClientDeployPackageService {
       'Paczka VENDOR ONLINE.',
       'Wymaga internetu podczas instalacji (Node, Ollama, Qdrant, modele AI).',
     ]);
-    await this.compilePackageInstaller(stagingDir, appDir, 'vendor-online', appVersion);
+    const installer = await this.compilePackageInstaller(stagingDir, appDir, 'vendor-online', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
     await rm(stagingDir, { recursive: true, force: true });
@@ -243,6 +252,7 @@ export class ClientDeployPackageService {
       filename: path.basename(zipPath),
       appVersion,
       createdAt,
+      ...installer,
     };
   }
 
@@ -251,7 +261,13 @@ export class ClientDeployPackageService {
     appDir: string,
     variant: InnoInstallerVariant,
     appVersion: string,
-  ): Promise<string | undefined> {
+  ): Promise<PackageInstallerInfo> {
+    if (!this.innoInstaller.isCompilerAvailable()) {
+      const warning = this.innoInstaller.getCompilerMissingMessage();
+      this.logger.error(`Instalator .exe nie powstał — ${warning}`);
+      return { installerExe: null, installerWarning: warning };
+    }
+
     try {
       const result = this.innoInstaller.compileInstaller({
         variant,
@@ -260,13 +276,12 @@ export class ClientDeployPackageService {
         appVersion,
       });
       this.logger.log(`Instalator Inno: ${result.filename}`);
-      return result.filename;
+      return { installerExe: result.filename };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Instalator .exe nie powstał — zainstaluj Inno Setup 6 (winget install JRSoftware.InnoSetup) i zrestartuj API. ${message}`,
-      );
-      return undefined;
+      const warning = `Instalator .exe nie powstał: ${message}`;
+      this.logger.error(warning);
+      return { installerExe: null, installerWarning: warning };
     }
   }
 
@@ -686,7 +701,7 @@ export class ClientDeployPackageService {
       '   .\\Instaluj-Klienta.bat',
       '',
       '   lub recznie:',
-      '   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\setup\\Setup.ps1 -Mode client -Offline -BundlePath .\\offline-bundle.zip -InstallRoot . -NonInteractive',
+      '   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\setup\\Setup.ps1 -Mode client -Offline -BundlePath .\\offline-bundle.zip -InstallRoot . -NonInteractive -NoStart',
       '',
       '4. Setup automatycznie:',
       '   - zainstaluje Node, Ollama, Qdrant, zaleznosci',
@@ -709,7 +724,7 @@ export class ClientDeployPackageService {
       '@echo off',
       'title Teta AI Assistant - instalacja klienta (offline)',
       'cd /d "%~dp0"',
-      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -NonInteractive',
+      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -NonInteractive -NoStart',
       'if errorlevel 1 (',
       '  echo.',
       '  echo Instalacja nie powiodla sie.',
@@ -749,7 +764,7 @@ export class ClientDeployPackageService {
     await this.writeProductionStartAppBat(appDir);
     await this.writeSetupBat(
       appDir,
-      '-Mode client -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive',
+      '-Mode client -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive -NoStart',
     );
   }
 
@@ -800,7 +815,7 @@ export class ClientDeployPackageService {
       'title Teta AI Assistant - instalacja klienta ONLINE',
       'cd /d "%~dp0"',
       'echo Wymagane polaczenie z internetem (Node, Ollama, Qdrant, modele AI).',
-      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -InstallRoot "%~dp0" -NonInteractive',
+      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -InstallRoot "%~dp0" -NonInteractive -NoStart',
       'if errorlevel 1 (',
       '  echo.',
       '  echo Instalacja nie powiodla sie.',
@@ -839,7 +854,7 @@ export class ClientDeployPackageService {
     await this.writeProductionStartAppBat(appDir);
     await this.writeSetupBat(
       appDir,
-      '-Mode client -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive',
+      '-Mode client -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive -NoStart',
     );
   }
 
@@ -939,7 +954,7 @@ export class ClientDeployPackageService {
       '@echo off',
       'title Teta AI Assistant - instalacja vendor (budowa RAG)',
       'cd /d "%~dp0"',
-      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -NonInteractive',
+      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -NonInteractive -NoStart',
       'if errorlevel 1 (',
       '  echo.',
       '  echo Instalacja nie powiodla sie.',
@@ -960,7 +975,7 @@ export class ClientDeployPackageService {
     await this.writeProductionStartAppBat(appDir);
     await this.writeSetupBat(
       appDir,
-      '-Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive',
+      '-Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive -NoStart',
     );
   }
 
@@ -1018,7 +1033,7 @@ export class ClientDeployPackageService {
       'title Teta AI Assistant - instalacja vendor ONLINE',
       'cd /d "%~dp0"',
       'echo Wymagane polaczenie z internetem (Node, Ollama, Qdrant, modele AI).',
-      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -InstallRoot "%~dp0" -NonInteractive',
+      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -InstallRoot "%~dp0" -NonInteractive -NoStart',
       'if errorlevel 1 (',
       '  echo.',
       '  echo Instalacja nie powiodla sie.',
@@ -1036,7 +1051,7 @@ export class ClientDeployPackageService {
     await this.writeProductionStartAppBat(appDir);
     await this.writeSetupBat(
       appDir,
-      '-Mode vendor -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive',
+      '-Mode vendor -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive -NoStart',
     );
   }
 }

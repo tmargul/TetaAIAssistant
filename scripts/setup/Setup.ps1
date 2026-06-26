@@ -56,6 +56,21 @@ if (-not $Mode) {
 
 Assert-Administrator
 
+$setupLogPath = Join-Path $InstallRoot "setup-log.txt"
+$script:SetupTranscriptStarted = $false
+if (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Interactive) {
+    $env:TETA_SETUP_NONINTERACTIVE = '1'
+    try {
+        Start-Transcript -Path $setupLogPath -Append -Force | Out-Null
+        $script:SetupTranscriptStarted = $true
+        Write-Host "Log instalacji: $setupLogPath" -ForegroundColor DarkGray
+        Write-Host "Postep (plik): $(Join-Path $InstallRoot 'setup-progress.txt')" -ForegroundColor DarkGray
+        Write-Host "Pierwsza instalacja online moze trwac 20-40 min (pnpm, modele Ollama ~5-6 GB)." -ForegroundColor Yellow
+    } catch {
+        Write-Host "  Nie udalo sie utworzyc logu instalacji: $_" -ForegroundColor Yellow
+    }
+}
+
 if ($Offline) {
     if (-not $BundlePath) {
         $BundlePath = Find-DefaultOfflineBundlePath
@@ -71,47 +86,98 @@ if ($Offline) { Write-Host " Tryb: OFFLINE (bez internetu)" -ForegroundColor Yel
 Write-Host " Katalog: $InstallRoot" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 
+$isVendor = $Mode -eq "vendor"
+$progressSteps = [System.Collections.Generic.List[string]]::new()
+$progressSteps.AddRange(@(
+    'Node.js 22 LTS',
+    'pnpm',
+    'Ollama (instalacja / sciezki)',
+    'Zaleznosci projektu (pnpm install)',
+    'Qdrant',
+    'NSSM (uslugi Windows)',
+    'Konfiguracja srodowiska (.env)',
+    'Ollama — gotowosc API'
+))
+if ($isVendor) {
+    $progressSteps.Add('Model AI: nomic-embed-text')
+    $progressSteps.Add('Model AI: qwen3')
+    $progressSteps.Add('Narzedzia ingest wideo')
+} elseif ($Offline) {
+    $progressSteps.Add('Modele AI z paczki offline')
+} else {
+    $progressSteps.Add('Model AI: nomic-embed-text')
+    $progressSteps.Add('Model AI: qwen3')
+}
+$progressSteps.AddRange(@(
+    'Usluga Windows: Qdrant',
+    'Usluga Windows: API',
+    'Weryfikacja uslug'
+))
+if (-not $isVendor -and $Offline) {
+    $progressSteps.Add('Import globalnego RAG')
+}
+
+Initialize-SetupProgress -InstallRoot $InstallRoot -Steps $progressSteps.ToArray()
+
+Advance-SetupProgress 'Node.js 22 LTS'
 Ensure-Node
+Advance-SetupProgress 'pnpm'
 Ensure-Pnpm
+Advance-SetupProgress 'Ollama (instalacja / sciezki)'
 Ensure-Ollama -InstallRoot $InstallRoot
+Advance-SetupProgress 'Zaleznosci projektu (pnpm install)'
 Install-ProjectDependencies
 
+Advance-SetupProgress 'Qdrant'
 $qdrantExe = Ensure-Qdrant $InstallRoot -Upgrade:$UpgradeQdrant
+Advance-SetupProgress 'NSSM (uslugi Windows)'
 $nssmExe = Ensure-Nssm $InstallRoot
 
-$isVendor = $Mode -eq "vendor"
+Advance-SetupProgress 'Konfiguracja srodowiska (.env)'
 Write-EnvFile -AppMode $Mode -IncludeVendorSecret $isVendor -InstallRoot $InstallRoot
 
 Ensure-Ollama -InstallRoot $InstallRoot
+Advance-SetupProgress 'Ollama — gotowosc API'
 Wait-OllamaReady
 
 if ($isVendor) {
-    Install-OllamaModels -Models @("nomic-embed-text", "qwen3") -InstallRoot $InstallRoot
+    Advance-SetupProgress 'Model AI: nomic-embed-text'
+    Install-OllamaModels -Models @("nomic-embed-text") -InstallRoot $InstallRoot
+    Advance-SetupProgress 'Model AI: qwen3'
+    Install-OllamaModels -Models @("qwen3") -InstallRoot $InstallRoot
     if (-not $Offline) {
         Invoke-OptionalDeepseekInstall -Interactive:$Interactive
     }
+    Advance-SetupProgress 'Narzedzia ingest wideo'
     Ensure-VideoIngestTools -InstallRoot $InstallRoot
 } elseif ($Offline) {
+    Advance-SetupProgress 'Modele AI z paczki offline'
     Install-OllamaModels -Models @("nomic-embed-text", "qwen3") -InstallRoot $InstallRoot
     Write-Host ""
     Write-Host "Modele offline: skopiowano z paczki (deepseek-r1 tylko jesli byl w paczce IT)." -ForegroundColor DarkGray
 } else {
-    Install-OllamaModels -Models @("nomic-embed-text", "qwen3") -InstallRoot $InstallRoot
+    Advance-SetupProgress 'Model AI: nomic-embed-text'
+    Install-OllamaModels -Models @("nomic-embed-text") -InstallRoot $InstallRoot
+    Advance-SetupProgress 'Model AI: qwen3'
+    Install-OllamaModels -Models @("qwen3") -InstallRoot $InstallRoot
     Invoke-OptionalDeepseekInstall -Interactive:$Interactive
 }
 
+Advance-SetupProgress 'Usluga Windows: Qdrant'
 Register-QdrantService -NssmExe $nssmExe -QdrantExe $qdrantExe
 Wait-QdrantReady -InstallRoot $InstallRoot
 
 if (-not $isVendor -and $Offline) {
+    Advance-SetupProgress 'Import globalnego RAG'
     Import-GlobalRagFromBundle
 }
 
+Advance-SetupProgress 'Usluga Windows: API'
 Write-StartAppScript -InstallRoot $InstallRoot
 Register-ApiService -NssmExe $nssmExe -InstallRoot $InstallRoot
 Write-InstallManifest -InstallRoot $InstallRoot -RepoRoot $script:RepoRoot
 
-Write-Host ""
+Advance-SetupProgress 'Weryfikacja uslug'
 Write-Host "========================================" -ForegroundColor Green
 Write-Host " Instalacja zakończona ($Mode)" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
@@ -157,6 +223,7 @@ if ($isVendor) {
 
 Write-Host ""
 Test-ServicesHealth -InstallRoot $InstallRoot | Out-Null
+Complete-SetupProgress
 
 $shouldAutoStart = -not $NoStart -and (Test-ProductionLayout -or ((-not $isVendor) -and $Offline))
 $openBrowserInSetup = -not (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Interactive)
@@ -181,5 +248,8 @@ if ($shouldAutoStart) {
 }
 
 if (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Interactive) {
+    if ($script:SetupTranscriptStarted) {
+        try { Stop-Transcript | Out-Null } catch { }
+    }
     exit 0
 }

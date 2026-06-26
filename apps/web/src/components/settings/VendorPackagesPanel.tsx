@@ -13,7 +13,10 @@ import { GlobalRagImportButton } from './GlobalRagImportButton';
 async function downloadPackage(
   url: string,
   body?: Record<string, string>,
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; installerExe: string | null; installerWarning: string | null }
+  | { ok: false; message: string }
+> {
   const res = await authFetch(url, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -46,7 +49,11 @@ async function downloadPackage(
   anchor.click();
   URL.revokeObjectURL(objectUrl);
 
-  return { ok: true };
+  return {
+    ok: true,
+    installerExe: res.headers.get('X-Teta-Installer-Exe'),
+    installerWarning: res.headers.get('X-Teta-Installer-Warning'),
+  };
 }
 
 function formatPullStatus(
@@ -219,8 +226,15 @@ export function VendorPackagesPanel() {
         setError(result.message);
         return;
       }
+      if (result.installerWarning) {
+        setError(result.installerWarning);
+      }
+      const exeNote =
+        result.installerExe && result.installerExe !== 'missing'
+          ? ` W ZIP jest też ${result.installerExe}.`
+          : ' W ZIP nie ma instalatora .exe — użyj Instaluj-Vendor-Online.bat lub Setup.bat.';
       setMessage(
-        'Paczka vendor (online) pobrana. Rozpakuj ZIP — uruchom Instaluj-Vendor-Online.bat lub Setup.bat (Admin). W paczce jest też .exe. Po setupie otworzy się przeglądarka.',
+        `Paczka vendor (online) pobrana.${exeNote} Uruchom setup jako Administrator — po nim otworzy się przeglądarka.`,
       );
     } finally {
       setVendorOnlineInstallLoading(false);

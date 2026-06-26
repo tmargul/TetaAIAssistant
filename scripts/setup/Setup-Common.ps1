@@ -29,6 +29,24 @@ function Test-SetupNonInteractive {
     return $true
 }
 
+function Invoke-WingetInstall {
+    param(
+        [Parameter(Mandatory = $true, ValueFromRemainingArguments = $true)]
+        [string[]]$Arguments
+    )
+
+    if (-not (Test-Command winget)) {
+        throw "winget nie jest dostepny w PATH."
+    }
+
+    $wingetArgs = @('install') + $Arguments + @(
+        '--accept-package-agreements',
+        '--accept-source-agreements',
+        '--disable-interactivity'
+    )
+    & winget @wingetArgs
+}
+
 function Find-DefaultOfflineBundlePath {
     $repo = $script:RepoRoot
     $zipCandidates = @(
@@ -120,8 +138,95 @@ function Get-BundleItem([string]$RelativePath) {
 }
 
 function Write-Step([string]$Message) {
+    $ts = Get-Date -Format 'HH:mm:ss'
     Write-Host ""
-    Write-Host "==> $Message" -ForegroundColor Cyan
+    Write-Host "==> [$ts] $Message" -ForegroundColor Cyan
+    Write-SetupProgressDetail $Message
+}
+
+$script:SetupProgress = @{
+    InstallRoot = $null
+    Path        = $null
+    Steps       = @()
+    Index       = 0
+    StartedAt   = $null
+}
+
+function Initialize-SetupProgress {
+    param(
+        [Parameter(Mandatory = $true)][string]$InstallRoot,
+        [Parameter(Mandatory = $true)][string[]]$Steps
+    )
+
+    $script:SetupProgress.InstallRoot = $InstallRoot
+    $script:SetupProgress.Path = Join-Path $InstallRoot 'setup-progress.txt'
+    $script:SetupProgress.Steps = @($Steps)
+    $script:SetupProgress.Index = 0
+    $script:SetupProgress.StartedAt = Get-Date
+    Update-SetupProgressFile -Headline 'Rozpoczeto instalacje' -Detail 'Przygotowanie...'
+}
+
+function Advance-SetupProgress {
+    param([Parameter(Mandatory = $true)][string]$StepName)
+
+    $script:SetupProgress.Index++
+    $idx = $script:SetupProgress.Index
+    $total = $script:SetupProgress.Steps.Count
+    $elapsed = (Get-Date) - $script:SetupProgress.StartedAt
+    $pct = if ($total -gt 0) { [Math]::Min(100, [int](($idx / $total) * 100)) } else { 0 }
+
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Magenta
+    Write-Host " POSTEP: [$idx/$total] ($pct%) $StepName" -ForegroundColor Magenta
+    Write-Host " Czas od startu: $($elapsed.ToString('hh\:mm\:ss'))" -ForegroundColor DarkGray
+    Write-Host "========================================" -ForegroundColor Magenta
+
+    Write-Progress -Activity 'Teta AI — instalacja' -Status $StepName -PercentComplete $pct
+    Update-SetupProgressFile -Headline "[$idx/$total] ($pct%) $StepName" -Detail $StepName
+}
+
+function Write-SetupProgressDetail([string]$Detail) {
+    if (-not $script:SetupProgress.Path) { return }
+    $idx = $script:SetupProgress.Index
+    $total = $script:SetupProgress.Steps.Count
+    $pct = if ($total -gt 0) { [Math]::Min(100, [int](($idx / $total) * 100)) } else { 0 }
+    $headline = if ($idx -gt 0) { "[$idx/$total] ($pct%)" } else { '[0/?]' }
+    Update-SetupProgressFile -Headline $headline -Detail $Detail
+}
+
+function Complete-SetupProgress {
+    Write-Progress -Activity 'Teta AI — instalacja' -Completed
+    Update-SetupProgressFile -Headline '[GOTOWE] Instalacja zakonczona' -Detail 'Mozesz uruchomic Start-App.bat'
+}
+
+function Update-SetupProgressFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Headline,
+        [string]$Detail = ''
+    )
+
+    $path = $script:SetupProgress.Path
+    if (-not $path) { return }
+
+    $ts = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $elapsed = ''
+    if ($script:SetupProgress.StartedAt) {
+        $elapsed = ((Get-Date) - $script:SetupProgress.StartedAt).ToString('hh\:mm\:ss')
+    }
+
+    $content = @(
+        'Teta AI Assistant — postep instalacji',
+        "Ostatnia aktualizacja: $ts",
+        "Czas od startu: $elapsed",
+        '',
+        $Headline,
+        $(if ($Detail) { "Szczegoly: $Detail" }),
+        '',
+        'Pelny log: setup-log.txt (w tym katalogu)',
+        'Okno PowerShell pokazuje biezacy krok na zywo.'
+    ) | Where-Object { $_ -ne $null }
+
+    Set-Content -Path $path -Value ($content -join "`n") -Encoding UTF8
 }
 
 function Resolve-InstallRoot {
@@ -377,7 +482,7 @@ function Ensure-Node {
 
     if (Test-Command winget) {
         Write-Host "  Instalacja Node.js 22 LTS przez winget..."
-        winget install OpenJS.NodeJS.22 --accept-package-agreements --accept-source-agreements --force
+        Invoke-WingetInstall OpenJS.NodeJS.22 --force
         Refresh-ShellPath
     }
 
@@ -542,6 +647,7 @@ function Install-ProjectDependencies {
 
     if ((Test-ProductionLayout) -and -not (Test-Path $nodeModules)) {
         Write-Host "  Paczka produkcyjna (online) — instalacja zaleznosci (pnpm install)..."
+        Write-SetupProgressDetail 'pnpm install — moze potrwac 5-15 minut'
         $installExit = Invoke-Pnpm install
         if ($installExit -ne 0) {
             throw "pnpm install nie powiodl sie. Sprawdz polaczenie z internetem i uruchom setup ponownie."
@@ -638,9 +744,17 @@ function Install-OllamaModels {
     }
 
     Write-Step "Pobieranie modeli Ollama (wymaga internetu)"
+    $modelIndex = 0
     foreach ($model in $Models) {
-        Write-Host "  ollama pull $model"
-        ollama pull $model
+        $modelIndex++
+        Write-Host ""
+        Write-Host "  [$modelIndex/$($Models.Count)] ollama pull $model (moze potrwac kilka-kilkanascie minut)..." -ForegroundColor Yellow
+        Write-SetupProgressDetail "Pobieranie modelu Ollama: $model ($modelIndex/$($Models.Count))"
+        & ollama pull $model
+        if ($LASTEXITCODE -ne 0) {
+            throw "ollama pull $model nie powiodl sie (kod $LASTEXITCODE)."
+        }
+        Write-Host "  Model $model: OK" -ForegroundColor Green
     }
 }
 
@@ -844,7 +958,7 @@ function Ensure-Nssm([string]$InstallRoot) {
 
     if (Test-Command winget) {
         Write-Host "  Instalacja NSSM przez winget..."
-        winget install NSSM.NSSM -e --accept-package-agreements --accept-source-agreements 2>$null
+        Invoke-WingetInstall NSSM.NSSM -e 2>$null
         $wingetNssm = Get-Command nssm -ErrorAction SilentlyContinue
         if ($wingetNssm) {
             New-Item -ItemType Directory -Force -Path $toolsDir | Out-Null
@@ -1417,6 +1531,19 @@ function Ensure-VideoIngestTools {
     Write-Step "Narzedzia ingest wideo MP4 (vendor)"
     $requirements = Join-Path $script:RepoRoot "scripts\rag\requirements-video.txt"
 
+    if ($env:TETA_SETUP_NONINTERACTIVE -eq '1') {
+        Write-Host "  Instalacja z .exe — pomijam winget (ffmpeg/Python). Doinstaluj pozniej lub uruchom Setup.bat ponownie." -ForegroundColor Yellow
+        if ((Test-Command ffmpeg) -and (Test-Command ffprobe)) {
+            Register-FfmpegEnvPaths | Out-Null
+            Write-Host "  ffmpeg: OK (PATH)" -ForegroundColor Green
+        }
+        $pythonExe = Get-PythonExecutable
+        if ($pythonExe) {
+            Write-Host "  Python: OK ($pythonExe)" -ForegroundColor Green
+        }
+        return
+    }
+
     # --- ffmpeg ---
     $ffmpegOk = Test-Command ffmpeg
     $ffprobeOk = Test-Command ffprobe
@@ -1433,7 +1560,7 @@ function Ensure-VideoIngestTools {
     } else {
         if (Test-Command winget) {
             Write-Host "  Instalacja ffmpeg przez winget..."
-            winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-agreements 2>$null
+            Invoke-WingetInstall -e --id Gyan.FFmpeg 2>$null
             Refresh-ShellPath
             $ffmpegOk = Test-Command ffmpeg
             $ffprobeOk = Test-Command ffprobe
@@ -1465,7 +1592,7 @@ function Ensure-VideoIngestTools {
             }
         } elseif (Test-Command winget) {
             Write-Host "  Instalacja Python 3.12 przez winget..."
-            winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements 2>$null
+            Invoke-WingetInstall -e --id Python.Python.3.12 2>$null
             Refresh-ShellPath
             $pythonExe = Get-PythonExecutable
         }

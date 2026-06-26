@@ -21,7 +21,7 @@ const PAGE_META: Record<NavItem, { title: string; subtitle: string }> = {
     subtitle: 'Przegląd statusu systemu i komponentów',
   },
   doctor: {
-    title: 'AIA Doctor',
+    title: 'AI Doctor',
     subtitle: 'Diagnostyka środowiska i naprawa usług',
   },
   chat: {

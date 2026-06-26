@@ -31,6 +31,14 @@ export type CompileInstallerResult = {
   filename: string;
 };
 
+const ISCC_CANDIDATES = [
+  () => process.env['ProgramFiles(x86)'] && path.join(process.env['ProgramFiles(x86)']!, 'Inno Setup 6', 'ISCC.exe'),
+  () => process.env.ProgramFiles && path.join(process.env.ProgramFiles, 'Inno Setup 6', 'ISCC.exe'),
+  () =>
+    process.env.LOCALAPPDATA &&
+    path.join(process.env.LOCALAPPDATA, 'Programs', 'Inno Setup 6', 'ISCC.exe'),
+] as const;
+
 @Injectable()
 export class InnoInstallerService {
   private readonly logger = new Logger(InnoInstallerService.name);
@@ -39,10 +47,31 @@ export class InnoInstallerService {
     return this.resolveRepoRoot();
   }
 
+  findCompilerPath(): string | null {
+    for (const resolve of ISCC_CANDIDATES) {
+      const candidate = resolve();
+      if (candidate && existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  isCompilerAvailable(): boolean {
+    return this.findCompilerPath() !== null;
+  }
+
+  getCompilerMissingMessage(): string {
+    return 'Brak Inno Setup 6 (ISCC.exe). Zainstaluj: winget install JRSoftware.InnoSetup — potem zrestartuj API i wygeneruj paczkę ponownie.';
+  }
+
   /**
    * Kompiluje instalator Inno Setup. Wymaga ISCC (Inno Setup 6) na maszynie budującej paczkę.
    */
   compileInstaller(options: CompileInstallerOptions): CompileInstallerResult {
+    if (!this.isCompilerAvailable()) {
+      throw new Error(this.getCompilerMissingMessage());
+    }
     const repoRoot = this.resolveRepoRoot();
     const buildScript = path.join(repoRoot, 'scripts', 'setup', 'Build-Installer.ps1');
     const appVersion = options.appVersion ?? '0.0.1';

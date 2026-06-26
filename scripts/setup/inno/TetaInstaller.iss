@@ -26,18 +26,14 @@
 #if MyAppMode == "vendor"
   #if MyOffline == "1"
     #define MyAppName "Teta AI Assistant — Vendor (offline)"
-    #define MySetupArgs "-Mode vendor -Offline -BundlePath \"{app}\offline-bundle.zip\" -InstallRoot \"{app}\" -NonInteractive"
   #else
     #define MyAppName "Teta AI Assistant — Vendor (online)"
-    #define MySetupArgs "-Mode vendor -InstallRoot \"{app}\" -NonInteractive"
   #endif
 #else
   #if MyOffline == "1"
     #define MyAppName "Teta AI Assistant — Klient (offline)"
-    #define MySetupArgs "-Mode client -Offline -BundlePath \"{app}\offline-bundle.zip\" -InstallRoot \"{app}\" -NonInteractive"
   #else
     #define MyAppName "Teta AI Assistant — Klient (online)"
-    #define MySetupArgs "-Mode client -InstallRoot \"{app}\" -NonInteractive"
   #endif
 #endif
 
@@ -78,12 +74,39 @@ Name: "{group}\Odinstaluj {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Teta AI Assistant"; Filename: "{app}\Start-App.bat"; Tasks: desktopicon
 
 [Run]
+#if MyAppMode == "vendor"
+  #if MyOffline == "1"
 Filename: "powershell.exe"; \
-  Parameters: "-ExecutionPolicy Bypass -NoProfile -File ""{app}\scripts\setup\Setup.ps1"" {#MySetupArgs}"; \
+  Parameters: "-WindowStyle Normal -ExecutionPolicy Bypass -NoProfile -File ""{app}\scripts\setup\Setup.ps1"" -Mode vendor -Offline -BundlePath ""{app}\offline-bundle.zip"" -InstallRoot ""{app}"" -NonInteractive -NoStart"; \
   WorkingDir: "{app}"; \
   StatusMsg: "Konfiguracja środowiska (Node, Ollama, Qdrant, modele)…"; \
-  Flags: runhidden waituntilterminated; \
+  Flags: waituntilterminated; \
   Description: "Konfiguracja Teta AI Assistant"
+  #else
+Filename: "powershell.exe"; \
+  Parameters: "-WindowStyle Normal -ExecutionPolicy Bypass -NoProfile -File ""{app}\scripts\setup\Setup.ps1"" -Mode vendor -InstallRoot ""{app}"" -NonInteractive -NoStart"; \
+  WorkingDir: "{app}"; \
+  StatusMsg: "Konfiguracja środowiska (Node, Ollama, Qdrant, modele)…"; \
+  Flags: waituntilterminated; \
+  Description: "Konfiguracja Teta AI Assistant"
+  #endif
+#else
+  #if MyOffline == "1"
+Filename: "powershell.exe"; \
+  Parameters: "-WindowStyle Normal -ExecutionPolicy Bypass -NoProfile -File ""{app}\scripts\setup\Setup.ps1"" -Mode client -Offline -BundlePath ""{app}\offline-bundle.zip"" -InstallRoot ""{app}"" -NonInteractive -NoStart"; \
+  WorkingDir: "{app}"; \
+  StatusMsg: "Konfiguracja środowiska (Node, Ollama, Qdrant, modele)…"; \
+  Flags: waituntilterminated; \
+  Description: "Konfiguracja Teta AI Assistant"
+  #else
+Filename: "powershell.exe"; \
+  Parameters: "-WindowStyle Normal -ExecutionPolicy Bypass -NoProfile -File ""{app}\scripts\setup\Setup.ps1"" -Mode client -InstallRoot ""{app}"" -NonInteractive -NoStart"; \
+  WorkingDir: "{app}"; \
+  StatusMsg: "Konfiguracja środowiska (Node, Ollama, Qdrant, modele)…"; \
+  Flags: waituntilterminated; \
+  Description: "Konfiguracja Teta AI Assistant"
+  #endif
+#endif
 Filename: "{app}\Start-App.bat"; \
   Description: "Uruchom Teta AI Assistant"; \
   Flags: postinstall nowait skipifdoesntexist

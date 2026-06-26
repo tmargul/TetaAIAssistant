@@ -31,13 +31,13 @@ const BASE_NAV_ITEMS: {
   clientOnly?: boolean;
 }[] = [
   { id: 'dashboard', label: 'Panel', icon: IconDashboard },
-  { id: 'doctor', label: 'AIA Doctor', icon: IconDoctor },
   { id: 'chat', label: 'Asystent AI', icon: IconChat },
   { id: 'history', label: 'Historia', icon: IconHistory },
   { id: 'vendorWizard', label: 'Kreator wiedzy', icon: IconWizard, vendorOnly: true },
   { id: 'globalSources', label: 'Źródła globalne', icon: IconDocuments, vendorOnly: true },
   { id: 'oracleMetadata', label: 'Metadane Oracle', icon: IconDatabase, vendorOnly: true },
   { id: 'documents', label: 'Dokumenty', icon: IconDocuments, clientOnly: true },
+  { id: 'doctor', label: 'AI Doctor', icon: IconDoctor },
   { id: 'settings', label: 'Ustawienia', icon: IconSettings },
 ];
 
