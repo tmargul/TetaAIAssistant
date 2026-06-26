@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { SystemHealthResponse } from '@teta/shared';
 import { useSystemHealth } from './hooks/useSystemHealth';
 import { ChatView } from './components/chat/ChatView';
@@ -177,10 +177,14 @@ export default function App() {
 
   const meta = PAGE_META[activeNav];
 
-  const openChatConversation = (id: string) => {
+  const openChatConversation = useCallback((id: string) => {
     setPendingOpenConversationId(id);
     setActiveNav('chat');
-  };
+  }, []);
+
+  const handleOpenConversationHandled = useCallback(() => {
+    setPendingOpenConversationId(null);
+  }, []);
 
   return (
     <AuthGate>
@@ -203,7 +207,7 @@ export default function App() {
         {activeNav === 'chat' && (
           <ChatView
             openConversationId={pendingOpenConversationId}
-            onOpenConversationHandled={() => setPendingOpenConversationId(null)}
+            onOpenConversationHandled={handleOpenConversationHandled}
           />
         )}
         {activeNav === 'documents' && !isVendorMode && <DocumentsView />}
@@ -213,7 +217,10 @@ export default function App() {
         {activeNav === 'globalSources' && isVendorMode && <GlobalSourcesView />}
         {activeNav === 'oracleMetadata' && isVendorMode && <OracleMetadataView />}
         {activeNav === 'history' && (
-          <HistoryView onOpenConversation={openChatConversation} />
+          <HistoryView
+            isActive
+            onOpenConversation={openChatConversation}
+          />
         )}
         {activeNav === 'settings' && <AdminSettingsView />}
       </AppShell>

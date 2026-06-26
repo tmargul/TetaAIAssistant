@@ -8,10 +8,11 @@ import { formatConversationDate } from './format-conversation-date';
 import './history.css';
 
 type HistoryViewProps = {
+  isActive?: boolean;
   onOpenConversation: (id: string) => void;
 };
 
-export function HistoryView({ onOpenConversation }: HistoryViewProps) {
+export function HistoryView({ isActive = true, onOpenConversation }: HistoryViewProps) {
   const [conversations, setConversations] = useState<ChatConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +30,10 @@ export function HistoryView({ onOpenConversation }: HistoryViewProps) {
   }, []);
 
   useEffect(() => {
+    if (!isActive) return;
+    setLoading(true);
     void refresh();
-  }, [refresh]);
+  }, [isActive, refresh]);
 
   const handleDelete = async (id: string) => {
     if (deletingId) return;

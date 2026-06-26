@@ -169,6 +169,24 @@ export function ChatView({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const skipSaveRef = useRef(true);
+  const onOpenConversationHandledRef = useRef(onOpenConversationHandled);
+  onOpenConversationHandledRef.current = onOpenConversationHandled;
+  const persistRef = useRef({
+    conversationId,
+    conversationTitle,
+    model,
+    messages,
+    isBusy,
+    isLoadingConversation,
+  });
+  persistRef.current = {
+    conversationId,
+    conversationTitle,
+    model,
+    messages,
+    isBusy,
+    isLoadingConversation,
+  };
 
   const applyConversation = useCallback((conversation: StoredChatConversation) => {
     skipSaveRef.current = true;
@@ -178,8 +196,6 @@ export function ChatView({
     setModel(conversation.model);
   }, []);
 
-  const hasBootstrappedRef = useRef(false);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -187,22 +203,15 @@ export function ChatView({
       setIsLoadingConversation(true);
       setError(null);
       try {
-        let conversation: StoredChatConversation;
-        if (openConversationId) {
-          conversation =
-            (await loadChatConversation(openConversationId)) ??
-            (await startNewConversation('qwen3'));
-          if (!cancelled) {
-            onOpenConversationHandled?.();
-          }
-        } else if (!hasBootstrappedRef.current) {
-          hasBootstrappedRef.current = true;
-          conversation = await bootstrapConversation();
-        } else {
-          return;
-        }
+        const conversation = openConversationId
+          ? ((await loadChatConversation(openConversationId)) ??
+            (await startNewConversation('qwen3')))
+          : await bootstrapConversation();
         if (cancelled) return;
         applyConversation(conversation);
+        if (openConversationId) {
+          onOpenConversationHandledRef.current?.();
+        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Nie udało się wczytać rozmowy.');
@@ -215,7 +224,29 @@ export function ChatView({
     return () => {
       cancelled = true;
     };
-  }, [openConversationId, applyConversation, onOpenConversationHandled]);
+  }, [openConversationId, applyConversation]);
+
+  useEffect(() => {
+    return () => {
+      const snapshot = persistRef.current;
+      if (
+        !snapshot.conversationId ||
+        snapshot.isBusy ||
+        snapshot.isLoadingConversation ||
+        snapshot.messages.length === 0
+      ) {
+        return;
+      }
+      void saveChatConversation({
+        id: snapshot.conversationId,
+        title: snapshot.conversationTitle,
+        model: snapshot.model,
+        messages: snapshot.messages,
+      }).catch(() => {
+        // Ostatnia próba zapisu przy opuszczaniu widoku — błąd nie blokuje nawigacji.
+      });
+    };
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -457,21 +488,25 @@ export function ChatView({
           }
 
           if (event.type === 'done') {
+            const doneMessage: ChatMessage = {
+              id: assistantId || createId(),
+              role: 'assistant',
+              content: event.content,
+              createdAt: event.createdAt,
+              timing: event.timing,
+              streaming: false,
+              oracleSteps: event.oracleSteps ?? oracleSteps,
+              oracleSql: event.oracleSql ?? oracleSql,
+              oracleReports: event.oracleReports ?? oracleReports,
+            };
+            if (!assistantId) {
+              assistantId = doneMessage.id;
+              setStreamingMessageId(doneMessage.id);
+            }
             setMessages((prev) =>
-              prev.map((item) =>
-                item.id === assistantId
-                  ? {
-                      ...item,
-                      content: event.content,
-                      createdAt: event.createdAt,
-                      timing: event.timing,
-                      streaming: false,
-                      oracleSteps: event.oracleSteps ?? oracleSteps,
-                      oracleSql: event.oracleSql ?? oracleSql,
-                      oracleReports: event.oracleReports ?? oracleReports,
-                    }
-                  : item,
-              ),
+              assistantId && prev.some((item) => item.id === assistantId)
+                ? prev.map((item) => (item.id === assistantId ? doneMessage : item))
+                : [...prev, doneMessage],
             );
             return;
           }
