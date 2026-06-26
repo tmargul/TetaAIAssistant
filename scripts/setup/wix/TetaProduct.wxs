@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Teta AI Assistant — MSI (WiX Toolset 4/5).
+  Kompilacja: scripts\setup\Build-MsiInstaller.ps1 (wix build + HarvestDirectory w wixproj)
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <?ifndef AppVersion ?>
+    <?define AppVersion = "0.0.1" ?>
+  <?endif ?>
+  <?ifndef PackageVersion ?>
+    <?define PackageVersion = "$(var.AppVersion).0" ?>
+  <?endif ?>
+  <?ifndef UpgradeCode ?>
+    <?define UpgradeCode = "B1C2D3E4-F5A6-4789-B012-3456789ABCDE" ?>
+  <?endif ?>
+  <?ifndef MyAppMode ?>
+    <?define MyAppMode = "client" ?>
+  <?endif ?>
+  <?ifndef MyOffline ?>
+    <?define MyOffline = "0" ?>
+  <?endif ?>
+  <?ifndef ProductTitle ?>
+    <?define ProductTitle = "Teta AI Assistant" ?>
+  <?endif ?>
+  <?ifndef WixSourceDir ?>
+    <?define WixSourceDir = "." ?>
+  <?endif ?>
+
+  <Package
+    Name="$(var.ProductTitle)"
+    Manufacturer="Teta"
+    Version="$(var.PackageVersion)"
+    UpgradeCode="$(var.UpgradeCode)"
+    Scope="perMachine"
+    Compressed="yes"
+    InstallerVersion="500"
+    Codepage="1250">
+
+    <SummaryInformation
+      Description="$(var.ProductTitle)"
+      Comments="Jeden plik instalacyjny — pelna automatyczna konfiguracja" />
+
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="Zainstalowana jest nowsza wersja Teta AI Assistant." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Launch
+      Condition="VersionNT64"
+      Message="Teta AI Assistant wymaga systemu Windows 64-bit." />
+
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <Feature Id="ProductFeature" Title="$(var.ProductTitle)">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="Teta AI Assistant" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Teta AI Assistant" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="StartMenuShortcut">
+        <Shortcut
+          Id="StartMenuShortcut"
+          Name="Teta AI Assistant"
+          Description="Uruchom Teta AI Assistant"
+          Target="[INSTALLFOLDER]Start-App.bat"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\Teta\TetaAIAssistant"
+          Name="startmenu"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut">
+        <Shortcut
+          Id="DesktopShortcut"
+          Name="Teta AI Assistant"
+          Description="Uruchom Teta AI Assistant"
+          Target="[INSTALLFOLDER]Start-App.bat"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\Teta\TetaAIAssistant"
+          Name="desktop"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.WixSourceDir)\License.rtf" />
+
+    <SetProperty
+      Id="WixQuietExecCmdLine"
+      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -WindowStyle Normal -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]scripts\setup\Run-MsiSetup.ps1&quot; -InstallRoot &quot;[INSTALLFOLDER]&quot; -Mode $(var.MyAppMode) -InstallerPath &quot;[OriginalDatabase]&quot; <?if $(var.MyOffline) = 1 ?>-Offline -BundlePath &quot;[INSTALLFOLDER]offline-bundle.zip&quot;<?endif ?>"
+      Before="RunTetaSetup"
+      Sequence="execute" />
+
+    <CustomAction
+      Id="RunTetaSetup"
+      BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+      DllEntry="WixQuietExec"
+      Execute="deferred"
+      Return="check"
+      Impersonate="no" />
+
+    <SetProperty
+      Id="WixQuietExecCmdLine"
+      Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -ExecutionPolicy Bypass -File &quot;[INSTALLFOLDER]scripts\setup\Uninstall-Qdrant.ps1&quot; -InstallRoot &quot;[INSTALLFOLDER]&quot;"
+      Before="RunTetaUninstall"
+      Sequence="execute" />
+
+    <CustomAction
+      Id="RunTetaUninstall"
+      BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+      DllEntry="WixQuietExec"
+      Execute="deferred"
+      Return="ignore"
+      Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RunTetaSetup" After="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="RunTetaUninstall" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+
+    <InstallUISequence>
+      <Show Dialog="InstallDirDlg" After="LicenseAgreementDlg" Condition="NOT Installed" />
+    </InstallUISequence>
+
+  </Package>
+</Wix>

@@ -1,0 +1,38 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputName>TetaAI-Setup</OutputName>
+    <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <DefineConstants>
+      PayloadDir=$(PayloadDir);
+      AppVersion=$(AppVersion);
+      PackageVersion=$(AppVersion).0;
+      MyAppMode=$(MyAppMode);
+      MyOffline=$(MyOffline);
+      ProductTitle=$(ProductTitle);
+      UpgradeCode=$(UpgradeCode);
+      WixSourceDir=$(MSBuildProjectDirectory)
+    </DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <BindPath Include="$(PayloadDir)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <HarvestDirectory Include="$(PayloadDir)">
+      <ComponentGroupName>AppFiles</ComponentGroupName>
+      <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
+      <PreprocessorVariable>var.PayloadDir</PreprocessorVariable>
+      <SuppressCom>true</SuppressCom>
+      <SuppressRegistry>true</SuppressRegistry>
+      <SuppressRootDirectory>true</SuppressRootDirectory>
+    </HarvestDirectory>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Heat" Version="5.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

@@ -112,4 +112,7 @@ try {
     Write-Host "  logi: $logDir\api-service*.log" -ForegroundColor DarkGray
 }
 
+. "$PSScriptRoot\Installer-Security.ps1"
+Write-TetaInstallerSecurityReport
+
 Write-Host ""

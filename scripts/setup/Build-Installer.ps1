@@ -1,5 +1,6 @@
 # Kompilacja instalatorów Inno Setup dla paczek Teta AI.
 # Wymaga: Inno Setup 6 (ISCC.exe) — winget install JRSoftware.InnoSetup
+# Opcjonalny podpis: Windows SDK signtool + certyfikat Code Signing (TETA_CODESIGN_PFX)
 #
 # Przykład:
 #   .\Build-Installer.ps1 -Variant vendor-online -PayloadDir D:\staging\TetaAIAssistant -OutputDir D:\out -AppVersion 0.0.1
@@ -27,10 +28,18 @@ param(
 
     [string]$AppVersion = "0.0.1",
     [string]$RagZipName = "global-rag.zip",
-    [string]$OutputBaseFilename = ""
+    [string]$OutputBaseFilename = "",
+
+    # Podpis Authenticode (opcjonalny). Można też ustawić zmienne środowiskowe:
+    #   TETA_CODESIGN_PFX, TETA_CODESIGN_PASSWORD, TETA_CODESIGN_TIMESTAMP_URL
+    [string]$SignPfx = $env:TETA_CODESIGN_PFX,
+    [string]$SignPassword = $env:TETA_CODESIGN_PASSWORD,
+    [string]$SignTimestampUrl = $env:TETA_CODESIGN_TIMESTAMP_URL,
+    [switch]$Sign
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "Installer-Security.ps1")
 
 function Find-Iscc {
     $candidates = @(
@@ -125,5 +134,25 @@ if (-not (Test-Path $exePath)) {
     throw "Oczekiwano pliku: $exePath"
 }
 
+$shouldSign = $Sign.IsPresent -or ($SignPfx -and $SignPassword)
+if ($shouldSign) {
+    if (-not $SignPfx -or -not $SignPassword) {
+        throw "Podpis wymaga TETA_CODESIGN_PFX i TETA_CODESIGN_PASSWORD (lub -SignPfx / -SignPassword)."
+    }
+    $timestamp = if ($SignTimestampUrl) { $SignTimestampUrl } else { 'http://timestamp.digicert.com' }
+    Invoke-TetaSignInstaller `
+        -FilePath $exePath `
+        -PfxPath $SignPfx `
+        -Password $SignPassword `
+        -TimestampUrl $timestamp `
+        -Description "Teta AI Assistant $OutputBaseFilename"
+} elseif ($SignPfx -and -not $SignPassword) {
+    Write-Host "UWAGA: TETA_CODESIGN_PFX ustawione bez hasła — pomijam podpis." -ForegroundColor Yellow
+}
+
+$auth = Get-TetaAuthenticodeStatus -Path $exePath
+Write-TetaInstallerSecurityReport -InstallerPath $exePath
+
 Write-Host "Gotowe: $exePath" -ForegroundColor Green
+Write-Output "SIGN:$($auth.Status)"
 Write-Output $exePath

@@ -7,6 +7,7 @@ import { formatRagSourceExtensions } from '@teta/shared';
 import { GlobalRagExportService } from './global-rag-export.service';
 import { GlobalRagService } from './global-rag.service';
 import { InnoInstallerService, type InnoInstallerVariant } from './inno-installer.service';
+import { MsiInstallerService, type MsiInstallerVariant } from './msi-installer.service';
 import { OfflineBundleService } from './offline-bundle.service';
 
 const EXCLUDED_DIRS = new Set([
@@ -30,8 +31,11 @@ const PRODUCTION_BUILD_ARTIFACTS = [
 const PRODUCTION_ENV_EXAMPLE = 'apps/api/.env.example';
 
 export type PackageInstallerInfo = {
-  installerExe: string | null;
+  installerFile: string | null;
+  installerFormat: 'msi' | 'exe' | null;
   installerWarning?: string;
+  installerSigned?: boolean;
+  installerSignStatus?: string;
 };
 
 export type ClientDeployPackageResult = PackageInstallerInfo & {
@@ -59,6 +63,7 @@ export class ClientDeployPackageService {
     private readonly globalRag: GlobalRagService,
     private readonly globalRagExport: GlobalRagExportService,
     private readonly innoInstaller: InnoInstallerService,
+    private readonly msiInstaller: MsiInstallerService,
   ) {}
 
   async buildAppUpdateZip(): Promise<AppUpdatePackageResult> {
@@ -114,14 +119,15 @@ export class ClientDeployPackageService {
 
     await this.copyProductionClientLayout(repoRoot, appDir);
     await this.writeClientInstallFiles(appDir, appVersion);
-    await this.writeZipRootLaunchers(stagingDir, 'Instaluj-Klienta.bat', [
-      'Paczka KLIENT OFFLINE (~6–9 GB).',
-      'Bez internetu u celu.',
-    ]);
     const installer = await this.compilePackageInstaller(stagingDir, appDir, 'client-offline', appVersion);
 
-    await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
-    await rm(stagingDir, { recursive: true, force: true });
+    await this.finalizeMsiInstallZip(
+      stagingDir,
+      appDir,
+      zipPath,
+      ['Paczka KLIENT OFFLINE (~6–9 GB).', 'Bez internetu u celu.'],
+      installer,
+    );
 
     const createdAt = new Date().toISOString();
     this.logger.log(`Paczka instalacji klienta (offline): ${zipPath}`);
@@ -153,14 +159,15 @@ export class ClientDeployPackageService {
     const appVersion = await this.readAppVersion(repoRoot);
     await this.copyProductionClientOnlineLayout(repoRoot, appDir);
     await this.writeClientOnlineInstallFiles(appDir, appVersion);
-    await this.writeZipRootLaunchers(stagingDir, 'Instaluj-Klienta-Online.bat', [
-      'Paczka KLIENT ONLINE.',
-      'Wymaga internetu podczas instalacji.',
-    ]);
     const installer = await this.compilePackageInstaller(stagingDir, appDir, 'client-online', appVersion);
 
-    await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
-    await rm(stagingDir, { recursive: true, force: true });
+    await this.finalizeMsiInstallZip(
+      stagingDir,
+      appDir,
+      zipPath,
+      ['Paczka KLIENT ONLINE.', 'Wymaga internetu podczas instalacji.'],
+      installer,
+    );
 
     const createdAt = new Date().toISOString();
     this.logger.log(`Paczka instalacji klienta (online): ${zipPath}`);
@@ -195,14 +202,15 @@ export class ClientDeployPackageService {
 
     await this.copyProductionVendorLayout(repoRoot, appDir);
     await this.writeVendorInstallFiles(appDir, appVersion);
-    await this.writeZipRootLaunchers(stagingDir, 'Instaluj-Vendor.bat', [
-      'Paczka VENDOR OFFLINE (~8–12 GB).',
-      'Bez internetu u celu.',
-    ]);
     const installer = await this.compilePackageInstaller(stagingDir, appDir, 'vendor-offline', appVersion);
 
-    await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
-    await rm(stagingDir, { recursive: true, force: true });
+    await this.finalizeMsiInstallZip(
+      stagingDir,
+      appDir,
+      zipPath,
+      ['Paczka VENDOR OFFLINE (~8–12 GB).', 'Bez internetu u celu.'],
+      installer,
+    );
 
     const createdAt = new Date().toISOString();
     this.logger.log(`Paczka instalacji vendor (offline): ${zipPath}`);
@@ -236,14 +244,18 @@ export class ClientDeployPackageService {
     await this.ensureEnvExampleInPackage(repoRoot, appDir);
     await this.writeVendorOnlineInstallFiles(appDir, appVersion);
     await this.validateVendorOnlinePackage(appDir);
-    await this.writeZipRootLaunchers(stagingDir, 'Instaluj-Vendor-Online.bat', [
-      'Paczka VENDOR ONLINE.',
-      'Wymaga internetu podczas instalacji (Node, Ollama, Qdrant, modele AI).',
-    ]);
     const installer = await this.compilePackageInstaller(stagingDir, appDir, 'vendor-online', appVersion);
 
-    await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
-    await rm(stagingDir, { recursive: true, force: true });
+    await this.finalizeMsiInstallZip(
+      stagingDir,
+      appDir,
+      zipPath,
+      [
+        'Paczka VENDOR ONLINE.',
+        'Wymaga internetu podczas instalacji (Node, Ollama, Qdrant, modele AI).',
+      ],
+      installer,
+    );
 
     const createdAt = new Date().toISOString();
     this.logger.log(`Paczka instalacji vendor (online): ${zipPath}`);
@@ -262,10 +274,39 @@ export class ClientDeployPackageService {
     variant: InnoInstallerVariant,
     appVersion: string,
   ): Promise<PackageInstallerInfo> {
+    if (this.isMsiInstallVariant(variant)) {
+      if (!this.msiInstaller.isCompilerAvailable()) {
+        const warning = this.msiInstaller.getCompilerMissingMessage();
+        this.logger.error(`Instalator MSI nie powstal — ${warning}`);
+        return { installerFile: null, installerFormat: null, installerWarning: warning };
+      }
+
+      try {
+        const result = this.msiInstaller.compileInstaller({
+          variant,
+          payloadDir: appDir,
+          outputDir: stagingDir,
+          appVersion,
+        });
+        this.logger.log(`Instalator MSI: ${result.filename}`);
+        return {
+          installerFile: result.filename,
+          installerFormat: 'msi',
+          installerSigned: result.isSigned,
+          installerSignStatus: result.signStatus,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const warning = `Instalator MSI nie powstal: ${message}`;
+        this.logger.error(warning);
+        return { installerFile: null, installerFormat: null, installerWarning: warning };
+      }
+    }
+
     if (!this.innoInstaller.isCompilerAvailable()) {
       const warning = this.innoInstaller.getCompilerMissingMessage();
-      this.logger.error(`Instalator .exe nie powstał — ${warning}`);
-      return { installerExe: null, installerWarning: warning };
+      this.logger.error(`Instalator .exe nie powstal — ${warning}`);
+      return { installerFile: null, installerFormat: null, installerWarning: warning };
     }
 
     try {
@@ -276,13 +317,40 @@ export class ClientDeployPackageService {
         appVersion,
       });
       this.logger.log(`Instalator Inno: ${result.filename}`);
-      return { installerExe: result.filename };
+      return {
+        installerFile: result.filename,
+        installerFormat: 'exe',
+        installerSigned: result.isSigned,
+        installerSignStatus: result.signStatus,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const warning = `Instalator .exe nie powstał: ${message}`;
+      const warning = `Instalator .exe nie powstal: ${message}`;
       this.logger.error(warning);
-      return { installerExe: null, installerWarning: warning };
+      return { installerFile: null, installerFormat: null, installerWarning: warning };
     }
+  }
+
+  private isMsiInstallVariant(variant: InnoInstallerVariant): variant is MsiInstallerVariant {
+    return (
+      variant === 'vendor-online' ||
+      variant === 'vendor-offline' ||
+      variant === 'client-online' ||
+      variant === 'client-offline'
+    );
+  }
+
+  private async finalizeMsiInstallZip(
+    stagingDir: string,
+    appDir: string,
+    zipPath: string,
+    packageDescriptionLines: string[],
+    installer: PackageInstallerInfo,
+  ): Promise<void> {
+    await this.writeMsiPackageReadme(stagingDir, packageDescriptionLines, installer);
+    await rm(appDir, { recursive: true, force: true });
+    await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
+    await rm(stagingDir, { recursive: true, force: true });
   }
 
   private async ensureEnvExampleInPackage(repoRoot: string, appDir: string): Promise<void> {
@@ -305,7 +373,7 @@ export class ClientDeployPackageService {
     const bat = [
       '@echo off',
       'title Teta AI Assistant',
-      'REM Skrot: uruchamia usluge API i otwiera przegladarke. Wymaga wczesniejszego setup (Setup.bat lub Instaluj-*.bat).',
+      'REM Skrot: uruchamia usluge API i otwiera przegladarke. Wymaga wczesniejszej instalacji MSI.',
       'net start TetaAI-API >nul 2>&1',
       'timeout /t 2 /nobreak >nul',
       'start "" "http://localhost:3000/"',
@@ -314,71 +382,70 @@ export class ClientDeployPackageService {
     await writeFile(path.join(appDir, 'Start-App.bat'), `${bat}\r\n`, 'utf8');
   }
 
-  private async writeSetupBat(appDir: string, setupPs1Args: string): Promise<void> {
-    const bat = [
-      '@echo off',
-      'title Teta AI Assistant - SETUP',
-      'cd /d "%~dp0"',
-      'echo Konfiguracja srodowiska (Node, Ollama, Qdrant, modele)...',
-      'echo Wymaga uprawnien Administratora.',
-      `powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" ${setupPs1Args}`,
-      'if errorlevel 1 (',
-      '  echo.',
-      '  echo Setup nie powiodl sie.',
-      '  pause',
-      '  exit /b 1',
-      ')',
-      'echo.',
-      'echo Setup zakonczony.',
-      'exit /b 0',
-    ].join('\r\n');
-    await writeFile(path.join(appDir, 'Setup.bat'), `${bat}\r\n`, 'utf8');
-  }
-
-  private async writeZipRootLaunchers(
+  private async writeMsiPackageReadme(
     stagingDir: string,
-    installBatName: string,
     packageDescriptionLines: string[],
+    installer: PackageInstallerInfo,
   ): Promise<void> {
+    const msiName = installer.installerFile ?? 'TetaAI-Setup.msi';
+    const signedNote = installer.installerSigned
+      ? 'Instalator jest podpisany cyfrowo — gotowy do wdrozenia u klienta.'
+      : 'UWAGA: brak podpisu cyfrowego — Windows 11 moze zablokowac instalator u klienta. Ustaw TETA_CODESIGN_PFX przed produkcja.';
+
     const readme = [
-      '=== TETA AI ASSISTANT — INSTALACJA ===',
+      '=== TETA AI ASSISTANT ===',
       '',
       ...packageDescriptionLines,
       '',
-      '=== KROK 1: SETUP (wymagany) ===',
+      '=== JEDEN PLIK — PELNA INSTALACJA ===',
       '',
-      `Uruchom jako Administrator: ${installBatName}`,
-      '  (ten plik jest tez w folderze TetaAIAssistant\\)',
+      `Uruchom: ${msiName}`,
+      '  (po rozpakowaniu ZIP — to jedyny plik instalacyjny)',
       '',
-      'Alternatywy w TetaAIAssistant\\:',
-      '  - Setup.bat',
-      `  - ${installBatName}`,
-      '  - TetaAI-*-Setup-*.exe (gdy jest w paczce)',
+      '1. PPM -> Uruchom jako administrator (jesli Windows nie zrobi tego sam)',
+      '2. Dalej w kreatorze — aplikacja skonfiguruje sie automatycznie',
+      '3. Po zakonczeniu otworzy sie http://localhost:3000',
       '',
-      '=== KROK 2: APLIKACJA ===',
+      'Czas: ok. 20–40 min. Nie zamykaj okien instalatora.',
       '',
-      'Po setupie: Start-App.bat lub http://localhost:3000',
+      signedNote,
       '',
-      'NIE uruchamiaj Start-App.bat przed setup — srodowisko nie bedzie skonfigurowane.',
+      'Gdy cos blokuje instalacje, Windows lub Teta pokazuja komunikat z przyczyna.',
+      'Logi po bledzie: Program Files\\Teta AI Assistant\\setup-error.txt',
       '',
     ].join('\n');
+
     await writeFile(path.join(stagingDir, 'CZYTAJ-MNIE-INSTALACJA.txt'), `${readme}\n`, 'utf8');
+    await this.writeSmartAppControlReadme(stagingDir);
+  }
 
-    const rootInstallBat = [
-      '@echo off',
-      'title Teta AI Assistant - instalacja',
-      'cd /d "%~dp0TetaAIAssistant"',
-      `call "%~dp0TetaAIAssistant\\${installBatName}"`,
-    ].join('\r\n');
-    await writeFile(path.join(stagingDir, installBatName), `${rootInstallBat}\r\n`, 'utf8');
-
-    const rootSetupBat = [
-      '@echo off',
-      'title Teta AI Assistant - SETUP',
-      'cd /d "%~dp0TetaAIAssistant"',
-      'call "%~dp0TetaAIAssistant\\Setup.bat"',
-    ].join('\r\n');
-    await writeFile(path.join(stagingDir, 'Setup.bat'), `${rootSetupBat}\r\n`, 'utf8');
+  private async writeSmartAppControlReadme(stagingDir: string): Promise<void> {
+    const text = [
+      'Windows 11 — Inteligentna kontrola aplikacji (Smart App Control)',
+      '',
+      'Problem:',
+      '  Niesygnowany TetaAI-Setup.msi jest blokowany (Status: NotSigned).',
+      '  Nie da sie tego obejsc przez Unblock-File ani Uruchom mimo to.',
+      '',
+      'U klienta:',
+      '  Wdrazaj wylacznie podpisany TetaAI-Setup.msi z paczki ZIP.',
+      '',
+      'Rozwiazanie docelowe (wdrozenie u klientow):',
+      '  Certyfikat Code Signing + podpis EXE przy budowie paczki.',
+      '  Na maszynie budujacej ustaw:',
+      '    TETA_CODESIGN_PFX=sciezka\\cert.pfx',
+      '    TETA_CODESIGN_PASSWORD=haslo',
+      '  i wygeneruj paczke ponownie z panelu vendor.',
+      '',
+      'Na komputerze deweloperskim:',
+      '  Ustawienia -> Prywatnosc i zabezpieczenia -> Zabezpieczenia Windows',
+      '  -> Kontrola aplikacji i przeglądarki -> Inteligentna kontrola aplikacji -> Wylacz',
+      '',
+      'Diagnostyka (PowerShell):',
+      '  scripts\\setup\\Test-InstallerSecurity.ps1 -InstallerPath sciezka\\do\\setup.msi',
+      '',
+    ].join('\n');
+    await writeFile(path.join(stagingDir, 'WINDOWS11-INSTALACJA.txt'), `${text}\n`, 'utf8');
   }
 
   private async validateVendorOnlinePackage(appDir: string): Promise<void> {
@@ -388,9 +455,9 @@ export class ClientDeployPackageService {
       'scripts/setup/Setup.ps1',
       'scripts/setup/Setup-Common.ps1',
       'scripts/setup/Diagnose-TetaApp.ps1',
+      'scripts/setup/Run-MsiSetup.ps1',
+      'scripts/setup/Install-PreFlight.ps1',
       PRODUCTION_ENV_EXAMPLE,
-      'Instaluj-Vendor-Online.bat',
-      'Setup.bat',
       'Start-App.bat',
     ];
     const missing = [];
@@ -694,16 +761,9 @@ export class ClientDeployPackageService {
       '',
       'Paczka OFFLINE (~6–9 GB): aplikacja + offline-bundle.zip (modele, Qdrant, RAG, node_modules).',
       'Bez internetu u celu. Jesli masz internet, uzyj paczki client ONLINE (ZIP ~1–5 MB).',
-      '1. Rozpakuj caly archiwum ZIP na serwerze klienta.',
-      '2. Wejdz do katalogu TetaAIAssistant.',
-      '3. Uruchom PowerShell jako Administrator:',
-      '',
-      '   .\\Instaluj-Klienta.bat',
-      '',
-      '   lub recznie:',
-      '   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\setup\\Setup.ps1 -Mode client -Offline -BundlePath .\\offline-bundle.zip -InstallRoot . -NonInteractive -NoStart',
-      '',
-      '4. Setup automatycznie:',
+      '1. Rozpakuj archiwum ZIP na serwerze klienta.',
+      '2. Uruchom jako administrator plik TetaAI-Setup.msi',
+      '3. Po zakonczeniu kreatora MSI aplikacja bedzie skonfigurowana automatycznie.',
       '   - zainstaluje Node, Ollama, Qdrant, zaleznosci',
       '   - skopiuje modele z paczki (nomic-embed-text + qwen3; deepseek-r1 tylko jesli byl w paczce IT)',
       '   - zaimportuje globalny RAG do Qdrant',
@@ -719,23 +779,6 @@ export class ClientDeployPackageService {
       '',
       'Paczka zawiera: kod aplikacji + offline-bundle.zip (Qdrant, NSSM, modele, RAG, pnpm store).',
     ].join('\n');
-
-    const installBat = [
-      '@echo off',
-      'title Teta AI Assistant - instalacja klienta (offline)',
-      'cd /d "%~dp0"',
-      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -NonInteractive -NoStart',
-      'if errorlevel 1 (',
-      '  echo.',
-      '  echo Instalacja nie powiodla sie.',
-      '  pause',
-      '  exit /b 1',
-      ')',
-      'echo.',
-      'echo Instalacja zakonczona — otwieranie aplikacji...',
-      'call "%~dp0Start-App.bat"',
-      'exit /b 0',
-    ].join('\r\n');
 
     const updateRagBat = [
       '@echo off',
@@ -757,15 +800,9 @@ export class ClientDeployPackageService {
     ].join('\r\n');
 
     await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA-OFFLINE.txt'), `${readme}\n`, 'utf8');
-    await writeFile(path.join(appDir, 'Instaluj-Klienta-Offline.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA.txt'), `${readme}\n`, 'utf8');
-    await writeFile(path.join(appDir, 'Instaluj-Klienta.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'Aktualizuj-RAG.bat'), `${updateRagBat}\r\n`, 'utf8');
     await this.writeProductionStartAppBat(appDir);
-    await this.writeSetupBat(
-      appDir,
-      '-Mode client -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive -NoStart',
-    );
   }
 
   private async writeClientOnlineInstallFiles(appDir: string, appVersion: string): Promise<void> {
@@ -784,10 +821,10 @@ export class ClientDeployPackageService {
       '=== INSTALACJA ===',
       '',
       '1. Rozpakuj archiwum ZIP na serwerze klienta.',
-      '2. Kliknij prawym: Instaluj-Klienta-Online.bat -> Uruchom jako administrator.',
+      '2. Uruchom jako administrator plik TetaAI-Setup.msi',
       '3. Poczekaj na pobranie modeli Ollama (nomic-embed-text + qwen3, ok. 5–6 GB).',
       '4. Setup zapyta opcjonalnie o deepseek-r1 (~15 GB) — domyslnie N (wystarczy qwen3).',
-      '5. Po zakonczeniu instalator otworzy przegladarke (http://localhost:3000)',
+      '5. Po zakonczeniu otworz: http://localhost:3000',
       '',
       '=== PROBLEMY? ===',
       '',
@@ -810,25 +847,6 @@ export class ClientDeployPackageService {
       '   Qdrant:     http://localhost:6333/dashboard',
     ].join('\n');
 
-    const installBat = [
-      '@echo off',
-      'title Teta AI Assistant - instalacja klienta ONLINE',
-      'cd /d "%~dp0"',
-      'echo Wymagane polaczenie z internetem (Node, Ollama, Qdrant, modele AI).',
-      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode client -InstallRoot "%~dp0" -NonInteractive -NoStart',
-      'if errorlevel 1 (',
-      '  echo.',
-      '  echo Instalacja nie powiodla sie.',
-      '  pause',
-      '  exit /b 1',
-      ')',
-      'echo.',
-      'echo Instalacja klienta (online) zakonczona — otwieranie aplikacji...',
-      'call "%~dp0Start-App.bat"',
-      'echo Zaimportuj RAG: Aktualizuj-RAG.bat sciezka\\do\\global-rag-X.zip',
-      'exit /b 0',
-    ].join('\r\n');
-
     const updateRagBat = [
       '@echo off',
       'title Teta AI - aktualizacja RAG globalnego',
@@ -849,13 +867,8 @@ export class ClientDeployPackageService {
     ].join('\r\n');
 
     await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA-ONLINE.txt'), `${readme}\n`, 'utf8');
-    await writeFile(path.join(appDir, 'Instaluj-Klienta-Online.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'Aktualizuj-RAG.bat'), `${updateRagBat}\r\n`, 'utf8');
     await this.writeProductionStartAppBat(appDir);
-    await this.writeSetupBat(
-      appDir,
-      '-Mode client -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive -NoStart',
-    );
   }
 
   private async writeAppUpdateFiles(appDir: string, appVersion: string): Promise<void> {
@@ -913,10 +926,9 @@ export class ClientDeployPackageService {
       '',
       '=== INSTALACJA ===',
       '',
-      '1. Rozpakuj caly archiwum ZIP (np. D:\\TetaAIAssistant).',
-      '2. Kliknij prawym: Instaluj-Vendor.bat -> Uruchom jako administrator.',
-      '3. Po zakonczeniu instalator otworzy przegladarke (http://localhost:3000)',
-      '4. Otworz przegladarke: http://localhost:3000',
+      '1. Rozpakuj archiwum ZIP (np. D:\\TetaAI).',
+      '2. Uruchom jako administrator plik TetaAI-Setup.msi',
+      '3. Po zakonczeniu otworz: http://localhost:3000',
       '',
       '=== PIERWSZE URUCHOMIENIE ===',
       '',
@@ -950,33 +962,9 @@ export class ClientDeployPackageService {
       '   Qdrant:     http://localhost:6333/dashboard',
     ].join('\n');
 
-    const installBat = [
-      '@echo off',
-      'title Teta AI Assistant - instalacja vendor (budowa RAG)',
-      'cd /d "%~dp0"',
-      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -NonInteractive -NoStart',
-      'if errorlevel 1 (',
-      '  echo.',
-      '  echo Instalacja nie powiodla sie.',
-      '  pause',
-      '  exit /b 1',
-      ')',
-      'echo.',
-      'echo Instalacja vendor zakonczona — otwieranie aplikacji...',
-      'call "%~dp0Start-App.bat"',
-      'echo Instrukcja: sources\\global\\README.md',
-      'exit /b 0',
-    ].join('\r\n');
-
     await writeFile(path.join(appDir, 'INSTALACJA-VENDOR-OFFLINE.txt'), `${readme}\n`, 'utf8');
-    await writeFile(path.join(appDir, 'Instaluj-Vendor-Offline.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'INSTALACJA-VENDOR.txt'), `${readme}\n`, 'utf8');
-    await writeFile(path.join(appDir, 'Instaluj-Vendor.bat'), `${installBat}\r\n`, 'utf8');
     await this.writeProductionStartAppBat(appDir);
-    await this.writeSetupBat(
-      appDir,
-      '-Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive -NoStart',
-    );
   }
 
   private async writeVendorOnlineInstallFiles(appDir: string, appVersion: string): Promise<void> {
@@ -996,14 +984,11 @@ export class ClientDeployPackageService {
       '=== INSTALACJA ===',
       '',
       '1. Rozpakuj archiwum ZIP (np. D:\\TetaAI).',
-      '2. Uruchom jako Administrator (w katalogu ZIP lub TetaAIAssistant\\):',
-      '   - Instaluj-Vendor-Online.bat  (zalecane)',
-      '   - Setup.bat',
-      '   - TetaAI-Vendor-Setup-Online.exe (gdy jest w paczce)',
+      '2. Uruchom jako administrator plik TetaAI-Setup.msi',
       '3. Poczekaj na pobranie modeli Ollama (nomic-embed-text + qwen3, ok. 5–6 GB).',
       '4. Setup zapyta opcjonalnie o deepseek-r1 (~15 GB) — model rozumujacy w czacie; domyslnie N (wystarczy qwen3).',
       '   Pozniej w aplikacji: Ustawienia -> Paczki -> Pobierz deepseek-r1 (online).',
-      '5. Po zakonczeniu instalator otworzy przegladarke (http://localhost:3000)',
+      '5. Po zakonczeniu otworz: http://localhost:3000',
       '',
       '=== PIERWSZE URUCHOMIENIE ===',
       '',
@@ -1028,30 +1013,7 @@ export class ClientDeployPackageService {
       '   Qdrant:     http://localhost:6333/dashboard',
     ].join('\n');
 
-    const installBat = [
-      '@echo off',
-      'title Teta AI Assistant - instalacja vendor ONLINE',
-      'cd /d "%~dp0"',
-      'echo Wymagane polaczenie z internetem (Node, Ollama, Qdrant, modele AI).',
-      'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" -Mode vendor -InstallRoot "%~dp0" -NonInteractive -NoStart',
-      'if errorlevel 1 (',
-      '  echo.',
-      '  echo Instalacja nie powiodla sie.',
-      '  pause',
-      '  exit /b 1',
-      ')',
-      'echo.',
-      'echo Instalacja vendor (online) zakonczona — otwieranie aplikacji...',
-      'call "%~dp0Start-App.bat"',
-      'exit /b 0',
-    ].join('\r\n');
-
     await writeFile(path.join(appDir, 'INSTALACJA-VENDOR-ONLINE.txt'), `${readme}\n`, 'utf8');
-    await writeFile(path.join(appDir, 'Instaluj-Vendor-Online.bat'), `${installBat}\r\n`, 'utf8');
     await this.writeProductionStartAppBat(appDir);
-    await this.writeSetupBat(
-      appDir,
-      '-Mode vendor -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive -NoStart',
-    );
   }
 }

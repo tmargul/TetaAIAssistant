@@ -14,7 +14,14 @@ async function downloadPackage(
   url: string,
   body?: Record<string, string>,
 ): Promise<
-  | { ok: true; installerExe: string | null; installerWarning: string | null }
+  | {
+      ok: true;
+      installerFile: string | null;
+      installerFormat: string | null;
+      installerWarning: string | null;
+      installerSigned: boolean;
+      installerSignStatus: string | null;
+    }
   | { ok: false; message: string }
 > {
   const res = await authFetch(url, {
@@ -51,9 +58,30 @@ async function downloadPackage(
 
   return {
     ok: true,
-    installerExe: res.headers.get('X-Teta-Installer-Exe'),
+    installerFile: res.headers.get('X-Teta-Installer-File'),
+    installerFormat: res.headers.get('X-Teta-Installer-Format'),
     installerWarning: res.headers.get('X-Teta-Installer-Warning'),
+    installerSigned: res.headers.get('X-Teta-Installer-Signed') === '1',
+    installerSignStatus: res.headers.get('X-Teta-Installer-Sign-Status'),
   };
+}
+
+function formatInstallerDownloadNote(result: {
+  installerFile: string | null;
+  installerSigned: boolean;
+  installerSignStatus: string | null;
+}): string {
+  if (!result.installerFile || result.installerFile === 'missing') {
+    return ' Brak TetaAI-Setup.msi w paczce — zainstaluj WiX Toolset i wygeneruj ponownie.';
+  }
+  if (result.installerSigned) {
+    return ` Paczka zawiera podpisany TetaAI-Setup.msi — gotowe do klienta.`;
+  }
+  const status = result.installerSignStatus ?? 'NotSigned';
+  return (
+    ` Paczka zawiera TetaAI-Setup.msi (bez podpisu: ${status}).` +
+    ' Przed wdrozeniem u klienta ustaw TETA_CODESIGN_PFX na maszynie budujacej.'
+  );
 }
 
 function formatPullStatus(
@@ -229,12 +257,9 @@ export function VendorPackagesPanel() {
       if (result.installerWarning) {
         setError(result.installerWarning);
       }
-      const exeNote =
-        result.installerExe && result.installerExe !== 'missing'
-          ? ` W ZIP jest też ${result.installerExe}.`
-          : ' W ZIP nie ma instalatora .exe — użyj Instaluj-Vendor-Online.bat lub Setup.bat.';
+      const exeNote = formatInstallerDownloadNote(result);
       setMessage(
-        `Paczka vendor (online) pobrana.${exeNote} Uruchom setup jako Administrator — po nim otworzy się przeglądarka.`,
+        `Paczka vendor (online) pobrana.${exeNote} Uruchom MSI jako Administrator.`,
       );
     } finally {
       setVendorOnlineInstallLoading(false);
@@ -252,7 +277,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka vendor (offline) pobrana. Zawiera offline-bundle (~7 GB) — Instaluj-Vendor.bat bez internetu.',
+        `Paczka vendor (offline) pobrana.${formatInstallerDownloadNote(result)} Zawiera offline-bundle (~7 GB) — Instaluj-Vendor.bat bez internetu.`,
       );
     } finally {
       setVendorInstallLoading(false);
@@ -270,7 +295,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka klienta (online) pobrana. Na stanowisku docelowym (z internetem): Instaluj-Klienta-Online.bat (Admin), następnie import RAG.',
+        `Paczka klienta (online) pobrana.${formatInstallerDownloadNote(result)} Na stanowisku docelowym (z internetem): Instaluj-Klienta-Online.bat (Admin), następnie import RAG.`,
       );
     } finally {
       setClientOnlineInstallLoading(false);
@@ -288,7 +313,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka klienta (offline) pobrana. Na stanowisku docelowym (bez sieci): Instaluj-Klienta.bat (Admin, ~7 GB).',
+        `Paczka klienta (offline) pobrana.${formatInstallerDownloadNote(result)} Na stanowisku docelowym (bez sieci): Instaluj-Klienta.bat (Admin, ~7 GB).`,
       );
     } finally {
       setClientInstallLoading(false);
@@ -464,6 +489,12 @@ export function VendorPackagesPanel() {
               setup pobiera zależności npm (~100–300 MB), Node, Ollamę, Qdrant i modele AI (~5–6 GB;
               opcjonalnie deepseek-r1 ~15 GB).
               <strong>Offline</strong> (~8–12 GB) — cała paczka bez sieci u celu.
+            </p>
+            <p className="settings__package-warn">
+              U klienta (Windows): jeden plik <strong>TetaAI-Setup.msi</strong>. Budowa MSI wymaga{' '}
+              <strong>Windows</strong> + WiX 5 (<code>dotnet tool install --global wix</code>, bez .NET
+              3.5). Na serwerach Linux — tylko dev; paczki buduj na Windows lub CI.{' '}
+              <code>scripts/setup/LINUX-DEPLOY.md</code>
             </p>
           </div>
           <div className="settings__package-actions settings__package-actions--stack">

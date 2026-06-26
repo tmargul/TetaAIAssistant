@@ -31,10 +31,17 @@ export class VendorPackagesController {
   ) {}
 
   private applyInstallerHeaders(res: Response, installer: PackageInstallerInfo): void {
-    res.setHeader('X-Teta-Installer-Exe', installer.installerExe ?? 'missing');
+    res.setHeader('X-Teta-Installer-File', installer.installerFile ?? 'missing');
+    res.setHeader('X-Teta-Installer-Format', installer.installerFormat ?? 'missing');
+    res.setHeader('X-Teta-Installer-Signed', installer.installerSigned ? '1' : '0');
+    if (installer.installerSignStatus) {
+      res.setHeader('X-Teta-Installer-Sign-Status', installer.installerSignStatus);
+    }
     if (installer.installerWarning) {
       res.setHeader('X-Teta-Installer-Warning', installer.installerWarning);
     }
+    // Kompatybilnosc wsteczna z UI
+    res.setHeader('X-Teta-Installer-Exe', installer.installerFile ?? 'missing');
   }
 
   private downloadPackage(

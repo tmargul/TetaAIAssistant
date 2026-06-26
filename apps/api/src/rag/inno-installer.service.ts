@@ -29,6 +29,8 @@ export type CompileInstallerOptions = {
 export type CompileInstallerResult = {
   exePath: string;
   filename: string;
+  signStatus: string;
+  isSigned: boolean;
 };
 
 const ISCC_CANDIDATES = [
@@ -111,14 +113,32 @@ export class InnoInstallerService {
     }
 
     const lines = (result.stdout ?? '').trim().split(/\r?\n/).filter(Boolean);
-    const exePath = path.resolve(lines[lines.length - 1] ?? '');
+    let signStatus = 'Unknown';
+    let exePath = '';
+    for (const line of lines) {
+      if (line.startsWith('SIGN:')) {
+        signStatus = line.slice('SIGN:'.length).trim();
+      } else if (line.toLowerCase().endsWith('.exe')) {
+        exePath = line;
+      }
+    }
+    exePath = path.resolve(exePath || lines[lines.length - 1] ?? '');
     if (!exePath.toLowerCase().endsWith('.exe') || !existsSync(exePath)) {
       throw new Error(`Nie udało się ustalić ścieżki instalatora (.exe).`);
+    }
+
+    const isSigned = signStatus === 'Valid' || signStatus === 'Trusted';
+    if (!isSigned) {
+      this.logger.warn(
+        `Instalator bez zaufanego podpisu (${signStatus}). Na Windows 11 z Smart App Control użyj Setup.bat z paczki ZIP.`,
+      );
     }
 
     return {
       exePath,
       filename: path.basename(exePath),
+      signStatus,
+      isSigned,
     };
   }
 

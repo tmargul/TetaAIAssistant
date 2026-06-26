@@ -223,7 +223,7 @@ function Update-SetupProgressFile {
         $(if ($Detail) { "Szczegoly: $Detail" }),
         '',
         'Pelny log: setup-log.txt (w tym katalogu)',
-        'Okno PowerShell pokazuje biezacy krok na zywo.'
+        'Okno postepu instalacji pokazuje biezacy krok na zywo.'
     ) | Where-Object { $_ -ne $null }
 
     Set-Content -Path $path -Value ($content -join "`n") -Encoding UTF8
@@ -404,7 +404,118 @@ function Test-Command([string]$Name) {
 function Assert-Administrator {
     $current = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
     if (-not $current.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw "Uruchom PowerShell jako Administrator (wymagane do rejestracji usługi Windows)."
+        throw "Uruchom instalator jako Administrator (wymagane do rejestracji uslug Windows)."
+    }
+}
+
+$script:SetupProgressWindowProcess = $null
+
+function Start-SetupProgressWindow {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallRoot
+    )
+
+    Stop-SetupProgressWindow
+
+    $uiScript = Join-Path $PSScriptRoot 'Show-SetupProgressWindow.ps1'
+    if (-not (Test-Path -LiteralPath $uiScript)) {
+        Write-Host 'Brak Show-SetupProgressWindow.ps1 — pomijam okno postepu.' -ForegroundColor Yellow
+        return
+    }
+
+    $psArgs = @(
+        '-STA',
+        '-NoProfile',
+        '-ExecutionPolicy', 'Bypass',
+        '-WindowStyle', 'Hidden',
+        '-File', $uiScript,
+        '-InstallRoot', $InstallRoot,
+        '-ParentProcessId', $PID
+    )
+
+    $script:SetupProgressWindowProcess = Start-Process `
+        -FilePath 'powershell.exe' `
+        -ArgumentList $psArgs `
+        -PassThru `
+        -WindowStyle Hidden
+
+    Start-Sleep -Milliseconds 350
+}
+
+function Stop-SetupProgressWindow {
+    if (-not $script:SetupProgressWindowProcess) {
+        return
+    }
+
+    try {
+        if (-not $script:SetupProgressWindowProcess.HasExited) {
+            Stop-Process -Id $script:SetupProgressWindowProcess.Id -Force -ErrorAction SilentlyContinue
+        }
+    } catch {
+        # okno moglo sie juz zamknac
+    }
+
+    $script:SetupProgressWindowProcess = $null
+}
+
+function Show-InstallUserMessage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Title,
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+        [ValidateSet('Information', 'Warning', 'Error')]
+        [string]$Icon = 'Information'
+    )
+
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+        $iconEnum = [System.Windows.Forms.MessageBoxIcon]::$Icon
+        [void][System.Windows.Forms.MessageBox]::Show(
+            $Message,
+            $Title,
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            $iconEnum
+        )
+    } catch {
+        Write-Host ""
+        Write-Host "=== $Title ===" -ForegroundColor $(if ($Icon -eq 'Error') { 'Red' } else { 'Yellow' })
+        Write-Host $Message
+        Write-Host ""
+    }
+}
+
+function Write-SetupFailureMessage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallRoot,
+        [Parameter(Mandatory = $true)]
+        [string]$Title,
+        [Parameter(Mandatory = $true)]
+        [string]$Message
+    )
+
+    $errorPath = Join-Path $InstallRoot 'setup-error.txt'
+    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+    $body = @(
+        "Teta AI Assistant — $Title",
+        "Czas: $stamp",
+        '',
+        $Message,
+        '',
+        'Log techniczny: setup-log.txt',
+        'Diagnostyka: scripts\setup\Diagnose-TetaApp.ps1'
+    ) -join "`r`n"
+
+    try {
+        $dir = Split-Path $errorPath -Parent
+        if (-not (Test-Path $dir)) {
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+        }
+        Set-Content -LiteralPath $errorPath -Value $body -Encoding UTF8
+    } catch {
+        Write-Host "Nie udalo sie zapisac setup-error.txt: $_" -ForegroundColor Yellow
     }
 }
 

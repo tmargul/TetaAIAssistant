@@ -20,3 +20,5 @@ offline-bundle/
 install-root.json
 .vite
 _temp/
+.local/
+*.pfx

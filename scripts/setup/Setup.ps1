@@ -56,6 +56,7 @@ if (-not $Mode) {
 
 Assert-Administrator
 
+try {
 $setupLogPath = Join-Path $InstallRoot "setup-log.txt"
 $script:SetupTranscriptStarted = $false
 if (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Interactive) {
@@ -252,4 +253,23 @@ if (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Inter
         try { Stop-Transcript | Out-Null } catch { }
     }
     exit 0
+}
+
+} catch {
+    $failRoot = if ($InstallRoot) { $InstallRoot } else { $script:RepoRoot }
+    if (-not $failRoot) { $failRoot = (Get-Location).Path }
+    Write-SetupFailureMessage `
+        -InstallRoot $failRoot `
+        -Title 'Blad konfiguracji' `
+        -Message $_.Exception.Message
+    if ($script:SetupTranscriptStarted) {
+        try { Stop-Transcript | Out-Null } catch { }
+    }
+  if ($env:TETA_MSI_INSTALL -eq '1') {
+        throw
+    }
+    Write-Host ""
+    Write-Host "BLAD: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Szczegoly: $failRoot\setup-error.txt" -ForegroundColor Yellow
+    exit 1
 }
