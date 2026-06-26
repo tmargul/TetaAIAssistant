@@ -84,12 +84,16 @@ Filename: "powershell.exe"; \
   StatusMsg: "Konfiguracja środowiska (Node, Ollama, Qdrant, modele)…"; \
   Flags: runhidden waituntilterminated; \
   Description: "Konfiguracja Teta AI Assistant"
+Filename: "{app}\Start-App.bat"; \
+  Description: "Uruchom Teta AI Assistant"; \
+  Flags: postinstall nowait skipifdoesntexist
 
 [UninstallRun]
 Filename: "{app}\tools\nssm.exe"; Parameters: "stop TetaAI-API"; Flags: runhidden skipifdoesntexist
 Filename: "{app}\tools\nssm.exe"; Parameters: "remove TetaAI-API confirm"; Flags: runhidden skipifdoesntexist
-Filename: "{app}\tools\nssm.exe"; Parameters: "stop TetaAI-Qdrant"; Flags: runhidden skipifdoesntexist
-Filename: "{app}\tools\nssm.exe"; Parameters: "remove TetaAI-Qdrant confirm"; Flags: runhidden skipifdoesntexist
+Filename: "powershell.exe"; \
+  Parameters: "-ExecutionPolicy Bypass -NoProfile -File ""{app}\scripts\setup\Uninstall-Qdrant.ps1"" -InstallRoot ""{app}"""; \
+  Flags: runhidden waituntilterminated
 
 [Code]
 function InitializeSetup(): Boolean;

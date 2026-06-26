@@ -7,6 +7,7 @@ import { AppShell } from './components/layout/AppShell';
 import { AuthGate } from './components/auth/AuthGate';
 import { DocumentsView } from './components/documents/DocumentsView';
 import { GlobalSourcesView } from './components/global-sources/GlobalSourcesView';
+import { DoctorView } from './components/doctor/DoctorView';
 import { AdminSettingsView } from './components/settings/AdminSettingsView';
 import { OracleMetadataView } from './components/oracle-metadata/OracleMetadataView';
 import { VendorKnowledgeWizard } from './components/vendor-wizard/VendorKnowledgeWizard';
@@ -18,6 +19,10 @@ const PAGE_META: Record<NavItem, { title: string; subtitle: string }> = {
   dashboard: {
     title: 'Panel główny',
     subtitle: 'Przegląd statusu systemu i komponentów',
+  },
+  doctor: {
+    title: 'AIA Doctor',
+    subtitle: 'Diagnostyka środowiska i naprawa usług',
   },
   chat: {
     title: 'Asystent AI',
@@ -194,6 +199,7 @@ export default function App() {
             onNavigate={setActiveNav}
           />
         )}
+        {activeNav === 'doctor' && <DoctorView />}
         {activeNav === 'chat' && (
           <ChatView
             openConversationId={pendingOpenConversationId}

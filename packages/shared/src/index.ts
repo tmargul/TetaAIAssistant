@@ -40,6 +40,14 @@ export type {
 } from './health.js';
 
 export type {
+  DoctorCheck,
+  DoctorCheckStatus,
+  DoctorOverallStatus,
+  DoctorRepairResult,
+  DoctorReport,
+} from './doctor.js';
+
+export type {
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatCompletionTiming,

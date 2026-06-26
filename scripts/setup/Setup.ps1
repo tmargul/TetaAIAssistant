@@ -26,7 +26,9 @@ param(
 
     [switch]$NonInteractive,
 
-    [switch]$Interactive
+    [switch]$Interactive,
+
+    [switch]$UpgradeQdrant
 )
 
 $ErrorActionPreference = "Stop"
@@ -74,7 +76,7 @@ Ensure-Pnpm
 Ensure-Ollama -InstallRoot $InstallRoot
 Install-ProjectDependencies
 
-$qdrantExe = Ensure-Qdrant $InstallRoot
+$qdrantExe = Ensure-Qdrant $InstallRoot -Upgrade:$UpgradeQdrant
 $nssmExe = Ensure-Nssm $InstallRoot
 
 $isVendor = $Mode -eq "vendor"
@@ -156,26 +158,25 @@ if ($isVendor) {
 Write-Host ""
 Test-ServicesHealth -InstallRoot $InstallRoot | Out-Null
 
-if (-not $NoStart) {
-    if (-not $isVendor -and $Offline) {
-        Start-Application $InstallRoot
-        Write-Host ""
-        Write-Host "Aplikacja uruchomiona:" -ForegroundColor Green
-        if (Test-ProductionLayout) {
-            Write-Host "  http://localhost:3000"
-        } else {
-            Write-Host "  http://localhost:5173"
-        }
-        Write-Host "  http://localhost:3000/api/health"
-    } elseif (Test-ProductionLayout) {
-        Start-Application $InstallRoot
-        Write-Host ""
-        Write-Host "Aplikacja uruchomiona:" -ForegroundColor Green
+$shouldAutoStart = -not $NoStart -and (Test-ProductionLayout -or ((-not $isVendor) -and $Offline))
+$openBrowserInSetup = -not (Test-SetupNonInteractive -NonInteractive:$NonInteractive -Interactive:$Interactive)
+
+if ($shouldAutoStart) {
+    Start-Application $InstallRoot -OpenBrowser:$openBrowserInSetup
+    Write-Host ""
+    Write-Host "Aplikacja uruchomiona:" -ForegroundColor Green
+    if (Test-ProductionLayout) {
         Write-Host "  http://localhost:3000"
-        if (-not $isVendor) {
-            Write-Host ""
-            Write-Host "Pamietaj: zaimportuj RAG — Aktualizuj-RAG.bat lub pnpm rag:global:import" -ForegroundColor Yellow
+        if (-not $openBrowserInSetup) {
+            Write-Host "  (przegladarka otworzy sie po zakonczeniu instalatora lub uruchom Start-App.bat)" -ForegroundColor DarkGray
         }
+    } else {
+        Write-Host "  http://localhost:5173"
+    }
+    Write-Host "  http://localhost:3000/api/health"
+    if (-not $isVendor -and -not $Offline) {
+        Write-Host ""
+        Write-Host "Pamietaj: zaimportuj RAG — Aktualizuj-RAG.bat lub pnpm rag:global:import" -ForegroundColor Yellow
     }
 }
 

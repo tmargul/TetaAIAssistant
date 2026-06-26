@@ -11,6 +11,7 @@ import { OracleModule } from './oracle/oracle.module';
 import { SchemaModule } from './schema/schema.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ChatModule } from './chat/chat.module';
+import { DoctorModule } from './doctor/doctor.module';
 import { RagModule } from './rag/rag.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { RagModule } from './rag/rag.module';
     RagModule,
     DocumentsModule,
     ChatModule,
+    DoctorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

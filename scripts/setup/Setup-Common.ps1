@@ -673,15 +673,83 @@ function Get-QdrantInstallDir([string]$InstallRoot) {
     return Join-Path $InstallRoot "qdrant"
 }
 
-function Ensure-Qdrant([string]$InstallRoot) {
-    Write-Step "Sprawdzanie Qdrant"
+function Get-LegacyQdrantInstallDir() {
+    return Join-Path $script:LegacyInstallRoot "qdrant"
+}
+
+function Stop-TetaQdrantService() {
+    $existing = Get-Service $script:QdrantServiceName -ErrorAction SilentlyContinue
+    if (-not $existing) { return }
+
+    Write-Host "  Zatrzymywanie uslugi $script:QdrantServiceName..."
+    if ($existing.Status -eq "Running") {
+        Stop-Service $script:QdrantServiceName -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+    }
+}
+
+function Remove-TetaQdrantService([string]$NssmExe = "") {
+    Stop-TetaQdrantService
+
+    if ($NssmExe -and (Test-Path -LiteralPath $NssmExe)) {
+        try {
+            Invoke-Nssm -NssmExe $NssmExe -Arguments @('remove', $script:QdrantServiceName, 'confirm')
+            Start-Sleep -Seconds 2
+        } catch {
+            Write-Host "  NSSM remove: $($_.Exception.Message)" -ForegroundColor DarkYellow
+        }
+    }
+
+    $remaining = Get-Service $script:QdrantServiceName -ErrorAction SilentlyContinue
+    if ($remaining) {
+        Write-Host "  Usuwanie uslugi przez sc.exe..."
+        & sc.exe stop $script:QdrantServiceName 2>$null | Out-Null
+        Start-Sleep -Seconds 1
+        & sc.exe delete $script:QdrantServiceName 2>$null | Out-Null
+        Start-Sleep -Seconds 2
+    }
+}
+
+function Remove-QdrantInstallDirs([string[]]$Dirs) {
+    foreach ($dir in $Dirs) {
+        if (-not $dir -or -not (Test-Path -LiteralPath $dir)) { continue }
+        Write-Host "  Usuwanie katalogu Qdrant: $dir"
+        Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Uninstall-TetaQdrant {
+    param(
+        [string]$InstallRoot = "",
+        [string]$NssmExe = ""
+    )
+
+    Write-Step "Deinstalacja Qdrant (usluga + katalogi danych)"
+    if (-not $InstallRoot) {
+        $InstallRoot = $script:InstallRoot
+    }
+    if (-not $InstallRoot) {
+        $appRoot = Find-TetaApplicationRoot
+        if ($appRoot) { $InstallRoot = $appRoot }
+    }
+    if (-not $NssmExe -and $InstallRoot) {
+        $candidate = Join-Path $InstallRoot "tools\nssm.exe"
+        if (Test-Path -LiteralPath $candidate) { $NssmExe = $candidate }
+    }
+
+    Remove-TetaQdrantService -NssmExe $NssmExe
+
+    $dirs = @()
+    if ($InstallRoot) { $dirs += Get-QdrantInstallDir $InstallRoot }
+    $dirs += Get-LegacyQdrantInstallDir
+    Remove-QdrantInstallDirs -Dirs $dirs
+    Write-Host "  Qdrant usuniety." -ForegroundColor Green
+}
+
+function Install-QdrantFiles([string]$InstallRoot) {
     $qdrantDir = Get-QdrantInstallDir $InstallRoot
     $qdrantExe = Join-Path $qdrantDir "qdrant.exe"
-
-    if (Test-Path $qdrantExe) {
-        Write-Host "  Qdrant: $qdrantExe"
-        return $qdrantExe
-    }
+    New-Item -ItemType Directory -Force -Path $qdrantDir | Out-Null
 
     if ($script:OfflineMode) {
         $bundleQdrant = Get-BundleItem "tools\qdrant"
@@ -689,32 +757,66 @@ function Ensure-Qdrant([string]$InstallRoot) {
             throw "Brak qdrant.exe w paczce offline (tools\qdrant)."
         }
         Write-Host "  Kopiowanie Qdrant z paczki offline..."
-        Copy-Item "$bundleQdrant\*" (Get-QdrantInstallDir $InstallRoot) -Recurse -Force
-        if (-not (Test-Path $qdrantExe)) {
-            throw "Nie udalo sie skopiowac Qdrant do $qdrantDir"
+        Copy-Item "$bundleQdrant\*" $qdrantDir -Recurse -Force
+    } else {
+        Write-Host "  Pobieranie Qdrant (Windows) z GitHub releases..."
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/qdrant/qdrant/releases/latest"
+        $asset = $release.assets | Where-Object { $_.name -match "x86_64-pc-windows-msvc\.zip$" } | Select-Object -First 1
+        if (-not $asset) {
+            throw "Nie znaleziono paczki Windows w release Qdrant: https://github.com/qdrant/qdrant/releases"
         }
+
+        $zipPath = Join-Path $env:TEMP "qdrant-$($release.tag_name).zip"
+        $extractDir = Join-Path $env:TEMP "qdrant-$($release.tag_name)-extract"
+        if (Test-Path $extractDir) { Remove-Item $extractDir -Recurse -Force }
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath
+        Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+        Copy-Item "$extractDir\*" $qdrantDir -Recurse -Force
+        Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+        Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    if (-not (Test-Path $qdrantExe)) {
+        throw "Po instalacji brak qdrant.exe w $qdrantDir"
+    }
+
+    return $qdrantExe
+}
+
+function Ensure-Qdrant([string]$InstallRoot, [switch]$Upgrade) {
+    Write-Step "Sprawdzanie Qdrant"
+    $qdrantDir = Get-QdrantInstallDir $InstallRoot
+    $qdrantExe = Join-Path $qdrantDir "qdrant.exe"
+
+    if ((Test-Path $qdrantExe) -and -not $Upgrade) {
         Write-Host "  Qdrant: $qdrantExe"
         return $qdrantExe
     }
 
-    Write-Host "  Pobieranie Qdrant (Windows) z GitHub releases..."
-    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/qdrant/qdrant/releases/latest"
-    $asset = $release.assets | Where-Object { $_.name -match "x86_64-pc-windows-msvc\.zip$" } | Select-Object -First 1
-
-    if (-not $asset) {
-        throw "Nie znaleziono paczki Windows w release Qdrant: https://github.com/qdrant/qdrant/releases"
+    if ($Upgrade -and (Test-Path $qdrantExe)) {
+        Write-Host "  Aktualizacja Qdrant: zatrzymanie uslugi, podmiana plikow..."
+        Stop-TetaQdrantService
+        $storageDir = Join-Path $qdrantDir "storage"
+        $storageBackup = Join-Path $env:TEMP "teta-qdrant-storage-backup"
+        if (Test-Path $storageDir) {
+            if (Test-Path $storageBackup) { Remove-Item $storageBackup -Recurse -Force }
+            Copy-Item $storageDir $storageBackup -Recurse -Force
+        }
+        Get-ChildItem $qdrantDir -Force | Where-Object { $_.Name -ne 'storage' } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        if (Test-Path (Join-Path $qdrantDir "qdrant.exe")) {
+            Remove-Item (Join-Path $qdrantDir "qdrant.exe") -Force
+        }
+        $qdrantExe = Install-QdrantFiles $InstallRoot
+        if (Test-Path $storageBackup) {
+            if (Test-Path $storageDir) { Remove-Item $storageDir -Recurse -Force }
+            Copy-Item $storageBackup $storageDir -Recurse -Force
+            Remove-Item $storageBackup -Recurse -Force
+        }
+        Write-Host "  Qdrant zaktualizowany: $qdrantExe"
+        return $qdrantExe
     }
 
-    New-Item -ItemType Directory -Force -Path $qdrantDir | Out-Null
-    $zipPath = Join-Path $env:TEMP "qdrant-$($release.tag_name).zip"
-    Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath
-    Expand-Archive -Path $zipPath -DestinationPath $qdrantDir -Force
-    Remove-Item $zipPath -Force
-
-    if (-not (Test-Path $qdrantExe)) {
-        throw "Po rozpakowaniu brak qdrant.exe w $qdrantDir"
-    }
-
+    $qdrantExe = Install-QdrantFiles $InstallRoot
     Write-Host "  Qdrant zainstalowany: $qdrantExe"
     return $qdrantExe
 }
@@ -1070,14 +1172,16 @@ function Wait-ApplicationReady {
     }
 }
 
-function Start-Application([string]$InstallRoot) {
+function Start-Application([string]$InstallRoot, [switch]$OpenBrowser) {
     Write-Step "Uruchamianie aplikacji Teta AI"
     if (Test-ProductionLayout) {
         if (-not (Start-ApiService)) {
             throw "Brak uslugi $script:ApiServiceName. Uruchom setup ponownie jako Administrator."
         }
         Wait-ApplicationReady
-        Open-TetaApplicationInBrowser
+        if ($OpenBrowser) {
+            Open-TetaApplicationInBrowser
+        }
         return
     }
 
@@ -1088,6 +1192,9 @@ function Start-Application([string]$InstallRoot) {
 
     Start-Process -FilePath $batPath -WorkingDirectory $InstallRoot
     Wait-ApplicationReady
+    if (-not $OpenBrowser) {
+        return
+    }
 }
 
 function Test-ServicesHealth {

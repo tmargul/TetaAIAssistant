@@ -4,6 +4,7 @@ import {
   IconChat,
   IconDashboard,
   IconDatabase,
+  IconDoctor,
   IconDocuments,
   IconHistory,
   IconSettings,
@@ -13,6 +14,7 @@ import './layout.css';
 
 export type NavItem =
   | 'dashboard'
+  | 'doctor'
   | 'chat'
   | 'documents'
   | 'globalSources'
@@ -29,6 +31,7 @@ const BASE_NAV_ITEMS: {
   clientOnly?: boolean;
 }[] = [
   { id: 'dashboard', label: 'Panel', icon: IconDashboard },
+  { id: 'doctor', label: 'AIA Doctor', icon: IconDoctor },
   { id: 'chat', label: 'Asystent AI', icon: IconChat },
   { id: 'history', label: 'Historia', icon: IconHistory },
   { id: 'vendorWizard', label: 'Kreator wiedzy', icon: IconWizard, vendorOnly: true },

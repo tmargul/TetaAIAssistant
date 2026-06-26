@@ -26,7 +26,7 @@ Opcjonalnie podaj sciezke: -InstallRoot D:\sciezka\do\TetaAIAssistant
 
 Write-Host "Aktualizacja silnika offline w katalogu: $appRoot" -ForegroundColor Green
 
-& $setupScript -Mode $Mode -Offline -BundlePath $BundlePath -InstallRoot $appRoot -RepoRoot $appRoot -NoStart -NonInteractive
+& $setupScript -Mode $Mode -Offline -BundlePath $BundlePath -InstallRoot $appRoot -RepoRoot $appRoot -NoStart -NonInteractive -UpgradeQdrant
 if ($LASTEXITCODE -ne 0) {
     throw "Instalacja silnika offline nie powiodla sie."
 }
