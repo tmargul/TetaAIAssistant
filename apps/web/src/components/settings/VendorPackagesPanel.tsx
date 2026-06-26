@@ -220,7 +220,7 @@ export function VendorPackagesPanel() {
         return;
       }
       setMessage(
-        'Paczka vendor (online) pobrana. Rozpakuj ZIP i uruchom TetaAI-Vendor-Setup-Online.exe (Admin). Po instalacji otworzy się przeglądarka. Gdy brak .exe — Instaluj-Vendor-Online.bat.',
+        'Paczka vendor (online) pobrana. Rozpakuj ZIP — uruchom Instaluj-Vendor-Online.bat lub Setup.bat (Admin). W paczce jest też .exe. Po setupie otworzy się przeglądarka.',
       );
     } finally {
       setVendorOnlineInstallLoading(false);

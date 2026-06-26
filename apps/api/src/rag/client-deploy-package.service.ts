@@ -108,6 +108,10 @@ export class ClientDeployPackageService {
 
     await this.copyProductionClientLayout(repoRoot, appDir);
     await this.writeClientInstallFiles(appDir, appVersion);
+    await this.writeZipRootLaunchers(stagingDir, 'Instaluj-Klienta.bat', [
+      'Paczka KLIENT OFFLINE (~6–9 GB).',
+      'Bez internetu u celu.',
+    ]);
     await this.compilePackageInstaller(stagingDir, appDir, 'client-offline', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
@@ -142,6 +146,10 @@ export class ClientDeployPackageService {
     const appVersion = await this.readAppVersion(repoRoot);
     await this.copyProductionClientOnlineLayout(repoRoot, appDir);
     await this.writeClientOnlineInstallFiles(appDir, appVersion);
+    await this.writeZipRootLaunchers(stagingDir, 'Instaluj-Klienta-Online.bat', [
+      'Paczka KLIENT ONLINE.',
+      'Wymaga internetu podczas instalacji.',
+    ]);
     await this.compilePackageInstaller(stagingDir, appDir, 'client-online', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
@@ -179,6 +187,10 @@ export class ClientDeployPackageService {
 
     await this.copyProductionVendorLayout(repoRoot, appDir);
     await this.writeVendorInstallFiles(appDir, appVersion);
+    await this.writeZipRootLaunchers(stagingDir, 'Instaluj-Vendor.bat', [
+      'Paczka VENDOR OFFLINE (~8–12 GB).',
+      'Bez internetu u celu.',
+    ]);
     await this.compilePackageInstaller(stagingDir, appDir, 'vendor-offline', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
@@ -215,6 +227,10 @@ export class ClientDeployPackageService {
     await this.ensureEnvExampleInPackage(repoRoot, appDir);
     await this.writeVendorOnlineInstallFiles(appDir, appVersion);
     await this.validateVendorOnlinePackage(appDir);
+    await this.writeZipRootLaunchers(stagingDir, 'Instaluj-Vendor-Online.bat', [
+      'Paczka VENDOR ONLINE.',
+      'Wymaga internetu podczas instalacji (Node, Ollama, Qdrant, modele AI).',
+    ]);
     await this.compilePackageInstaller(stagingDir, appDir, 'vendor-online', appVersion);
 
     await this.offlineBundle.zipDirectory(stagingDir, zipPath, false);
@@ -270,6 +286,86 @@ export class ClientDeployPackageService {
     this.logger.warn('Skopiowano scripts/setup/api.env.example jako apps/api/.env.example w paczce.');
   }
 
+  private async writeProductionStartAppBat(appDir: string): Promise<void> {
+    const bat = [
+      '@echo off',
+      'title Teta AI Assistant',
+      'REM Skrot: uruchamia usluge API i otwiera przegladarke. Wymaga wczesniejszego setup (Setup.bat lub Instaluj-*.bat).',
+      'net start TetaAI-API >nul 2>&1',
+      'timeout /t 2 /nobreak >nul',
+      'start "" "http://localhost:3000/"',
+      'exit /b 0',
+    ].join('\r\n');
+    await writeFile(path.join(appDir, 'Start-App.bat'), `${bat}\r\n`, 'utf8');
+  }
+
+  private async writeSetupBat(appDir: string, setupPs1Args: string): Promise<void> {
+    const bat = [
+      '@echo off',
+      'title Teta AI Assistant - SETUP',
+      'cd /d "%~dp0"',
+      'echo Konfiguracja srodowiska (Node, Ollama, Qdrant, modele)...',
+      'echo Wymaga uprawnien Administratora.',
+      `powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\\setup\\Setup.ps1" ${setupPs1Args}`,
+      'if errorlevel 1 (',
+      '  echo.',
+      '  echo Setup nie powiodl sie.',
+      '  pause',
+      '  exit /b 1',
+      ')',
+      'echo.',
+      'echo Setup zakonczony.',
+      'exit /b 0',
+    ].join('\r\n');
+    await writeFile(path.join(appDir, 'Setup.bat'), `${bat}\r\n`, 'utf8');
+  }
+
+  private async writeZipRootLaunchers(
+    stagingDir: string,
+    installBatName: string,
+    packageDescriptionLines: string[],
+  ): Promise<void> {
+    const readme = [
+      '=== TETA AI ASSISTANT — INSTALACJA ===',
+      '',
+      ...packageDescriptionLines,
+      '',
+      '=== KROK 1: SETUP (wymagany) ===',
+      '',
+      `Uruchom jako Administrator: ${installBatName}`,
+      '  (ten plik jest tez w folderze TetaAIAssistant\\)',
+      '',
+      'Alternatywy w TetaAIAssistant\\:',
+      '  - Setup.bat',
+      `  - ${installBatName}`,
+      '  - TetaAI-*-Setup-*.exe (gdy jest w paczce)',
+      '',
+      '=== KROK 2: APLIKACJA ===',
+      '',
+      'Po setupie: Start-App.bat lub http://localhost:3000',
+      '',
+      'NIE uruchamiaj Start-App.bat przed setup — srodowisko nie bedzie skonfigurowane.',
+      '',
+    ].join('\n');
+    await writeFile(path.join(stagingDir, 'CZYTAJ-MNIE-INSTALACJA.txt'), `${readme}\n`, 'utf8');
+
+    const rootInstallBat = [
+      '@echo off',
+      'title Teta AI Assistant - instalacja',
+      'cd /d "%~dp0TetaAIAssistant"',
+      `call "%~dp0TetaAIAssistant\\${installBatName}"`,
+    ].join('\r\n');
+    await writeFile(path.join(stagingDir, installBatName), `${rootInstallBat}\r\n`, 'utf8');
+
+    const rootSetupBat = [
+      '@echo off',
+      'title Teta AI Assistant - SETUP',
+      'cd /d "%~dp0TetaAIAssistant"',
+      'call "%~dp0TetaAIAssistant\\Setup.bat"',
+    ].join('\r\n');
+    await writeFile(path.join(stagingDir, 'Setup.bat'), `${rootSetupBat}\r\n`, 'utf8');
+  }
+
   private async validateVendorOnlinePackage(appDir: string): Promise<void> {
     const required = [
       'apps/api/dist/main.js',
@@ -279,6 +375,8 @@ export class ClientDeployPackageService {
       'scripts/setup/Diagnose-TetaApp.ps1',
       PRODUCTION_ENV_EXAMPLE,
       'Instaluj-Vendor-Online.bat',
+      'Setup.bat',
+      'Start-App.bat',
     ];
     const missing = [];
     for (const relative of required) {
@@ -648,6 +746,11 @@ export class ClientDeployPackageService {
     await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA.txt'), `${readme}\n`, 'utf8');
     await writeFile(path.join(appDir, 'Instaluj-Klienta.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'Aktualizuj-RAG.bat'), `${updateRagBat}\r\n`, 'utf8');
+    await this.writeProductionStartAppBat(appDir);
+    await this.writeSetupBat(
+      appDir,
+      '-Mode client -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive',
+    );
   }
 
   private async writeClientOnlineInstallFiles(appDir: string, appVersion: string): Promise<void> {
@@ -733,6 +836,11 @@ export class ClientDeployPackageService {
     await writeFile(path.join(appDir, 'INSTALACJA-KLIENTA-ONLINE.txt'), `${readme}\n`, 'utf8');
     await writeFile(path.join(appDir, 'Instaluj-Klienta-Online.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'Aktualizuj-RAG.bat'), `${updateRagBat}\r\n`, 'utf8');
+    await this.writeProductionStartAppBat(appDir);
+    await this.writeSetupBat(
+      appDir,
+      '-Mode client -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive',
+    );
   }
 
   private async writeAppUpdateFiles(appDir: string, appVersion: string): Promise<void> {
@@ -849,6 +957,11 @@ export class ClientDeployPackageService {
     await writeFile(path.join(appDir, 'Instaluj-Vendor-Offline.bat'), `${installBat}\r\n`, 'utf8');
     await writeFile(path.join(appDir, 'INSTALACJA-VENDOR.txt'), `${readme}\n`, 'utf8');
     await writeFile(path.join(appDir, 'Instaluj-Vendor.bat'), `${installBat}\r\n`, 'utf8');
+    await this.writeProductionStartAppBat(appDir);
+    await this.writeSetupBat(
+      appDir,
+      '-Mode vendor -Offline -BundlePath "%~dp0offline-bundle.zip" -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive',
+    );
   }
 
   private async writeVendorOnlineInstallFiles(appDir: string, appVersion: string): Promise<void> {
@@ -868,8 +981,10 @@ export class ClientDeployPackageService {
       '=== INSTALACJA ===',
       '',
       '1. Rozpakuj archiwum ZIP (np. D:\\TetaAI).',
-      '2. Uruchom TetaAI-Vendor-Setup-Online.exe jako administrator (zalecane).',
-      '   Alternatywa: Instaluj-Vendor-Online.bat (Admin) w folderze TetaAIAssistant.',
+      '2. Uruchom jako Administrator (w katalogu ZIP lub TetaAIAssistant\\):',
+      '   - Instaluj-Vendor-Online.bat  (zalecane)',
+      '   - Setup.bat',
+      '   - TetaAI-Vendor-Setup-Online.exe (gdy jest w paczce)',
       '3. Poczekaj na pobranie modeli Ollama (nomic-embed-text + qwen3, ok. 5–6 GB).',
       '4. Setup zapyta opcjonalnie o deepseek-r1 (~15 GB) — model rozumujacy w czacie; domyslnie N (wystarczy qwen3).',
       '   Pozniej w aplikacji: Ustawienia -> Paczki -> Pobierz deepseek-r1 (online).',
@@ -918,5 +1033,10 @@ export class ClientDeployPackageService {
 
     await writeFile(path.join(appDir, 'INSTALACJA-VENDOR-ONLINE.txt'), `${readme}\n`, 'utf8');
     await writeFile(path.join(appDir, 'Instaluj-Vendor-Online.bat'), `${installBat}\r\n`, 'utf8');
+    await this.writeProductionStartAppBat(appDir);
+    await this.writeSetupBat(
+      appDir,
+      '-Mode vendor -InstallRoot "%~dp0" -RepoRoot "%~dp0" -NonInteractive',
+    );
   }
 }
