@@ -1,5 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import type { HealthResponse, SystemHealthResponse } from '@teta/shared';
+import { readWorkModeHeader } from '../rag/work-mode.util';
 import { HealthService } from './health.service';
 
 @Controller('health')
@@ -12,7 +14,7 @@ export class HealthController {
   }
 
   @Get('system')
-  async system(): Promise<SystemHealthResponse> {
-    return this.health.getSystemHealth();
+  async system(@Req() req: Request): Promise<SystemHealthResponse> {
+    return this.health.getSystemHealth(readWorkModeHeader(req));
   }
 }

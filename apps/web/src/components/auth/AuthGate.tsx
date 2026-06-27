@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { AuthSetupStatusResponse, LoginResponse } from '@teta/shared';
+import type { AuthSetupStatusResponse, LoginResponse, AppMode } from '@teta/shared';
 import { fetchWithRetry } from '../../lib/api-fetch';
 import { AuthProvider } from '../../context/AuthContext';
 import { setAccessToken } from '../../lib/auth-storage';
+import { setStoredWorkMode } from '../../lib/work-mode-storage';
 import { AdminBootstrapForm } from './AdminBootstrapForm';
 import { LoginForm } from './LoginForm';
 import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
@@ -40,7 +41,10 @@ export function AuthGate({ children }: AuthGateProps) {
     return <div className="oracle-setup__loading">Sprawdzanie sesji…</div>;
   }
 
-  const handleAuthSuccess = (response: LoginResponse) => {
+  const handleAuthSuccess = (response: LoginResponse, workMode?: AppMode) => {
+    if (workMode) {
+      setStoredWorkMode(workMode);
+    }
     setAccessToken(response.accessToken);
     setStatus({
       oracleConfigured: status.oracleConfigured,

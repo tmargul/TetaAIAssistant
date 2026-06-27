@@ -17,6 +17,7 @@ import type {
 } from '@teta/shared';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { getRequestWorkMode } from '../rag/work-mode.util';
 import { ChatConversationsService } from './chat-conversations.service';
 
 @Controller('chat/conversations')
@@ -33,7 +34,7 @@ export class ChatConversationsController {
 
   @Get(':id')
   get(@Req() req: AuthenticatedRequest, @Param('id') id: string): ChatConversationRecord {
-    return this.conversations.getForUser(req.user.id, id);
+    return this.conversations.getForUser(req.user.id, id, getRequestWorkMode(req));
   }
 
   @Post()
@@ -50,7 +51,7 @@ export class ChatConversationsController {
     @Param('id') id: string,
     @Body() body: SaveChatConversationRequest,
   ): ChatConversationRecord {
-    return this.conversations.saveForUser(req.user.id, { ...body, id });
+    return this.conversations.saveForUser(req.user.id, { ...body, id }, getRequestWorkMode(req));
   }
 
   @Delete(':id')

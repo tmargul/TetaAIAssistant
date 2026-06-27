@@ -1,3 +1,5 @@
+import { buildApiHeaders } from './api-headers';
+
 const DEFAULT_RETRIES = 4;
 const RETRY_DELAY_MS = 1500;
 
@@ -12,10 +14,11 @@ export async function fetchWithRetry(
   retries = DEFAULT_RETRIES,
 ): Promise<Response> {
   let lastError: unknown;
+  const headers = buildApiHeaders(init);
 
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      return await fetch(input, init);
+      return await fetch(input, { ...init, headers });
     } catch (error) {
       lastError = error;
       if (attempt < retries - 1) {

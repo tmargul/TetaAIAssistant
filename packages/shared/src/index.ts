@@ -184,6 +184,8 @@ export {
   sanitizeOracleStreamEventForClient,
 } from './oracle-client-display.js';
 
+export { TETA_WORK_MODE_HEADER, WORK_MODE_LABELS } from './work-mode.js';
+
 export type {
   OracleConnectionConfig,
   OracleConnectionInput,

@@ -12,14 +12,9 @@ export function clearAccessToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+import { buildApiHeaders } from './api-headers';
+
 export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  const token = getAccessToken();
-  const headers = new Headers(init.headers);
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
+  const headers = buildApiHeaders(init);
   return fetch(input, { ...init, headers });
 }

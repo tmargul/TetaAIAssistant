@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { randomUUID } from 'crypto';
 import {
   CHAT_MODELS,
+  type AppMode,
   type ChatConversationRecord,
   type ChatConversationSummary,
   type ChatMessage,
@@ -10,11 +11,9 @@ import {
   type SaveChatConversationRequest,
   isOracleVendorDebug,
   sanitizeChatMessagesOracleForClient,
-  clientOracleTypingHint,
-  sanitizeChatMessageOracleForClient,
 } from '@teta/shared';
 import { DatabaseService } from '../database/database.service';
-import { getAppMode } from '../rag/app-mode';
+import { getBuildAppMode } from '../rag/app-mode';
 
 const MAX_CONVERSATIONS_PER_USER = 40;
 
@@ -41,7 +40,7 @@ interface SummaryRow {
 export class ChatConversationsService {
   constructor(private readonly db: DatabaseService) {}
 
-  listForUser(userId: number): ChatConversationSummary[] {
+  listForUser(userId: number, workMode = getBuildAppMode()): ChatConversationSummary[] {
     const rows = this.db.connection
       .prepare(
         `SELECT id, title, model, messages_json, created_at, updated_at
@@ -55,7 +54,7 @@ export class ChatConversationsService {
     return rows.map((row) => this.toSummary(row));
   }
 
-  getForUser(userId: number, id: string): ChatConversationRecord {
+  getForUser(userId: number, id: string, workMode = getBuildAppMode()): ChatConversationRecord {
     const row = this.db.connection
       .prepare('SELECT * FROM chat_conversations WHERE id = ? AND user_id = ?')
       .get(id, userId) as ConversationRow | undefined;
@@ -64,7 +63,7 @@ export class ChatConversationsService {
       throw new NotFoundException('Nie znaleziono rozmowy.');
     }
 
-    return this.toRecord(row);
+    return this.toRecord(row, workMode);
   }
 
   createForUser(userId: number, input: CreateChatConversationRequest = {}): ChatConversationRecord {
@@ -84,10 +83,10 @@ export class ChatConversationsService {
     return this.getForUser(userId, id);
   }
 
-  saveForUser(userId: number, input: SaveChatConversationRequest): ChatConversationRecord {
+  saveForUser(userId: number, input: SaveChatConversationRequest, workMode = getBuildAppMode()): ChatConversationRecord {
     const model = this.resolveModel(input.model);
     const title = input.title.trim() || 'Nowa rozmowa';
-    const messages = this.sanitizeMessages(input.messages);
+    const messages = this.sanitizeMessages(input.messages, workMode);
     const messagesJson = JSON.stringify(messages);
     const now = new Date().toISOString();
 
@@ -113,7 +112,7 @@ export class ChatConversationsService {
       this.trimOldConversations(userId);
     }
 
-    return this.getForUser(userId, input.id);
+    return this.getForUser(userId, input.id, workMode);
   }
 
   deleteForUser(userId: number, id: string): void {
@@ -149,7 +148,7 @@ export class ChatConversationsService {
     return 'qwen3';
   }
 
-  private sanitizeMessages(messages: ChatMessage[]): ChatMessage[] {
+  private sanitizeMessages(messages: ChatMessage[], workMode = getBuildAppMode()): ChatMessage[] {
     if (!Array.isArray(messages)) {
       throw new BadRequestException('Nieprawidłowy format wiadomości.');
     }
@@ -159,7 +158,7 @@ export class ChatConversationsService {
       streaming: false,
     }));
 
-    if (isOracleVendorDebug(getAppMode())) {
+    if (isOracleVendorDebug(workMode)) {
       return normalized;
     }
 
@@ -185,7 +184,7 @@ export class ChatConversationsService {
     };
   }
 
-  private toRecord(row: ConversationRow): ChatConversationRecord {
+  private toRecord(row: ConversationRow, workMode: AppMode = getBuildAppMode()): ChatConversationRecord {
     let messages: ChatMessage[] = [];
     try {
       const parsed = JSON.parse(row.messages_json) as ChatMessage[];
@@ -194,7 +193,7 @@ export class ChatConversationsService {
       messages = [];
     }
 
-    if (!isOracleVendorDebug(getAppMode())) {
+    if (!isOracleVendorDebug(workMode)) {
       messages = sanitizeChatMessagesOracleForClient(messages);
     }
 

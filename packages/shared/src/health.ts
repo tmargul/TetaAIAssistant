@@ -23,7 +23,11 @@ export interface QdrantHealthInfo {
 }
 
 export interface SystemHealthResponse extends HealthResponse {
+  /** Efektywny tryb pracy (z nagłówka sesji lub domyślny). */
   appMode: AppMode;
+  /** Tryb pakietu / instalacji — czy dostępny wybór Klient vs Vendor. */
+  buildMode: AppMode;
+  workModeSelectable: boolean;
   vendorEnabled: boolean;
   ollama: OllamaHealthInfo;
   qdrant: QdrantHealthInfo;

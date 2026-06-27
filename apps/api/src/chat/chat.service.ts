@@ -26,7 +26,8 @@ import type {
 
 } from '@teta/shared';
 
-import { getAppMode } from '../rag/app-mode';
+import type { AppMode } from '@teta/shared';
+import { getBuildAppMode } from '../rag/app-mode';
 
 import { extractQuerySearchTerms } from '../rag/rag-query-rerank.util';
 
@@ -130,7 +131,7 @@ export class ChatService {
 
 
 
-  async streamComplete(input: ChatCompletionRequest, res: Response): Promise<void> {
+  async streamComplete(input: ChatCompletionRequest, res: Response, workMode = getBuildAppMode()): Promise<void> {
 
     res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
 
@@ -150,7 +151,7 @@ export class ChatService {
 
     try {
 
-      const prepared = await this.prepareChat(input);
+      const prepared = await this.prepareChat(input, workMode);
 
       writeEvent({
 
@@ -232,7 +233,7 @@ export class ChatService {
 
 
 
-  private async prepareChat(input: ChatCompletionRequest): Promise<PreparedChat> {
+  private async prepareChat(input: ChatCompletionRequest, workMode: AppMode = getBuildAppMode()): Promise<PreparedChat> {
 
     const startedAt = Date.now();
 
@@ -252,7 +253,7 @@ export class ChatService {
 
     const queryTerms = extractQuerySearchTerms(message);
 
-    const appMode = getAppMode();
+    const appMode = workMode;
 
     const includeGlobal = input.source !== 'oracle';
 

@@ -1,22 +1,35 @@
 import { useEffect, useState } from 'react';
-import { APP_NAME } from '@teta/shared';
-import type { LoginRequest, LoginResponse, OracleConnectionStatusResponse } from '@teta/shared';
+import { APP_NAME, type AppMode, type LoginRequest, type LoginResponse, type OracleConnectionStatusResponse, type SystemHealthResponse } from '@teta/shared';
 import { fetchWithRetry } from '../../lib/api-fetch';
+import { getStoredWorkMode } from '../../lib/work-mode-storage';
+import { WorkModeSelect } from './WorkModeSelect';
 import '../oracle/oracle-setup.css';
 
 type AdminBootstrapFormProps = {
-  onSuccess: (response: LoginResponse) => void;
+  onSuccess: (response: LoginResponse, workMode?: AppMode) => void;
   onOpenOracleRecovery?: () => void;
 };
 
 export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBootstrapFormProps) {
   const [form, setForm] = useState<LoginRequest>({ username: '', password: '' });
+  const [workMode, setWorkMode] = useState<AppMode>(() => getStoredWorkMode());
+  const [workModeSelectable, setWorkModeSelectable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFakeMode, setIsFakeMode] = useState(false);
   const [fakeAdminUser, setFakeAdminUser] = useState('teta_admin');
 
   useEffect(() => {
+    fetchWithRetry('/api/health/system')
+      .then(async (res) => res.json() as Promise<SystemHealthResponse>)
+      .then((health) => {
+        setWorkModeSelectable(health.workModeSelectable);
+        if (!health.workModeSelectable) {
+          setWorkMode('client');
+        }
+      })
+      .catch(() => undefined);
+
     fetchWithRetry('/api/oracle/status')
       .then(async (res) => res.json() as Promise<OracleConnectionStatusResponse>)
       .then((status) => {
@@ -46,7 +59,7 @@ export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBoo
         setError(msg ?? 'Rejestracja administratora nie powiodła się.');
         return;
       }
-      onSuccess(data as LoginResponse);
+      onSuccess(data as LoginResponse, workModeSelectable ? workMode : undefined);
     } catch {
       setError('Błąd połączenia z API.');
     } finally {
@@ -102,6 +115,10 @@ export function AdminBootstrapForm({ onSuccess, onOpenOracleRecovery }: AdminBoo
               autoComplete="current-password"
             />
           </div>
+
+          {workModeSelectable && (
+            <WorkModeSelect id="bootstrap-work-mode" value={workMode} onChange={setWorkMode} />
+          )}
 
           {error && <div className="oracle-setup__result oracle-setup__result--error">{error}</div>}
 

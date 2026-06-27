@@ -6,7 +6,7 @@ import {
   type HealthStatus,
   type SystemHealthResponse,
 } from '@teta/shared';
-import { getAppMode } from '../rag/app-mode';
+import { canSwitchWorkMode, getBuildAppMode, getEffectiveAppMode } from '../rag/app-mode';
 import { isVendorEnabled } from '../rag/vendor-auth';
 
 @Injectable()
@@ -22,14 +22,18 @@ export class HealthService {
     };
   }
 
-  async getSystemHealth(): Promise<SystemHealthResponse> {
+  async getSystemHealth(workModeHeader?: string): Promise<SystemHealthResponse> {
     const [ollama, qdrant] = await Promise.all([this.checkOllama(), this.checkQdrant()]);
     const degraded = ollama.status !== 'ok' || qdrant.status !== 'ok';
+    const buildMode = getBuildAppMode();
+    const appMode = getEffectiveAppMode(workModeHeader);
 
     return {
       ...this.getBasicHealth(),
       status: degraded ? 'degraded' : 'ok',
-      appMode: getAppMode(),
+      appMode,
+      buildMode,
+      workModeSelectable: canSwitchWorkMode(),
       vendorEnabled: isVendorEnabled(),
       ollama,
       qdrant,

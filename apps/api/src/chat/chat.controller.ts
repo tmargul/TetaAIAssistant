@@ -10,6 +10,7 @@ import {
 } from '@teta/shared';
 import { JwtAuthGuard, type AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { OracleAgentService } from '../schema/oracle-agent.service';
+import { getRequestWorkMode } from '../rag/work-mode.util';
 import { ChatService } from './chat.service';
 import { OllamaChatService } from './ollama-chat.service';
 
@@ -47,8 +48,8 @@ export class ChatController {
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
     if (body.source === 'oracle') {
-      return this.oracleAgent.streamComplete(body, res, req.user.id);
+      return this.oracleAgent.streamComplete(body, res, req.user.id, getRequestWorkMode(req));
     }
-    return this.chat.streamComplete(body, res);
+    return this.chat.streamComplete(body, res, getRequestWorkMode(req));
   }
 }

@@ -13,6 +13,7 @@ import {
   isVendorEnabled,
   validateVendorRequestHeader,
 } from './vendor-auth';
+import { getRequestWorkMode } from './work-mode.util';
 
 type VendorRequest = Request & {
   user?: NonNullable<ReturnType<AuthService['verifyToken']>>;
@@ -28,6 +29,12 @@ export class VendorAccessGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<VendorRequest>();
+    if (getRequestWorkMode(request) !== 'vendor') {
+      throw new ForbiddenException(
+        'Operacje vendor są dostępne tylko w trybie pracy Vendor (wybierz przy logowaniu).',
+      );
+    }
+
     const header = request.headers.authorization;
     const token = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
 

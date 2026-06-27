@@ -19,7 +19,7 @@ import { OracleQueryService } from './oracle-query.service';
 import { SchemaProcedureService } from './schema-procedure.service';
 import { SchemaCrawlService } from './schema-crawl.service';
 import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
-import { getAppMode } from '../rag/app-mode';
+import { getBuildAppMode } from '../rag/app-mode';
 
 type AgentAction =
   | { action: 'tool'; name: string; args: Record<string, string> }
@@ -48,6 +48,7 @@ export class OracleAgentService {
     input: ChatCompletionRequest,
     res: Response,
     userId?: number,
+    workMode = getBuildAppMode(),
   ): Promise<void> {
     res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -60,7 +61,7 @@ export class OracleAgentService {
     };
 
     const startedAt = Date.now();
-    const showOracleDebug = isOracleVendorDebug(getAppMode());
+    const showOracleDebug = isOracleVendorDebug(workMode);
     const domain = input.oracleDomain ?? 'general';
     const steps: ChatOracleStep[] = [];
     const sqlSteps: OracleAgentSqlStep[] = [];
