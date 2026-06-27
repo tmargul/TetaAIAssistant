@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SchemaGraphService } from './schema-graph.service';
+import { qualifySelectTables, resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
 
 const FORBIDDEN_KEYWORDS = [
   'INSERT',
@@ -26,7 +28,10 @@ export type SqlValidationResult = {
 
 @Injectable()
 export class SqlValidatorService {
-  constructor(private readonly graph: SchemaGraphService) {}
+  constructor(
+    private readonly graph: SchemaGraphService,
+    private readonly config: ConfigService,
+  ) {}
 
   validateSelectSql(sql: string): SqlValidationResult {
     const trimmed = sql.trim();
@@ -60,19 +65,25 @@ export class SqlValidatorService {
     }
 
     const known = this.graph.getKnownTableNames();
+    const defaultOwner = resolveDefaultOracleOwner(this.config);
     for (const table of tables) {
       const upper = table.toUpperCase();
       const bare = upper.includes('.') ? upper.split('.').pop()! : upper;
-      if (!known.has(upper) && !known.has(bare)) {
+      const qualified = upper.includes('.') ? upper : `${defaultOwner}.${bare}`;
+      if (!known.has(upper) && !known.has(bare) && !known.has(qualified)) {
         return {
           valid: false,
           tables,
-          message: `Tabela ${table} nie występuje w grafie schematu.`,
+          message: `Tabela ${table} nie występuje w grafie schematu (uruchom „Analizuj bazę” dla ${defaultOwner}).`,
         };
       }
     }
 
     return { valid: true, tables };
+  }
+
+  qualifySelectSql(sql: string, tables: string[]): string {
+    return qualifySelectTables(sql, tables, resolveDefaultOracleOwner(this.config));
   }
 
   ensureRowLimit(sql: string, maxRows: number): string {

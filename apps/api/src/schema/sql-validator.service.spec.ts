@@ -1,19 +1,40 @@
+import { ConfigService } from '@nestjs/config';
 import { SqlValidatorService } from './sql-validator.service';
 import { SchemaGraphService } from './schema-graph.service';
 
 describe('SqlValidatorService', () => {
   const graph = {
     getKnownTableNames: () =>
-      new Set(['TETA.SL_BADANIA_BHP', 'SL_BADANIA_BHP', 'TETA.T_PRAC', 'T_PRAC']),
+      new Set([
+        'TETA_ADMIN.SL_BADANIA_BHP',
+        'SL_BADANIA_BHP',
+        'TETA_ADMIN.T_PRAC',
+        'T_PRAC',
+      ]),
   } as SchemaGraphService;
 
-  const validator = new SqlValidatorService(graph);
+  const config = {
+    get: (key: string) => {
+      if (key === 'TETA_ORACLE_DEFAULT_SCHEMA') return 'TETA_ADMIN';
+      if (key === 'TETA_ORACLE_METADATA_OWNERS') return 'TETA_ADMIN';
+      return undefined;
+    },
+  } as ConfigService;
+
+  const validator = new SqlValidatorService(graph, config);
 
   it('accepts SELECT on known tables', () => {
     const result = validator.validateSelectSql(
       'SELECT firm_id FROM sl_badania_bhp WHERE badanie_id = 1',
     );
     expect(result.valid).toBe(true);
+  });
+
+  it('qualifies unqualified tables with TETA_ADMIN', () => {
+    const sql = 'SELECT * FROM T_PRAC';
+    const result = validator.validateSelectSql(sql);
+    expect(result.valid).toBe(true);
+    expect(validator.qualifySelectSql(sql, result.tables!)).toBe('SELECT * FROM TETA_ADMIN.T_PRAC');
   });
 
   it('rejects INSERT', () => {

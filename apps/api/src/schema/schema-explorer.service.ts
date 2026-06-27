@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type {
   OracleAgentDomain,
   SchemaColumnInfo,
@@ -9,6 +10,7 @@ import type {
   SchemaSearchTablesResponse,
 } from '@teta/shared';
 import { DatabaseService } from '../database/database.service';
+import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
 import { SchemaGraphService } from './schema-graph.service';
 
 type AdjacencyEdge = {
@@ -34,6 +36,7 @@ export class SchemaExplorerService {
   constructor(
     private readonly db: DatabaseService,
     private readonly graph: SchemaGraphService,
+    private readonly config: ConfigService,
   ) {}
 
   findPath(from: string, to: string, createdBy?: string): SchemaFindPathResponse {
@@ -119,16 +122,18 @@ export class SchemaExplorerService {
       return { found: false, table: null, message: 'Podaj nazwę tabeli.' };
     }
 
+    const preferredOwner = resolveDefaultOracleOwner(this.config);
     const row = this.db.connection
       .prepare(
         `SELECT id, owner, name, node_type, comment
          FROM schema_nodes
          WHERE UPPER(name) = UPPER(?)
            AND (? IS NULL OR UPPER(owner) = UPPER(?))
-         ORDER BY CASE node_type WHEN 'table' THEN 0 ELSE 1 END
+         ORDER BY CASE WHEN UPPER(owner) = UPPER(?) THEN 0 ELSE 1 END,
+                  CASE node_type WHEN 'table' THEN 0 ELSE 1 END
          LIMIT 1`,
       )
-      .get(parsed.name, parsed.owner, parsed.owner) as
+      .get(parsed.name, parsed.owner, parsed.owner, preferredOwner) as
       | {
           id: number;
           owner: string;
@@ -209,6 +214,7 @@ export class SchemaExplorerService {
   searchTables(query: string, domain: OracleAgentDomain = 'general', limit = 30): SchemaSearchTablesResponse {
     const trimmed = query.trim();
     const hints = DOMAIN_TABLE_HINTS[domain];
+    const preferredOwner = resolveDefaultOracleOwner(this.config);
     const params: string[] = [];
     let sql = `SELECT owner || '.' || name AS full_name, name
                FROM schema_nodes
@@ -227,8 +233,8 @@ export class SchemaExplorerService {
       }
     }
 
-    sql += ` ORDER BY name LIMIT ?`;
-    params.push(String(limit));
+    sql += ` ORDER BY CASE WHEN UPPER(owner) = UPPER(?) THEN 0 ELSE 1 END, name LIMIT ?`;
+    params.push(preferredOwner, String(limit));
 
     const rows = this.db.connection.prepare(sql).all(...params) as Array<{
       full_name: string;

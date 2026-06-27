@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../database/database.service';
 import type { OracleMetadataCatalogSnapshot } from '../oracle/metadata/oracle-metadata.types';
+import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
 import { inferSchemaEdges } from './schema-inference.util';
 
 export type GraphBuildResult = {
@@ -14,7 +16,10 @@ export type GraphBuildResult = {
 export class SchemaGraphService {
   private readonly logger = new Logger(SchemaGraphService.name);
 
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly config: ConfigService,
+  ) {}
 
   buildFromCatalog(
     catalog: OracleMetadataCatalogSnapshot,
@@ -224,15 +229,17 @@ export class SchemaGraphService {
   resolveNodeId(tableRef: string): number | null {
     const parsed = this.parseTableRef(tableRef);
     if (!parsed) return null;
+    const preferredOwner = resolveDefaultOracleOwner(this.config);
     const row = this.db.connection
       .prepare(
         `SELECT id FROM schema_nodes
          WHERE UPPER(name) = UPPER(?)
            AND (? IS NULL OR UPPER(owner) = UPPER(?))
-         ORDER BY CASE node_type WHEN 'table' THEN 0 ELSE 1 END
+         ORDER BY CASE WHEN UPPER(owner) = UPPER(?) THEN 0 ELSE 1 END,
+                  CASE node_type WHEN 'table' THEN 0 ELSE 1 END
          LIMIT 1`,
       )
-      .get(parsed.name, parsed.owner, parsed.owner) as { id: number } | undefined;
+      .get(parsed.name, parsed.owner, parsed.owner, preferredOwner) as { id: number } | undefined;
     return row?.id ?? null;
   }
 

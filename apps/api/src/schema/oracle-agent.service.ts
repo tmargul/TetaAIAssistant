@@ -15,7 +15,7 @@ import { ConfigService } from '@nestjs/config';
 import { SchemaExplorerService } from './schema-explorer.service';
 import { OracleQueryService } from './oracle-query.service';
 import { SchemaProcedureService } from './schema-procedure.service';
-import { SchemaCrawlService } from './schema-crawl.service';
+import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
 
 type AgentAction =
   | { action: 'tool'; name: string; args: Record<string, string> }
@@ -280,9 +280,12 @@ export class OracleAgentService {
   }
 
   private buildSystemPrompt(domain: OracleAgentDomain, toolContext: string[]): string {
+    const defaultOwner = resolveDefaultOracleOwner(this.config);
     return `${DOMAIN_PROMPTS[domain]}
 
 Odpowiadasz WYŁĄCZNIE na podstawie narzędzi schematu i wyników SQL — nie zgaduj struktury bazy.
+
+Domyślny schemat Oracle: **${defaultOwner}**. W każdym SELECT używaj pełnej nazwy: ${defaultOwner}.NAZWA_TABELI (np. ${defaultOwner}.T_PRAC).
 
 Dostępne narzędzia (zwróć JSON):
 - find_path(from, to)
@@ -306,6 +309,8 @@ Zasady SQL:
 - tylko SELECT
 - używaj wyłącznie tabel i kolumn z wyników narzędzi
 - JOIN zgodnie ze ścieżką find_path
+- prefiks schematu ${defaultOwner}. przy każdej tabeli
+- NIGDY nie pisz użytkownikowi „wykonaj zapytanie SQL” — sam zwróć {"action":"answer","text":"…","sql":"SELECT …"}
 
 ${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : 'Zacznij od search_tables lub describe_table jeśli nie znasz tabel.'}`;
   }

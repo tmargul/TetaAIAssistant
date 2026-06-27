@@ -685,7 +685,7 @@ export class OracleMetadataCatalogService {
   private buildFakeCatalog(): OracleMetadataCatalogSnapshot {
     const tables: OracleTableMeta[] = [
       {
-        owner: 'TETA',
+        owner: 'TETA_ADMIN',
         name: 'PRACOWNICY',
         columns: [
           { name: 'ID', dataType: 'NUMBER', nullable: false },
@@ -695,7 +695,7 @@ export class OracleMetadataCatalogService {
         ],
       },
       {
-        owner: 'TETA',
+        owner: 'TETA_ADMIN',
         name: 'T_PRAC',
         columns: [
           { name: 'PRAC_ID', dataType: 'NUMBER', nullable: false },
@@ -704,7 +704,7 @@ export class OracleMetadataCatalogService {
         ],
       },
       {
-        owner: 'TETA',
+        owner: 'TETA_ADMIN',
         name: 'STANOWISKA',
         columns: [
           { name: 'ID', dataType: 'NUMBER', nullable: false },
@@ -712,7 +712,7 @@ export class OracleMetadataCatalogService {
         ],
       },
       {
-        owner: 'TETA',
+        owner: 'TETA_ADMIN',
         name: 'DATASET_CFG',
         columns: [
           { name: 'DATASET_ID', dataType: 'NUMBER', nullable: false },
@@ -730,7 +730,7 @@ export class OracleMetadataCatalogService {
         ],
       },
       {
-        owner: 'TETA',
+        owner: 'TETA_ADMIN',
         name: 'L_BADANIA_BHP',
         columns: [
           { name: 'BADANIE_ID', dataType: 'NUMBER', nullable: false },
@@ -740,7 +740,7 @@ export class OracleMetadataCatalogService {
         ],
       },
       {
-        owner: 'TETA',
+        owner: 'TETA_ADMIN',
         name: 'SL_BADANIA_BHP',
         columns: [
           { name: 'BADANIE_ID', dataType: 'NUMBER', nullable: false },
@@ -752,25 +752,25 @@ export class OracleMetadataCatalogService {
 
     return {
       databaseLabel: 'TETAHR',
-      owners: ['TETA', 'HR'],
+      owners: ['TETA_ADMIN', 'HR'],
       tables,
       views: [
-        { owner: 'TETA', name: 'V_PRACOWNICY_AKTYWNI', objectType: 'VIEW' },
+        { owner: 'TETA_ADMIN', name: 'V_PRACOWNICY_AKTYWNI', objectType: 'VIEW' },
         { owner: 'HR', name: 'V_ABSENCJE_BIEZACE', objectType: 'VIEW' },
       ],
       packages: [
-        { owner: 'TETA', name: 'HR_PACKAGE', objectType: 'PACKAGE', status: 'VALID' },
-        { owner: 'TETA', name: 'DATASET_UTILS', objectType: 'PACKAGE', status: 'VALID' },
+        { owner: 'TETA_ADMIN', name: 'HR_PACKAGE', objectType: 'PACKAGE', status: 'VALID' },
+        { owner: 'TETA_ADMIN', name: 'DATASET_UTILS', objectType: 'PACKAGE', status: 'VALID' },
       ],
       procedures: [
-        { owner: 'TETA', name: 'PRZELICZ_WYNAGRODZENIE', objectType: 'PROCEDURE', status: 'VALID' },
+        { owner: 'TETA_ADMIN', name: 'PRZELICZ_WYNAGRODZENIE', objectType: 'PROCEDURE', status: 'VALID' },
       ],
       functions: [
-        { owner: 'TETA', name: 'GET_PRACOWNIK_NAZWA', objectType: 'FUNCTION', status: 'VALID' },
+        { owner: 'TETA_ADMIN', name: 'GET_PRACOWNIK_NAZWA', objectType: 'FUNCTION', status: 'VALID' },
       ],
       constraints: [
         {
-          owner: 'TETA',
+          owner: 'TETA_ADMIN',
           tableName: 'PRACOWNICY',
           constraintName: 'PK_PRACOWNICY',
           constraintType: 'P',
@@ -784,12 +784,12 @@ export class OracleMetadataCatalogService {
           constraintType: 'R',
           columnName: 'PRACOWNIK_ID',
           position: 1,
-          refOwner: 'TETA',
+          refOwner: 'TETA_ADMIN',
           refTableName: 'PRACOWNICY',
           refColumnName: 'ID',
         },
         {
-          owner: 'TETA',
+          owner: 'TETA_ADMIN',
           tableName: 'T_PRAC',
           constraintName: 'PK_T_PRAC',
           constraintType: 'P',
@@ -797,7 +797,7 @@ export class OracleMetadataCatalogService {
           position: 1,
         },
         {
-          owner: 'TETA',
+          owner: 'TETA_ADMIN',
           tableName: 'L_BADANIA_BHP',
           constraintName: 'PK_L_BADANIA',
           constraintType: 'P',
@@ -805,37 +805,37 @@ export class OracleMetadataCatalogService {
           position: 1,
         },
         {
-          owner: 'TETA',
+          owner: 'TETA_ADMIN',
           tableName: 'L_BADANIA_BHP',
           constraintName: 'FK_L_BADANIA_PRAC',
           constraintType: 'R',
           columnName: 'PRAC_ID',
           position: 1,
-          refOwner: 'TETA',
+          refOwner: 'TETA_ADMIN',
           refTableName: 'T_PRAC',
           refColumnName: 'PRAC_ID',
         },
         {
-          owner: 'TETA',
+          owner: 'TETA_ADMIN',
           tableName: 'SL_BADANIA_BHP',
           constraintName: 'FK_SL_BADANIA_L',
           constraintType: 'R',
           columnName: 'BADANIE_ID',
           position: 1,
-          refOwner: 'TETA',
+          refOwner: 'TETA_ADMIN',
           refTableName: 'L_BADANIA_BHP',
           refColumnName: 'BADANIE_ID',
         },
       ],
       comments: [
         {
-          owner: 'TETA',
+          owner: 'TETA_ADMIN',
           tableName: 'L_BADANIA_BHP',
           columnName: 'DATA_DO',
           comments: 'Data końca badania',
         },
         {
-          owner: 'TETA',
+          owner: 'TETA_ADMIN',
           tableName: 'PRACOWNICY',
           columnName: null,
           comments: 'Tabela pracowników',
@@ -843,7 +843,7 @@ export class OracleMetadataCatalogService {
       ],
       sources: [
         {
-          owner: 'TETA',
+          owner: 'TETA_ADMIN',
           name: 'HR_PACKAGE',
           objectType: 'PACKAGE',
           line: 1,

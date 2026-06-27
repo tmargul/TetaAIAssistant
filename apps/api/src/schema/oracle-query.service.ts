@@ -4,7 +4,7 @@ import oracledb from '../oracle/oracle-driver';
 import { OracleConnectionService } from '../oracle/oracle-connection.service';
 import { getOracleBackendMode } from '../oracle/oracle-mode';
 import { DatabaseService } from '../database/database.service';
-import { SqlValidatorService } from './sql-validator.service';
+import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
 
 export type QueryExecutionResult = {
   columns: string[];
@@ -35,7 +35,8 @@ export class OracleQueryService {
     }
 
     const maxRows = Number(this.config.get('TETA_ORACLE_AGENT_MAX_ROWS', 200));
-    const limitedSql = this.validator.ensureRowLimit(sql, maxRows);
+    const qualifiedSql = this.validator.qualifySelectSql(sql, validation.tables);
+    const limitedSql = this.validator.ensureRowLimit(qualifiedSql, maxRows);
     const startedAt = Date.now();
 
     try {
@@ -52,7 +53,8 @@ export class OracleQueryService {
       });
       return { ...result, sql: limitedSql, durationMs };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const raw = err instanceof Error ? err.message : String(err);
+      const message = this.formatOracleQueryError(raw);
       const durationMs = Date.now() - startedAt;
       this.audit({
         userId: options?.userId,
@@ -65,6 +67,17 @@ export class OracleQueryService {
       });
       throw new Error(message);
     }
+  }
+
+  private formatOracleQueryError(message: string): string {
+    const owner = resolveDefaultOracleOwner(this.config);
+    if (message.includes('ORA-00942')) {
+      return `Brak dostępu do tabeli lub tabela nie istnieje w schemacie ${owner}. Sprawdź uprawnienia konta Oracle i uruchom ponownie „Analizuj bazę”.`;
+    }
+    if (message.includes('ORA-01031')) {
+      return `Niewystarczające uprawnienia Oracle do wykonania SELECT — konto z Połączenia Oracle musi mieć dostęp do schematu ${owner}.`;
+    }
+    return message;
   }
 
   private async runQuery(sql: string): Promise<Omit<QueryExecutionResult, 'sql' | 'durationMs'>> {
