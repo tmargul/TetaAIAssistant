@@ -11,6 +11,7 @@ import type {
 } from '@teta/shared';
 import { DatabaseService } from '../database/database.service';
 import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
+import { isInsertRequiredColumn } from '../oracle/oracle-column.util';
 import { SchemaGraphService } from './schema-graph.service';
 
 type AdjacencyEdge = {
@@ -153,7 +154,7 @@ export class SchemaExplorerService {
 
     const columns = this.db.connection
       .prepare(
-        `SELECT name, data_type, nullable, is_pk, comment
+        `SELECT name, data_type, nullable, is_pk, comment, data_default
          FROM schema_columns
          WHERE node_id = ?
          ORDER BY name`,
@@ -164,6 +165,7 @@ export class SchemaExplorerService {
       nullable: number;
       is_pk: number;
       comment: string | null;
+      data_default: string | null;
     }>;
 
     return {
@@ -263,13 +265,21 @@ export class SchemaExplorerService {
     nullable: number;
     is_pk: number;
     comment: string | null;
+    data_default?: string | null;
   }): SchemaColumnInfo {
+    const nullable = col.nullable !== 0;
+    const isPk = col.is_pk !== 0;
     return {
       name: col.name,
       dataType: col.data_type,
-      nullable: col.nullable !== 0,
-      isPk: col.is_pk !== 0,
+      nullable,
+      isPk,
       comment: col.comment,
+      insertRequired: isInsertRequiredColumn({
+        nullable,
+        dataDefault: col.data_default ?? null,
+        isPk,
+      }),
     };
   }
 

@@ -42,8 +42,8 @@ export class SchemaGraphService {
        VALUES (?, ?, ?, ?, ?)`,
     );
     const insertColumn = conn.prepare(
-      `INSERT INTO schema_columns (node_id, name, data_type, nullable, is_pk, comment)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO schema_columns (node_id, name, data_type, nullable, is_pk, comment, data_default)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
     const insertEdge = conn.prepare(
       `INSERT OR IGNORE INTO schema_edges
@@ -112,6 +112,7 @@ export class SchemaGraphService {
           column.nullable === false ? 0 : 1,
           pks.has(column.name) ? 1 : 0,
           columnCommentMap.get(`${tableKey}\0${column.name}`) ?? null,
+          column.dataDefault ?? null,
         );
         columnCount += 1;
       }

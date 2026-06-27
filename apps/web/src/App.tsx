@@ -208,6 +208,7 @@ export default function App() {
           <ChatView
             openConversationId={pendingOpenConversationId}
             onOpenConversationHandled={handleOpenConversationHandled}
+            showOracleDebug={health?.appMode === 'vendor'}
           />
         )}
         {activeNav === 'documents' && !isVendorMode && <DocumentsView />}

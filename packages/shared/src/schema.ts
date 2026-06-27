@@ -43,6 +43,8 @@ export interface SchemaColumnInfo {
   nullable: boolean;
   isPk: boolean;
   comment: string | null;
+  /** NOT NULL bez DEFAULT — wymagane przy INSERT (nie to samo co pole obowiązkowe w formularzu Teta). */
+  insertRequired?: boolean;
 }
 
 export interface SchemaTableInfo {

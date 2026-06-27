@@ -174,6 +174,16 @@ export {
   ORACLE_AGENT_DOMAINS,
 } from './schema.js';
 
+export {
+  clientOracleTypingHint,
+  isOracleVendorDebug,
+  sanitizeChatMessageOracleForClient,
+  sanitizeChatMessagesOracleForClient,
+  sanitizeOracleReportForClient,
+  sanitizeOracleStepForClient,
+  sanitizeOracleStreamEventForClient,
+} from './oracle-client-display.js';
+
 export type {
   OracleConnectionConfig,
   OracleConnectionInput,

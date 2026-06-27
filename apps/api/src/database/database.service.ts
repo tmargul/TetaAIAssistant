@@ -247,6 +247,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
     this.ensureColumn('oracle_metadata_import_jobs', 'catalog_totals_json', 'TEXT');
     this.ensureColumn('oracle_metadata_import_jobs', 'import_limits_json', 'TEXT');
+    this.ensureColumn('schema_columns', 'data_default', 'TEXT');
   }
 
   private ensureColumn(table: string, column: string, definition: string) {

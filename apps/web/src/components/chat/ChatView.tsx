@@ -12,6 +12,8 @@ import {
   type OracleReport,
   type RagSearchFilter,
   KNOWLEDGE_SOURCE_TYPES,
+  clientOracleTypingHint,
+  sanitizeChatMessageOracleForClient,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
 import { IconChat } from '../layout/icons';
@@ -19,6 +21,7 @@ import {
   bootstrapConversation,
   loadChatConversation,
   saveChatConversation,
+  setCurrentConversationId,
   startNewConversation,
   type StoredChatConversation,
 } from './chat-storage';
@@ -65,17 +68,20 @@ const SOURCE_TYPE_LABELS: Record<(typeof KNOWLEDGE_SOURCE_TYPES)[number], string
 function ChatBubble({
   message,
   elapsedSec,
+  showOracleDebug,
 }: {
   message: ChatMessage;
   elapsedSec?: number;
+  showOracleDebug: boolean;
 }) {
   const isUser = message.role === 'user';
+  const displayMessage = showOracleDebug ? message : sanitizeChatMessageOracleForClient(message);
   return (
     <div className={`chat__message${isUser ? ' chat__message--user' : ' chat__message--assistant'}`}>
       <div className="chat__avatar">{isUser ? 'Ty' : 'AI'}</div>
       <div className="chat__bubble">
         <div className="chat__bubble-text">
-          {message.content}
+          {displayMessage.content}
           {message.streaming && <span className="chat__stream-cursor" aria-hidden />}
         </div>
         {!isUser && message.streaming && elapsedSec !== undefined && elapsedSec > 0 && (
@@ -84,26 +90,26 @@ function ChatBubble({
         {!isUser && !message.streaming && message.timing && (
           <p className="chat__bubble-timing">{formatChatTiming(message.timing)}</p>
         )}
-        {!isUser && message.oracleReports && message.oracleReports.length > 0 && (
+        {!isUser && displayMessage.oracleReports && displayMessage.oracleReports.length > 0 && (
           <div className="chat__reports">
-            {message.oracleReports.map((report, index) => (
-              <ReportTable key={`${report.sql}-${index}`} report={report} />
+            {displayMessage.oracleReports.map((report, index) => (
+              <ReportTable key={`report-${index}`} report={report} showSql={showOracleDebug} />
             ))}
           </div>
         )}
-        {!isUser && message.oracleSteps && message.oracleSteps.length > 0 && (
+        {showOracleDebug && !isUser && displayMessage.oracleSteps && displayMessage.oracleSteps.length > 0 && (
           <details className="chat__oracle-steps">
-            <summary>Kroki agenta Oracle ({message.oracleSteps.length})</summary>
+            <summary>Kroki agenta Oracle ({displayMessage.oracleSteps.length})</summary>
             <ul>
-              {message.oracleSteps.map((step, index) => (
+              {displayMessage.oracleSteps.map((step, index) => (
                 <li key={`${step.tool}-${index}`}>
                   <strong>{step.tool}</strong>: {step.summary}
                 </li>
               ))}
             </ul>
-            {message.oracleSql && message.oracleSql.length > 0 && (
+            {displayMessage.oracleSql && displayMessage.oracleSql.length > 0 && (
               <div>
-                {message.oracleSql.map((item, index) => (
+                {displayMessage.oracleSql.map((item, index) => (
                   <pre key={index} className="chat__oracle-sql">
                     {item.sql}
                     {'\n'}
@@ -139,11 +145,13 @@ function IconAttach() {
 type ChatViewProps = {
   openConversationId?: string | null;
   onOpenConversationHandled?: () => void;
+  showOracleDebug?: boolean;
 };
 
 export function ChatView({
   openConversationId = null,
   onOpenConversationHandled,
+  showOracleDebug = false,
 }: ChatViewProps) {
   const [conversationId, setConversationId] = useState('');
   const [conversationTitle, setConversationTitle] = useState('Nowa rozmowa');
@@ -169,6 +177,7 @@ export function ChatView({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const skipSaveRef = useRef(true);
+  const skipBootstrapOnceRef = useRef(false);
   const onOpenConversationHandledRef = useRef(onOpenConversationHandled);
   onOpenConversationHandledRef.current = onOpenConversationHandled;
   const persistRef = useRef({
@@ -200,18 +209,29 @@ export function ChatView({
     let cancelled = false;
 
     void (async () => {
+      if (skipBootstrapOnceRef.current) {
+        skipBootstrapOnceRef.current = false;
+        return;
+      }
+
       setIsLoadingConversation(true);
       setError(null);
       try {
-        const conversation = openConversationId
-          ? ((await loadChatConversation(openConversationId)) ??
-            (await startNewConversation('qwen3')))
-          : await bootstrapConversation();
+        if (openConversationId) {
+          const conversation =
+            (await loadChatConversation(openConversationId)) ??
+            (await startNewConversation('qwen3'));
+          if (cancelled) return;
+          applyConversation(conversation);
+          setCurrentConversationId(conversation.id);
+          skipBootstrapOnceRef.current = true;
+          onOpenConversationHandledRef.current?.();
+          return;
+        }
+
+        const conversation = await bootstrapConversation();
         if (cancelled) return;
         applyConversation(conversation);
-        if (openConversationId) {
-          onOpenConversationHandledRef.current?.();
-        }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'Nie udało się wczytać rozmowy.');
@@ -399,7 +419,21 @@ export function ChatView({
     try {
       const history = nextMessages
         .slice(-historyClientLimit(quality))
-        .map((item) => ({ role: item.role, content: item.content }));
+        .map((item) => {
+          let content = item.content;
+          if (
+            chatSource === 'oracle' &&
+            item.role === 'assistant' &&
+            item.oracleSql &&
+            item.oracleSql.length > 0
+          ) {
+            const lastSql = item.oracleSql[item.oracleSql.length - 1]?.sql;
+            if (lastSql) {
+              content = `${content}\n[SQL: ${lastSql}]`;
+            }
+          }
+          return { role: item.role, content };
+        });
 
       await streamChatCompletion(
         {
@@ -413,14 +447,22 @@ export function ChatView({
         },
         (event) => {
           if (event.type === 'oracle_step') {
-            oracleSteps = [...oracleSteps, event.step];
-            setTypingHint(`${event.step.tool}: ${event.step.summary}`);
+            if (showOracleDebug) {
+              oracleSteps = [...oracleSteps, event.step];
+              setTypingHint(`${event.step.tool}: ${event.step.summary}`);
+            } else {
+              setTypingHint(clientOracleTypingHint(event.step.tool));
+            }
             return;
           }
 
           if (event.type === 'oracle_report') {
             oracleReports = [...oracleReports, event.report];
-            setTypingHint(`Raport: ${event.report.rowCount} wierszy`);
+            setTypingHint(
+              showOracleDebug
+                ? `Raport: ${event.report.rowCount} wierszy`
+                : 'Przygotowuję wyniki…',
+            );
             if (!assistantId) {
               assistantId = createId();
               setStreamingMessageId(assistantId);
@@ -433,13 +475,19 @@ export function ChatView({
                   createdAt: new Date().toISOString(),
                   streaming: true,
                   oracleReports,
-                  oracleSteps,
+                  ...(showOracleDebug ? { oracleSteps } : {}),
                 },
               ]);
             } else {
               setMessages((prev) =>
                 prev.map((item) =>
-                  item.id === assistantId ? { ...item, oracleReports, oracleSteps } : item,
+                  item.id === assistantId
+                    ? {
+                        ...item,
+                        oracleReports,
+                        ...(showOracleDebug ? { oracleSteps } : {}),
+                      }
+                    : item,
                 ),
               );
             }
@@ -495,9 +543,13 @@ export function ChatView({
               createdAt: event.createdAt,
               timing: event.timing,
               streaming: false,
-              oracleSteps: event.oracleSteps ?? oracleSteps,
-              oracleSql: event.oracleSql ?? oracleSql,
               oracleReports: event.oracleReports ?? oracleReports,
+              ...(showOracleDebug
+                ? {
+                    oracleSteps: event.oracleSteps ?? oracleSteps,
+                    oracleSql: event.oracleSql ?? oracleSql,
+                  }
+                : {}),
             };
             if (!assistantId) {
               assistantId = doneMessage.id;
@@ -743,6 +795,7 @@ export function ChatView({
                 key={msg.id}
                 message={msg}
                 elapsedSec={msg.id === streamingMessageId ? elapsedSec : undefined}
+                showOracleDebug={showOracleDebug}
               />
             ))}
             {isBusy && !streamingMessageId && (

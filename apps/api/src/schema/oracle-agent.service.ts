@@ -8,7 +8,9 @@ import type {
   OracleAgentDomain,
   OracleAgentSqlStep,
   OracleReport,
+  SchemaTableInfo,
 } from '@teta/shared';
+import { isOracleVendorDebug, sanitizeOracleStreamEventForClient } from '@teta/shared';
 import { OllamaChatService } from '../chat/ollama-chat.service';
 import { resolveChatQualityProfile } from '../chat/chat-quality.profile';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +19,7 @@ import { OracleQueryService } from './oracle-query.service';
 import { SchemaProcedureService } from './schema-procedure.service';
 import { SchemaCrawlService } from './schema-crawl.service';
 import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
+import { getAppMode } from '../rag/app-mode';
 
 type AgentAction =
   | { action: 'tool'; name: string; args: Record<string, string> }
@@ -51,10 +54,13 @@ export class OracleAgentService {
     res.setHeader('X-Accel-Buffering', 'no');
 
     const writeEvent = (event: ChatStreamEvent) => {
-      res.write(`${JSON.stringify(event)}\n`);
+      const payload = showOracleDebug ? event : sanitizeOracleStreamEventForClient(event);
+      if (!payload) return;
+      res.write(`${JSON.stringify(payload)}\n`);
     };
 
     const startedAt = Date.now();
+    const showOracleDebug = isOracleVendorDebug(getAppMode());
     const domain = input.oracleDomain ?? 'general';
     const steps: ChatOracleStep[] = [];
     const sqlSteps: OracleAgentSqlStep[] = [];
@@ -79,6 +85,7 @@ export class OracleAgentService {
 
       const toolContext: string[] = [];
       let finalAnswer = '';
+      let lastDescribeTable: SchemaTableInfo | null = null;
 
       for (let i = 0; i < maxIterations; i += 1) {
         const systemPrompt = this.buildSystemPrompt(domain, toolContext);
@@ -112,6 +119,8 @@ export class OracleAgentService {
               reports,
             );
             finalAnswer = this.buildSqlResultSummary(report);
+          } else if (this.isRequiredColumnsQuestion(message) && lastDescribeTable) {
+            finalAnswer = this.buildRequiredColumnsAnswer(lastDescribeTable);
           } else {
             finalAnswer = action.text.trim();
           }
@@ -119,6 +128,9 @@ export class OracleAgentService {
         }
 
         const toolResult = await this.runTool(action.name, action.args, domain, userId);
+        if (toolResult.describeTable) {
+          lastDescribeTable = toolResult.describeTable;
+        }
         const step: ChatOracleStep = {
           tool: action.name,
           summary: toolResult.summary,
@@ -166,7 +178,7 @@ export class OracleAgentService {
     args: Record<string, string>,
     domain: OracleAgentDomain,
     userId?: string | number,
-  ): Promise<{ summary: string; detail: string }> {
+  ): Promise<{ summary: string; detail: string; describeTable?: SchemaTableInfo }> {
     switch (name) {
       case 'find_path': {
         const result = this.explorer.findPath(
@@ -186,12 +198,40 @@ export class OracleAgentService {
       }
       case 'describe_table': {
         const result = this.explorer.describeTable(args.table ?? args.name ?? '');
+        const table = result.table;
+        const insertRequiredColumns =
+          table?.columns.filter((c) => c.insertRequired).map((c) => c.name) ?? [];
+        const notNullWithDefaultColumns =
+          table?.columns
+            .filter((c) => !c.nullable && !c.insertRequired && !c.isPk)
+            .map((c) => c.name) ?? [];
         const cols =
-          result.table?.columns.map((c) => `${c.name} ${c.dataType}${c.isPk ? ' PK' : ''}`).join(', ') ??
-          '';
+          table?.columns
+            .map((c) => {
+              const flags = [
+                c.isPk ? 'PK' : null,
+                c.insertRequired ? 'wymagane przy INSERT' : null,
+                !c.nullable && !c.insertRequired && !c.isPk ? 'NOT NULL z DEFAULT' : null,
+              ].filter(Boolean);
+              const suffix = flags.length > 0 ? ` (${flags.join(', ')})` : '';
+              return `${c.name} ${c.dataType}${suffix}`;
+            })
+            .join(', ') ?? '';
         return {
-          summary: result.found ? `${result.table?.owner}.${result.table?.name}: ${cols}` : 'Nie znaleziono',
-          detail: JSON.stringify(result, null, 2),
+          summary: result.found
+            ? `${table?.owner}.${table?.name}: wymagane przy INSERT → ${insertRequiredColumns.join(', ') || 'brak'}`
+            : 'Nie znaleziono',
+          detail: JSON.stringify(
+            {
+              ...result,
+              insertRequiredColumns,
+              notNullWithDefaultColumns,
+              requiredColumns: insertRequiredColumns,
+            },
+            null,
+            2,
+          ),
+          describeTable: table ?? undefined,
         };
       }
       case 'describe_column': {
@@ -324,11 +364,19 @@ Format odpowiedzi (jeden obiekt JSON, bez markdown):
 lub po zebraniu faktów:
 {"action":"answer","text":"krótkie podsumowanie po polsku","sql":"SELECT ..."}
 
-Raporty danych:
-- Gdy użytkownik prosi o listę, zestawienie, raport, tabelę lub konkretne dane z bazy — ZAWSZE zakończ odpowiedzią z polem sql (SELECT).
-- Pole text przy sql: krótki placeholder (np. "—") — liczbę wierszy i podsumowanie system ustawi z wyniku zapytania.
-- NIE podawaj w text liczby wierszy ani danych tabelarycznych — tabela raportu jest generowana automatycznie.
-- Najpierw zbierz schemat (search_tables, describe_table, find_path), potem zbuduj poprawne SELECT.
+Raporty danych (wiersze z bazy):
+- Gdy użytkownik prosi o listę rekordów, zestawienie, raport lub konkretne DANE — zakończ odpowiedzią z polem sql (SELECT).
+- Pole text przy sql: krótki placeholder (np. "—") — liczbę wierszy system ustawi z wyniku zapytania.
+
+Struktura tabeli (metadane — kolumny, typy, NOT NULL, PK):
+- Użyj describe_table — NIE używaj SELECT do listowania kolumn.
+- Odpowiedź {"action":"answer","text":"…"} BEZ pola sql — tekst zostanie uzupełniony przez system z metadanych.
+- Gdy pytanie o kolumny wymagane / obowiązkowe / NOT NULL — użyj describe_table; system wypisze insertRequiredColumns (NOT NULL bez DEFAULT, bez PK).
+- NOT NULL z wartością domyślną (C_01, GUID itd.) to pola uzupełniane przez system — NIE są „obowiązkowe” dla użytkownika.
+- „Pola obowiązkowe w formularzu Teta” mogą się różnić od metadanych Oracle — nie zgaduj reguł biznesowych.
+
+Kontekst wątku:
+- Jeśli w historii jest [SQL: … FROM ${defaultOwner}.TABELA …] — kontynuuj odniesienie do tej samej tabeli, dopóki użytkownik nie wskaże innej.
 
 Zasady SQL:
 - tylko SELECT
@@ -339,6 +387,53 @@ Zasady SQL:
 - NIGDY nie pisz użytkownikowi „wykonaj zapytanie SQL” — sam zwróć {"action":"answer","text":"…","sql":"SELECT …"}
 
 ${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : 'Zacznij od search_tables lub describe_table jeśli nie znasz tabel.'}`;
+  }
+
+  private isRequiredColumnsQuestion(message: string): boolean {
+    const normalized = message.toLowerCase();
+    return /obowiązkow|wymagane|not\s*null|nullable|wymaga.*kolumn|które\s+kolumny/i.test(
+      normalized,
+    );
+  }
+
+  private buildRequiredColumnsAnswer(table: SchemaTableInfo): string {
+    const insertRequired = table.columns.filter((c) => c.insertRequired);
+    const notNullWithDefault = table.columns.filter(
+      (c) => !c.nullable && !c.insertRequired && !c.isPk,
+    );
+    const pkColumns = table.columns.filter((c) => c.isPk);
+
+    const lines = [
+      `Tabela ${table.owner}.${table.name} — na podstawie metadanych Oracle (ostatnia analiza bazy):`,
+      '',
+    ];
+
+    if (insertRequired.length > 0) {
+      lines.push(
+        `Kolumny wymagane przy INSERT (NOT NULL bez wartości domyślnej, bez klucza głównego): ${insertRequired.map((c) => c.name).join(', ')}.`,
+      );
+    } else {
+      lines.push(
+        'Brak kolumn wymaganych przy INSERT — wszystkie pola NOT NULL mają wartość domyślną lub są kluczem głównym uzupełnianym przez system.',
+      );
+    }
+
+    if (pkColumns.length > 0) {
+      lines.push(`Klucz główny (zwykle nadawany automatycznie): ${pkColumns.map((c) => c.name).join(', ')}.`);
+    }
+
+    if (notNullWithDefault.length > 0) {
+      lines.push(
+        `Pola NOT NULL z DEFAULT (system/trigger — zwykle nie wypełnia użytkownik): ${notNullWithDefault.map((c) => c.name).join(', ')}.`,
+      );
+    }
+
+    lines.push(
+      '',
+      'Uwaga: reguły obowiązkowości w formularzu Teta (np. które z pól C_01–C_10 są widoczne) zależą od konfiguracji modułu i nie wynikają wprost z NOT NULL w bazie.',
+    );
+
+    return lines.join('\n');
   }
 
   private buildAgentPrompt(message: string, iteration: number): string {

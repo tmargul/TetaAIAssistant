@@ -8,8 +8,13 @@ import {
   type ChatModel,
   type CreateChatConversationRequest,
   type SaveChatConversationRequest,
+  isOracleVendorDebug,
+  sanitizeChatMessagesOracleForClient,
+  clientOracleTypingHint,
+  sanitizeChatMessageOracleForClient,
 } from '@teta/shared';
 import { DatabaseService } from '../database/database.service';
+import { getAppMode } from '../rag/app-mode';
 
 const MAX_CONVERSATIONS_PER_USER = 40;
 
@@ -149,10 +154,16 @@ export class ChatConversationsService {
       throw new BadRequestException('Nieprawidłowy format wiadomości.');
     }
 
-    return messages.map((message) => ({
+    const normalized = messages.map((message) => ({
       ...message,
       streaming: false,
     }));
+
+    if (isOracleVendorDebug(getAppMode())) {
+      return normalized;
+    }
+
+    return sanitizeChatMessagesOracleForClient(normalized);
   }
 
   private toSummary(row: SummaryRow): ChatConversationSummary {
@@ -181,6 +192,10 @@ export class ChatConversationsService {
       messages = Array.isArray(parsed) ? parsed : [];
     } catch {
       messages = [];
+    }
+
+    if (!isOracleVendorDebug(getAppMode())) {
+      messages = sanitizeChatMessagesOracleForClient(messages);
     }
 
     return {

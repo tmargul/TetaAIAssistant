@@ -17,6 +17,7 @@ import type {
   OracleTableMeta,
 } from './oracle-metadata.types';
 import { ProgressHeartbeat, type CatalogProgressCallback } from './oracle-metadata-progress.util';
+import { parseOracleNullable } from '../oracle-column.util';
 
 const SYSTEM_OWNERS = new Set([
   'SYS',
@@ -49,6 +50,7 @@ type ColumnRow = {
   COLUMN_NAME: string;
   DATA_TYPE: string;
   NULLABLE: string;
+  DATA_DEFAULT: string | null;
 };
 
 type ViewRow = {
@@ -417,7 +419,8 @@ export class OracleMetadataCatalogService {
               table_name AS "TABLE_NAME",
               column_name AS "COLUMN_NAME",
               data_type AS "DATA_TYPE",
-              nullable AS "NULLABLE"
+              nullable AS "NULLABLE",
+              data_default AS "DATA_DEFAULT"
        FROM all_tab_columns
        WHERE owner IN (${ownerBinds.placeholders})
        ORDER BY owner, table_name, column_id`,
@@ -436,7 +439,8 @@ export class OracleMetadataCatalogService {
       list.push({
         name: row.COLUMN_NAME,
         dataType: row.DATA_TYPE,
-        nullable: row.NULLABLE === 'Y',
+        nullable: parseOracleNullable(row.NULLABLE),
+        dataDefault: row.DATA_DEFAULT,
       });
       columnsByTable.set(key, list);
     }

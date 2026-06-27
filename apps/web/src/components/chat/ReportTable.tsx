@@ -10,7 +10,7 @@ function rowLabel(count: number): string {
   return `${count} wierszy`;
 }
 
-export function ReportTable({ report }: { report: OracleReport }) {
+export function ReportTable({ report, showSql = false }: { report: OracleReport; showSql?: boolean }) {
   return (
     <div className="chat__report">
       <div className="chat__report-header">
@@ -52,10 +52,12 @@ export function ReportTable({ report }: { report: OracleReport }) {
       ) : (
         <p className="chat__report-empty">Zapytanie nie zwróciło kolumn.</p>
       )}
-      <details className="chat__report-sql">
-        <summary>Zapytanie SQL</summary>
-        <pre>{report.sql}</pre>
-      </details>
+      {showSql && report.sql.trim().length > 0 && (
+        <details className="chat__report-sql">
+          <summary>Zapytanie SQL</summary>
+          <pre>{report.sql}</pre>
+        </details>
+      )}
     </div>
   );
 }

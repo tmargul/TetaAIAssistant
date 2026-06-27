@@ -9,6 +9,7 @@ export interface OracleColumnMeta {
   name: string;
   dataType: string;
   nullable?: boolean;
+  dataDefault?: string | null;
 }
 
 export interface OracleConstraintMeta {
