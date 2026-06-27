@@ -199,7 +199,7 @@ export function OracleConnectionForm({
           )}
           {lastUpdatedAt && (
             <p>
-              <strong>Ostatnia zmiana:</strong>{' '}
+              <strong>Ostatnia zmiana ustawień połączenia:</strong>{' '}
               {new Date(lastUpdatedAt).toLocaleString('pl-PL')}
             </p>
           )}

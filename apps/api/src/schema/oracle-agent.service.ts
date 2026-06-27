@@ -15,6 +15,7 @@ import { ConfigService } from '@nestjs/config';
 import { SchemaExplorerService } from './schema-explorer.service';
 import { OracleQueryService } from './oracle-query.service';
 import { SchemaProcedureService } from './schema-procedure.service';
+import { SchemaCrawlService } from './schema-crawl.service';
 import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
 
 type AgentAction =
@@ -101,7 +102,7 @@ export class OracleAgentService {
 
         if (action.action === 'answer') {
           if (action.sql?.trim()) {
-            await this.runSql(
+            const report = await this.runSql(
               action.sql,
               userId,
               domain,
@@ -110,7 +111,7 @@ export class OracleAgentService {
               sqlSteps,
               reports,
             );
-            finalAnswer = action.text.trim();
+            finalAnswer = this.buildSqlResultSummary(report);
           } else {
             finalAnswer = action.text.trim();
           }
@@ -279,6 +280,29 @@ export class OracleAgentService {
     return report;
   }
 
+  private formatRowCountPl(count: number): string {
+    if (count === 1) return '1 wiersz';
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+      return `${count} wiersze`;
+    }
+    return `${count} wierszy`;
+  }
+
+  /** Podsumowanie nad tabelą — zawsze z faktycznego rowCount, nie z tekstu LLM. */
+  private buildSqlResultSummary(report: OracleReport): string {
+    const n = report.rowCount;
+    if (n === 0) {
+      return 'Zapytanie nie zwróciło żadnych wierszy spełniających kryteria.';
+    }
+    let msg = `Znaleziono ${this.formatRowCountPl(n)} — szczegóły w tabeli poniżej.`;
+    if (report.truncated) {
+      msg += ` Pokazano pierwsze ${n} rekordów (limit zapytania); w bazie może być więcej.`;
+    }
+    return msg;
+  }
+
   private buildSystemPrompt(domain: OracleAgentDomain, toolContext: string[]): string {
     const defaultOwner = resolveDefaultOracleOwner(this.config);
     return `${DOMAIN_PROMPTS[domain]}
@@ -302,7 +326,8 @@ lub po zebraniu faktów:
 
 Raporty danych:
 - Gdy użytkownik prosi o listę, zestawienie, raport, tabelę lub konkretne dane z bazy — ZAWSZE zakończ odpowiedzią z polem sql (SELECT).
-- Pole text to wyłącznie 1–3 zdania podsumowania (liczba wierszy, co pokazuje raport). NIE wklejaj danych tabelarycznych do text — system wyświetli tabelę raportu automatycznie.
+- Pole text przy sql: krótki placeholder (np. "—") — liczbę wierszy i podsumowanie system ustawi z wyniku zapytania.
+- NIE podawaj w text liczby wierszy ani danych tabelarycznych — tabela raportu jest generowana automatycznie.
 - Najpierw zbierz schemat (search_tables, describe_table, find_path), potem zbuduj poprawne SELECT.
 
 Zasady SQL:
@@ -310,6 +335,7 @@ Zasady SQL:
 - używaj wyłącznie tabel i kolumn z wyników narzędzi
 - JOIN zgodnie ze ścieżką find_path
 - prefiks schematu ${defaultOwner}. przy każdej tabeli
+- bez średnika na końcu SQL
 - NIGDY nie pisz użytkownikowi „wykonaj zapytanie SQL” — sam zwróć {"action":"answer","text":"…","sql":"SELECT …"}
 
 ${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : 'Zacznij od search_tables lub describe_table jeśli nie znasz tabel.'}`;

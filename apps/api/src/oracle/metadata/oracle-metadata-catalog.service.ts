@@ -263,7 +263,13 @@ export class OracleMetadataCatalogService {
       ),
       this.fetchScalarCount(
         connection,
-        `SELECT COUNT(*) AS "CNT" FROM all_tab_columns WHERE owner IN (${placeholders})`,
+        `SELECT COUNT(*) AS "CNT"
+         FROM all_tab_columns c
+         WHERE c.owner IN (${placeholders})
+           AND EXISTS (
+             SELECT 1 FROM all_tables t
+             WHERE t.owner = c.owner AND t.table_name = c.table_name
+           )`,
         binds,
       ),
       connection.execute<{ OBJECT_TYPE: string; CNT: number }>(

@@ -37,6 +37,16 @@ describe('SqlValidatorService', () => {
     expect(validator.qualifySelectSql(sql, result.tables!)).toBe('SELECT * FROM TETA_ADMIN.T_PRAC');
   });
 
+  it('accepts SELECT with trailing semicolon', () => {
+    const result = validator.validateSelectSql('SELECT * FROM T_PRAC;');
+    expect(result.valid).toBe(true);
+  });
+
+  it('rejects multiple statements separated by semicolon', () => {
+    const result = validator.validateSelectSql('SELECT * FROM T_PRAC; SELECT * FROM T_PRAC');
+    expect(result.valid).toBe(false);
+  });
+
   it('rejects INSERT', () => {
     const result = validator.validateSelectSql('INSERT INTO t_prac VALUES (1)');
     expect(result.valid).toBe(false);

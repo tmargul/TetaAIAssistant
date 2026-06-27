@@ -33,8 +33,16 @@ export class SqlValidatorService {
     private readonly config: ConfigService,
   ) {}
 
+  sanitizeSelectSql(sql: string): string {
+    let trimmed = sql.trim();
+    while (trimmed.endsWith(';')) {
+      trimmed = trimmed.slice(0, -1).trimEnd();
+    }
+    return trimmed;
+  }
+
   validateSelectSql(sql: string): SqlValidationResult {
-    const trimmed = sql.trim();
+    const trimmed = this.sanitizeSelectSql(sql);
     if (!trimmed) {
       return { valid: false, tables: [], message: 'Puste zapytanie SQL.' };
     }
@@ -44,8 +52,12 @@ export class SqlValidatorService {
       return { valid: false, tables: [], message: 'Dozwolone są wyłącznie zapytania SELECT.' };
     }
 
-    if (normalized.includes(';')) {
-      return { valid: false, tables: [], message: 'Zapytanie nie może zawierać średnika.' };
+    if (trimmed.includes(';')) {
+      return {
+        valid: false,
+        tables: [],
+        message: 'Dozwolone jest tylko jedno zapytanie SELECT (bez średnika w środku).',
+      };
     }
 
     for (const keyword of FORBIDDEN_KEYWORDS) {

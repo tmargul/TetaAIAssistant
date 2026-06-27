@@ -122,7 +122,7 @@ export class InnoInstallerService {
         exePath = line;
       }
     }
-    exePath = path.resolve(exePath || lines[lines.length - 1] ?? '');
+    exePath = path.resolve(exePath || (lines[lines.length - 1] ?? ''));
     if (!exePath.toLowerCase().endsWith('.exe') || !existsSync(exePath)) {
       throw new Error(`Nie udało się ustalić ścieżki instalatora (.exe).`);
     }

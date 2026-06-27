@@ -4,6 +4,7 @@ import oracledb from '../oracle/oracle-driver';
 import { OracleConnectionService } from '../oracle/oracle-connection.service';
 import { getOracleBackendMode } from '../oracle/oracle-mode';
 import { DatabaseService } from '../database/database.service';
+import { SqlValidatorService } from './sql-validator.service';
 import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
 
 export type QueryExecutionResult = {
@@ -29,13 +30,14 @@ export class OracleQueryService {
     sql: string,
     options?: { userId?: number; domain?: string },
   ): Promise<QueryExecutionResult> {
-    const validation = this.validator.validateSelectSql(sql);
+    const sanitized = this.validator.sanitizeSelectSql(sql);
+    const validation = this.validator.validateSelectSql(sanitized);
     if (!validation.valid) {
       throw new Error(validation.message ?? 'Nieprawidłowe SQL.');
     }
 
     const maxRows = Number(this.config.get('TETA_ORACLE_AGENT_MAX_ROWS', 200));
-    const qualifiedSql = this.validator.qualifySelectSql(sql, validation.tables);
+    const qualifiedSql = this.validator.qualifySelectSql(sanitized, validation.tables);
     const limitedSql = this.validator.ensureRowLimit(qualifiedSql, maxRows);
     const startedAt = Date.now();
 

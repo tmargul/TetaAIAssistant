@@ -258,8 +258,15 @@ export function OracleMetadataView() {
               </p>
               {oracleStatus?.config?.updatedAt && (
                 <p className="oracle-metadata__connection-line">
-                  Ostatnia zmiana:{' '}
+                  Ostatnia zmiana ustawień połączenia:{' '}
                   {new Date(oracleStatus.config.updatedAt).toLocaleString('pl-PL')}
+                </p>
+              )}
+              {metadata?.lastImportedAt && (
+                <p className="oracle-metadata__connection-line">
+                  Ostatnia analiza bazy:{' '}
+                  {new Date(metadata.lastImportedAt).toLocaleString('pl-PL')}
+                  {metadata.tetaVersion ? ` (${metadata.tetaVersion})` : ''}
                 </p>
               )}
             </>
@@ -300,7 +307,7 @@ export function OracleMetadataView() {
             );
           })}
           <div className="oracle-metadata__stat" aria-hidden style={{ cursor: 'default', opacity: 0.85 }}>
-            <span className="oracle-metadata__stat-label">Kolumny</span>
+            <span className="oracle-metadata__stat-label">Kolumny (tabele)</span>
             <span className="oracle-metadata__stat-value">
               {formatOracleMetadataStatValue(
                 metadata?.counts.columns ?? 0,

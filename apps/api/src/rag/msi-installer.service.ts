@@ -119,7 +119,7 @@ export class MsiInstallerService {
         msiPath = line;
       }
     }
-    msiPath = path.resolve(msiPath || lines[lines.length - 1] ?? '');
+    msiPath = path.resolve(msiPath || (lines[lines.length - 1] ?? ''));
     if (!msiPath.toLowerCase().endsWith('.msi') || !existsSync(msiPath)) {
       throw new Error('Nie udało się ustalić ścieżki instalatora (.msi).');
     }

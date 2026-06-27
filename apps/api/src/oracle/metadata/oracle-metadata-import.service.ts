@@ -207,7 +207,10 @@ export class OracleMetadataImportService implements OnModuleInit {
     if (row.status === 'failed' && row.error_message) {
       message = row.error_message;
     } else if (row.status === 'done') {
-      message = `Import zakończony — ${row.chunk_count ?? 0} chunków w Qdrant.`;
+      message =
+        (row.chunk_count ?? 0) > 0
+          ? `Import zakończony — ${row.chunk_count} chunków w Qdrant.`
+          : 'Import zakończony — graf schematu gotowy (indeks Qdrant pominięty domyślnie).';
     } else if (row.status === 'running' || row.status === 'queued') {
       message = row.progress_message ?? 'Import metadanych Oracle w toku…';
     } else if (!configured) {
