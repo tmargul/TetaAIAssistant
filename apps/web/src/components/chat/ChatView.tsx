@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import {
   type ChatMessage,
+  type ChatMessageFeedback,
   type ChatModel,
   type ChatModelsResponse,
-  type ChatOracleStep,
   type ChatQualityMode,
   type ChatRuntimeStatusResponse,
   type ChatSourceMode,
@@ -11,9 +11,11 @@ import {
   type OracleAgentSqlStep,
   type OracleReport,
   type RagSearchFilter,
+  type SubmitChatMessageFeedbackResponse,
   KNOWLEDGE_SOURCE_TYPES,
-  clientOracleTypingHint,
+  oracleProgressHint,
   sanitizeChatMessageOracleForClient,
+  type SubmitChatMessageFeedbackResponse,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
 import { IconChat } from '../layout/icons';
@@ -28,6 +30,7 @@ import {
 import { streamChatCompletion } from './chat-stream';
 import {
   historyClientLimit,
+  historyOracleLimit,
   loadChatQualityPreference,
   saveChatQualityPreference,
 } from './chat-quality-preference';
@@ -61,21 +64,70 @@ const SOURCE_TYPE_LABELS: Record<(typeof KNOWLEDGE_SOURCE_TYPES)[number], string
   documentation: 'Dokumentacja',
   faq: 'FAQ',
   oracle_package: 'Pakiet Oracle',
+  schema_entity: 'Powiązanie schematu',
   client_document: 'Dokument klienta',
   other: 'Inne',
 };
+
+function MessageFeedback({
+  feedback,
+  disabled,
+  onFeedback,
+}: {
+  feedback?: ChatMessageFeedback;
+  disabled?: boolean;
+  onFeedback: (value: ChatMessageFeedback) => void;
+}) {
+  return (
+    <div className="chat__feedback" role="group" aria-label="Oceń odpowiedź">
+      <button
+        type="button"
+        className={`chat__feedback-btn${feedback === 'up' ? ' chat__feedback-btn--active' : ''}`}
+        disabled={disabled || feedback !== undefined}
+        title="Dobra odpowiedź — zapisz powiązanie do RAG Oracle"
+        aria-pressed={feedback === 'up'}
+        onClick={() => onFeedback('up')}
+      >
+        <span aria-hidden>👍</span>
+      </button>
+      <button
+        type="button"
+        className={`chat__feedback-btn${feedback === 'down' ? ' chat__feedback-btn--active' : ''}`}
+        disabled={disabled || feedback !== undefined}
+        title="Słaba odpowiedź — bez zapisu do bazy wiedzy"
+        aria-pressed={feedback === 'down'}
+        onClick={() => onFeedback('down')}
+      >
+        <span aria-hidden>👎</span>
+      </button>
+      {feedback === 'up' && (
+        <span className="chat__feedback-note">Zapisano do RAG Oracle</span>
+      )}
+    </div>
+  );
+}
 
 function ChatBubble({
   message,
   elapsedSec,
   showOracleDebug,
+  progressHint,
+  showOracleFeedback,
+  feedbackBusy,
+  onFeedback,
 }: {
   message: ChatMessage;
   elapsedSec?: number;
   showOracleDebug: boolean;
+  progressHint?: string | null;
+  showOracleFeedback?: boolean;
+  feedbackBusy?: boolean;
+  onFeedback?: (messageId: string, feedback: ChatMessageFeedback) => void;
 }) {
   const isUser = message.role === 'user';
   const displayMessage = showOracleDebug ? message : sanitizeChatMessageOracleForClient(message);
+  const showOracleProgress =
+    !isUser && message.streaming && !message.content.trim() && progressHint;
   return (
     <div className={`chat__message${isUser ? ' chat__message--user' : ' chat__message--assistant'}`}>
       <div className="chat__avatar">{isUser ? 'Ty' : 'AI'}</div>
@@ -84,41 +136,34 @@ function ChatBubble({
           {displayMessage.content}
           {message.streaming && <span className="chat__stream-cursor" aria-hidden />}
         </div>
-        {!isUser && message.streaming && elapsedSec !== undefined && elapsedSec > 0 && (
+        {showOracleProgress && (
+          <p className="chat__typing-hint">
+            {progressHint}
+            {elapsedSec !== undefined && elapsedSec > 0 ? ` · ${elapsedSec} s` : ''}
+          </p>
+        )}
+        {!isUser && message.streaming && elapsedSec !== undefined && elapsedSec > 0 && !showOracleProgress && (
           <p className="chat__bubble-timing">Generuję… · {elapsedSec} s</p>
         )}
         {!isUser && !message.streaming && message.timing && (
           <p className="chat__bubble-timing">{formatChatTiming(message.timing)}</p>
         )}
+        {!isUser &&
+          showOracleFeedback &&
+          !message.streaming &&
+          (message.oracleReports?.length || message.oracleThreadContext) && (
+            <MessageFeedback
+              feedback={message.feedback}
+              disabled={feedbackBusy}
+              onFeedback={(value) => onFeedback?.(message.id, value)}
+            />
+          )}
         {!isUser && displayMessage.oracleReports && displayMessage.oracleReports.length > 0 && (
           <div className="chat__reports">
             {displayMessage.oracleReports.map((report, index) => (
               <ReportTable key={`report-${index}`} report={report} showSql={showOracleDebug} />
             ))}
           </div>
-        )}
-        {showOracleDebug && !isUser && displayMessage.oracleSteps && displayMessage.oracleSteps.length > 0 && (
-          <details className="chat__oracle-steps">
-            <summary>Kroki agenta Oracle ({displayMessage.oracleSteps.length})</summary>
-            <ul>
-              {displayMessage.oracleSteps.map((step, index) => (
-                <li key={`${step.tool}-${index}`}>
-                  <strong>{step.tool}</strong>: {step.summary}
-                </li>
-              ))}
-            </ul>
-            {displayMessage.oracleSql && displayMessage.oracleSql.length > 0 && (
-              <div>
-                {displayMessage.oracleSql.map((item, index) => (
-                  <pre key={index} className="chat__oracle-sql">
-                    {item.sql}
-                    {'\n'}
-                    ({item.rowCount} wierszy)
-                  </pre>
-                ))}
-              </div>
-            )}
-          </details>
         )}
       </div>
     </div>
@@ -173,6 +218,7 @@ export function ChatView({
   const [error, setError] = useState<string | null>(null);
   const [ragFilter, setRagFilter] = useState<RagSearchFilter>({});
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [feedbackBusyId, setFeedbackBusyId] = useState<string | null>(null);
   const requestStartedRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -304,6 +350,37 @@ export function ChatView({
     });
   }, [conversationId, conversationTitle, model, messages, isBusy, isLoadingConversation]);
 
+  const handleMessageFeedback = useCallback(
+    async (messageId: string, feedback: ChatMessageFeedback) => {
+      if (!conversationId) {
+        return;
+      }
+      setFeedbackBusyId(messageId);
+      setError(null);
+      try {
+        const res = await authFetch(
+          `/api/chat/conversations/${conversationId}/messages/${messageId}/feedback`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ feedback }),
+          },
+        );
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(body?.message ?? `Błąd oceny (${res.status})`);
+        }
+        const data = (await res.json()) as SubmitChatMessageFeedbackResponse;
+        setMessages(data.conversation.messages);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Nie udało się zapisać oceny.');
+      } finally {
+        setFeedbackBusyId(null);
+      }
+    },
+    [conversationId],
+  );
+
   useEffect(() => {
     saveChatQualityPreference(quality);
   }, [quality]);
@@ -412,24 +489,29 @@ export function ChatView({
 
     let assistantId = '';
     let streamError: string | null = null;
-    let oracleSteps: ChatOracleStep[] = [];
     let oracleSql: OracleAgentSqlStep[] = [];
     let oracleReports: OracleReport[] = [];
 
     try {
+      const historyLimit =
+        chatSource === 'oracle' ? historyOracleLimit(quality) : historyClientLimit(quality);
       const history = nextMessages
-        .slice(-historyClientLimit(quality))
+        .slice(-historyLimit)
         .map((item) => {
           let content = item.content;
-          if (
-            chatSource === 'oracle' &&
-            item.role === 'assistant' &&
-            item.oracleSql &&
-            item.oracleSql.length > 0
-          ) {
-            const lastSql = item.oracleSql[item.oracleSql.length - 1]?.sql;
-            if (lastSql) {
-              content = `${content}\n[SQL: ${lastSql}]`;
+          if (chatSource === 'oracle' && item.role === 'assistant') {
+            if (item.oracleThreadContext) {
+              content = `${content}\n[Kontekst wątku Oracle: ${item.oracleThreadContext}]`;
+            } else if (item.oracleSql && item.oracleSql.length > 0) {
+              const lastSql = item.oracleSql[item.oracleSql.length - 1]?.sql;
+              if (lastSql) {
+                content = `${content}\n[SQL: ${lastSql}]`;
+              }
+            } else if (item.oracleReports && item.oracleReports.length > 0) {
+              const lastReport = item.oracleReports[item.oracleReports.length - 1];
+              if (lastReport?.sql) {
+                content = `${content}\n[SQL: ${lastReport.sql}]`;
+              }
             }
           }
           return { role: item.role, content };
@@ -444,25 +526,17 @@ export function ChatView({
           ragFilter: buildRagFilterPayload(ragFilter),
           source: chatSource,
           oracleDomain: chatSource === 'oracle' ? oracleDomain : undefined,
+          conversationId: conversationId || undefined,
         },
         (event) => {
           if (event.type === 'oracle_step') {
-            if (showOracleDebug) {
-              oracleSteps = [...oracleSteps, event.step];
-              setTypingHint(`${event.step.tool}: ${event.step.summary}`);
-            } else {
-              setTypingHint(clientOracleTypingHint(event.step.tool));
-            }
+            setTypingHint(oracleProgressHint(event.step.tool));
             return;
           }
 
           if (event.type === 'oracle_report') {
             oracleReports = [...oracleReports, event.report];
-            setTypingHint(
-              showOracleDebug
-                ? `Raport: ${event.report.rowCount} wierszy`
-                : 'Przygotowuję wyniki…',
-            );
+            setTypingHint('Przygotowuję wyniki…');
             if (!assistantId) {
               assistantId = createId();
               setStreamingMessageId(assistantId);
@@ -475,7 +549,6 @@ export function ChatView({
                   createdAt: new Date().toISOString(),
                   streaming: true,
                   oracleReports,
-                  ...(showOracleDebug ? { oracleSteps } : {}),
                 },
               ]);
             } else {
@@ -485,7 +558,6 @@ export function ChatView({
                     ? {
                         ...item,
                         oracleReports,
-                        ...(showOracleDebug ? { oracleSteps } : {}),
                       }
                     : item,
                 ),
@@ -544,9 +616,9 @@ export function ChatView({
               timing: event.timing,
               streaming: false,
               oracleReports: event.oracleReports ?? oracleReports,
+              oracleThreadContext: event.oracleThreadContext,
               ...(showOracleDebug
                 ? {
-                    oracleSteps: event.oracleSteps ?? oracleSteps,
                     oracleSql: event.oracleSql ?? oracleSql,
                   }
                 : {}),
@@ -796,6 +868,10 @@ export function ChatView({
                 message={msg}
                 elapsedSec={msg.id === streamingMessageId ? elapsedSec : undefined}
                 showOracleDebug={showOracleDebug}
+                progressHint={msg.id === streamingMessageId ? typingHint : null}
+                showOracleFeedback={showOracleDebug && chatSource === 'oracle'}
+                feedbackBusy={feedbackBusyId === msg.id}
+                onFeedback={handleMessageFeedback}
               />
             ))}
             {isBusy && !streamingMessageId && (

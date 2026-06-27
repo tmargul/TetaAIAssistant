@@ -15,10 +15,17 @@ import { VendorGuard } from './vendor.guard';
 import { VideoIngestJobsService } from './video-ingest/video-ingest-jobs.service';
 import { VideoIngestPipelineService } from './video-ingest/video-ingest-pipeline.service';
 import { VendorVideoIngestController } from './video-ingest/vendor-video-ingest.controller';
+import { SchemaLearningModule } from '../schema/schema-learning.module';
+import { VendorSchemaLearningController } from '../schema/vendor-schema-learning.controller';
 
 @Module({
-  imports: [RagCoreModule, AuthModule],
-  controllers: [VendorRagController, VendorPackagesController, VendorVideoIngestController],
+  imports: [RagCoreModule, AuthModule, SchemaLearningModule],
+  controllers: [
+    VendorRagController,
+    VendorPackagesController,
+    VendorVideoIngestController,
+    VendorSchemaLearningController,
+  ],
   providers: [
     GlobalRagIngestService,
     GlobalSourcesService,

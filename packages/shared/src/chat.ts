@@ -10,6 +10,8 @@ export type { KnowledgeSourceType };
 
 export type ChatRole = 'user' | 'assistant';
 
+export type ChatMessageFeedback = 'up' | 'down';
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -20,6 +22,10 @@ export interface ChatMessage {
   oracleSql?: OracleAgentSqlStep[];
   /** Raporty tabelaryczne z wykonanego SQL (tryb Baza Oracle). */
   oracleReports?: OracleReport[];
+  /** Kontekst wątku dla agenta (tabela/kolumny) — niewidoczny w UI, zachowany w historii. */
+  oracleThreadContext?: string;
+  /** Ocena odpowiedzi (Oracle + vendor) — zapis do RAG po 👍. */
+  feedback?: ChatMessageFeedback;
   /** Czas generowania odpowiedzi (z API). */
   timing?: ChatCompletionTiming;
   /** Trwa streamowanie odpowiedzi. */
@@ -47,6 +53,8 @@ export interface ChatCompletionRequest {
   source?: ChatSourceMode;
   /** Kontekst domenowy agenta Oracle (faza D). */
   oracleDomain?: OracleAgentDomain;
+  /** Id rozmowy — uczenie z doświadczenia (vendor). */
+  conversationId?: string;
 }
 
 export type ChatRagCollection = 'global' | 'client';
@@ -107,5 +115,6 @@ export type ChatStreamEvent =
       oracleSteps?: ChatOracleStep[];
       oracleSql?: OracleAgentSqlStep[];
       oracleReports?: OracleReport[];
+      oracleThreadContext?: string;
     }
   | { type: 'error'; message: string };

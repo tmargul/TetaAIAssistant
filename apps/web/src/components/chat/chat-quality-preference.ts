@@ -36,3 +36,8 @@ export function historyClientLimit(quality: ChatQualityMode): number {
       return 4;
   }
 }
+
+/** Oracle agent needs more turns so follow-ups inherit [Kontekst wątku Oracle]. */
+export function historyOracleLimit(quality: ChatQualityMode): number {
+  return Math.max(historyClientLimit(quality), 8);
+}

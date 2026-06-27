@@ -15,6 +15,7 @@
     "src/rag/offline-bundle.service.ts",
     "src/rag/global-rag-export.service.ts",
     "src/rag/global-rag-ingest.service.ts",
-    "src/scripts/rag-global-cli.ts"
+    "src/scripts/rag-global-cli.ts",
+    "src/schema/vendor-schema-learning.controller.ts"
   ]
 }

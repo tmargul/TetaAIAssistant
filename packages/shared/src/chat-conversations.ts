@@ -1,4 +1,4 @@
-import type { ChatMessage, ChatModel } from './chat.js';
+import type { ChatMessage, ChatModel, ChatMessageFeedback } from './chat.js';
 
 export interface ChatConversationRecord {
   id: string;
@@ -31,4 +31,13 @@ export interface SaveChatConversationRequest {
 
 export interface CreateChatConversationRequest {
   model?: ChatModel;
+}
+
+export interface SubmitChatMessageFeedbackRequest {
+  feedback: ChatMessageFeedback;
+}
+
+export interface SubmitChatMessageFeedbackResponse {
+  conversation: ChatConversationRecord;
+  linksLearned: number;
 }

@@ -49,8 +49,21 @@ export class GlobalRagChunksImportService {
     }
 
     const chunks = await this.readJsonl(resolved);
+    return this.importChunks(chunks, importMode, { ...options, inputPath: resolved });
+  }
+
+  async importChunks(
+    chunks: TetaKnowledgeChunkInput[],
+    importMode: RagImportMode = 'replace',
+    options?: {
+      onEmbedProgress?: (embedded: number, total: number) => void;
+      onPrepareProgress?: (message: string, done: number, total: number) => void;
+      replaceSourcePrefix?: string;
+      inputPath?: string;
+    },
+  ): Promise<GlobalRagChunksImportResult> {
     if (chunks.length === 0) {
-      throw new Error('Plik JSONL nie zawiera poprawnych rekordów wiedzy.');
+      throw new Error('Brak rekordów wiedzy do importu.');
     }
 
     const perSourceIndex = new Map<string, number>();
@@ -136,14 +149,14 @@ export class GlobalRagChunksImportService {
       version: `jsonl-${new Date().toISOString().slice(0, 10)}`,
       chunkCount,
       sources,
-      packagePath: resolved,
+      packagePath: options?.inputPath ?? '(inline)',
     });
 
     return {
       chunkCount,
       sources,
       collection: this.qdrant.globalCollection,
-      inputPath: resolved,
+      inputPath: options?.inputPath ?? '(inline)',
       importMode,
     };
   }

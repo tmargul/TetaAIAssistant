@@ -14,6 +14,8 @@ import type {
   ChatConversationsListResponse,
   CreateChatConversationRequest,
   SaveChatConversationRequest,
+  SubmitChatMessageFeedbackRequest,
+  SubmitChatMessageFeedbackResponse,
 } from '@teta/shared';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -52,6 +54,22 @@ export class ChatConversationsController {
     @Body() body: SaveChatConversationRequest,
   ): ChatConversationRecord {
     return this.conversations.saveForUser(req.user.id, { ...body, id }, getRequestWorkMode(req));
+  }
+
+  @Post(':id/messages/:messageId/feedback')
+  submitFeedback(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('messageId') messageId: string,
+    @Body() body: SubmitChatMessageFeedbackRequest,
+  ): Promise<SubmitChatMessageFeedbackResponse> {
+    return this.conversations.submitMessageFeedback(
+      req.user.id,
+      id,
+      messageId,
+      body.feedback,
+      getRequestWorkMode(req),
+    );
   }
 
   @Delete(':id')

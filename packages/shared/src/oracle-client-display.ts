@@ -7,7 +7,7 @@ export function isOracleVendorDebug(appMode: AppMode): boolean {
   return appMode === 'vendor';
 }
 
-const CLIENT_ORACLE_STEP_SUMMARY: Record<string, string> = {
+const ORACLE_PROGRESS_HINT: Record<string, string> = {
   describe_table: 'Analizuję strukturę danych…',
   describe_column: 'Sprawdzam definicję pola…',
   find_path: 'Szukam powiązań między danymi…',
@@ -17,14 +17,19 @@ const CLIENT_ORACLE_STEP_SUMMARY: Record<string, string> = {
   execute_sql: 'Pobieram dane…',
 };
 
+export function oracleProgressHint(tool: string): string {
+  return ORACLE_PROGRESS_HINT[tool] ?? 'Przetwarzam zapytanie do bazy…';
+}
+
+/** @deprecated Użyj oracleProgressHint */
 export function clientOracleTypingHint(tool: string): string {
-  return CLIENT_ORACLE_STEP_SUMMARY[tool] ?? 'Przetwarzam zapytanie do bazy…';
+  return oracleProgressHint(tool);
 }
 
 export function sanitizeOracleStepForClient(step: ChatOracleStep): ChatOracleStep {
   return {
     tool: step.tool,
-    summary: clientOracleTypingHint(step.tool),
+    summary: oracleProgressHint(step.tool),
   };
 }
 

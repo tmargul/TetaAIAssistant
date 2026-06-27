@@ -53,6 +53,7 @@ export type {
   ChatCompletionTiming,
   ChatHistoryMessage,
   ChatMessage,
+  ChatMessageFeedback,
   ChatModel,
   ChatModelsResponse,
   ChatRuntimeStatusResponse,
@@ -79,6 +80,8 @@ export type {
   ChatConversationsListResponse,
   CreateChatConversationRequest,
   SaveChatConversationRequest,
+  SubmitChatMessageFeedbackRequest,
+  SubmitChatMessageFeedbackResponse,
 } from './chat-conversations.js';
 
 export type {
@@ -174,9 +177,27 @@ export {
   ORACLE_AGENT_DOMAINS,
 } from './schema.js';
 
+export type {
+  SchemaEntityLearnConversationResult,
+  SchemaEntityLearningStatsResponse,
+  SchemaEntityLinkInput,
+  SchemaEntityLinkRecord,
+  SchemaEntityLinkSource,
+  SchemaEntityLinksListResponse,
+  SchemaEntityObjectType,
+  SchemaEntityRagSyncResult,
+} from './schema-learning.js';
+
+export {
+  SCHEMA_ENTITY_LINK_SOURCES,
+  SCHEMA_ENTITY_OBJECT_TYPES,
+  SCHEMA_ENTITY_RAG_SOURCE_PREFIX,
+} from './schema-learning.js';
+
 export {
   clientOracleTypingHint,
   isOracleVendorDebug,
+  oracleProgressHint,
   sanitizeChatMessageOracleForClient,
   sanitizeChatMessagesOracleForClient,
   sanitizeOracleReportForClient,

@@ -10,7 +10,7 @@ import type {
   OracleReport,
   SchemaTableInfo,
 } from '@teta/shared';
-import { isOracleVendorDebug, sanitizeOracleStreamEventForClient } from '@teta/shared';
+import { isOracleVendorDebug, sanitizeOracleStepForClient, sanitizeOracleStreamEventForClient } from '@teta/shared';
 import { OllamaChatService } from '../chat/ollama-chat.service';
 import { resolveChatQualityProfile } from '../chat/chat-quality.profile';
 import { ConfigService } from '@nestjs/config';
@@ -18,12 +18,19 @@ import { SchemaExplorerService } from './schema-explorer.service';
 import { OracleQueryService } from './oracle-query.service';
 import { SchemaProcedureService } from './schema-procedure.service';
 import { SchemaCrawlService } from './schema-crawl.service';
-import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
+import {
+  buildOracleThreadContext,
+  buildOracleThreadContextFromTable,
+  resolveDefaultOracleOwner,
+} from '../oracle/oracle-schema.util';
 import { getBuildAppMode } from '../rag/app-mode';
+
+import { SchemaEntityLearningService } from './schema-entity-learning.service';
 
 type AgentAction =
   | { action: 'tool'; name: string; args: Record<string, string> }
-  | { action: 'answer'; text: string; sql?: string };
+  | { action: 'answer'; text: string; sql?: string }
+  | { action: 'clarify'; text: string };
 
 const DOMAIN_PROMPTS: Record<OracleAgentDomain, string> = {
   general: 'Jesteś asystentem bazy Teta — ogólny kontekst schematu.',
@@ -42,6 +49,7 @@ export class OracleAgentService {
     private readonly query: OracleQueryService,
     private readonly procedures: SchemaProcedureService,
     private readonly crawl: SchemaCrawlService,
+    private readonly schemaLearning: SchemaEntityLearningService,
   ) {}
 
   async streamComplete(
@@ -55,7 +63,15 @@ export class OracleAgentService {
     res.setHeader('X-Accel-Buffering', 'no');
 
     const writeEvent = (event: ChatStreamEvent) => {
-      const payload = showOracleDebug ? event : sanitizeOracleStreamEventForClient(event);
+      let payload: ChatStreamEvent | null = event;
+      if (event.type === 'oracle_step') {
+        payload = {
+          type: 'oracle_step',
+          step: sanitizeOracleStepForClient(event.step),
+        };
+      } else if (!showOracleDebug) {
+        payload = sanitizeOracleStreamEventForClient(event);
+      }
       if (!payload) return;
       res.write(`${JSON.stringify(payload)}\n`);
     };
@@ -81,15 +97,31 @@ export class OracleAgentService {
       }
 
       const profile = resolveChatQualityProfile(input.quality, this.config);
-      const history = this.normalizeHistory(input.history, profile.maxHistory, profile.maxHistoryChars);
-      const maxIterations = Number(this.config.get('TETA_ORACLE_AGENT_MAX_STEPS', 8));
+      const history = this.normalizeHistory(
+        input.history,
+        Math.max(
+          profile.maxHistory,
+          Number(this.config.get('TETA_ORACLE_AGENT_MAX_HISTORY', 8)),
+        ),
+        Math.max(
+          profile.maxHistoryChars,
+          Number(this.config.get('TETA_ORACLE_AGENT_MAX_HISTORY_CHARS', 800)),
+        ),
+      );
+      const maxIterations = Number(this.config.get('TETA_ORACLE_AGENT_MAX_STEPS', 10));
+
+      const entityLinks = this.schemaLearning.isLearningEnabled()
+        ? await this.schemaLearning.findRelevantForQuery(message, domain)
+        : [];
+      const entityContext = this.schemaLearning.formatHintsForPrompt(entityLinks);
 
       const toolContext: string[] = [];
       let finalAnswer = '';
       let lastDescribeTable: SchemaTableInfo | null = null;
+      let oracleThreadContext: string | undefined;
 
       for (let i = 0; i < maxIterations; i += 1) {
-        const systemPrompt = this.buildSystemPrompt(domain, toolContext);
+        const systemPrompt = this.buildSystemPrompt(domain, toolContext, entityContext);
         const agentPrompt = this.buildAgentPrompt(message, i);
 
         const response = await this.ollama.complete(
@@ -108,6 +140,11 @@ export class OracleAgentService {
           break;
         }
 
+        if (action.action === 'clarify') {
+          finalAnswer = action.text.trim();
+          break;
+        }
+
         if (action.action === 'answer') {
           if (action.sql?.trim()) {
             const report = await this.runSql(
@@ -120,10 +157,21 @@ export class OracleAgentService {
               reports,
             );
             finalAnswer = this.buildSqlResultSummary(report);
+            oracleThreadContext = buildOracleThreadContext(report);
           } else if (this.isRequiredColumnsQuestion(message) && lastDescribeTable) {
             finalAnswer = this.buildRequiredColumnsAnswer(lastDescribeTable);
+            oracleThreadContext = buildOracleThreadContextFromTable(
+              lastDescribeTable.owner,
+              lastDescribeTable.name,
+            );
           } else {
             finalAnswer = action.text.trim();
+            if (lastDescribeTable) {
+              oracleThreadContext = buildOracleThreadContextFromTable(
+                lastDescribeTable.owner,
+                lastDescribeTable.name,
+              );
+            }
           }
           break;
         }
@@ -131,6 +179,10 @@ export class OracleAgentService {
         const toolResult = await this.runTool(action.name, action.args, domain, userId);
         if (toolResult.describeTable) {
           lastDescribeTable = toolResult.describeTable;
+          oracleThreadContext = buildOracleThreadContextFromTable(
+            toolResult.describeTable.owner,
+            toolResult.describeTable.name,
+          );
         }
         const step: ChatOracleStep = {
           tool: action.name,
@@ -157,9 +209,9 @@ export class OracleAgentService {
         model: input.model,
         createdAt: new Date().toISOString(),
         timing: { totalMs, ragMs: 0, llmMs: totalMs },
-        oracleSteps: steps,
-        oracleSql: sqlSteps,
+        oracleSql: showOracleDebug ? sqlSteps : undefined,
         oracleReports: reports,
+        oracleThreadContext,
       });
       res.end();
     } catch (error) {
@@ -344,7 +396,11 @@ export class OracleAgentService {
     return msg;
   }
 
-  private buildSystemPrompt(domain: OracleAgentDomain, toolContext: string[]): string {
+  private buildSystemPrompt(
+    domain: OracleAgentDomain,
+    toolContext: string[],
+    entityContext = '',
+  ): string {
     const defaultOwner = resolveDefaultOracleOwner(this.config);
     return `${DOMAIN_PROMPTS[domain]}
 
@@ -362,8 +418,18 @@ Dostępne narzędzia (zwróć JSON):
 
 Format odpowiedzi (jeden obiekt JSON, bez markdown):
 {"action":"tool","name":"describe_table","args":{"table":"NAZWA"}}
+lub gdy brakuje informacji (nie zgaduj tabeli):
+{"action":"clarify","text":"Dopytaj użytkownika po polsku, np. o nazwę tabeli lub moduł."}
 lub po zebraniu faktów:
 {"action":"answer","text":"krótkie podsumowanie po polsku","sql":"SELECT ..."}
+
+Dopytywanie użytkownika:
+- Gdy nie wiesz, która tabela/widok/pakiet odpowiada pytaniu i brak pewnego powiązania w kontekście — użyj {"action":"clarify","text":"…"} zamiast zgadywać.
+- Pytaj konkretnie: „Która tabela przechowuje pracowników?” albo „Czy chodzi o T_PRAC?”.
+- Po odpowiedzi użytkownika z nazwą obiektu kontynuuj z narzędziami.
+
+Powiązania tag → obiekt (z doświadczenia):
+${entityContext || 'Brak zapisanych powiązań — użyj search_tables lub dopytaj użytkownika.'}
 
 Raporty danych (wiersze z bazy):
 - Gdy użytkownik prosi o listę rekordów, zestawienie, raport lub konkretne DANE — zakończ odpowiedzią z polem sql (SELECT).
@@ -377,7 +443,9 @@ Struktura tabeli (metadane — kolumny, typy, NOT NULL, PK):
 - „Pola obowiązkowe w formularzu Teta” mogą się różnić od metadanych Oracle — nie zgaduj reguł biznesowych.
 
 Kontekst wątku:
-- Jeśli w historii jest [SQL: … FROM ${defaultOwner}.TABELA …] — kontynuuj odniesienie do tej samej tabeli, dopóki użytkownik nie wskaże innej.
+- W historii mogą być linie [Kontekst wątku Oracle: …] lub [SQL: … FROM ${defaultOwner}.TABELA …] — kontynuuj tę samą tabelę.
+- Gdy użytkownik pyta o „pracowników”, „tej tabeli”, „na literę Z” bez nazwy tabeli — użyj ostatniego kontekstu; nie zaczynaj od search_tables od zera.
+- Jeśli znasz tabelę z wątku, możesz od razu zbudować SELECT (describe_table tylko gdy brakuje kolumn).
 
 Zasady SQL:
 - tylko SELECT
@@ -439,9 +507,15 @@ ${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : 'Z
 
   private buildAgentPrompt(message: string, iteration: number): string {
     if (iteration === 0) {
-      return `Pytanie użytkownika: ${message}\n\nZdecyduj jakie narzędzie wywołać (JSON).`;
+      return `Pytanie użytkownika: ${message}
+
+Uwzględnij historię rozmowy powyżej (szczególnie [Kontekst wątku Oracle] / [SQL]). Pytania uzupełniające bez nazwy tabeli odnoszą się do ostatniego kontekstu.
+
+Zdecyduj jakie narzędzie wywołać (JSON).`;
     }
-    return `Kontynuuj analizę pytania: ${message}\n\nMasz wyniki poprzednich narzędzi w kontekście. Zwróć kolejne narzędzie lub finalną odpowiedź (JSON).`;
+    return `Kontynuuj analizę pytania: ${message}
+
+Masz wyniki poprzednich narzędzi w kontekście systemowym. Jeśli masz już tabelę i kolumny — zwróć {"action":"answer","text":"—","sql":"SELECT …"}.`;
   }
 
   private parseAction(raw: string): AgentAction | null {
@@ -456,6 +530,9 @@ ${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : 'Z
       }
       if (parsed.action === 'answer' && parsed.text) {
         return parsed;
+      }
+      if (parsed.action === 'clarify' && parsed.text) {
+        return { action: 'clarify', text: parsed.text };
       }
       return null;
     } catch {

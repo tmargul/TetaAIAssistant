@@ -243,11 +243,85 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
         duration_ms INTEGER,
         created_at TEXT NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS schema_entity_links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        object_type TEXT NOT NULL CHECK (object_type IN ('table', 'view', 'package', 'procedure', 'function')),
+        owner TEXT,
+        name TEXT NOT NULL,
+        column_hints TEXT,
+        confidence REAL NOT NULL DEFAULT 1.0,
+        use_count INTEGER NOT NULL DEFAULT 1,
+        source TEXT NOT NULL CHECK (source IN ('seed', 'learned', 'admin', 'conversation', 'clarification', 'confirmed')),
+        user_question TEXT,
+        conversation_id TEXT,
+        notes TEXT,
+        created_by INTEGER REFERENCES users(id),
+        created_at TEXT NOT NULL,
+        last_used_at TEXT,
+        UNIQUE(object_type, owner, name)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_schema_entity_links_name ON schema_entity_links(name);
+      CREATE INDEX IF NOT EXISTS idx_schema_entity_links_owner_name ON schema_entity_links(owner, name);
+
+      CREATE TABLE IF NOT EXISTS schema_entity_tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        link_id INTEGER NOT NULL REFERENCES schema_entity_links(id) ON DELETE CASCADE,
+        tag TEXT NOT NULL COLLATE NOCASE,
+        UNIQUE(link_id, tag)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_schema_entity_tags_tag ON schema_entity_tags(tag);
+
+      CREATE TABLE IF NOT EXISTS schema_learning_sync (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        last_synced_at TEXT,
+        rag_chunk_count INTEGER NOT NULL DEFAULT 0
+      );
     `);
 
     this.ensureColumn('oracle_metadata_import_jobs', 'catalog_totals_json', 'TEXT');
     this.ensureColumn('oracle_metadata_import_jobs', 'import_limits_json', 'TEXT');
     this.ensureColumn('schema_columns', 'data_default', 'TEXT');
+    this.migrateSchemaEntityLinkSources();
+  }
+
+  private migrateSchemaEntityLinkSources() {
+    const ddl = this.db
+      .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'schema_entity_links'")
+      .get() as { sql?: string } | undefined;
+    if (!ddl?.sql || ddl.sql.includes("'confirmed'")) {
+      return;
+    }
+
+    this.db.exec(`
+      PRAGMA foreign_keys = OFF;
+      CREATE TABLE schema_entity_links_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        object_type TEXT NOT NULL CHECK (object_type IN ('table', 'view', 'package', 'procedure', 'function')),
+        owner TEXT,
+        name TEXT NOT NULL,
+        column_hints TEXT,
+        confidence REAL NOT NULL DEFAULT 1.0,
+        use_count INTEGER NOT NULL DEFAULT 1,
+        source TEXT NOT NULL CHECK (source IN ('seed', 'learned', 'admin', 'conversation', 'clarification', 'confirmed')),
+        user_question TEXT,
+        conversation_id TEXT,
+        notes TEXT,
+        created_by INTEGER REFERENCES users(id),
+        created_at TEXT NOT NULL,
+        last_used_at TEXT,
+        UNIQUE(object_type, owner, name)
+      );
+      INSERT INTO schema_entity_links_new
+      SELECT * FROM schema_entity_links;
+      DROP TABLE schema_entity_links;
+      ALTER TABLE schema_entity_links_new RENAME TO schema_entity_links;
+      CREATE INDEX IF NOT EXISTS idx_schema_entity_links_name ON schema_entity_links(name);
+      CREATE INDEX IF NOT EXISTS idx_schema_entity_links_owner_name ON schema_entity_links(owner, name);
+      PRAGMA foreign_keys = ON;
+    `);
   }
 
   private ensureColumn(table: string, column: string, definition: string) {

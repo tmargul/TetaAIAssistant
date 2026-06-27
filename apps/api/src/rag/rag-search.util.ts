@@ -63,6 +63,7 @@ export const RAG_SOURCE_TYPE_LABELS: Record<KnowledgeSourceType, string> = {
   documentation: 'Dokumentacja',
   faq: 'FAQ',
   oracle_package: 'Pakiet Oracle',
+  schema_entity: 'Powiązanie schematu (tag → obiekt)',
   client_document: 'Dokument klienta',
   other: 'Inne',
 };

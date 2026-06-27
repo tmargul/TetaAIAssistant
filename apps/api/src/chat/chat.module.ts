@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { RagCoreModule } from '../rag/rag-core.module';
+import { SchemaLearningModule } from '../schema/schema-learning.module';
 import { SchemaModule } from '../schema/schema.module';
 import { ChatConversationsController } from './chat-conversations.controller';
 import { ChatConversationsService } from './chat-conversations.service';
@@ -13,6 +14,7 @@ import { OllamaModule } from './ollama.module';
     forwardRef(() => AuthModule),
     RagCoreModule,
     OllamaModule,
+    SchemaLearningModule,
     forwardRef(() => SchemaModule),
   ],
   controllers: [ChatController, ChatConversationsController],

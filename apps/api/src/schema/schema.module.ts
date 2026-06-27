@@ -10,9 +10,15 @@ import { OracleAgentService } from './oracle-agent.service';
 import { OracleQueryService } from './oracle-query.service';
 import { SchemaProcedureService } from './schema-procedure.service';
 import { SqlValidatorService } from './sql-validator.service';
+import { SchemaLearningModule } from './schema-learning.module';
 
 @Module({
-  imports: [forwardRef(() => AuthModule), forwardRef(() => OracleModule), OllamaModule],
+  imports: [
+    forwardRef(() => AuthModule),
+    forwardRef(() => OracleModule),
+    OllamaModule,
+    SchemaLearningModule,
+  ],
   controllers: [SchemaController],
   providers: [
     SchemaGraphService,

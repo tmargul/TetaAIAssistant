@@ -6,14 +6,17 @@ import {
   type ChatConversationRecord,
   type ChatConversationSummary,
   type ChatMessage,
+  type ChatMessageFeedback,
   type ChatModel,
   type CreateChatConversationRequest,
   type SaveChatConversationRequest,
+  type SubmitChatMessageFeedbackResponse,
   isOracleVendorDebug,
   sanitizeChatMessagesOracleForClient,
 } from '@teta/shared';
 import { DatabaseService } from '../database/database.service';
 import { getBuildAppMode } from '../rag/app-mode';
+import { SchemaEntityLearningService } from '../schema/schema-entity-learning.service';
 
 const MAX_CONVERSATIONS_PER_USER = 40;
 
@@ -38,7 +41,10 @@ interface SummaryRow {
 
 @Injectable()
 export class ChatConversationsService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly schemaLearning: SchemaEntityLearningService,
+  ) {}
 
   listForUser(userId: number, workMode = getBuildAppMode()): ChatConversationSummary[] {
     const rows = this.db.connection
@@ -115,6 +121,68 @@ export class ChatConversationsService {
     return this.getForUser(userId, input.id, workMode);
   }
 
+  async submitMessageFeedback(
+    userId: number,
+    conversationId: string,
+    messageId: string,
+    feedback: ChatMessageFeedback,
+    workMode: AppMode = getBuildAppMode(),
+  ): Promise<SubmitChatMessageFeedbackResponse> {
+    if (getBuildAppMode() !== 'vendor') {
+      throw new BadRequestException('Ocena odpowiedzi Oracle jest dostępna tylko w instalacji vendor.');
+    }
+    if (workMode !== 'vendor') {
+      throw new BadRequestException('Zapis do RAG Oracle wymaga trybu pracy Vendor.');
+    }
+    if (feedback !== 'up' && feedback !== 'down') {
+      throw new BadRequestException('Niepoprawna ocena wiadomości.');
+    }
+
+    const row = this.db.connection
+      .prepare('SELECT * FROM chat_conversations WHERE id = ? AND user_id = ?')
+      .get(conversationId, userId) as ConversationRow | undefined;
+
+    if (!row) {
+      throw new NotFoundException('Nie znaleziono rozmowy.');
+    }
+
+    const messages = this.parseMessagesJson(row.messages_json);
+    const messageIndex = messages.findIndex((item) => item.id === messageId);
+    if (messageIndex < 0) {
+      throw new NotFoundException('Nie znaleziono wiadomości w rozmowie.');
+    }
+
+    const target = messages[messageIndex];
+    if (target.role !== 'assistant' || target.streaming) {
+      throw new BadRequestException('Można ocenić tylko zakończoną odpowiedź asystenta.');
+    }
+
+    const updatedMessages = messages.map((item) =>
+      item.id === messageId ? { ...item, feedback, streaming: false } : item,
+    );
+
+    const now = new Date().toISOString();
+    this.db.connection
+      .prepare(
+        'UPDATE chat_conversations SET messages_json = ?, updated_at = ? WHERE id = ? AND user_id = ?',
+      )
+      .run(JSON.stringify(updatedMessages), now, conversationId, userId);
+
+    let linksLearned = 0;
+    if (feedback === 'up') {
+      linksLearned = await this.schemaLearning.learnFromApprovedMessage(
+        updatedMessages,
+        messageId,
+        { userId, conversationId },
+      );
+    }
+
+    return {
+      conversation: this.getForUser(userId, conversationId, workMode),
+      linksLearned,
+    };
+  }
+
   deleteForUser(userId: number, id: string): void {
     const result = this.db.connection
       .prepare('DELETE FROM chat_conversations WHERE id = ? AND user_id = ?')
@@ -122,6 +190,15 @@ export class ChatConversationsService {
 
     if (result.changes === 0) {
       throw new NotFoundException('Nie znaleziono rozmowy.');
+    }
+  }
+
+  private parseMessagesJson(json: string): ChatMessage[] {
+    try {
+      const parsed = JSON.parse(json) as ChatMessage[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
     }
   }
 

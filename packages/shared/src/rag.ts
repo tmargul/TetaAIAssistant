@@ -118,6 +118,7 @@ export const KNOWLEDGE_SOURCE_TYPES = [
   'documentation',
   'faq',
   'oracle_package',
+  'schema_entity',
   'client_document',
   'other',
 ] as const;
