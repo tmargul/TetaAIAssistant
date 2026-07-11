@@ -11,6 +11,7 @@ import { OracleQueryService } from './oracle-query.service';
 import { SchemaProcedureService } from './schema-procedure.service';
 import { SqlValidatorService } from './sql-validator.service';
 import { SchemaLearningModule } from './schema-learning.module';
+import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SchemaLearningModule } from './schema-learning.module';
     forwardRef(() => OracleModule),
     OllamaModule,
     SchemaLearningModule,
+    TetaPluginsCoreModule,
   ],
   controllers: [SchemaController],
   providers: [

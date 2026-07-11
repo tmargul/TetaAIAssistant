@@ -130,6 +130,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] Ścieżki Teta (vendor): share VM + mapowanie dysku na hoście — **Ustawienia → Aplikacja Teta** zapisuje poprawnie
 - [ ] Admin zarejestrowany na real Oracle (nie fake `teta_admin`)
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
+- [ ] **Oracle agent + wtyczki:** przetestować w czacie (źródło „Baza Oracle”) pytanie o dane z formularza np. wykształcenie → tabela w wyniku
 
 ---
 
@@ -170,6 +171,13 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Źródła `.cs`: `TETA_PLUGIN_SOURCE_ROOT` → katalog serwera → katalog klienta
 - RAG: `source_type=teta_plugin`, prefiks `teta-plugins/{relativePath}/…`, kolekcja `teta_global`, merge + replace chunków po źródłach
 - SQLite: `teta_plugin_imports.metadata_json` — snapshot metadanych po imporcie
+
+**Oracle agent + wtyczki (2026-07-11):**
+- Tryb czatu **Baza Oracle** (`source=oracle`) przed pętlą agenta robi RAG po `source_type=teta_plugin`
+- Trafienia → `metadata_json` (SQLite) → widok, alias, sugerowany `Direct.Select`
+- Wstrzykiwane do promptu agenta (`TetaPluginHintsService`, `oracle-agent.service.ts`)
+- Agent wykonuje SELECT przez istniejący `OracleQueryService` → `oracle_report` w UI (tabela)
+- Wymaga: import wtyczki + **Analizuj bazę** (graf schematu) + Oracle real
 
 ### 2026-06-05 (komputer 2 → kontekst z czatu)
 

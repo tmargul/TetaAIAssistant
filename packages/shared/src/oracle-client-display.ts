@@ -15,6 +15,7 @@ const ORACLE_PROGRESS_HINT: Record<string, string> = {
   get_package_source: 'Odczytuję dokumentację techniczną…',
   call_procedure: 'Wywołuję procedurę systemową…',
   execute_sql: 'Pobieram dane…',
+  plugin_rag: 'Szukam w metadanych wtyczek…',
 };
 
 export function oracleProgressHint(tool: string): string {

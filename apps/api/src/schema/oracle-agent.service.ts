@@ -26,6 +26,8 @@ import {
 import { getBuildAppMode } from '../rag/app-mode';
 
 import { SchemaEntityLearningService } from './schema-entity-learning.service';
+import { TetaPluginHintsService } from '../teta-plugins/teta-plugin-hints.service';
+import { isDataQueryIntent } from '../teta-plugins/teta-plugin-query-resolver';
 
 type AgentAction =
   | { action: 'tool'; name: string; args: Record<string, string> }
@@ -50,6 +52,7 @@ export class OracleAgentService {
     private readonly procedures: SchemaProcedureService,
     private readonly crawl: SchemaCrawlService,
     private readonly schemaLearning: SchemaEntityLearningService,
+    private readonly pluginHints: TetaPluginHintsService,
   ) {}
 
   async streamComplete(
@@ -77,6 +80,7 @@ export class OracleAgentService {
     };
 
     const startedAt = Date.now();
+    let ragMs = 0;
     const showOracleDebug = isOracleVendorDebug(workMode);
     const domain = input.oracleDomain ?? 'general';
     const steps: ChatOracleStep[] = [];
@@ -115,14 +119,27 @@ export class OracleAgentService {
         : [];
       const entityContext = this.schemaLearning.formatHintsForPrompt(entityLinks);
 
+      const ragStartedAt = Date.now();
+      const pluginHints = await this.pluginHints.findHintsForQuery(message);
+      ragMs = Date.now() - ragStartedAt;
+      const pluginContext = pluginHints.promptSection;
+      if (pluginHints.hasPluginMetadata) {
+        const step: ChatOracleStep = {
+          tool: 'plugin_rag',
+          summary: `${pluginHints.gateways.length} wskazówek z metadanych wtyczek`,
+        };
+        steps.push(step);
+        writeEvent({ type: 'oracle_step', step });
+      }
+
       const toolContext: string[] = [];
       let finalAnswer = '';
       let lastDescribeTable: SchemaTableInfo | null = null;
       let oracleThreadContext: string | undefined;
 
       for (let i = 0; i < maxIterations; i += 1) {
-        const systemPrompt = this.buildSystemPrompt(domain, toolContext, entityContext);
-        const agentPrompt = this.buildAgentPrompt(message, i);
+        const systemPrompt = this.buildSystemPrompt(domain, toolContext, entityContext, pluginContext);
+        const agentPrompt = this.buildAgentPrompt(message, i, pluginHints.hasPluginMetadata);
 
         const response = await this.ollama.complete(
           [
@@ -208,7 +225,7 @@ export class OracleAgentService {
         content: finalAnswer,
         model: input.model,
         createdAt: new Date().toISOString(),
-        timing: { totalMs, ragMs: 0, llmMs: totalMs },
+        timing: { totalMs, ragMs, llmMs: Math.max(0, totalMs - ragMs) },
         oracleSql: showOracleDebug ? sqlSteps : undefined,
         oracleReports: reports,
         oracleThreadContext,
@@ -400,8 +417,20 @@ export class OracleAgentService {
     domain: OracleAgentDomain,
     toolContext: string[],
     entityContext = '',
+    pluginContext = '',
   ): string {
     const defaultOwner = resolveDefaultOracleOwner(this.config);
+    const pluginSection = pluginContext
+      ? `Metadane wtyczek Teta (RAG — **preferuj** te widoki i SELECT nad zgadywaniem tabel):
+${pluginContext}
+
+Gdy powyżej jest widok i sugerowany SELECT:
+- użyj tego widoku jako źródła danych dla raportu
+- dołącz JOIN/WHERE zgodnie z pytaniem (np. filtr pracownika po nazwisku, ID, PESEL)
+- describe_table tylko gdy brakuje kolumn do SELECT
+- jeśli użytkownik prosi o dane — zakończ {"action":"answer","text":"—","sql":"SELECT …"}`
+      : '';
+
     return `${DOMAIN_PROMPTS[domain]}
 
 Odpowiadasz WYŁĄCZNIE na podstawie narzędzi schematu i wyników SQL — nie zgaduj struktury bazy.
@@ -431,7 +460,7 @@ Dopytywanie użytkownika:
 Powiązania tag → obiekt (z doświadczenia):
 ${entityContext || 'Brak zapisanych powiązań — użyj search_tables lub dopytaj użytkownika.'}
 
-Raporty danych (wiersze z bazy):
+${pluginSection ? `${pluginSection}\n\n` : ''}Raporty danych (wiersze z bazy):
 - Gdy użytkownik prosi o listę rekordów, zestawienie, raport lub konkretne DANE — zakończ odpowiedzią z polem sql (SELECT).
 - Pole text przy sql: krótki placeholder (np. "—") — liczbę wierszy system ustawi z wyniku zapytania.
 
@@ -455,7 +484,7 @@ Zasady SQL:
 - bez średnika na końcu SQL
 - NIGDY nie pisz użytkownikowi „wykonaj zapytanie SQL” — sam zwróć {"action":"answer","text":"…","sql":"SELECT …"}
 
-${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : 'Zacznij od search_tables lub describe_table jeśli nie znasz tabel.'}`;
+${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : pluginContext ? 'Masz wskazówki z metadanych wtyczki — możesz od razu zbudować SELECT lub użyć describe_table na widoku.' : 'Zacznij od search_tables lub describe_table jeśli nie znasz tabel.'}`;
   }
 
   private isRequiredColumnsQuestion(message: string): boolean {
@@ -505,11 +534,16 @@ ${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : 'Z
     return lines.join('\n');
   }
 
-  private buildAgentPrompt(message: string, iteration: number): string {
+  private buildAgentPrompt(message: string, iteration: number, hasPluginHints: boolean): string {
     if (iteration === 0) {
+      const dataIntent = isDataQueryIntent(message);
+      const pluginNote =
+        hasPluginHints && dataIntent
+          ? '\nUżytkownik prosi o dane — jeśli masz widok/SELECT z metadanych wtyczki, zbuduj zapytanie i zwróć answer z sql.'
+          : '';
       return `Pytanie użytkownika: ${message}
 
-Uwzględnij historię rozmowy powyżej (szczególnie [Kontekst wątku Oracle] / [SQL]). Pytania uzupełniające bez nazwy tabeli odnoszą się do ostatniego kontekstu.
+Uwzględnij historię rozmowy powyżej (szczególnie [Kontekst wątku Oracle] / [SQL]). Pytania uzupełniające bez nazwy tabeli odnoszą się do ostatniego kontekstu.${pluginNote}
 
 Zdecyduj jakie narzędzie wywołać (JSON).`;
     }

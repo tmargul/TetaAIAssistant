@@ -20,14 +20,14 @@ import { VendorSchemaLearningController } from '../schema/vendor-schema-learning
 import { OracleModule } from '../oracle/oracle.module';
 import { TetaAppPathsService } from '../teta-app/teta-app-paths.service';
 import { VendorTetaAppController } from '../teta-app/vendor-teta-app.controller';
-import { TetaPluginRegistryService } from '../teta-plugins/teta-plugin-registry.service';
 import { TetaPluginImportService } from '../teta-plugins/teta-plugin-import.service';
 import { TetaPluginsService } from '../teta-plugins/teta-plugins.service';
 import { TetaPluginOracleColumnsService } from '../teta-plugins/teta-plugin-oracle-columns.service';
+import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module';
 import { VendorTetaPluginsController } from '../teta-plugins/vendor-teta-plugins.controller';
 
 @Module({
-  imports: [RagCoreModule, AuthModule, SchemaLearningModule, OracleModule],
+  imports: [RagCoreModule, AuthModule, SchemaLearningModule, OracleModule, TetaPluginsCoreModule],
   controllers: [
     VendorRagController,
     VendorPackagesController,
@@ -49,7 +49,6 @@ import { VendorTetaPluginsController } from '../teta-plugins/vendor-teta-plugins
     VendorAccessGuard,
     VendorGuard,
     TetaAppPathsService,
-    TetaPluginRegistryService,
     TetaPluginsService,
     TetaPluginImportService,
     TetaPluginOracleColumnsService,
