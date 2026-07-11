@@ -4,6 +4,7 @@ import type {
   TetaPluginGatewayMeta,
   TetaPluginMetadataBundle,
 } from './teta-plugin-metadata.types';
+import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
 
 export type TetaPluginGatewayHint = {
   dllName: string;
@@ -21,9 +22,22 @@ export type TetaPluginGatewayHint = {
   ragScore?: number;
 };
 
+export type TetaPluginColumnHint = {
+  dllName: string;
+  formName?: string;
+  label: string;
+  columnName: string;
+  confidence: number;
+  targetObject?: string | null;
+  resolvedColumnName?: string | null;
+  synonyms?: string[];
+};
+
 export type TetaPluginOracleHints = {
   promptSection: string;
   gateways: TetaPluginGatewayHint[];
+  columnHints: TetaPluginColumnHint[];
+  columnMappings: TetaPluginColumnMapping[];
   hasPluginMetadata: boolean;
 };
 
@@ -62,7 +76,7 @@ export function parseRelativePathFromRagSource(source: string): string | null {
   }
 
   const rest = source.slice(TETA_PLUGIN_RAG_SOURCE_PREFIX.length);
-  const cutPatterns = ['/forms/', '/overview'];
+  const cutPatterns = ['/forms/', '/overview', '/columns'];
   let cutAt = -1;
   for (const pattern of cutPatterns) {
     const index = rest.indexOf(pattern);
@@ -83,10 +97,27 @@ export function parseRelativePathFromRagSource(source: string): string | null {
 }
 
 export function extractExecutableSelect(gateway: TetaPluginGatewayMeta): string | null {
-  const direct = gateway.Sql?.Direct?.Select?.trim();
-  if (direct && /^SELECT\s/i.test(direct)) {
-    return direct;
+  const labeled = gateway.Sql?.LabeledSelect?.trim();
+  if (labeled) {
+    return labeled;
   }
+
+  const candidates = [
+    gateway.Sql?.BuilderText?.Select,
+    gateway.Sql?.BuilderSumo?.Select,
+    gateway.Sql?.Direct?.Select,
+  ];
+
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (!trimmed) {
+      continue;
+    }
+    if (/^SELECT\s/i.test(trimmed) || trimmed.includes('<SqlColumns>')) {
+      return trimmed;
+    }
+  }
+
   return null;
 }
 
@@ -228,6 +259,44 @@ export function formatPluginHintsForPrompt(
   });
 
   return lines.join('\n');
+}
+
+export function formatColumnHintsForPrompt(hints: TetaPluginColumnHint[], query?: string): string {
+  if (hints.length === 0) {
+    return '';
+  }
+
+  const intentNote =
+    query && /\b(?:o|z|ze)\b/i.test(query)
+      ? ' W pytaniach typu «podaj X o Y wartość»: X → SELECT, Y (przed wartością) → WHERE.'
+      : '';
+
+  const lines = hints.slice(0, 12).map((hint) => {
+    const column = hint.resolvedColumnName ?? hint.columnName;
+    const objectSuffix = hint.targetObject ? ` w ${hint.targetObject}` : '';
+    const sourceNote =
+      hint.resolvedColumnName && hint.resolvedColumnName !== hint.columnName
+        ? ` (kolumna wtyczki: ${hint.columnName})`
+        : '';
+    const synonymPart =
+      hint.synonyms && hint.synonyms.length > 0 ? `; synonimy: ${hint.synonyms.join(', ')}` : '';
+    return `- etykieta „${hint.label}” → **${column}**${objectSuffix}${sourceNote}${synonymPart} (${hint.dllName})`;
+  });
+
+  return `Mapowanie etykiet grida / synonimów → kolumny Oracle (z SELECT gatewaya — użyj kolumny technicznej w SQL, etykiety tylko do dopasowania pytania):${intentNote}\n${lines.join('\n')}`;
+}
+
+export function formatPluginOracleHintsForPrompt(
+  gateways: TetaPluginGatewayHint[],
+  columnHints: TetaPluginColumnHint[],
+  defaultOwner: string,
+  query?: string,
+): string {
+  const parts = [
+    formatPluginHintsForPrompt(gateways, defaultOwner),
+    formatColumnHintsForPrompt(columnHints, query),
+  ].filter(Boolean);
+  return parts.join('\n\n');
 }
 
 export function isDataQueryIntent(message: string): boolean {

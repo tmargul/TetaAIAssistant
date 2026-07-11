@@ -89,6 +89,87 @@ export function discoverOracleObjectsFromStrings(strings: string[]): TetaPluginO
   };
 }
 
+export type OracleObjectVerifier = (
+  objectName: string,
+) => Promise<'TABLE' | 'VIEW' | 'PACKAGE' | null>;
+
+export async function filterDiscoveryByOracle(
+  discovery: TetaPluginOracleDiscovery,
+  verify: OracleObjectVerifier,
+): Promise<TetaPluginOracleDiscovery> {
+  const tables: string[] = [];
+  for (const name of discovery.tables) {
+    const kind = await verify(name);
+    if (kind === 'TABLE') {
+      tables.push(name);
+    }
+  }
+
+  const views: string[] = [];
+  for (const name of discovery.views) {
+    const kind = await verify(name);
+    if (kind === 'VIEW') {
+      views.push(name);
+    }
+  }
+
+  const packagesDac: string[] = [];
+  for (const name of discovery.packagesDac) {
+    const kind = await verify(name);
+    if (kind === 'PACKAGE') {
+      packagesDac.push(name);
+    }
+  }
+
+  const packagesAgl: string[] = [];
+  for (const name of discovery.packagesAgl) {
+    const kind = await verify(name);
+    if (kind === 'PACKAGE') {
+      packagesAgl.push(name);
+    }
+  }
+
+  const packagesLep: string[] = [];
+  for (const name of discovery.packagesLep) {
+    const kind = await verify(name);
+    if (kind === 'PACKAGE') {
+      packagesLep.push(name);
+    }
+  }
+
+  return {
+    ...discovery,
+    tables: sortUnique(tables),
+    views: sortUnique(views),
+    packagesDac: sortUnique(packagesDac),
+    packagesAgl: sortUnique(packagesAgl),
+    packagesLep: sortUnique(packagesLep),
+  };
+}
+
+export async function filterDiscoveryByOracleBatch(
+  discovery: TetaPluginOracleDiscovery,
+  classify: (objectNames: string[]) => Promise<Map<string, 'TABLE' | 'VIEW' | 'PACKAGE'>>,
+): Promise<TetaPluginOracleDiscovery> {
+  const candidates = sortUnique([
+    ...discovery.tables,
+    ...discovery.views,
+    ...discovery.packagesDac,
+    ...discovery.packagesAgl,
+    ...discovery.packagesLep,
+  ]);
+  const kinds = await classify(candidates);
+
+  return {
+    ...discovery,
+    tables: discovery.tables.filter((name) => kinds.get(name.toUpperCase()) === 'TABLE'),
+    views: discovery.views.filter((name) => kinds.get(name.toUpperCase()) === 'VIEW'),
+    packagesDac: discovery.packagesDac.filter((name) => kinds.get(name.toUpperCase()) === 'PACKAGE'),
+    packagesAgl: discovery.packagesAgl.filter((name) => kinds.get(name.toUpperCase()) === 'PACKAGE'),
+    packagesLep: discovery.packagesLep.filter((name) => kinds.get(name.toUpperCase()) === 'PACKAGE'),
+  };
+}
+
 export function discoverOracleObjectsFromBoDlls(dllPaths: string[]): TetaPluginOracleDiscovery {
   const merged: TetaPluginOracleDiscovery = {
     views: [],

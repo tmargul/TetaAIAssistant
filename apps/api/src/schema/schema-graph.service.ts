@@ -268,4 +268,77 @@ export class SchemaGraphService {
     }
     return set;
   }
+
+  getColumnDetailsForTable(tableRef: string): Array<{ name: string; comment: string | null }> {
+    const parsed = this.parseTableRef(tableRef);
+    if (!parsed) {
+      return [];
+    }
+
+    const preferredOwner = resolveDefaultOracleOwner(this.config);
+    const row = this.db.connection
+      .prepare(
+        `SELECT id
+         FROM schema_nodes
+         WHERE UPPER(name) = UPPER(?)
+           AND (? IS NULL OR UPPER(owner) = UPPER(?))
+         ORDER BY CASE WHEN UPPER(owner) = UPPER(?) THEN 0 ELSE 1 END,
+                  CASE node_type WHEN 'table' THEN 0 WHEN 'view' THEN 1 ELSE 2 END
+         LIMIT 1`,
+      )
+      .get(parsed.name, parsed.owner, parsed.owner, preferredOwner) as { id: number } | undefined;
+
+    if (!row) {
+      return [];
+    }
+
+    return this.db.connection
+      .prepare(
+        `SELECT name, comment
+         FROM schema_columns
+         WHERE node_id = ?
+         ORDER BY name`,
+      )
+      .all(row.id) as Array<{ name: string; comment: string | null }>;
+  }
+
+  getColumnsForTableNames(tableNames: string[]): Map<string, Set<string>> {
+    const result = new Map<string, Set<string>>();
+    const preferredOwner = resolveDefaultOracleOwner(this.config);
+
+    for (const tableRef of tableNames) {
+      const parsed = this.parseTableRef(tableRef);
+      if (!parsed) {
+        continue;
+      }
+
+      const row = this.db.connection
+        .prepare(
+          `SELECT id, UPPER(name) AS name
+           FROM schema_nodes
+           WHERE UPPER(name) = UPPER(?)
+             AND (? IS NULL OR UPPER(owner) = UPPER(?))
+           ORDER BY CASE WHEN UPPER(owner) = UPPER(?) THEN 0 ELSE 1 END,
+                    CASE node_type WHEN 'table' THEN 0 ELSE 1 END
+           LIMIT 1`,
+        )
+        .get(parsed.name, parsed.owner, parsed.owner, preferredOwner) as
+        | { id: number; name: string }
+        | undefined;
+
+      if (!row) {
+        continue;
+      }
+
+      const columns = this.db.connection
+        .prepare(`SELECT UPPER(name) AS name FROM schema_columns WHERE node_id = ?`)
+        .all(row.id) as { name: string }[];
+
+      if (columns.length > 0) {
+        result.set(row.name, new Set(columns.map((column) => column.name)));
+      }
+    }
+
+    return result;
+  }
 }

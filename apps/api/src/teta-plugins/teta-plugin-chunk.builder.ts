@@ -6,6 +6,12 @@ import type {
   TetaPluginGatewayMeta,
   TetaPluginMetadataBundle,
 } from './teta-plugin-metadata.types';
+import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
+import { buildGridOracleColumnLinks, collectBundleUiColumns, mergeGridOracleColumnLinks } from './teta-plugin-grid-column-mapper';
+import {
+  buildLabeledSelectSql,
+  formatColumnMappingLines,
+} from './teta-plugin-labeled-select.util';
 
 const MAX_COLUMNS_PER_CHUNK = 30;
 const MAX_SELECT_COLUMNS_IN_RAG = 15;
@@ -165,6 +171,15 @@ function buildOverviewChunk(
   };
 }
 
+function gatewayMappings(
+  bundle: TetaPluginMetadataBundle,
+  gatewayClassName: string,
+): TetaPluginColumnMapping[] {
+  return (bundle.columnMappings ?? []).filter(
+    (mapping) => mapping.gatewayClassName?.toLowerCase() === gatewayClassName.toLowerCase(),
+  );
+}
+
 function buildGatewayChunk(
   bundle: TetaPluginMetadataBundle,
   form: TetaPluginFormMetadata,
@@ -173,7 +188,22 @@ function buildGatewayChunk(
 ): TetaKnowledgeChunkInput {
   const formKey = formSegment(form);
   const pluginName = form.Plugin.Languages?.[0]?.Name ?? bundle.dllName;
-  const sqlBlock = formatSqlBlock(gateway);
+  const allColumns = collectBundleUiColumns(bundle);
+  const mappings = gatewayMappings(bundle, gateway.ClassName);
+  const mappingLinks = mappings.map((mapping) => ({
+    oracleColumnName: mapping.oracleColumnName,
+    label: mapping.label,
+    gridColumnName: mapping.gridColumnName,
+    synonyms: mapping.synonyms,
+  }));
+  const gridLinks = mergeGridOracleColumnLinks(
+    buildGridOracleColumnLinks(gateway, form, { allColumns }),
+    mappingLinks,
+  );
+  const labeledSelect =
+    gateway.Sql?.LabeledSelect?.trim() ??
+    buildLabeledSelectSql(gateway, gridLinks, { maxColumns: 40 });
+  const mappingLines = formatColumnMappingLines(gridLinks);
   const oracleObjects = collectOracleObjects(gateway);
 
   const text = [
@@ -184,7 +214,12 @@ function buildGatewayChunk(
     gateway.PackageName ? `Pakiet DAC: ${gateway.PackageName}.` : '',
     gateway.TableAlias ? `Alias: ${gateway.TableAlias}.` : '',
     gateway.Sql?.SqlStatus ? `Status SQL: ${gateway.Sql.SqlStatus}.` : '',
-    sqlBlock ? `SQL:\n${sqlBlock}` : '',
+    mappingLines.length > 0
+      ? `Mapowanie etykiet grida → kolumny Oracle:\n${mappingLines.join('\n')}`
+      : '',
+    labeledSelect
+      ? `SELECT z aliasami etykiet UI (użyj nazw kolumn po lewej strony AS w WHERE/SELECT):\n${labeledSelect}`
+      : '',
   ]
     .filter(Boolean)
     .join('\n');
@@ -197,7 +232,7 @@ function buildGatewayChunk(
     summary: `${gateway.ClassName} → ${gateway.ViewName ?? gateway.PackageName ?? 'gateway'}`,
     plugin_names: [bundle.dllName.replace(/\.dll$/i, '')],
     tables: oracleObjects.filter((name) => !name.endsWith('_DAC')),
-    keywords: oracleObjects,
+    keywords: [...oracleObjects, ...gridLinks.flatMap((link) => [link.label, ...link.synonyms])],
     knowledge_version: TETA_KNOWLEDGE_CHUNK_FORMAT,
   };
 }

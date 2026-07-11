@@ -2,6 +2,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SchemaGraphService } from './schema-graph.service';
 import { qualifySelectTables, resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
+import {
+  findUnknownSelectColumns,
+  formatUnknownColumnsMessage,
+} from './sql-column-validation.util';
 
 const FORBIDDEN_KEYWORDS = [
   'INSERT',
@@ -89,6 +93,16 @@ export class SqlValidatorService {
           message: `Tabela ${table} nie występuje w grafie schematu (uruchom „Analizuj bazę” dla ${defaultOwner}).`,
         };
       }
+    }
+
+    const tableColumns = this.graph.getColumnsForTableNames(tables);
+    const unknownColumns = findUnknownSelectColumns(trimmed, tables, tableColumns);
+    if (unknownColumns.length > 0) {
+      return {
+        valid: false,
+        tables,
+        message: formatUnknownColumnsMessage(unknownColumns, tables),
+      };
     }
 
     return { valid: true, tables };

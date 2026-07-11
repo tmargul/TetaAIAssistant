@@ -60,7 +60,20 @@ import {
 
 import { inferSqlForGateways } from './teta-plugin-sql-inferrer';
 
+import { SchemaGraphService } from '../schema/schema-graph.service';
+
 import { TetaPluginOracleColumnsService } from './teta-plugin-oracle-columns.service';
+
+import {
+  buildColumnMappingsFromBundle,
+  createSchemaLookupFromColumns,
+  enrichGatewaysWithLabeledSelect,
+} from './teta-plugin-column-mapping';
+
+import {
+  countVerifiedOracleRefs,
+  validatePluginBundleAgainstOracle,
+} from './teta-plugin-oracle-validation';
 
 
 
@@ -83,6 +96,8 @@ export class TetaPluginImportService {
     private readonly qdrant: QdrantService,
 
     private readonly oracleColumns: TetaPluginOracleColumnsService,
+
+    private readonly graph: SchemaGraphService,
 
     private readonly config: ConfigService,
 
@@ -150,13 +165,15 @@ export class TetaPluginImportService {
 
     });
 
+    const validatedBundle = await this.validateBundleBeforeRag(bundle);
+
     this.logger.log(
-      `Import wtyczki — metadane (${Date.now() - startedAt} ms): ${bundle.forms.length} formularzy, ${bundle.relatedBusinessObjectDlls?.length ?? 0} BO DLL.`,
+      `Import wtyczki — metadane (${Date.now() - startedAt} ms): ${validatedBundle.forms.length} formularzy, ${validatedBundle.relatedBusinessObjectDlls?.length ?? 0} BO DLL.`,
     );
 
 
 
-    const chunks = buildTetaPluginKnowledgeChunks(bundle);
+    const chunks = buildTetaPluginKnowledgeChunks(validatedBundle);
 
     if (chunks.length === 0) {
 
@@ -207,9 +224,9 @@ export class TetaPluginImportService {
 
     const importedAt = new Date().toISOString();
 
-    const gatewayCount = bundle.forms.reduce((sum, form) => sum + (form.Gateways?.length ?? 0), 0);
+    const gatewayCount = validatedBundle.forms.reduce((sum, form) => sum + (form.Gateways?.length ?? 0), 0);
 
-    const columnCount = bundle.forms.reduce((sum, form) => sum + (form.Columns?.length ?? 0), 0);
+    const columnCount = validatedBundle.forms.reduce((sum, form) => sum + (form.Columns?.length ?? 0), 0);
 
 
 
@@ -227,7 +244,7 @@ export class TetaPluginImportService {
 
       chunkCount: chunks.length,
 
-      metadataJson: JSON.stringify(bundle),
+      metadataJson: JSON.stringify(validatedBundle),
 
     });
 
@@ -235,7 +252,7 @@ export class TetaPluginImportService {
 
     this.logger.log(
 
-      `Zaimportowano wtyczkę ${pluginRecord.dllName}: ${chunks.length} chunków (${bundle.extractionMode}, BO: ${bundle.relatedBusinessObjectDlls?.length ?? 0}).`,
+      `Zaimportowano wtyczkę ${pluginRecord.dllName}: ${chunks.length} chunków (${validatedBundle.extractionMode}, BO: ${validatedBundle.relatedBusinessObjectDlls?.length ?? 0}).`,
 
     );
 
@@ -259,7 +276,7 @@ export class TetaPluginImportService {
 
       columnCount,
 
-      extractionMode: bundle.extractionMode,
+      extractionMode: validatedBundle.extractionMode,
 
     };
 
@@ -425,6 +442,49 @@ export class TetaPluginImportService {
     bundle.extractionMode = inferBundleExtractionMode(bundle);
 
     return this.enrichBundleWithOracleInference(bundle, relatedBusinessObjectDlls);
+  }
+
+  private async validateBundleBeforeRag(
+    bundle: TetaPluginMetadataBundle,
+  ): Promise<TetaPluginMetadataBundle> {
+    if (!this.oracleColumns.isOracleVerificationAvailable()) {
+      return bundle;
+    }
+
+    const before = countVerifiedOracleRefs(bundle);
+    const validated = await validatePluginBundleAgainstOracle(bundle, (names) =>
+      this.oracleColumns.classifyObjects(names),
+    );
+    const after = countVerifiedOracleRefs(validated);
+
+    const schemaLookup = createSchemaLookupFromColumns((tableRef) =>
+      this.graph.getColumnDetailsForTable(tableRef),
+    );
+    const getSchemaColumns = (tableRef: string) => this.graph.getColumnDetailsForTable(tableRef);
+    const columnMappings = buildColumnMappingsFromBundle(validated, schemaLookup, getSchemaColumns);
+    const labeledGateways = enrichGatewaysWithLabeledSelect(validated, getSchemaColumns);
+
+    if (labeledGateways > 0) {
+      this.logger.log(
+        `SELECT z aliasami grida: wygenerowano dla ${labeledGateways} gatewayów (${columnMappings.length} mapowań kolumn).`,
+      );
+    }
+
+    const removedTables = before.tables - after.tables;
+    const removedViews = before.views - after.views;
+    const removedPackages = before.packages - after.packages;
+    const removedGatewayRefs = before.gatewayRefs - after.gatewayRefs;
+
+    if (removedTables > 0 || removedViews > 0 || removedPackages > 0 || removedGatewayRefs > 0) {
+      this.logger.log(
+        `Weryfikacja Oracle przed RAG: odrzucono ${removedTables} tabel, ${removedViews} widoków, ${removedPackages} pakietów, ${removedGatewayRefs} referencji w gatewayach (zostało ${after.tables}/${after.views}/${after.packages}).`,
+      );
+    }
+
+    return {
+      ...validated,
+      columnMappings,
+    };
   }
 
   private async enrichBundleWithOracleInference(

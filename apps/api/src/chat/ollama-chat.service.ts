@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { CHAT_MODELS, type ChatModel, type ChatQualityMode, type ChatRuntimeStatusResponse } from '@teta/shared';
 import { getOllamaBaseUrl, getOllamaKeepAlive } from './ollama-config.util';
 import { resolveChatQualityProfile, type ChatQualityProfile } from './chat-quality.profile';
+import { applyOllamaChatOverrides, type OllamaChatOverrides } from './ollama-chat-overrides';
 
 type OllamaMessage = {
   role: 'system' | 'user' | 'assistant';
@@ -55,8 +56,9 @@ export class OllamaChatService implements OnModuleInit {
   private getChatOptionsFromProfile(
     resolvedModel: string,
     profile: ChatQualityProfile,
+    thinkOverride?: boolean,
   ): OllamaChatOptions {
-    const useThinking = this.shouldUseThinking(resolvedModel, profile);
+    const useThinking = thinkOverride ?? this.shouldUseThinking(resolvedModel, profile);
     return {
       temperature: profile.temperature,
       num_predict: useThinking ? profile.num_predict_reasoning : profile.num_predict,
@@ -195,9 +197,10 @@ export class OllamaChatService implements OnModuleInit {
     messages: OllamaMessage[],
     model: ChatModel,
     quality?: ChatQualityMode,
+    overrides?: OllamaChatOverrides,
   ): Promise<string> {
     let content = '';
-    for await (const delta of this.streamTokens(messages, model, quality)) {
+    for await (const delta of this.streamTokens(messages, model, quality, overrides)) {
       content += delta;
     }
     const trimmed = content.trim();
@@ -211,11 +214,15 @@ export class OllamaChatService implements OnModuleInit {
     messages: OllamaMessage[],
     model: ChatModel,
     quality?: ChatQualityMode,
+    overrides?: OllamaChatOverrides,
   ): AsyncGenerator<string, void, void> {
     const profile = resolveChatQualityProfile(quality, this.config);
     const resolvedModel = await this.resolveInstalledModel(model);
-    const think = this.shouldUseThinking(resolvedModel, profile);
-    const options = this.getChatOptionsFromProfile(resolvedModel, profile);
+    const think = overrides?.think ?? this.shouldUseThinking(resolvedModel, profile);
+    const options = applyOllamaChatOverrides(
+      this.getChatOptionsFromProfile(resolvedModel, profile, think),
+      overrides,
+    );
     const promptChars = messages.reduce((sum, item) => sum + item.content.length, 0);
 
     if (model !== this.toChatModel(resolvedModel) && model === 'deepseek-r1') {

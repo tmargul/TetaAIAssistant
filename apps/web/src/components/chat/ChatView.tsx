@@ -704,16 +704,21 @@ export function ChatView({
               disabled={isBusy}
             />
           </div>
-          {chatSource === 'oracle' && (
-            <div className="chat__toolbar-field chat__toolbar-field--domain">
-              <span className="chat__model-label">Agent:</span>
-              <DomainSelect
-                value={oracleDomain}
-                onChange={setOracleDomain}
-                disabled={isBusy}
-              />
-            </div>
-          )}
+          <div
+            className="chat__toolbar-field chat__toolbar-field--domain"
+            title={
+              chatSource !== 'oracle'
+                ? 'Agent Oracle — wybierz źródło „Baza Oracle”, aby zmienić domenę'
+                : undefined
+            }
+          >
+            <span className="chat__model-label">Agent:</span>
+            <DomainSelect
+              value={oracleDomain}
+              onChange={setOracleDomain}
+              disabled={isBusy || chatSource !== 'oracle'}
+            />
+          </div>
           <div className="chat__toolbar-field">
             <span className="chat__model-label">Jakość:</span>
             <QualitySelect

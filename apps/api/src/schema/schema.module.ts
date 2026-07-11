@@ -5,7 +5,7 @@ import { OracleModule } from '../oracle/oracle.module';
 import { SchemaController } from './schema.controller';
 import { SchemaCrawlService } from './schema-crawl.service';
 import { SchemaExplorerService } from './schema-explorer.service';
-import { SchemaGraphService } from './schema-graph.service';
+import { SchemaGraphCoreModule } from './schema-graph-core.module';
 import { OracleAgentService } from './oracle-agent.service';
 import { OracleQueryService } from './oracle-query.service';
 import { SchemaProcedureService } from './schema-procedure.service';
@@ -19,11 +19,11 @@ import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module'
     forwardRef(() => OracleModule),
     OllamaModule,
     SchemaLearningModule,
+    SchemaGraphCoreModule,
     TetaPluginsCoreModule,
   ],
   controllers: [SchemaController],
   providers: [
-    SchemaGraphService,
     SchemaCrawlService,
     SchemaExplorerService,
     SqlValidatorService,
@@ -32,7 +32,7 @@ import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module'
     OracleAgentService,
   ],
   exports: [
-    SchemaGraphService,
+    SchemaGraphCoreModule,
     SchemaCrawlService,
     SchemaExplorerService,
     OracleAgentService,

@@ -16,6 +16,7 @@ import { VideoIngestJobsService } from './video-ingest/video-ingest-jobs.service
 import { VideoIngestPipelineService } from './video-ingest/video-ingest-pipeline.service';
 import { VendorVideoIngestController } from './video-ingest/vendor-video-ingest.controller';
 import { SchemaLearningModule } from '../schema/schema-learning.module';
+import { SchemaGraphCoreModule } from '../schema/schema-graph-core.module';
 import { VendorSchemaLearningController } from '../schema/vendor-schema-learning.controller';
 import { OracleModule } from '../oracle/oracle.module';
 import { TetaAppPathsService } from '../teta-app/teta-app-paths.service';
@@ -27,7 +28,7 @@ import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module'
 import { VendorTetaPluginsController } from '../teta-plugins/vendor-teta-plugins.controller';
 
 @Module({
-  imports: [RagCoreModule, AuthModule, SchemaLearningModule, OracleModule, TetaPluginsCoreModule],
+  imports: [RagCoreModule, AuthModule, SchemaLearningModule, SchemaGraphCoreModule, OracleModule, TetaPluginsCoreModule],
   controllers: [
     VendorRagController,
     VendorPackagesController,

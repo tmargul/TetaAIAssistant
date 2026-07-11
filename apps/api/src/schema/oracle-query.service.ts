@@ -79,6 +79,14 @@ export class OracleQueryService {
     if (message.includes('ORA-01031')) {
       return `Niewystarczające uprawnienia Oracle do wykonania SELECT — konto z Połączenia Oracle musi mieć dostęp do schematu ${owner}.`;
     }
+    if (message.includes('ORA-00904')) {
+      const columnMatch = message.match(/"([^"]+)"/);
+      const column = columnMatch?.[1] ?? 'nieznana';
+      return (
+        `Kolumna ${column} nie istnieje w bazie. Nie wymyślaj ani nie skracaj nazw pól — ` +
+        'najpierw użyj describe_table, aby zobaczyć prawdziwe nazwy kolumn.'
+      );
+    }
     return message;
   }
 

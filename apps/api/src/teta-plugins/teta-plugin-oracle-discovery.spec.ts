@@ -1,5 +1,6 @@
 import {
   discoverOracleObjectsFromStrings,
+  filterDiscoveryByOracleBatch,
   resolveGatewayRelatedPackages,
 } from './teta-plugin-oracle-discovery';
 import { inferGatewaySql } from './teta-plugin-sql-inferrer';
@@ -24,6 +25,56 @@ describe('teta-plugin-oracle-discovery', () => {
     expect(discovery.packagesLep).toContain('NT_KP_KDR_RODZINA_LEP');
     expect(discovery.views).toContain('NT_KP_PRC_PRACOWNICY');
     expect(discovery.tables).toContain('T_PRAC');
+  });
+
+  it('filters false table names after Oracle verification', async () => {
+    const discovery = discoverOracleObjectsFromStrings([
+      'T_PRAC',
+      'T_01',
+      'T_FAX',
+      'T_GMINA',
+      'NT_KP_PRC_PRACOWNICY',
+    ]);
+
+    const filtered = await filterDiscoveryByOracleBatch(discovery, async (names) => {
+      const kinds = new Map<string, 'TABLE' | 'VIEW' | 'PACKAGE'>();
+      for (const name of names) {
+        if (name === 'T_PRAC') {
+          kinds.set(name, 'TABLE');
+        }
+        if (name === 'NT_KP_PRC_PRACOWNICY') {
+          kinds.set(name, 'VIEW');
+        }
+        if (name === 'NT_KP_IMP_SZKOLY_DAC') {
+          kinds.set(name, 'PACKAGE');
+        }
+      }
+      return kinds;
+    });
+
+    expect(filtered.tables).toEqual(['T_PRAC']);
+    expect(filtered.views).toEqual(['NT_KP_PRC_PRACOWNICY']);
+    expect(filtered.tables).not.toContain('T_FAX');
+  });
+
+  it('filters invalid package names after Oracle verification', async () => {
+    const discovery = discoverOracleObjectsFromStrings([
+      'NT_KP_IMP_SZKOLY_DAC',
+      'NT_KP_FAKE_PACKAGE_DAC',
+    ]);
+
+    const filtered = await filterDiscoveryByOracleBatch(discovery, async (names) => {
+      const kinds = new Map<string, 'TABLE' | 'VIEW' | 'PACKAGE'>();
+      for (const name of names) {
+        if (name === 'NT_KP_IMP_SZKOLY_DAC') {
+          kinds.set(name, 'PACKAGE');
+        }
+      }
+      return kinds;
+    });
+
+    expect(filtered.packagesDac).toEqual(['NT_KP_IMP_SZKOLY_DAC']);
+    expect(filtered.packagesDac).not.toContain('NT_KP_FAKE_PACKAGE_DAC');
   });
 
   it('resolves related packages for a gateway', () => {

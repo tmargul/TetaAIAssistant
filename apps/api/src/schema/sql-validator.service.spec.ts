@@ -11,6 +11,13 @@ describe('SqlValidatorService', () => {
         'TETA_ADMIN.T_PRAC',
         'T_PRAC',
       ]),
+    getColumnsForTableNames: (tables: string[]) => {
+      const map = new Map<string, Set<string>>();
+      if (tables.some((table) => table.toUpperCase().includes('T_PRAC'))) {
+        map.set('T_PRAC', new Set(['ID', 'IMIE', 'NAZWISKO', 'NR_EWIDENCYJNY']));
+      }
+      return map;
+    },
   } as SchemaGraphService;
 
   const config = {
@@ -55,5 +62,13 @@ describe('SqlValidatorService', () => {
   it('rejects unknown tables', () => {
     const result = validator.validateSelectSql('SELECT * FROM nieistniejaca_tabela');
     expect(result.valid).toBe(false);
+  });
+
+  it('rejects invented column names before hitting Oracle', () => {
+    const result = validator.validateSelectSql(
+      "SELECT IMIE, NAZWISKO FROM T_PRAC WHERE NR_EWD = '00122'",
+    );
+    expect(result.valid).toBe(false);
+    expect(result.message).toContain('NR_EWD');
   });
 });

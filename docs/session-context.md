@@ -178,6 +178,10 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Wstrzykiwane do promptu agenta (`TetaPluginHintsService`, `oracle-agent.service.ts`)
 - Agent wykonuje SELECT przez istniejący `OracleQueryService` → `oracle_report` w UI (tabela)
 - Wymaga: import wtyczki + **Analizuj bazę** (graf schematu) + Oracle real
+- **Mapowanie kolumn UI → Oracle (2026-07-11):** etykieta / nazwa z SELECT gatewaya (DLL) → dopasowanie do `schema_columns` (exact, fuzzy, komentarz). Fast path używa **widoku** z gatewaya (`NT_KP_PRC_PRACOWNICY`), nie `T_PRAC`. Gdy brak dopasowania w grafie — brak szybkiej ścieżki, agent + `describe_table`.
+- **Weryfikacja obiektów Oracle przy imporcie wtyczki (2026-07-11):** przed zapisem do RAG (`validatePluginBundleAgainstOracle`) każdy kandydat z DLL/gatewayów jest sprawdzany w `ALL_OBJECTS`: `TABLE`, `VIEW`, `PACKAGE`. Fałszywe tabele (`T_01`, `T_FAX`), widoki i pakiety są odrzucane; referencje w gatewayach (`ViewName`, `BaseTableName`, `PackageName`, `RelatedPackages`) też. Wymaga Oracle real; bez połączenia — heurystyka bez zmian. **Ponowny import** wtyczki po zmianie.
+- **RAG bez hardcodingu etykiet (2026-07-11):** chunk gatewaya + pole `Sql.LabeledSelect` w metadanych importu — `SELECT` z aliasami `AS "etykieta grida"`. Mapowanie: kolumny z `<SqlColumns>` + etykiety z DLL/resx (wszystkie formularze wtyczki) + opcjonalnie komentarze Oracle ze schematu. UI pokazuje **LabeledSelect** zamiast surowego `Direct.Select` (inferencja z ALL_TAB_COLUMNS). **Ponowny import** `plgPracownik` po tej zmianie.
+- **Follow-up w wątku Oracle (2026-07-11):** pytania typu *„adres zameldowania tego pracownika”* bez nr ewidencyjnego — szybka ścieżka bierze wartość filtra i kolumnę `WHERE` z historii (poprzednie pytanie / `[SQL: …]`). Kolumny wyniku (np. `S_ULICA`, `S_MIEJSCOWOSC`) muszą być w `columnMappings` z importu (etykiety grida lub komentarze Oracle — kolumny `S_*` często bez grida w DLL).
 
 ### 2026-06-05 (komputer 2 → kontekst z czatu)
 

@@ -48,6 +48,8 @@ export type PluginGatewayDetail = {
 
   lastSqlQuery: string | null;
 
+  labeledSelect: string | null;
+
   direct: PluginSqlCommandSet;
 
   builderText: PluginSqlCommandSet;
@@ -234,6 +236,8 @@ function readGateway(value: unknown): PluginGatewayDetail | null {
     flatQuery: typeof sql?.FlatQuery === 'string' ? sql.FlatQuery : null,
 
     lastSqlQuery: typeof sql?.LastSqlQuery === 'string' ? sql.LastSqlQuery : null,
+
+    labeledSelect: typeof sql?.LabeledSelect === 'string' ? sql.LabeledSelect : null,
 
     direct: readSqlCommandSet(sql?.Direct),
 
@@ -541,13 +545,17 @@ export function pickPreferredSql(
 
 ): { source: string; sql: string } | null {
 
-  const candidates: Array<{ source: string; set: PluginSqlCommandSet }> = [
+  if (kind === 'Select' && gateway.labeledSelect?.trim()) {
+    return { source: 'LabeledSelect', sql: gateway.labeledSelect.trim() };
+  }
 
-    { source: 'Inferred', set: gateway.direct },
+  const candidates: Array<{ source: string; set: PluginSqlCommandSet }> = [
 
     { source: 'BuilderText', set: gateway.builderText },
 
     { source: 'BuilderSumo', set: gateway.builderSumo },
+
+    { source: 'Inferred', set: gateway.direct },
 
   ];
 

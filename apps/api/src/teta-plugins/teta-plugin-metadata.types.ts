@@ -31,6 +31,8 @@ export type TetaPluginGatewaySqlSnapshot = {
   RuntimeFilterApplyMethod?: string | null;
   RuntimeProbeError?: string | null;
   SqlStatus?: string | null;
+  /** SELECT z aliasami AS "etykieta grida" — generowany przy imporcie */
+  LabeledSelect?: string | null;
   Direct?: TetaPluginSqlCommandSet;
   BuilderText?: TetaPluginSqlCommandSet;
   BuilderSumo?: TetaPluginSqlCommandSet;
@@ -79,6 +81,7 @@ export type TetaPluginFormMetadata = {
 };
 
 import type { TetaPluginOracleDiscovery } from './teta-plugin-oracle-discovery';
+import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
 
 export type TetaPluginMetadataBundle = {
   dllName: string;
@@ -89,5 +92,6 @@ export type TetaPluginMetadataBundle = {
   serverDirectory?: string | null;
   relatedBusinessObjectDlls?: string[];
   oracleDiscovery?: TetaPluginOracleDiscovery;
+  columnMappings?: TetaPluginColumnMapping[];
   forms: TetaPluginFormMetadata[];
 };

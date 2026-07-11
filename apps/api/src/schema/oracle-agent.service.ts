@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import type { Response } from 'express';
 import type {
   ChatCompletionRequest,
@@ -12,6 +12,7 @@ import type {
 } from '@teta/shared';
 import { isOracleVendorDebug, sanitizeOracleStepForClient, sanitizeOracleStreamEventForClient } from '@teta/shared';
 import { OllamaChatService } from '../chat/ollama-chat.service';
+import type { OllamaChatOverrides } from '../chat/ollama-chat-overrides';
 import { resolveChatQualityProfile } from '../chat/chat-quality.profile';
 import { ConfigService } from '@nestjs/config';
 import { SchemaExplorerService } from './schema-explorer.service';
@@ -28,11 +29,14 @@ import { getBuildAppMode } from '../rag/app-mode';
 import { SchemaEntityLearningService } from './schema-entity-learning.service';
 import { TetaPluginHintsService } from '../teta-plugins/teta-plugin-hints.service';
 import { isDataQueryIntent } from '../teta-plugins/teta-plugin-query-resolver';
-
-type AgentAction =
-  | { action: 'tool'; name: string; args: Record<string, string> }
-  | { action: 'answer'; text: string; sql?: string }
-  | { action: 'clarify'; text: string };
+import { buildDirectEmployeeSelect, extractFilterValueForQuery } from '../teta-plugins/teta-plugin-column-resolver';
+import { SchemaGraphService } from './schema-graph.service';
+import {
+  buildAgentJsonFailureMessage,
+  buildAgentJsonRetryHint,
+  looksLikeAgentJson,
+  parseAgentAction,
+} from './oracle-agent-parse.util';
 
 const DOMAIN_PROMPTS: Record<OracleAgentDomain, string> = {
   general: 'Jesteś asystentem bazy Teta — ogólny kontekst schematu.',
@@ -44,6 +48,8 @@ const DOMAIN_PROMPTS: Record<OracleAgentDomain, string> = {
 
 @Injectable()
 export class OracleAgentService {
+  private readonly logger = new Logger(OracleAgentService.name);
+
   constructor(
     private readonly config: ConfigService,
     private readonly ollama: OllamaChatService,
@@ -53,6 +59,7 @@ export class OracleAgentService {
     private readonly crawl: SchemaCrawlService,
     private readonly schemaLearning: SchemaEntityLearningService,
     private readonly pluginHints: TetaPluginHintsService,
+    private readonly graph: SchemaGraphService,
   ) {}
 
   async streamComplete(
@@ -137,9 +144,57 @@ export class OracleAgentService {
       let lastDescribeTable: SchemaTableInfo | null = null;
       let oracleThreadContext: string | undefined;
 
+      const defaultOwner = resolveDefaultOracleOwner(this.config);
+      const preferredTable =
+        pluginHints.columnHints.find((hint) => hint.targetObject)?.targetObject ??
+        pluginHints.gateways.find((gateway) => gateway.viewName)?.viewName ??
+        null;
+      const schemaColumns = preferredTable
+        ? this.graph.getColumnDetailsForTable(preferredTable)
+        : [];
+      const columnMappings = pluginHints.columnMappings.filter(
+        (mapping) =>
+          !preferredTable ||
+          !mapping.targetObject ||
+          mapping.targetObject.toUpperCase() === preferredTable.toUpperCase(),
+      );
+      const directSql = buildDirectEmployeeSelect({
+        message,
+        history,
+        defaultOwner,
+        columnMappings,
+        gateways: pluginHints.gateways,
+        preferredTable,
+        schemaColumns,
+      });
+      if (directSql && extractFilterValueForQuery(message, history)) {
+        this.logger.log(`Oracle agent — szybka ścieżka SQL: ${directSql}`);
+        try {
+          const report = await this.runSql(
+            directSql,
+            userId,
+            domain,
+            writeEvent,
+            steps,
+            sqlSteps,
+            reports,
+          );
+          finalAnswer = this.buildSqlResultSummary(report);
+          oracleThreadContext = buildOracleThreadContext(report);
+        } catch (error) {
+          const sqlError = error instanceof Error ? error.message : String(error);
+          this.logger.warn(`Oracle agent — szybka ścieżka nieudana: ${sqlError}`);
+          toolContext.push(
+            `direct_sql ERROR:\n${sqlError}\nSpróbuj poprawić SELECT w kolejnym kroku agenta.`,
+          );
+        }
+      }
+
+      if (!finalAnswer) {
       for (let i = 0; i < maxIterations; i += 1) {
         const systemPrompt = this.buildSystemPrompt(domain, toolContext, entityContext, pluginContext);
         const agentPrompt = this.buildAgentPrompt(message, i, pluginHints.hasPluginMetadata);
+        const llmStartedAt = Date.now();
 
         const response = await this.ollama.complete(
           [
@@ -149,11 +204,23 @@ export class OracleAgentService {
           ],
           input.model,
           input.quality,
+          this.getOracleLlmOverrides(),
         );
 
-        const action = this.parseAction(response);
+        const llmMs = Date.now() - llmStartedAt;
+        this.logger.log(
+          `Oracle agent krok ${i + 1}/${maxIterations}: LLM ${llmMs} ms, prompt≈${systemPrompt.length + agentPrompt.length} znaków`,
+        );
+
+        const action = parseAgentAction(response);
         if (!action) {
-          finalAnswer = response.trim();
+          if (looksLikeAgentJson(response) && i < maxIterations - 1) {
+            toolContext.push(buildAgentJsonRetryHint());
+            continue;
+          }
+          finalAnswer = looksLikeAgentJson(response)
+            ? buildAgentJsonFailureMessage()
+            : response.trim();
           break;
         }
 
@@ -164,17 +231,38 @@ export class OracleAgentService {
 
         if (action.action === 'answer') {
           if (action.sql?.trim()) {
-            const report = await this.runSql(
-              action.sql,
-              userId,
-              domain,
-              writeEvent,
-              steps,
-              sqlSteps,
-              reports,
-            );
-            finalAnswer = this.buildSqlResultSummary(report);
-            oracleThreadContext = buildOracleThreadContext(report);
+            try {
+              const report = await this.runSql(
+                action.sql,
+                userId,
+                domain,
+                writeEvent,
+                steps,
+                sqlSteps,
+                reports,
+              );
+              finalAnswer = this.buildSqlResultSummary(report);
+              oracleThreadContext = buildOracleThreadContext(report);
+            } catch (error) {
+              const sqlError = error instanceof Error ? error.message : String(error);
+              const step: ChatOracleStep = {
+                tool: 'execute_sql',
+                summary: 'Błąd SQL — poprawiam zapytanie',
+              };
+              steps.push(step);
+              writeEvent({ type: 'oracle_step', step });
+              toolContext.push(
+                `execute_sql ERROR:\n${sqlError}\n` +
+                  'Nie zgaduj nazw kolumn (np. NR_EWD zamiast NR_EWIDENCYJNY). ' +
+                  'Użyj describe_table, wybierz kolumnę z listy metadanych, popraw SELECT albo clarify.',
+              );
+
+              if (i >= maxIterations - 1) {
+                finalAnswer = this.buildSqlFailureAnswer(sqlError);
+                break;
+              }
+              continue;
+            }
           } else if (this.isRequiredColumnsQuestion(message) && lastDescribeTable) {
             finalAnswer = this.buildRequiredColumnsAnswer(lastDescribeTable);
             oracleThreadContext = buildOracleThreadContextFromTable(
@@ -207,7 +295,8 @@ export class OracleAgentService {
         };
         steps.push(step);
         writeEvent({ type: 'oracle_step', step });
-        toolContext.push(`Tool ${action.name}(${JSON.stringify(action.args)}):\n${toolResult.detail}`);
+        this.appendToolContext(toolContext, action.name, action.args, toolResult);
+      }
       }
 
       if (!finalAnswer) {
@@ -241,6 +330,53 @@ export class OracleAgentService {
       writeEvent({ type: 'error', message });
       res.end();
     }
+  }
+
+  private getOracleLlmOverrides(): OllamaChatOverrides {
+    return {
+      think: this.config.get<string>('TETA_ORACLE_AGENT_THINK', 'false') === 'true',
+      maxNumPredict: Number(this.config.get('TETA_ORACLE_AGENT_NUM_PREDICT', 768)),
+      temperature: Number(this.config.get('TETA_ORACLE_AGENT_TEMPERATURE', 0.05)),
+      numCtx: Number(this.config.get('TETA_ORACLE_AGENT_NUM_CTX', 4096)),
+    };
+  }
+
+  private appendToolContext(
+    toolContext: string[],
+    name: string,
+    args: Record<string, string>,
+    toolResult: { summary: string; detail: string; describeTable?: SchemaTableInfo },
+  ): void {
+    const detail = this.compactToolDetail(name, toolResult);
+    toolContext.push(`Tool ${name}(${JSON.stringify(args)}):\n${detail}`);
+  }
+
+  private compactToolDetail(
+    name: string,
+    toolResult: { summary: string; detail: string; describeTable?: SchemaTableInfo },
+  ): string {
+    const maxChars = Number(this.config.get('TETA_ORACLE_AGENT_TOOL_CONTEXT_CHARS', 2500));
+
+    if (name === 'describe_table' && toolResult.describeTable) {
+      const table = toolResult.describeTable;
+      return JSON.stringify(
+        {
+          owner: table.owner,
+          name: table.name,
+          columnNames: table.columns.map((column) => column.name),
+          insertRequiredColumns: table.columns
+            .filter((column) => column.insertRequired)
+            .map((column) => column.name),
+        },
+        null,
+        2,
+      );
+    }
+
+    if (toolResult.detail.length <= maxChars) {
+      return toolResult.detail;
+    }
+    return `${toolResult.detail.slice(0, Math.max(0, maxChars - 24)).trimEnd()}\n… [skrócono wynik narzędzia]`;
   }
 
   private async runTool(
@@ -413,6 +549,17 @@ export class OracleAgentService {
     return msg;
   }
 
+  private buildSqlFailureAnswer(message: string): string {
+    if (/nie występują w metadanych|nie istnieje w bazie|ORA-00904/i.test(message)) {
+      return (
+        `${message}\n\n` +
+        'Nie udało się wykonać zapytania — użyta nazwa kolumny nie pochodzi z metadanych bazy. ' +
+        'Spróbuj doprecyzować pytanie albo podaj nazwę tabeli/widoku.'
+      );
+    }
+    return message;
+  }
+
   private buildSystemPrompt(
     domain: OracleAgentDomain,
     toolContext: string[],
@@ -426,8 +573,8 @@ ${pluginContext}
 
 Gdy powyżej jest widok i sugerowany SELECT:
 - użyj tego widoku jako źródła danych dla raportu
-- dołącz JOIN/WHERE zgodnie z pytaniem (np. filtr pracownika po nazwisku, ID, PESEL)
-- describe_table tylko gdy brakuje kolumn do SELECT
+- dołącz JOIN/WHERE zgodnie z pytaniem — pole tuż przed wartością filtra (po «o», «z», «ze») idzie do WHERE; pole z części «podaj/pokaż …» idzie do SELECT
+- **describe_table obowiązkowo** gdy filtrujesz po polu biznesowym i **brak** mapowania etykieta→kolumna w metadanych wtyczki poniżej
 - jeśli użytkownik prosi o dane — zakończ {"action":"answer","text":"—","sql":"SELECT …"}`
       : '';
 
@@ -445,12 +592,16 @@ Dostępne narzędzia (zwróć JSON):
 - get_package_source(owner, name)
 - call_procedure(package, procedure, params) — tylko gdy konieczne
 
-Format odpowiedzi (jeden obiekt JSON, bez markdown):
+Format odpowiedzi (jeden obiekt JSON, bez markdown, bez komentarzy):
 {"action":"tool","name":"describe_table","args":{"table":"NAZWA"}}
 lub gdy brakuje informacji (nie zgaduj tabeli):
 {"action":"clarify","text":"Dopytaj użytkownika po polsku, np. o nazwę tabeli lub moduł."}
-lub po zebraniu faktów:
-{"action":"answer","text":"krótkie podsumowanie po polsku","sql":"SELECT ..."}
+lub po zebraniu faktów — dane zwraca system w tabeli, użytkownik NIGDY nie widzi surowego JSON ani sql:
+{"action":"answer","text":"—","sql":"SELECT IMIE, NAZWISKO FROM ... WHERE ..."}
+
+Kompaktowy JSON:
+- pole sql: tylko 2–8 kolumn potrzebnych do pytania — NIE kopiuj całej listy z describe_table
+- pole text przy sql: zawsze "—" — podsumowanie i tabelę generuje system po wykonaniu zapytania
 
 Dopytywanie użytkownika:
 - Gdy nie wiesz, która tabela/widok/pakiet odpowiada pytaniu i brak pewnego powiązania w kontekście — użyj {"action":"clarify","text":"…"} zamiast zgadywać.
@@ -460,7 +611,7 @@ Dopytywanie użytkownika:
 Powiązania tag → obiekt (z doświadczenia):
 ${entityContext || 'Brak zapisanych powiązań — użyj search_tables lub dopytaj użytkownika.'}
 
-${pluginSection ? `${pluginSection}\n\n` : ''}Raporty danych (wiersze z bazy):
+${pluginSection ? `${pluginSection}\n\nMapowanie etykiet: kolumna tuż przed wartością w części po «o/z/ze» → WHERE; kolumna z części «podaj/pokaż/wyświetl …» → SELECT. Przykład: «podaj nazwisko o nr ewidencyjnym 00122» → SELECT NAZWISKO WHERE NR_EWID…='00122', nie WHERE NAZWISKO='00122'.\n\n` : ''}Raporty danych (wiersze z bazy):
 - Gdy użytkownik prosi o listę rekordów, zestawienie, raport lub konkretne DANE — zakończ odpowiedzią z polem sql (SELECT).
 - Pole text przy sql: krótki placeholder (np. "—") — liczbę wierszy system ustawi z wyniku zapytania.
 
@@ -474,11 +625,13 @@ Struktura tabeli (metadane — kolumny, typy, NOT NULL, PK):
 Kontekst wątku:
 - W historii mogą być linie [Kontekst wątku Oracle: …] lub [SQL: … FROM ${defaultOwner}.TABELA …] — kontynuuj tę samą tabelę.
 - Gdy użytkownik pyta o „pracowników”, „tej tabeli”, „na literę Z” bez nazwy tabeli — użyj ostatniego kontekstu; nie zaczynaj od search_tables od zera.
-- Jeśli znasz tabelę z wątku, możesz od razu zbudować SELECT (describe_table tylko gdy brakuje kolumn).
+- Jeśli znasz tabelę z wątku, możesz od razu zbudować SELECT **tylko z kolumn znanych z describe_table** (przy filtrze WHERE — describe_table najpierw).
 
 Zasady SQL:
 - tylko SELECT
-- używaj wyłącznie tabel i kolumn z wyników narzędzi
+- używaj wyłącznie tabel i kolumn z wyników narzędzi (describe_table / describe_column)
+- **NIGDY nie wymyślaj ani nie skracaj nazw kolumn** (np. NR_EWD zamiast NR_EWIDENCYJNY) — jeśli nie znasz kolumny, wywołaj describe_table
+- gdy użytkownik podaje pojęcie biznesowe — mapowanie etykiet z wtyczki; część przed «o/z/ze» to kolumny wyniku (SELECT), część po separatorze to filtr (WHERE)
 - JOIN zgodnie ze ścieżką find_path
 - prefiks schematu ${defaultOwner}. przy każdej tabeli
 - bez średnika na końcu SQL
@@ -541,37 +694,19 @@ ${toolContext.length > 0 ? `Wyniki narzędzi:\n${toolContext.join('\n\n')}` : pl
         hasPluginHints && dataIntent
           ? '\nUżytkownik prosi o dane — jeśli masz widok/SELECT z metadanych wtyczki, zbuduj zapytanie i zwróć answer z sql.'
           : '';
+      const confirmNote =
+        /\btak\b|potwierdzam|zgadza\s+się|to\s+ta\s+tabela|wystarczy\s+select/i.test(message)
+          ? '\nUżytkownik potwierdził tabelę/kontekst — nie pytaj ponownie; jeśli znasz tabelę i kolumny (IMIE, NAZWISKO, NR_EWIDENCYJNY), od razu zwróć answer z krótkim SELECT bez zbędnego describe_table.'
+          : '';
       return `Pytanie użytkownika: ${message}
 
-Uwzględnij historię rozmowy powyżej (szczególnie [Kontekst wątku Oracle] / [SQL]). Pytania uzupełniające bez nazwy tabeli odnoszą się do ostatniego kontekstu.${pluginNote}
+Uwzględnij historię rozmowy powyżej (szczególnie [Kontekst wątku Oracle] / [SQL]). Pytania uzupełniające bez nazwy tabeli odnoszą się do ostatniego kontekstu.${pluginNote}${confirmNote}
 
 Zdecyduj jakie narzędzie wywołać (JSON).`;
     }
     return `Kontynuuj analizę pytania: ${message}
 
-Masz wyniki poprzednich narzędzi w kontekście systemowym. Jeśli masz już tabelę i kolumny — zwróć {"action":"answer","text":"—","sql":"SELECT …"}.`;
-  }
-
-  private parseAction(raw: string): AgentAction | null {
-    const trimmed = raw.trim();
-    const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-
-    try {
-      const parsed = JSON.parse(jsonMatch[0]) as AgentAction;
-      if (parsed.action === 'tool' && parsed.name) {
-        return { action: 'tool', name: parsed.name, args: parsed.args ?? {} };
-      }
-      if (parsed.action === 'answer' && parsed.text) {
-        return parsed;
-      }
-      if (parsed.action === 'clarify' && parsed.text) {
-        return { action: 'clarify', text: parsed.text };
-      }
-      return null;
-    } catch {
-      return null;
-    }
+Masz wyniki poprzednich narzędzi w kontekście systemowym. Jeśli masz już tabelę i kolumny — zwróć {"action":"answer","text":"—","sql":"SELECT …"} z krótką listą kolumn.`;
   }
 
   private normalizeHistory(
