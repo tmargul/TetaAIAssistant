@@ -17,6 +17,8 @@ import { VideoIngestPipelineService } from './video-ingest/video-ingest-pipeline
 import { VendorVideoIngestController } from './video-ingest/vendor-video-ingest.controller';
 import { SchemaLearningModule } from '../schema/schema-learning.module';
 import { VendorSchemaLearningController } from '../schema/vendor-schema-learning.controller';
+import { TetaAppPathsService } from '../teta-app/teta-app-paths.service';
+import { VendorTetaAppController } from '../teta-app/vendor-teta-app.controller';
 
 @Module({
   imports: [RagCoreModule, AuthModule, SchemaLearningModule],
@@ -25,6 +27,7 @@ import { VendorSchemaLearningController } from '../schema/vendor-schema-learning
     VendorPackagesController,
     VendorVideoIngestController,
     VendorSchemaLearningController,
+    VendorTetaAppController,
   ],
   providers: [
     GlobalRagIngestService,
@@ -38,6 +41,7 @@ import { VendorSchemaLearningController } from '../schema/vendor-schema-learning
     VideoIngestJobsService,
     VendorAccessGuard,
     VendorGuard,
+    TetaAppPathsService,
   ],
   exports: [GlobalRagIngestService, GlobalRagExportService],
 })

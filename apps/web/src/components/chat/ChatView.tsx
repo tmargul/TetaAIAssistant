@@ -15,7 +15,6 @@ import {
   KNOWLEDGE_SOURCE_TYPES,
   oracleProgressHint,
   sanitizeChatMessageOracleForClient,
-  type SubmitChatMessageFeedbackResponse,
 } from '@teta/shared';
 import { authFetch } from '../../lib/auth-storage';
 import { IconChat } from '../layout/icons';

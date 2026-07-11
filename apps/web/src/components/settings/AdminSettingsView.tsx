@@ -5,10 +5,11 @@ import { useSystemHealth } from '../../hooks/useSystemHealth';
 import { authFetch } from '../../lib/auth-storage';
 import { VendorPackagesPanel } from './VendorPackagesPanel';
 import { ClientUpdatesPanel } from './ClientUpdatesPanel';
+import { TetaAppSettingsPanel } from './TetaAppSettingsPanel';
 import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
 import './settings.css';
 
-type SettingsTab = 'users' | 'servers' | 'oracle' | 'packages' | 'updates';
+type SettingsTab = 'users' | 'servers' | 'oracle' | 'packages' | 'updates' | 'tetaApp';
 
 const SETTINGS_TAB_KEY = 'teta-settings-tab';
 
@@ -18,7 +19,7 @@ export function AdminSettingsView() {
   const isVendorMode = health?.appMode === 'vendor' && health?.vendorEnabled;
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     const pending = sessionStorage.getItem(SETTINGS_TAB_KEY) as SettingsTab | null;
-    if (pending && ['users', 'servers', 'oracle', 'packages', 'updates'].includes(pending)) {
+    if (pending && ['users', 'servers', 'oracle', 'packages', 'updates', 'tetaApp'].includes(pending)) {
       sessionStorage.removeItem(SETTINGS_TAB_KEY);
       return pending;
     }
@@ -149,6 +150,15 @@ export function AdminSettingsView() {
         {isVendorMode && (
           <button
             type="button"
+            className={`settings__tab${activeTab === 'tetaApp' ? ' settings__tab--active' : ''}`}
+            onClick={() => setActiveTab('tetaApp')}
+          >
+            Aplikacja Teta
+          </button>
+        )}
+        {isVendorMode && (
+          <button
+            type="button"
             className={`settings__tab${activeTab === 'packages' ? ' settings__tab--active' : ''}`}
             onClick={() => setActiveTab('packages')}
           >
@@ -245,6 +255,8 @@ export function AdminSettingsView() {
             </table>
           </>
         )}
+
+        {activeTab === 'tetaApp' && isVendorMode && <TetaAppSettingsPanel />}
 
         {activeTab === 'packages' && isVendorMode && <VendorPackagesPanel />}
 

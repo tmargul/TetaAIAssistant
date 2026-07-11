@@ -6,7 +6,10 @@ import type { PathBrowseEntry, PathBrowseResponse } from '@teta/shared';
 
 @Injectable()
 export class AdminPathBrowserService {
-  async browse(requestedPath?: string, fileFilter: 'zip' | 'any' = 'zip'): Promise<PathBrowseResponse> {
+  async browse(
+    requestedPath?: string,
+    fileFilter: 'zip' | 'any' | 'directories' = 'zip',
+  ): Promise<PathBrowseResponse> {
     const trimmed = requestedPath?.trim();
     if (!trimmed) {
       if (process.platform === 'win32') {
@@ -66,7 +69,7 @@ export class AdminPathBrowserService {
 
   private async listDirectory(
     directoryPath: string,
-    fileFilter: 'zip' | 'any',
+    fileFilter: 'zip' | 'any' | 'directories',
   ): Promise<PathBrowseResponse> {
     const parentPath = this.resolveParentPath(directoryPath);
     const names = await readdir(directoryPath);
@@ -86,6 +89,9 @@ export class AdminPathBrowserService {
         if (entryStat.isDirectory()) {
           kind = directoryPath.match(/^[A-Za-z]:\\?$/) ? 'drive' : 'directory';
         } else if (entryStat.isFile()) {
+          if (fileFilter === 'directories') {
+            continue;
+          }
           kind = 'file';
           selectable = fileFilter === 'any' || name.toLowerCase().endsWith('.zip');
         }

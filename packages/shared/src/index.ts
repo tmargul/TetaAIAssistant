@@ -1,6 +1,12 @@
 export const APP_NAME = 'Teta AI Assistant';
 
 export type {
+  TetaAppPathsConfig,
+  TetaAppPathsStatusResponse,
+  TetaAppPathsUpdateRequest,
+} from './teta-app.js';
+
+export type {
   ClientUpdatesStatusResponse,
 } from './updates.js';
 

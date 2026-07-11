@@ -44,8 +44,12 @@ export class AdminUpdatesController {
   }
 
   @Get('browse')
-  browsePaths(@Query('path') browsePath?: string): Promise<PathBrowseResponse> {
-    return this.pathBrowser.browse(browsePath);
+  browsePaths(
+    @Query('path') browsePath?: string,
+    @Query('filter') filter?: 'zip' | 'directories',
+  ): Promise<PathBrowseResponse> {
+    const fileFilter = filter === 'directories' ? 'directories' : 'zip';
+    return this.pathBrowser.browse(browsePath, fileFilter);
   }
 
   @Post('global-rag/import')

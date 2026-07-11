@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-06-05** (Etap 1 `rag:video:ingest`)
+> Ostatnia aktualizacja: **2026-07-11** (plan metadane wtyczek — tylko vendor)
 
 ---
 
@@ -10,10 +10,12 @@
 | Element | Wartość |
 |---------|---------|
 | Dev | `pnpm dev` — API `:3000`, web `:5173` |
-| VM Oracle | `WIN-PDDJCBNU8LI` |
-| IP VM | `172.18.15.116` (Hyper-V Default Switch, gateway hosta `172.18.0.1`) |
+| VM Oracle | `WIN-PDDJCBNU8LI` (Hyper-V **Default Switch**) |
+| IP VM | **`172.26.228.145`** — **statyczne** (maska `/20`, brama `172.26.224.1`); stary z paczki `172.20.23.182` — inna sieć, nie używać |
 | Port / SID | `1521` / **`TETAHR`** |
-| Firewall VM | Reguła dla `172.18.0.0/20` na port 1521 (TCP) |
+| Firewall VM | Reguła TCP 1521 z podsieci hosta (`172.26.224.0/20`) |
+| Teta na VM (share) | `\\172.26.228.145\teta` — wymaga `net use` z `WIN-PDDJCBNU8LI\Administrator` (mapowany dysk na hoście, np. `T:` lub `X:`) |
+| Ustawienia ścieżek | **Ustawienia → Aplikacja Teta** — `clientDirectory` + `serverDirectory` (zmapowany dysk lub UNC); zapis w SQLite ✅ działa |
 | Tryb Oracle w `.env` | `TETA_ORACLE_MODE=real` (na dev; fake tylko do symulacji) |
 | `oracledb` | Wersja 7.x, domyślnie **Thin** — Instant Client nie jest wymagany na start |
 | Instant Client | Basic Light tylko jeśli Thin nie wystarczy; w paczce offline — opcjonalnie |
@@ -42,7 +44,7 @@ W trybie **real** logujesz się **prawdziwym kontem Oracle** — `teta_admin` ni
 1. **Edycja połączenia z UI** — zakładka **Ustawienia → Połączenie Oracle** (tylko admin). Hasło przy edycji można zostawić puste (zachowuje poprzednie).
 2. **Recovery bez logowania** — na ekranie logowania link *„Problemy z logowaniem? Zmień parametry połączenia Oracle”*; zapis z nagłówkiem `X-Teta-Oracle-Recovery: 1`.
 3. **`POST /api/oracle/config`** — bez auth przy pierwszym setupie lub recovery; po skonfigurowaniu wymaga JWT admina.
-4. Stara konfiguracja fake (`192.168.1.10`, SID `TETA`) w SQLite powodowała timeout i błędy logowania — poprawka: `172.18.15.116` / `TETAHR`.
+4. Stara konfiguracja fake (`192.168.1.10`, SID `TETA`) w SQLite powodowała timeout — aktualnie w paczce: `172.20.23.182` / `TETAHR`. NJS-510 = VM nieosiągalna (brak trasy / VM wyłączona), nie błąd aplikacji.
 5. Błędy Oracle (timeout, NJS-510) powinny wracać jako czytelny komunikat (`BadRequestException`), nie HTTP 500.
 
 ### Panel aktualizacji (z repo, ten komputer)
@@ -124,13 +126,26 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ## Otwarte / do sprawdzenia
 
 - [ ] **RAG smoke test:** `_temp/zu1/zu1.jsonl` rozpakowany (44 chunki, `trainings/zu1.mp4`) — import + chat po uruchomieniu Qdrant
-- [ ] SQLite Oracle: `172.18.15.116` / `TETAHR`
+- [x] VM Oracle: Default Switch, statyczne IP `172.26.228.145`, port 1521 OK
+- [x] Ścieżki Teta (vendor): share VM + mapowanie dysku na hoście — **Ustawienia → Aplikacja Teta** zapisuje poprawnie
 - [ ] Admin zarejestrowany na real Oracle (nie fake `teta_admin`)
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
 
 ---
 
 ## Notatki sesji
+
+### 2026-07-11 — metadane wtyczek / RAG (plan od nowa)
+
+- Cofnięto eksperymentalny import JSON plugin-metadata z TCHelper — startujemy od zera **w TetaAIAssistant**.
+- **TCHelper** = tylko wzorzec algorytmów (`Program.cs`, przykładowy `plgDaneOsobowe.json`).
+- **Bez pośredniego importu JSON** — funkcjonalność wbudowana w aplikację.
+- **Wszystkie nowe funkcje (odkrywanie powiązań wtyczka↔Oracle, baza wiedzy RAG) — tylko tryb VENDOR:**
+  - build: `TETA_APP_MODE=vendor` / paczka vendor MSI
+  - runtime: `VendorAccessGuard` + tryb pracy **Vendor** przy logowaniu (nagłówek work-mode)
+  - wzorzec jak: `VendorRagController`, `VendorSchemaLearningController`, ingest wideo
+- Klienci (instalacja client) **nie** dostają tych endpointów ani UI.
+- **Ustawienia → Aplikacja Teta** (vendor): ścieżki `clientDirectory` + `serverDirectory` w SQLite (`app_settings`); API `GET/PUT /api/vendor/teta-app/paths`.
 
 ### 2026-06-05 (komputer 2 → kontekst z czatu)
 
