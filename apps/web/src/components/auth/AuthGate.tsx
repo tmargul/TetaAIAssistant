@@ -16,29 +16,66 @@ type AuthGateProps = {
 export function AuthGate({ children }: AuthGateProps) {
   const [status, setStatus] = useState<AuthSetupStatusResponse | null>(null);
   const [oracleRecovery, setOracleRecovery] = useState(false);
+  const [apiUnavailable, setApiUnavailable] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(true);
 
   const refreshStatus = () => {
-    fetchWithRetry('/api/auth/setup-status')
+    setStatusLoading(true);
+    setApiUnavailable(false);
+    fetchWithRetry('/api/auth/setup-status', undefined, 2)
       .then(async (res) => {
         if (!res.ok) throw new Error('HTTP error');
         return res.json() as Promise<AuthSetupStatusResponse>;
       })
-      .then(setStatus)
-      .catch(() =>
-        setStatus({
-          oracleConfigured: true,
-          adminBootstrapped: false,
-          authenticated: false,
-        }),
-      );
+      .then((next) => {
+        setStatus(next);
+      })
+      .catch(() => {
+        setStatus(null);
+        setApiUnavailable(true);
+      })
+      .finally(() => {
+        setStatusLoading(false);
+      });
   };
 
   useEffect(() => {
     refreshStatus();
   }, []);
 
-  if (!status) {
+  if (statusLoading) {
     return <div className="oracle-setup__loading">Sprawdzanie sesji…</div>;
+  }
+
+  if (apiUnavailable || !status) {
+    return (
+      <div className="oracle-setup">
+        <div className="oracle-setup__card">
+          <div className="oracle-setup__header">
+            <div className="oracle-setup__logo">T</div>
+            <h1 className="oracle-setup__title">Backend API niedostępny</h1>
+            <p className="oracle-setup__desc">
+              Aplikacja webowa działa, ale nie ma połączenia z API na{' '}
+              <code>http://localhost:3000</code>. Bez API zobaczysz niewłaściwy ekran logowania
+              lub błędy importu.
+            </p>
+          </div>
+          <div className="oracle-setup__banner">
+            Uruchom w katalogu projektu: <code>pnpm dev</code> (API + web) albo samo API:{' '}
+            <code>pnpm --filter @teta/api dev</code>.
+          </div>
+          <div className="oracle-setup__actions">
+            <button
+              type="button"
+              className="oracle-setup__btn oracle-setup__btn--primary"
+              onClick={() => refreshStatus()}
+            >
+              Spróbuj ponownie
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const handleAuthSuccess = (response: LoginResponse, workMode?: AppMode) => {

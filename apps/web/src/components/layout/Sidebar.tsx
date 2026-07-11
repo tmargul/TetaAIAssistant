@@ -7,6 +7,7 @@ import {
   IconDoctor,
   IconDocuments,
   IconHistory,
+  IconPlugins,
   IconSettings,
   IconWizard,
 } from './icons';
@@ -19,6 +20,7 @@ export type NavItem =
   | 'documents'
   | 'globalSources'
   | 'oracleMetadata'
+  | 'tetaPlugins'
   | 'vendorWizard'
   | 'history'
   | 'settings';
@@ -37,6 +39,7 @@ const BASE_NAV_ITEMS: {
   { id: 'globalSources', label: 'Źródła globalne', icon: IconDocuments, vendorOnly: true },
   { id: 'oracleMetadata', label: 'Metadane Oracle', icon: IconDatabase, vendorOnly: true },
   { id: 'documents', label: 'Dokumenty', icon: IconDocuments, clientOnly: true },
+  { id: 'tetaPlugins', label: 'Wtyczki Teta', icon: IconPlugins, vendorOnly: true },
   { id: 'doctor', label: 'AI Doctor', icon: IconDoctor },
   { id: 'settings', label: 'Ustawienia', icon: IconSettings },
 ];

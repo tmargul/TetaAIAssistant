@@ -10,6 +10,7 @@ import { GlobalSourcesView } from './components/global-sources/GlobalSourcesView
 import { DoctorView } from './components/doctor/DoctorView';
 import { AdminSettingsView } from './components/settings/AdminSettingsView';
 import { OracleMetadataView } from './components/oracle-metadata/OracleMetadataView';
+import { TetaPluginsView } from './components/teta-plugins/TetaPluginsView';
 import { VendorKnowledgeWizard } from './components/vendor-wizard/VendorKnowledgeWizard';
 import { VendorWizardDashboardBanner } from './components/vendor-wizard/VendorWizardDashboardBanner';
 import type { NavItem } from './components/layout/Sidebar';
@@ -39,6 +40,10 @@ const PAGE_META: Record<NavItem, { title: string; subtitle: string }> = {
   oracleMetadata: {
     title: 'Metadane Oracle',
     subtitle: 'Import struktury bazy Teta — tabele, widoki, pakiety, procedury',
+  },
+  tetaPlugins: {
+    title: 'Wtyczki Teta',
+    subtitle: 'Metadane wtyczek i formularzy — mapowanie UI ↔ Oracle',
   },
   vendorWizard: {
     title: 'Kreator wiedzy',
@@ -217,6 +222,9 @@ export default function App() {
         )}
         {activeNav === 'globalSources' && isVendorMode && <GlobalSourcesView />}
         {activeNav === 'oracleMetadata' && isVendorMode && <OracleMetadataView />}
+        {activeNav === 'tetaPlugins' && isVendorMode && (
+          <TetaPluginsView onNavigate={setActiveNav} />
+        )}
         {activeNav === 'history' && (
           <HistoryView
             isActive

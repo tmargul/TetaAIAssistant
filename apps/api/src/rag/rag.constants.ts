@@ -26,5 +26,5 @@ export const RAG_CONSTANTS = {
   /** Skrót chunka w panelu „Źródła RAG” w czacie. */
   uiExcerptChars: 320,
   /** Maks. znaków wysyłanych do Ollama /api/embeddings (ochrona przed przekroczeniem kontekstu modelu). */
-  embeddingMaxChars: 4000,
+  embeddingMaxChars: 2048,
 } as const;

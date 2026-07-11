@@ -64,6 +64,7 @@ export const RAG_SOURCE_TYPE_LABELS: Record<KnowledgeSourceType, string> = {
   faq: 'FAQ',
   oracle_package: 'Pakiet Oracle',
   schema_entity: 'Powiązanie schematu (tag → obiekt)',
+  teta_plugin: 'Wtyczka Teta',
   client_document: 'Dokument klienta',
   other: 'Inne',
 };

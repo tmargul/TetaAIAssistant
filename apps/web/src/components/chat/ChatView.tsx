@@ -64,6 +64,7 @@ const SOURCE_TYPE_LABELS: Record<(typeof KNOWLEDGE_SOURCE_TYPES)[number], string
   faq: 'FAQ',
   oracle_package: 'Pakiet Oracle',
   schema_entity: 'Powiązanie schematu',
+  teta_plugin: 'Wtyczka Teta',
   client_document: 'Dokument klienta',
   other: 'Inne',
 };

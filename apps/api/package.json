@@ -38,6 +38,7 @@
     "archiver": "^7.0.1",
     "better-sqlite3": "^12.10.0",
     "extract-zip": "^2.0.1",
+    "fast-xml-parser": "^5.10.0",
     "html-to-text": "^10.0.0",
     "jszip": "^3.10.1",
     "multer": "^2.0.2",

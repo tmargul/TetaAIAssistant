@@ -28,7 +28,11 @@ export function LoginForm({ onSuccess, onOpenOracleRecovery }: LoginFormProps) {
           setWorkMode('client');
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (import.meta.env.DEV) {
+          setWorkModeSelectable(true);
+        }
+      });
 
     fetchWithRetry('/api/oracle/status')
       .then(async (res) => res.json() as Promise<OracleConnectionStatusResponse>)

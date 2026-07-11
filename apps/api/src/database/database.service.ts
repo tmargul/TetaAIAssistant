@@ -281,6 +281,22 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       );
     `);
 
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS teta_plugin_imports (
+        dll_path TEXT PRIMARY KEY,
+        dll_name TEXT NOT NULL,
+        relative_path TEXT NOT NULL,
+        category_dir TEXT,
+        imported_at TEXT NOT NULL,
+        chunk_count INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_teta_plugin_imports_name ON teta_plugin_imports(dll_name);
+    `);
+
+    this.ensureColumn('teta_plugin_imports', 'metadata_json', 'TEXT');
+
     this.ensureColumn('oracle_metadata_import_jobs', 'catalog_totals_json', 'TEXT');
     this.ensureColumn('oracle_metadata_import_jobs', 'import_limits_json', 'TEXT');
     this.ensureColumn('schema_columns', 'data_default', 'TEXT');

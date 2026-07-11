@@ -119,6 +119,7 @@ export const KNOWLEDGE_SOURCE_TYPES = [
   'faq',
   'oracle_package',
   'schema_entity',
+  'teta_plugin',
   'client_document',
   'other',
 ] as const;

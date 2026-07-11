@@ -146,6 +146,30 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
   - wzorzec jak: `VendorRagController`, `VendorSchemaLearningController`, ingest wideo
 - Klienci (instalacja client) **nie** dostają tych endpointów ani UI.
 - **Ustawienia → Aplikacja Teta** (vendor): ścieżki `clientDirectory` + `serverDirectory` w SQLite (`app_settings`); API `GET/PUT /api/vendor/teta-app/paths`.
+- **Sidebar → Wtyczki Teta** (vendor only, nad AI Doctor): `TetaPluginsView` — moduł metadanych wtyczek.
+
+**Spec UI / danych (2026-07-11, ustalenia):**
+
+| Reguła | Wartość |
+|--------|---------|
+| Źródło | `{clientDirectory}/Plugins/**` |
+| Jednostka | **każdy plik `.dll`** w podkatalogach |
+| Wykluczenia | segmenty ścieżki `en` / `hu` **gdziekolwiek** w drzewie |
+| Zaimportowany | cała wtyczka (DLL) ma chunki w RAG (`teta_global`, jak Oracle metadata) |
+| Grid główny | kafelek = **nazwa DLL** + status importu; nagłówek **X / Y** (w RAG / wszystkie DLL); filtry: **Kategoria**, **Status RAG** (wszystkie / w RAG / bez importu), **Szukaj** (nazwa, ścieżka, kategoria); przycisk Importuj ze spinnerem w trakcie |
+| Klik (zaimportowany) | panel szczegółów: chunki RAG, obiekty Oracle (widoki/tabele/pakiety), gatewaye z **SELECT/INSERT/UPDATE/DELETE**, kolumny UI |
+| Źródło deskryptora | **plugins.xml opcjonalny** — jeśli brak pliku/wpisu, inferencja z DLL (stringi), katalog serwera, opcjonalnie źródła `.cs` |
+| Wzorzec algorytmów | TCHelper `Program.cs` — bez importu JSON |
+
+**Kolejność implementacji:** (1) skan DLL + API status ✅, (2) grid UI ✅, (3) ekstrakcja metadanych + import RAG ✅, (4) widok szczegółów (częściowo — podsumowanie w modalu).
+- API: `GET /api/vendor/teta-plugins/status`, `POST /api/vendor/teta-plugins/import`, `GET /api/vendor/teta-plugins/import/detail?dllPath=…`
+- Ekstrakcja: **bez TCHelper w runtime** — TCHelper tylko wzorzec algorytmów (nie budować, nie wywoływać przy imporcie). Inferencja natywna z DLL BO na serwerze (`BusinessObjects/`): gatewaye MTG/TG, metadane Oracle, kolumny UI z zasobów w DLL wtyczki
+- **Pakiety Oracle:** `_DAC` (starsze moduły), `_AGL` (uniwersalne CRUD — SELECT/INSERT/UPDATE/DELETE), `_LEP` (custom od twórcy). W panelu szczegółów importu pokazywać **wszystkie** odkryte obiekty: widoki, tabele, pakiety DAC/AGL/LEP, datasety, aliasy
+- **Kolejność SQL (natywnie w API, bez TCHelper.exe):** (1) SELECT z widoku + alias + kolumny z Oracle gdy są 4 pola buildera; (2) INSERT/UPDATE/DELETE z pakietów `_DAC` / `_AGL` / `_LEP`; (3) fallback `SELECT` ze wszystkimi kolumnami tabeli/widoku (`ALL_TAB_COLUMNS`). TCHelper `Program.cs` = tylko wzorzec algorytmów, nie runtime.
+- `missing_metadata` = brak 4 pól buildera (widok, alias, pakiet, tabela DataSet) — uzupełniane heurystyką z katalogu stringów w DLL BO
+- Źródła `.cs`: `TETA_PLUGIN_SOURCE_ROOT` → katalog serwera → katalog klienta
+- RAG: `source_type=teta_plugin`, prefiks `teta-plugins/{relativePath}/…`, kolekcja `teta_global`, merge + replace chunków po źródłach
+- SQLite: `teta_plugin_imports.metadata_json` — snapshot metadanych po imporcie
 
 ### 2026-06-05 (komputer 2 → kontekst z czatu)
 

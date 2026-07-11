@@ -37,20 +37,39 @@ export class EmbeddingService {
     return Number.isFinite(parsed) && parsed > 256 ? parsed : RAG_CONSTANTS.embeddingMaxChars;
   }
 
-  private preparePrompt(text: string): string {
+  private preparePrompt(text: string, charLimit = this.maxChars): string {
     const trimmed = text.trim();
-    if (trimmed.length <= this.maxChars) {
+    if (trimmed.length <= charLimit) {
       return trimmed;
     }
 
     this.logger.warn(
-      `Embedding input truncated from ${trimmed.length} to ${this.maxChars} characters.`,
+      `Embedding input truncated from ${trimmed.length} to ${charLimit} characters.`,
     );
-    return trimmed.slice(0, this.maxChars);
+    return trimmed.slice(0, charLimit);
   }
 
   async embed(text: string): Promise<number[]> {
-    const prompt = this.preparePrompt(text);
+    let limit = this.maxChars;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        return await this.requestEmbedding(text, limit);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const retriable = /context length|exceeds the context/i.test(message);
+        if (!retriable || attempt >= 2) {
+          throw err;
+        }
+        limit = Math.max(512, Math.floor(limit / 2));
+        this.logger.warn(`Embedding retry with ${limit} characters after: ${message}`);
+      }
+    }
+
+    throw new Error('Ollama embedding failed after retries.');
+  }
+
+  private async requestEmbedding(text: string, charLimit: number): Promise<number[]> {
+    const prompt = this.preparePrompt(text, charLimit);
     const res = await fetch(`${this.baseUrl}/api/embeddings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

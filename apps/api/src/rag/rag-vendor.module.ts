@@ -17,17 +17,24 @@ import { VideoIngestPipelineService } from './video-ingest/video-ingest-pipeline
 import { VendorVideoIngestController } from './video-ingest/vendor-video-ingest.controller';
 import { SchemaLearningModule } from '../schema/schema-learning.module';
 import { VendorSchemaLearningController } from '../schema/vendor-schema-learning.controller';
+import { OracleModule } from '../oracle/oracle.module';
 import { TetaAppPathsService } from '../teta-app/teta-app-paths.service';
 import { VendorTetaAppController } from '../teta-app/vendor-teta-app.controller';
+import { TetaPluginRegistryService } from '../teta-plugins/teta-plugin-registry.service';
+import { TetaPluginImportService } from '../teta-plugins/teta-plugin-import.service';
+import { TetaPluginsService } from '../teta-plugins/teta-plugins.service';
+import { TetaPluginOracleColumnsService } from '../teta-plugins/teta-plugin-oracle-columns.service';
+import { VendorTetaPluginsController } from '../teta-plugins/vendor-teta-plugins.controller';
 
 @Module({
-  imports: [RagCoreModule, AuthModule, SchemaLearningModule],
+  imports: [RagCoreModule, AuthModule, SchemaLearningModule, OracleModule],
   controllers: [
     VendorRagController,
     VendorPackagesController,
     VendorVideoIngestController,
     VendorSchemaLearningController,
     VendorTetaAppController,
+    VendorTetaPluginsController,
   ],
   providers: [
     GlobalRagIngestService,
@@ -42,6 +49,10 @@ import { VendorTetaAppController } from '../teta-app/vendor-teta-app.controller'
     VendorAccessGuard,
     VendorGuard,
     TetaAppPathsService,
+    TetaPluginRegistryService,
+    TetaPluginsService,
+    TetaPluginImportService,
+    TetaPluginOracleColumnsService,
   ],
   exports: [GlobalRagIngestService, GlobalRagExportService],
 })
