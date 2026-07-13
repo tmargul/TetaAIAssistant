@@ -1,4 +1,9 @@
-import { buildGridOracleColumnLinks, queryMentionsLink } from './teta-plugin-grid-column-mapper';
+import {
+  buildGridOracleColumnLinks,
+  linkMatchesSqlOutputIntent,
+  queryMentionsLink,
+  queryStrictlyMentionsLink,
+} from './teta-plugin-grid-column-mapper';
 import { buildLabeledSelectSql } from './teta-plugin-labeled-select.util';
 import type { TetaPluginFormMetadata, TetaPluginGatewayMeta } from './teta-plugin-metadata.types';
 
@@ -76,5 +81,93 @@ describe('teta-plugin-grid-column-mapper', () => {
     expect(queryMentionsLink('a jaki jest adres zameldowania tego pracownika', link)).toBe(true);
     expect(queryMentionsLink('a jaki jest adres zamoedlowania tego pracownika', link)).toBe(true);
     expect(queryMentionsLink('podaj nazwisko pracownika', link)).toBe(false);
+  });
+
+  it('does not loosely match grid column names via shared stem with pracownik', () => {
+    const link = {
+      oracleColumnName: 'MPK',
+      label: 'MPK',
+      gridColumnName: 'dgcPracownikMpk',
+      synonyms: ['dgcPracownikMpk', 'numer pracownika'],
+    };
+    const query = 'Jakie jest imię i nazwisko pracownika o numerze ewidencyjnym 00122?';
+
+    expect(queryMentionsLink(query, link)).toBe(true);
+    expect(queryStrictlyMentionsLink(query, link)).toBe(false);
+    expect(linkMatchesSqlOutputIntent(query, link)).toBe(false);
+  });
+
+  it('matches only primary imie and nazwisko for employee name query', () => {
+    const query = 'Jakie jest imię i nazwisko pracownika o numerze ewidencyjnym 00122?';
+    const outputPart = 'Jakie jest imię i nazwisko pracownika ';
+
+    expect(
+      linkMatchesSqlOutputIntent(outputPart, {
+        oracleColumnName: 'IMIE',
+        label: 'Imię',
+        gridColumnName: 'dgcImie',
+        synonyms: ['Imię'],
+      }),
+    ).toBe(true);
+    expect(
+      linkMatchesSqlOutputIntent(outputPart, {
+        oracleColumnName: 'NAZWISKO',
+        label: 'Nazwisko',
+        gridColumnName: 'dgcNazwisko',
+        synonyms: ['Nazwisko'],
+      }),
+    ).toBe(true);
+    expect(
+      linkMatchesSqlOutputIntent(outputPart, {
+        oracleColumnName: 'IMIE_OJCA',
+        label: 'Imię ojca',
+        gridColumnName: null,
+        synonyms: ['Imię ojca', 'Imię'],
+      }),
+    ).toBe(false);
+    expect(
+      linkMatchesSqlOutputIntent(outputPart, {
+        oracleColumnName: 'IMIE_DRUGIE',
+        label: 'Imię drugie',
+        gridColumnName: null,
+        synonyms: ['Imię drugie', 'Imię'],
+      }),
+    ).toBe(false);
+  });
+
+  it('links dgcLSZKLataStaz to LATA_STAZU via semantic grid tokens', () => {
+    const educationForm: TetaPluginFormMetadata = {
+      Plugin: { ClassName: 'WyksztalcenieWidok', Languages: [{ Name: 'Wykształcenie' }] },
+      Columns: [
+        {
+          GridColumnName: 'dgcLSZKLataStaz',
+          Labels: { PL: 'Staż' },
+          Hints: { PL: 'Ilość lat liczonych do stażu' },
+        },
+      ],
+    };
+    const schoolsGateway: TetaPluginGatewayMeta = {
+      ClassName: 'SzkolyTG',
+      GatewayKind: 'TG',
+      ViewName: 'NT_KP_IMP_SZKOLY',
+      TableAlias: 'ISZK',
+      Sql: {
+        BuilderText: {
+          Select:
+            'SELECT <SqlColumns>ISZK.LATA_STAZU, ISZK.NAZWA</SqlColumns> FROM <SqlTables> NT_KP_IMP_SZKOLY ISZK </SqlTables>',
+        },
+      },
+    };
+
+    const links = buildGridOracleColumnLinks(schoolsGateway, educationForm);
+    expect(links).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          oracleColumnName: 'LATA_STAZU',
+          label: 'Staż',
+          gridColumnName: 'dgcLSZKLataStaz',
+        }),
+      ]),
+    );
   });
 });

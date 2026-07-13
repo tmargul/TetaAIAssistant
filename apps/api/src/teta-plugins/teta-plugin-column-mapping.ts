@@ -8,11 +8,16 @@ import {
   buildGridOracleColumnLinks,
   collectBundleUiColumns,
   findEarliestMentionIndex,
+  linkMatchesSqlOutputIntent,
   normalizeSearchText,
   phraseMatchesNormalizedQuery,
   queryMentionsLink,
   type GridOracleColumnLink,
 } from './teta-plugin-grid-column-mapper';
+import { resolveFilterMappingFromQuery as resolveFilterMapping } from './teta-plugin-filter-mapping.util';
+import { loadQueryLanguageConfig } from './teta-query-language.loader';
+
+const MAX_SQL_OUTPUT_COLUMNS = 8;
 import { buildLabeledSelectSql } from './teta-plugin-labeled-select.util';
 
 export type TetaPluginColumnMapping = {
@@ -53,14 +58,13 @@ export function buildColumnMappingsFromBundle(
 ): TetaPluginColumnMapping[] {
   const mappings: TetaPluginColumnMapping[] = [];
   const allColumns = collectBundleUiColumns(bundle);
-  const primaryForm = bundle.forms[0];
 
   for (const form of bundle.forms) {
     const formName = formDisplayName(form, bundle.dllName);
     for (const gateway of form.Gateways ?? []) {
       const targetObject = gatewayTargetObject(gateway);
       const schemaColumns = targetObject && getSchemaColumns ? getSchemaColumns(targetObject) : [];
-      const links = buildGridOracleColumnLinks(gateway, primaryForm ?? form, {
+      const links = buildGridOracleColumnLinks(gateway, form, {
         allColumns,
         schemaColumns,
       });
@@ -94,18 +98,17 @@ export function enrichGatewaysWithLabeledSelect(
   bundle: TetaPluginMetadataBundle,
   getSchemaColumns?: (tableRef: string) => SchemaColumnMeta[],
 ): number {
-  const allColumns = collectBundleUiColumns(bundle);
-  const primaryForm = bundle.forms[0];
-  if (!primaryForm) {
+  if (bundle.forms.length === 0) {
     return 0;
   }
 
+  const allColumns = collectBundleUiColumns(bundle);
   let updated = 0;
   for (const form of bundle.forms) {
     for (const gateway of form.Gateways ?? []) {
       const targetObject = gatewayTargetObject(gateway);
       const schemaColumns = targetObject && getSchemaColumns ? getSchemaColumns(targetObject) : [];
-      const links = buildGridOracleColumnLinks(gateway, primaryForm, {
+      const links = buildGridOracleColumnLinks(gateway, form, {
         allColumns,
         schemaColumns,
       });
@@ -128,11 +131,23 @@ export function enrichGatewaysWithLabeledSelect(
   return updated;
 }
 
+function buildFilterPrepositionPattern(): RegExp {
+  const prepositions = loadQueryLanguageConfig()
+    .filterPrepositions.map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
+  return new RegExp(`\\b(?:${prepositions})\\b`, 'i');
+}
+
+export function hasDistinctFilterClause(query: string): boolean {
+  const match = query.match(buildFilterPrepositionPattern());
+  return match?.index != null && match.index > 0;
+}
+
 export function splitQueryIntentSections(query: string): {
   outputPart: string;
   filterPart: string;
 } {
-  const match = query.match(/\b(?:o|z|ze|wg|wedlug|według|where)\b/i);
+  const match = query.match(buildFilterPrepositionPattern());
   if (match?.index != null && match.index > 0) {
     return {
       outputPart: query.slice(0, match.index),
@@ -142,48 +157,33 @@ export function splitQueryIntentSections(query: string): {
   return { outputPart: query, filterPart: query };
 }
 
-function linkMentionedInSection(section: string, link: GridOracleColumnLink): boolean {
-  return queryMentionsLink(section, link);
+function linkStrictlyMentionedInSection(section: string, link: GridOracleColumnLink): boolean {
+  return linkMatchesSqlOutputIntent(section, link);
 }
 
-function filterMatchScore(filterPart: string, link: GridOracleColumnLink): number {
-  const normalizedFilter = normalizeSearchText(filterPart);
+function outputMentionScore(section: string, link: GridOracleColumnLink): number {
+  const normalizedSection = normalizeSearchText(section);
+  const labelNorm = normalizeSearchText(link.label);
   let score = 0;
 
-  for (const phrase of [link.label, ...link.synonyms].map((part) => normalizeSearchText(part))) {
-    if (phrase.length < 3) {
-      continue;
-    }
-    if (normalizedFilter.includes(phrase)) {
-      score += phrase.length * 3;
-      continue;
-    }
-    for (const token of phrase.split(/\s+/).filter((part) => part.length >= 3)) {
-      if (phraseMatchesNormalizedQuery(token, normalizedFilter)) {
-        score += token.length * 2;
+  if (labelNorm.length >= 3) {
+    if (normalizedSection.includes(labelNorm)) {
+      score += labelNorm.length * 4;
+    } else {
+      for (const token of labelNorm.split(/\s+/).filter((part) => part.length >= 3)) {
+        if (phraseMatchesNormalizedQuery(token, normalizedSection)) {
+          score += token.length * 2;
+        }
       }
     }
   }
 
-  return score;
-}
-
-function isWeakGenericFilterMatch(filterPart: string, link: GridOracleColumnLink, score: number): boolean {
-  const normalizedFilter = normalizeSearchText(filterPart);
   const oracleUpper = link.oracleColumnName.toUpperCase();
-  const hasEwid = /ewidencyjn|ewidenc/i.test(normalizedFilter);
-  const isPkLike = oracleUpper === 'ID' || oracleUpper.endsWith('_ID');
-
-  if (isPkLike && hasEwid && score < 12) {
-    return true;
+  if (oracleUpper === 'IMIE' || oracleUpper === 'NAZWISKO') {
+    score += 20;
   }
 
-  const labelNorm = normalizeSearchText(link.label);
-  if (hasEwid && labelNorm === 'nr' && score < 10) {
-    return true;
-  }
-
-  return false;
+  return score;
 }
 
 export function resolveFilterMappingFromQuery(
@@ -191,42 +191,7 @@ export function resolveFilterMappingFromQuery(
   mappings: TetaPluginColumnMapping[],
   filterValue: string | null,
 ): TetaPluginColumnMapping | null {
-  if (!filterValue?.trim()) {
-    return null;
-  }
-
-  const normalizedValue = filterValue.trim();
-  const { filterPart } = splitQueryIntentSections(query);
-  let best: { mapping: TetaPluginColumnMapping; distance: number; score: number } | null = null;
-
-  for (const mapping of mappings) {
-    const link: GridOracleColumnLink = {
-      oracleColumnName: mapping.oracleColumnName,
-      label: mapping.label,
-      gridColumnName: mapping.gridColumnName,
-      synonyms: mapping.synonyms,
-    };
-    const score = filterMatchScore(filterPart, link);
-    if (score < 4 || !linkMentionedInSection(filterPart, link)) {
-      continue;
-    }
-    if (isWeakGenericFilterMatch(filterPart, link, score)) {
-      continue;
-    }
-
-    const mentionIndex = findEarliestMentionIndex(filterPart, link);
-    const valueIndex = normalizeSearchText(filterPart).indexOf(normalizeSearchText(normalizedValue));
-    if (mentionIndex < 0 || valueIndex < 0 || valueIndex < mentionIndex) {
-      continue;
-    }
-
-    const distance = valueIndex - mentionIndex;
-    if (!best || score > best.score || (score === best.score && distance < best.distance)) {
-      best = { mapping, distance, score };
-    }
-  }
-
-  return best?.mapping ?? null;
+  return resolveFilterMapping(query, mappings, filterValue, splitQueryIntentSections);
 }
 
 function isEntityWordOnlyMatch(section: string, link: GridOracleColumnLink): boolean {
@@ -263,28 +228,73 @@ export function resolveOutputMappingsFromQuery(
         gridColumnName: mapping.gridColumnName,
         synonyms: mapping.synonyms,
       };
-      return linkMentionedInSection(outputPart, link);
+      return linkStrictlyMentionedInSection(outputPart, link);
     })
       ? outputPart
       : query;
 
-  return mappings.filter((mapping) => {
-    const key = `${mapping.targetObject ?? ''}:${mapping.oracleColumnName}`;
-    if (filterKey && key === filterKey) {
-      return false;
-    }
+  const scored = mappings
+    .map((mapping) => {
+      const key = `${mapping.targetObject ?? ''}:${mapping.oracleColumnName}`;
+      if (filterKey && key === filterKey) {
+        return null;
+      }
 
-    const link: GridOracleColumnLink = {
-      oracleColumnName: mapping.oracleColumnName,
-      label: mapping.label,
-      gridColumnName: mapping.gridColumnName,
-      synonyms: mapping.synonyms,
-    };
-    if (isEntityWordOnlyMatch(outputScope, link)) {
-      return false;
+      const link: GridOracleColumnLink = {
+        oracleColumnName: mapping.oracleColumnName,
+        label: mapping.label,
+        gridColumnName: mapping.gridColumnName,
+        synonyms: mapping.synonyms,
+      };
+      if (isEntityWordOnlyMatch(outputScope, link)) {
+        return null;
+      }
+      if (!linkStrictlyMentionedInSection(outputScope, link)) {
+        return null;
+      }
+
+      return {
+        mapping,
+        mentionIndex: findEarliestMentionIndex(outputScope, link),
+        score: outputMentionScore(outputScope, link),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item != null)
+    .sort((left, right) => {
+      const leftIndex = left.mentionIndex < 0 ? Number.MAX_SAFE_INTEGER : left.mentionIndex;
+      const rightIndex = right.mentionIndex < 0 ? Number.MAX_SAFE_INTEGER : right.mentionIndex;
+      if (leftIndex !== rightIndex) {
+        return leftIndex - rightIndex;
+      }
+      return right.score - left.score;
+    });
+
+  return scored.slice(0, MAX_SQL_OUTPUT_COLUMNS).map((item) => item.mapping);
+}
+
+export function resolveColumnMappingsForSql(
+  query: string,
+  mappings: TetaPluginColumnMapping[],
+  filterValue: string | null,
+): TetaPluginColumnMapping[] {
+  const filterMapping = resolveFilterMappingFromQuery(query, mappings, filterValue);
+  const outputMappings = resolveOutputMappingsFromQuery(query, mappings, filterMapping);
+  const byKey = new Map<string, TetaPluginColumnMapping>();
+
+  const add = (mapping: TetaPluginColumnMapping | null | undefined) => {
+    if (!mapping) {
+      return;
     }
-    return linkMentionedInSection(outputScope, link);
-  });
+    const key = `${mapping.targetObject ?? 'ANY'}:${mapping.oracleColumnName.toUpperCase()}`;
+    byKey.set(key, mapping);
+  };
+
+  add(filterMapping);
+  for (const mapping of outputMappings) {
+    add(mapping);
+  }
+
+  return [...byKey.values()];
 }
 
 export function createSchemaLookupFromColumns(
@@ -293,4 +303,42 @@ export function createSchemaLookupFromColumns(
   return (tableRef, pluginColumnName, label) =>
     matchPluginColumnToSchema(pluginColumnName, getColumns(tableRef), label) ??
     findSchemaColumnByLabel(label, getColumns(tableRef));
+}
+
+export function resolveMappingsForPrompt(
+  mappings: TetaPluginColumnMapping[],
+  query: string,
+  gatewayClassNames: string[],
+  limit = 48,
+): TetaPluginColumnMapping[] {
+  const gatewaySet = new Set(gatewayClassNames.map((name) => name.toLowerCase()).filter(Boolean));
+  const merged = new Map<string, TetaPluginColumnMapping>();
+
+  const add = (mapping: TetaPluginColumnMapping) => {
+    const key = `${mapping.targetObject ?? 'ANY'}:${mapping.oracleColumnName.toUpperCase()}:${mapping.gatewayClassName ?? ''}`;
+    merged.set(key, mapping);
+  };
+
+  for (const mapping of mappings) {
+    if (
+      mapping.gatewayClassName &&
+      gatewaySet.has(mapping.gatewayClassName.toLowerCase())
+    ) {
+      add(mapping);
+    }
+  }
+
+  for (const mapping of mappings) {
+    const link: GridOracleColumnLink = {
+      oracleColumnName: mapping.oracleColumnName,
+      label: mapping.label,
+      gridColumnName: mapping.gridColumnName,
+      synonyms: mapping.synonyms,
+    };
+    if (queryMentionsLink(query, link)) {
+      add(mapping);
+    }
+  }
+
+  return [...merged.values()].slice(0, limit);
 }

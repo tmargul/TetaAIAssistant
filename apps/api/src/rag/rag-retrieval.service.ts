@@ -21,15 +21,27 @@ export class RagRetrievalService {
 
   async retrieve(
     query: string,
-    options: { includeGlobal: boolean; includeClient: boolean; filter?: RagSearchFilter },
+    options: {
+      includeGlobal: boolean;
+      includeClient: boolean;
+      filter?: RagSearchFilter;
+      topK?: number;
+      minScore?: number;
+      searchLimit?: number;
+    },
   ): Promise<ChatRagSource[]> {
-    const topK = Number(this.config.get('RAG_CHAT_TOP_K', RAG_CONSTANTS.chatTopK));
-    const minScore = Number(this.config.get('RAG_CHAT_MIN_SCORE', RAG_CONSTANTS.chatMinScore));
+    const topK = Number(
+      options.topK ?? this.config.get('RAG_CHAT_TOP_K', RAG_CONSTANTS.chatTopK),
+    );
+    const minScore = Number(
+      options.minScore ?? this.config.get('RAG_CHAT_MIN_SCORE', RAG_CONSTANTS.chatMinScore),
+    );
     const excerptChars = Number(
       this.config.get('RAG_UI_EXCERPT_CHARS', RAG_CONSTANTS.uiExcerptChars),
     );
     const searchLimit = Number(
-      this.config.get('RAG_CHAT_SEARCH_LIMIT', RAG_CONSTANTS.chatSearchLimit),
+      options.searchLimit ??
+        this.config.get('RAG_CHAT_SEARCH_LIMIT', RAG_CONSTANTS.chatSearchLimit),
     );
 
     const vector = await this.embedding.embed(query);

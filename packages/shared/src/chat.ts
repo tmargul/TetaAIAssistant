@@ -101,6 +101,7 @@ export interface ChatCompletionResponse {
 }
 
 export type ChatStreamEvent =
+  | { type: 'status'; phase: 'oracle' | 'docs' | 'clarify'; message: string }
   | { type: 'rag'; ragMs: number; sourceCount: number }
   | { type: 'oracle_step'; step: ChatOracleStep }
   | { type: 'oracle_sql'; sql: string; rowCount: number; preview: string[] }

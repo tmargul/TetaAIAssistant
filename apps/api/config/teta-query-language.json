@@ -1,0 +1,14 @@
+{
+  "filterPrepositions": ["o", "z", "ze", "wg", "wedlug", "według", "where"],
+  "grammarParticles": ["o", "z", "ze", "wg", "wedlug", "według", "where", "nr", "numer", "numerze"],
+  "queryNoiseTokens": ["pracownik", "pracownika", "pracownicy", "pracownikow", "pracownikowi", "tego", "tej", "ten", "ta", "to", "mi", "ma", "prosze", "proszę", "podaj", "jaki", "jaka", "jakie", "jak", "jest", "są", "sa", "znajdz", "znajdź", "wyswietl", "wyświetl", "pokaz", "pokaż", "ok", "teraz", "powiedz", "powiedzmi", "a", "dobrze", "wiec", "więc", "wporzadku", "wporządku", "lista", "liste", "rekord", "rekordow", "rekordów", "rekordy", "pierwsze", "pierwszych", "wiersz", "wierszy", "wiersze"],
+  "implicitFilterExcludeLabelPatterns": ["adres", "ulica", "miejscowosc", "miejscowość", "kod", "pocztow", "zameld", "staly", "stały", "panien", "rodowe", "rodow"],
+  "implicitFilterGroups": [
+    {
+      "id": "person_name",
+      "labelTokens": ["nazwisko", "imie"],
+      "ambiguousOrder": true
+    }
+  ],
+  "caseInsensitiveTextFilters": true
+}

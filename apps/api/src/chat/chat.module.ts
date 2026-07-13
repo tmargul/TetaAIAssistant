@@ -6,6 +6,7 @@ import { SchemaModule } from '../schema/schema.module';
 import { ChatConversationsController } from './chat-conversations.controller';
 import { ChatConversationsService } from './chat-conversations.service';
 import { ChatController } from './chat.controller';
+import { ChatOrchestratorService } from './chat-orchestrator.service';
 import { ChatService } from './chat.service';
 import { OllamaModule } from './ollama.module';
 
@@ -18,7 +19,7 @@ import { OllamaModule } from './ollama.module';
     forwardRef(() => SchemaModule),
   ],
   controllers: [ChatController, ChatConversationsController],
-  providers: [ChatService, ChatConversationsService],
+  providers: [ChatService, ChatConversationsService, ChatOrchestratorService],
   exports: [ChatService, OllamaModule],
 })
 export class ChatModule {}

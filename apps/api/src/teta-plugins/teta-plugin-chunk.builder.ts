@@ -16,6 +16,7 @@ import {
 const MAX_COLUMNS_PER_CHUNK = 30;
 const MAX_SELECT_COLUMNS_IN_RAG = 15;
 const MAX_SQL_CHARS_IN_GATEWAY_CHUNK = 1500;
+const MAX_FIELD_MAPPING_CHUNKS = 400;
 
 function truncateText(text: string, maxChars: number): string {
   const trimmed = text.trim();
@@ -166,6 +167,7 @@ function buildOverviewChunk(
     text,
     summary: `${pluginName} (${bundle.dllName})`,
     plugin_names: [bundle.dllName.replace(/\.dll$/i, '')],
+    form_names: [pluginName],
     keywords: form.Tags ?? [],
     knowledge_version: TETA_KNOWLEDGE_CHUNK_FORMAT,
   };
@@ -231,10 +233,72 @@ function buildGatewayChunk(
     text,
     summary: `${gateway.ClassName} → ${gateway.ViewName ?? gateway.PackageName ?? 'gateway'}`,
     plugin_names: [bundle.dllName.replace(/\.dll$/i, '')],
+    form_names: [pluginName],
     tables: oracleObjects.filter((name) => !name.endsWith('_DAC')),
     keywords: [...oracleObjects, ...gridLinks.flatMap((link) => [link.label, ...link.synonyms])],
     knowledge_version: TETA_KNOWLEDGE_CHUNK_FORMAT,
   };
+}
+
+function buildFieldMappingChunks(
+  bundle: TetaPluginMetadataBundle,
+  form: TetaPluginFormMetadata,
+  baseSource: string,
+): TetaKnowledgeChunkInput[] {
+  const mappings = (bundle.columnMappings ?? []).filter(
+    (mapping) => mapping.formName === formDisplayName(form, bundle.dllName) || !mapping.formName,
+  );
+  if (mappings.length === 0) {
+    return [];
+  }
+
+  const formKey = formSegment(form);
+  const pluginName = form.Plugin.Languages?.[0]?.Name ?? bundle.dllName;
+  const chunks: TetaKnowledgeChunkInput[] = [];
+
+  for (const mapping of mappings.slice(0, MAX_FIELD_MAPPING_CHUNKS)) {
+    if (!mapping.label?.trim() || !mapping.gridColumnName?.trim()) {
+      continue;
+    }
+
+    const hint = mapping.synonyms.find(
+      (synonym) => synonym !== mapping.label && synonym !== mapping.gridColumnName,
+    );
+    const resolved =
+      mapping.resolvedColumnName && mapping.resolvedColumnName !== mapping.oracleColumnName
+        ? `; kolumna w schemacie Oracle: ${mapping.resolvedColumnName}`
+        : '';
+    const text = [
+      `Pole UI w Teta — formularz **${pluginName}** (${bundle.dllName}).`,
+      `Etykieta: „${mapping.label}”.`,
+      `Kontrolka grida: ${mapping.gridColumnName}.`,
+      hint ? `Opis / hint: ${hint}.` : '',
+      mapping.gatewayClassName ? `Gateway: ${mapping.gatewayClassName}.` : '',
+      mapping.targetObject ? `Widok/tabela Oracle: ${mapping.targetObject}.` : '',
+      `Kolumna Oracle (binding): ${mapping.oracleColumnName}${resolved}.`,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    chunks.push({
+      id: randomUUID(),
+      source: `${baseSource}/forms/${formKey}/fields/${mapping.gridColumnName}`,
+      source_type: 'teta_plugin',
+      text,
+      summary: `${pluginName}: ${mapping.label} → ${mapping.oracleColumnName}`,
+      plugin_names: [bundle.dllName.replace(/\.dll$/i, '')],
+      form_names: [pluginName],
+      keywords: [mapping.label, mapping.gridColumnName, mapping.oracleColumnName, ...(mapping.synonyms ?? [])],
+      tables: mapping.targetObject ? [mapping.targetObject] : [],
+      knowledge_version: TETA_KNOWLEDGE_CHUNK_FORMAT,
+    });
+  }
+
+  return chunks;
+}
+
+function formDisplayName(form: TetaPluginFormMetadata, dllName: string): string {
+  return form.Plugin.Languages?.[0]?.Name ?? form.Plugin.ClassName ?? dllName;
 }
 
 function buildColumnChunks(
@@ -290,6 +354,7 @@ export function buildTetaPluginKnowledgeChunks(bundle: TetaPluginMetadataBundle)
       chunks.push(buildGatewayChunk(bundle, form, gateway, baseSource));
     }
     chunks.push(...buildColumnChunks(bundle, form, baseSource));
+    chunks.push(...buildFieldMappingChunks(bundle, form, baseSource));
   }
 
   if (chunks.length === 0) {

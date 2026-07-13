@@ -29,7 +29,15 @@ import { getBuildAppMode } from '../rag/app-mode';
 import { SchemaEntityLearningService } from './schema-entity-learning.service';
 import { TetaPluginHintsService } from '../teta-plugins/teta-plugin-hints.service';
 import { isDataQueryIntent } from '../teta-plugins/teta-plugin-query-resolver';
-import { buildDirectEmployeeSelect, extractFilterValueForQuery } from '../teta-plugins/teta-plugin-column-resolver';
+import {
+  buildDirectPluginSelect,
+  buildPluginClarificationMessage,
+} from '../teta-plugins/teta-plugin-column-resolver';
+import { hasResolvableFilterForQuery } from '../teta-plugins/teta-plugin-filter-clause.util';
+import { isBroadListQuery } from '../teta-plugins/teta-plugin-list-query.util';
+import { classifyAgentQueryRoute } from '../agent/agent-query-router';
+import type { AgentQueryRoute } from '../agent/agent-query-route.types';
+import { buildAgentLlmSystemPrompt } from '../agent/agent-llm-prompts';
 import { SchemaGraphService } from './schema-graph.service';
 import {
   buildAgentJsonFailureMessage,
@@ -95,13 +103,6 @@ export class OracleAgentService {
     const reports: OracleReport[] = [];
 
     try {
-      const stats = this.crawl.getStats();
-      if (stats.nodeCount === 0) {
-        throw new BadRequestException(
-          'Graf schematu jest pusty — uruchom „Analizuj bazę” w ustawieniach Oracle.',
-        );
-      }
-
       const message = input.message.trim();
       if (!message) {
         throw new BadRequestException('Wiadomość nie może być pusta.');
@@ -120,6 +121,30 @@ export class OracleAgentService {
         ),
       );
       const maxIterations = Number(this.config.get('TETA_ORACLE_AGENT_MAX_STEPS', 10));
+
+      const routeDecision = classifyAgentQueryRoute({ message, history });
+      this.logger.log(
+        `Oracle agent — routing: ${routeDecision.route} (${routeDecision.confidence}): ${routeDecision.reason}`,
+      );
+
+      if (routeDecision.route === 'llm_only' || routeDecision.route === 'clarify') {
+        await this.streamLlmOnlyAnswer({
+          input,
+          history,
+          route: routeDecision.route,
+          writeEvent,
+          startedAt,
+          res,
+        });
+        return;
+      }
+
+      const stats = this.crawl.getStats();
+      if (stats.nodeCount === 0) {
+        throw new BadRequestException(
+          'Graf schematu jest pusty — uruchom „Analizuj bazę” w ustawieniach Oracle.',
+        );
+      }
 
       const entityLinks = this.schemaLearning.isLearningEnabled()
         ? await this.schemaLearning.findRelevantForQuery(message, domain)
@@ -158,17 +183,39 @@ export class OracleAgentService {
           !mapping.targetObject ||
           mapping.targetObject.toUpperCase() === preferredTable.toUpperCase(),
       );
-      const directSql = buildDirectEmployeeSelect({
+      const filterCheck = {
+        message,
+        history,
+        columnMappings,
+        intentPhrases: pluginHints.computedIntents.flatMap((item) => item.phrases),
+        preferredTable,
+        schemaColumns,
+      };
+      const directSql = buildDirectPluginSelect({
         message,
         history,
         defaultOwner,
         columnMappings,
+        computedIntents: pluginHints.computedIntents,
         gateways: pluginHints.gateways,
         preferredTable,
         schemaColumns,
       });
-      if (directSql && extractFilterValueForQuery(message, history)) {
-        this.logger.log(`Oracle agent — szybka ścieżka SQL: ${directSql}`);
+
+      const pluginClarification = buildPluginClarificationMessage(
+        message,
+        history,
+        columnMappings,
+        pluginHints.computedIntents,
+      );
+      if (pluginClarification) {
+        finalAnswer = pluginClarification;
+      } else if (
+        directSql &&
+        (hasResolvableFilterForQuery(filterCheck) || isBroadListQuery(message))
+      ) {
+        const pathLabel = isBroadListQuery(message) ? 'listy' : 'SQL';
+        this.logger.log(`Oracle agent — szybka ścieżka ${pathLabel}: ${directSql}`);
         try {
           const report = await this.runSql(
             directSql,
@@ -204,7 +251,7 @@ export class OracleAgentService {
           ],
           input.model,
           input.quality,
-          this.getOracleLlmOverrides(),
+          this.getOracleLlmOverrides(message),
         );
 
         const llmMs = Date.now() - llmStartedAt;
@@ -332,10 +379,54 @@ export class OracleAgentService {
     }
   }
 
-  private getOracleLlmOverrides(): OllamaChatOverrides {
+  private async streamLlmOnlyAnswer(input: {
+    input: ChatCompletionRequest;
+    history: ChatHistoryMessage[];
+    route: Extract<AgentQueryRoute, 'llm_only' | 'clarify'>;
+    writeEvent: (event: ChatStreamEvent) => void;
+    startedAt: number;
+    res: Response;
+  }): Promise<void> {
+    const llmStartedAt = Date.now();
+    let content = '';
+    const message = input.input.message.trim();
+
+    for await (const delta of this.ollama.streamTokens(
+      [
+        { role: 'system', content: buildAgentLlmSystemPrompt(input.route) },
+        ...input.history.map((item) => ({ role: item.role, content: item.content })),
+        { role: 'user', content: message },
+      ],
+      input.input.model,
+      input.input.quality,
+      this.getOracleLlmOverrides(),
+    )) {
+      content += delta;
+      input.writeEvent({ type: 'token', delta });
+    }
+
+    const llmMs = Date.now() - llmStartedAt;
+    const totalMs = Date.now() - input.startedAt;
+    input.writeEvent({
+      type: 'done',
+      content: content.trim(),
+      model: input.input.model,
+      createdAt: new Date().toISOString(),
+      timing: { totalMs, ragMs: 0, llmMs },
+    });
+    input.res.end();
+  }
+
+  private getOracleLlmOverrides(message?: string): OllamaChatOverrides {
+    const thinkDefault = this.config.get<string>('TETA_ORACLE_AGENT_THINK', 'true') !== 'false';
+    const think =
+      message && isBroadListQuery(message) ? false : thinkDefault;
+    const maxPredict = this.config.get('TETA_ORACLE_AGENT_NUM_PREDICT');
     return {
-      think: this.config.get<string>('TETA_ORACLE_AGENT_THINK', 'false') === 'true',
-      maxNumPredict: Number(this.config.get('TETA_ORACLE_AGENT_NUM_PREDICT', 768)),
+      think,
+      maxNumPredict: Number(
+        maxPredict ?? (think ? 4096 : message && isBroadListQuery(message) ? 1536 : 768),
+      ),
       temperature: Number(this.config.get('TETA_ORACLE_AGENT_TEMPERATURE', 0.05)),
       numCtx: Number(this.config.get('TETA_ORACLE_AGENT_NUM_CTX', 4096)),
     };
@@ -542,6 +633,17 @@ export class OracleAgentService {
     if (n === 0) {
       return 'Zapytanie nie zwróciło żadnych wierszy spełniających kryteria.';
     }
+
+    const computedAlias = report.columns.find((column) =>
+      /^[A-Z_]+$/.test(column) && report.rowCount === 1,
+    );
+    if (report.rowCount === 1 && computedAlias) {
+      const value = report.rows[0]?.[report.columns.indexOf(computedAlias)];
+      if (value != null && String(value).trim() !== '') {
+        return `Wynik: ${computedAlias} = ${value} (zapytanie wyliczone z metadanych).`;
+      }
+    }
+
     let msg = `Znaleziono ${this.formatRowCountPl(n)} — szczegóły w tabeli poniżej.`;
     if (report.truncated) {
       msg += ` Pokazano pierwsze ${n} rekordów (limit zapytania); w bazie może być więcej.`;
@@ -602,6 +704,9 @@ lub po zebraniu faktów — dane zwraca system w tabeli, użytkownik NIGDY nie w
 Kompaktowy JSON:
 - pole sql: tylko 2–8 kolumn potrzebnych do pytania — NIE kopiuj całej listy z describe_table
 - pole text przy sql: zawsze "—" — podsumowanie i tabelę generuje system po wykonaniu zapytania
+
+- Gdy w metadanych są **pola wyliczane** (sekcja w kontekście) — użyj podanej formuły SQL i kolumny źródłowej z konfiguracji, nie wymyślaj własnej.
+- Gdy nie wiesz, którego rekordu dotyczy pytanie uzupełniające — użyj {"action":"clarify","text":"…"} zamiast SELECT bez WHERE.
 
 Dopytywanie użytkownika:
 - Gdy nie wiesz, która tabela/widok/pakiet odpowiada pytaniu i brak pewnego powiązania w kontekście — użyj {"action":"clarify","text":"…"} zamiast zgadywać.

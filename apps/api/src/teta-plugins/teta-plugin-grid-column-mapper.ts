@@ -74,6 +74,53 @@ function normalizedOracleKey(value: string): string {
   return value.toUpperCase().replace(/_/g, '');
 }
 
+function gridColumnSemanticTokens(gridColumnName: string): string[] {
+  const withoutPrefix = gridColumnName.replace(/^(dgc|col|fld|gc|grd)/i, '');
+  return camelToSnake(withoutPrefix)
+    .split('_')
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 3);
+}
+
+function oracleTokensOverlapGrid(oracleColumn: string, gridColumnName: string): number {
+  const oracleTokens = oracleColumn
+    .toUpperCase()
+    .split('_')
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 3);
+  if (oracleTokens.length === 0) {
+    return 0;
+  }
+
+  const gridTokens = gridColumnSemanticTokens(gridColumnName).map((part) => part.toUpperCase());
+  let matched = 0;
+  for (const oracleToken of oracleTokens) {
+    const oracleKey = normalizedOracleKey(oracleToken);
+    const hasMatch = gridTokens.some((gridToken) => {
+      const gridKey = normalizedOracleKey(gridToken);
+      if (gridKey === oracleKey || gridKey.includes(oracleKey) || oracleKey.includes(gridKey)) {
+        return true;
+      }
+      const prefixLength = Math.min(gridKey.length, oracleKey.length, 4);
+      return (
+        prefixLength >= 4 &&
+        gridKey.slice(0, prefixLength) === oracleKey.slice(0, prefixLength)
+      );
+    });
+    if (hasMatch) {
+      matched += 1;
+    }
+  }
+
+  if (matched === oracleTokens.length) {
+    return 85;
+  }
+  if (matched > 0 && matched >= oracleTokens.length - 1) {
+    return 72;
+  }
+  return 0;
+}
+
 function gridColumnMatchesOracleColumn(gridColumnName: string, oracleColumn: string): boolean {
   const oracleKey = normalizedOracleKey(oracleColumn);
   const gridUpper = gridColumnName.toUpperCase().replace(/_/g, '');
@@ -84,6 +131,10 @@ function gridColumnMatchesOracleColumn(gridColumnName: string, oracleColumn: str
     return true;
   }
   if (gridUpper.includes(oracleKey)) {
+    return true;
+  }
+
+  if (oracleTokensOverlapGrid(oracleColumn, gridColumnName) >= 72) {
     return true;
   }
 
@@ -115,6 +166,7 @@ function scoreGridColumnForOracle(column: TetaPluginColumnMeta, oracleColumn: st
     }
   }
 
+  score = Math.max(score, oracleTokensOverlapGrid(oracleUpper, column.GridColumnName));
   return score;
 }
 
@@ -303,11 +355,135 @@ function tokensOverlap(left: string, right: string): boolean {
   if (left.length < 3 || right.length < 3) {
     return false;
   }
+  if (left === right) {
+    return true;
+  }
   if (left.includes(right) || right.includes(left)) {
     return true;
   }
-  const prefixLength = Math.min(left.length, right.length, 4);
+  const minLen = Math.min(left.length, right.length);
+  const prefixLength = Math.min(minLen, Math.max(3, Math.floor(minLen * 0.75)));
   return left.slice(0, prefixLength) === right.slice(0, prefixLength);
+}
+
+export function queryTokenMatchesLabelToken(queryToken: string, labelToken: string): boolean {
+  return tokensOverlap(queryToken, labelToken);
+}
+
+export function findLabelMentionEndIndex(section: string, link: GridOracleColumnLink): number {
+  const normalizedSection = normalizeSearchText(section);
+  const phrases = [link.label, ...link.synonyms]
+    .map((part) => normalizeSearchText(part.trim()))
+    .filter((part) => part.length >= 3)
+    .sort((left, right) => right.length - left.length);
+
+  for (const phrase of phrases) {
+    const directIndex = normalizedSection.indexOf(phrase);
+    if (directIndex >= 0) {
+      return directIndex + phrase.length;
+    }
+
+    if (!phraseMatchesNormalizedQuery(phrase, normalizedSection)) {
+      continue;
+    }
+
+    const phraseTokens = phrase.split(/\s+/).filter((part) => part.length >= 3);
+    const queryTokens = normalizedSection.split(/\s+/).filter((part) => part.length >= 3);
+    let latestEnd = -1;
+
+    for (const phraseToken of phraseTokens) {
+      for (const queryToken of queryTokens) {
+        if (!queryTokenMatchesLabelToken(queryToken, phraseToken)) {
+          continue;
+        }
+        const index = normalizedSection.indexOf(queryToken);
+        if (index >= 0) {
+          latestEnd = Math.max(latestEnd, index + queryToken.length);
+        }
+      }
+    }
+
+    if (latestEnd >= 0) {
+      return latestEnd;
+    }
+  }
+
+  return -1;
+}
+
+function extractNameFieldModifiers(section: string): Set<string> {
+  const modifiers = new Set<string>();
+  const normalized = normalizeSearchText(section);
+  for (const modifier of [
+    'ojca',
+    'matki',
+    'malzonka',
+    'malzonki',
+    'drugie',
+    'paniensk',
+    'rodowe',
+  ]) {
+    if (normalized.includes(modifier)) {
+      modifiers.add(modifier);
+    }
+  }
+  return modifiers;
+}
+
+function derivativeNameColumnAllowed(
+  oracleColumnName: string,
+  label: string,
+  section: string,
+): boolean {
+  const upper = oracleColumnName.toUpperCase();
+  const isDerivative =
+    upper === 'IMIE_DRUGIE' || /^IMIE_/.test(upper) || /^NAZWISKO_/.test(upper);
+  if (!isDerivative) {
+    return true;
+  }
+
+  const modifiers = extractNameFieldModifiers(section);
+  if (modifiers.size === 0) {
+    return false;
+  }
+
+  const labelNorm = normalizeSearchText(label);
+  const oracleNorm = normalizeSearchText(upper.replace(/_/g, ' '));
+  return [...modifiers].some(
+    (modifier) => labelNorm.includes(modifier) || oracleNorm.includes(modifier),
+  );
+}
+
+/** Dopasowanie pól SELECT: tylko etykieta UI, bez luźnych synonimów i bez IMIE_* gdy pytanie mówi tylko „imię”. */
+export function linkMatchesSqlOutputIntent(section: string, link: GridOracleColumnLink): boolean {
+  if (queryMentionsRegistrationAddress(section) && linkLooksLikeRegistrationAddress(link)) {
+    return true;
+  }
+
+  const normalizedSection = normalizeSearchText(section);
+  const labelNorm = normalizeSearchText(link.label);
+  if (labelNorm.length < 3) {
+    return false;
+  }
+
+  if (normalizedSection.includes(labelNorm)) {
+    return derivativeNameColumnAllowed(link.oracleColumnName, link.label, section);
+  }
+
+  const labelTokens = labelNorm.split(/\s+/).filter((part) => part.length >= 3);
+  const queryTokens = normalizedSection.split(/\s+/).filter((part) => part.length >= 3);
+  if (labelTokens.length === 0) {
+    return false;
+  }
+
+  const allLabelTokensInQuery = labelTokens.every((labelToken) =>
+    queryTokens.some((queryToken) => queryTokenMatchesLabelToken(queryToken, labelToken)),
+  );
+  if (!allLabelTokensInQuery) {
+    return false;
+  }
+
+  return derivativeNameColumnAllowed(link.oracleColumnName, link.label, section);
 }
 
 function sharesQueryStem(normalizedQuery: string, phrase: string, minStem = 6): boolean {
@@ -322,6 +498,19 @@ function sharesQueryStem(normalizedQuery: string, phrase: string, minStem = 6): 
     }
   }
   return false;
+}
+
+function isGridLikePhrase(phrase: string): boolean {
+  const trimmed = phrase.trim();
+  return /^(dgc|col|fld|gc|grd)[A-Za-z]/i.test(trimmed);
+}
+
+function isGenericEntitySynonym(phrase: string): boolean {
+  const normalized = normalizeSearchText(phrase);
+  if (/\b(numer pracownika|nr pracownika|numer prac)\b/.test(normalized)) {
+    return true;
+  }
+  return normalized === 'pracownik' || normalized === 'pracownika';
 }
 
 export function phraseMatchesNormalizedQuery(phrase: string, normalizedQuery: string): boolean {
@@ -342,6 +531,40 @@ export function phraseMatchesNormalizedQuery(phrase: string, normalizedQuery: st
   return phraseTokens.every((phraseToken) =>
     queryTokens.some((queryToken) => tokensOverlap(phraseToken, queryToken)),
   );
+}
+
+/** Bez dopasowania po wspólnym stemie (np. dgcPracownik* ↔ „pracownika”) — do szybkiej ścieżki SQL. */
+export function phraseStrictlyMatchesNormalizedQuery(
+  phrase: string,
+  normalizedQuery: string,
+): boolean {
+  if (normalizedQuery.includes(phrase)) {
+    return true;
+  }
+
+  const phraseTokens = phrase.split(/\s+/).filter((part) => part.length >= 3);
+  if (phraseTokens.length === 0) {
+    return false;
+  }
+
+  const queryTokens = normalizedQuery.split(/\s+/).filter((part) => part.length >= 3);
+  return phraseTokens.every((phraseToken) =>
+    queryTokens.some((queryToken) => tokensOverlap(phraseToken, queryToken)),
+  );
+}
+
+export function queryStrictlyMentionsLink(query: string, link: GridOracleColumnLink): boolean {
+  const normalizedQuery = normalizeSearchText(query);
+  if (queryMentionsRegistrationAddress(query) && linkLooksLikeRegistrationAddress(link)) {
+    return true;
+  }
+
+  const phrases = [link.label, ...link.synonyms]
+    .filter((part) => !isGridLikePhrase(part) && !isGenericEntitySynonym(part))
+    .map((part) => normalizeSearchText(part))
+    .filter((part) => part.length >= 3);
+
+  return phrases.some((phrase) => phraseStrictlyMatchesNormalizedQuery(phrase, normalizedQuery));
 }
 
 export function findEarliestMentionIndex(query: string, link: GridOracleColumnLink): number {

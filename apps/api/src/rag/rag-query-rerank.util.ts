@@ -231,6 +231,23 @@ export function computeDefinitionRerankBoost(query: string, chunkText: string): 
   return 0;
 }
 
+/** Boost dla chunków mapowania pola UI (formularz → kontrolka → kolumna Oracle). */
+export function computePluginFieldRerankBoost(query: string, chunkText: string): number {
+  const normalizedQuery = normalizeForKeywordMatch(query);
+  const normalizedChunk = normalizeForKeywordMatch(chunkText);
+  if (!normalizedChunk.includes('pole ui w teta')) {
+    return 0;
+  }
+  if (
+    !/\b(kolumn|formularz|etykiet|pole|staz|wyksztalc|czego sluzy|do czego)\b/u.test(
+      normalizedQuery,
+    )
+  ) {
+    return 0;
+  }
+  return 0.26;
+}
+
 /**
  * Boost gdy fragment zawiera właściwą sekcję procedury (np. Zwolnienie pracownika).
  */
@@ -271,6 +288,7 @@ export function rerankChunksByQuery<T extends { score: number; text: string }>(
         chunk.score +
         computeKeywordRerankBoost(query, chunk.text) +
         computeDefinitionRerankBoost(query, chunk.text) +
+        computePluginFieldRerankBoost(query, chunk.text) +
         computeSectionRerankBoost(query, chunk.text),
     }))
     .sort((a, b) => b.score - a.score);

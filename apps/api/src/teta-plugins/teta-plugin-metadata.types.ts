@@ -82,6 +82,7 @@ export type TetaPluginFormMetadata = {
 
 import type { TetaPluginOracleDiscovery } from './teta-plugin-oracle-discovery';
 import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
+import type { TetaPluginComputedIntent } from './teta-plugin-computed-intent.types';
 
 export type TetaPluginMetadataBundle = {
   dllName: string;
@@ -93,5 +94,6 @@ export type TetaPluginMetadataBundle = {
   relatedBusinessObjectDlls?: string[];
   oracleDiscovery?: TetaPluginOracleDiscovery;
   columnMappings?: TetaPluginColumnMapping[];
+  computedIntents?: TetaPluginComputedIntent[];
   forms: TetaPluginFormMetadata[];
 };

@@ -26,8 +26,19 @@ export function isProcedureQuery(query: string): boolean {
   );
 }
 
+/** Pytanie o pole formularza / mapowanie kolumny w wtyczce Teta. */
+export function isPluginFieldQuery(query: string): boolean {
+  const normalizedQuery = normalizeForKeywordMatch(query);
+  return (
+    /\b(kolumn|formularz|etykiet|pole|grid|binding|staz|wyksztalc|kontrolk)\b/u.test(
+      normalizedQuery,
+    ) ||
+    /do czego sluzy|czym jest kolumna|na formularzu/u.test(normalizedQuery)
+  );
+}
+
 export function isKnowledgeQuery(query: string): boolean {
-  return isDefinitionQuery(query) || isProcedureQuery(query);
+  return isDefinitionQuery(query) || isProcedureQuery(query) || isPluginFieldQuery(query);
 }
 
 function extractPassageFrom(text: string, startIndex: number, maxChars: number): string {

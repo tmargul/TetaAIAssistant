@@ -1,0 +1,14 @@
+{
+  "global": [
+    {
+      "id": "age_from_birth_date",
+      "phrases": ["wiek", "ile ma lat", "ile lat ma", "ma lat", "liczba lat"],
+      "sourceColumnLabels": ["Data urodzenia"],
+      "sourceColumnNames": ["DATA_URODZENIA"],
+      "selectExpression": "TRUNC(MONTHS_BETWEEN(SYSDATE, {column}) / 12)",
+      "resultAlias": "WIEK",
+      "requiresFilter": true
+    }
+  ],
+  "byDll": {}
+}

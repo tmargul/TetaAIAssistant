@@ -43,6 +43,8 @@ import {
 
   isKnowledgeQuery,
 
+  isPluginFieldQuery,
+
 } from './chat-context.util';
 
 import { resolveChatQualityProfile, type ChatQualityProfile } from './chat-quality.profile';
@@ -50,6 +52,7 @@ import { resolveChatQualityProfile, type ChatQualityProfile } from './chat-quali
 import { OllamaChatService } from './ollama-chat.service';
 
 import { RagRetrievalService } from '../rag/rag-retrieval.service';
+import { RAG_CONSTANTS } from '../rag/rag.constants';
 
 
 
@@ -268,15 +271,23 @@ export class ChatService {
     if (input.source !== 'oracle') {
 
       try {
+        const pluginFieldQuery = isPluginFieldQuery(message);
+        const pluginTopK = Number(
+          this.config.get('RAG_PLUGIN_TOP_K', RAG_CONSTANTS.pluginTopK),
+        );
+        const pluginSearchLimit = Number(
+          this.config.get('RAG_PLUGIN_SEARCH_LIMIT', RAG_CONSTANTS.pluginSearchLimit),
+        );
 
         sources = await this.ragRetrieval.retrieve(message, {
-
           includeGlobal,
-
           includeClient,
-
-          filter: input.ragFilter,
-
+          filter:
+            pluginFieldQuery && !input.ragFilter
+              ? { sourceType: 'teta_plugin' }
+              : input.ragFilter,
+          topK: pluginFieldQuery ? pluginTopK : undefined,
+          searchLimit: pluginFieldQuery ? pluginSearchLimit : undefined,
         });
 
       } catch (error) {

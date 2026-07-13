@@ -8,103 +8,36 @@ import type { TetaPluginMetadataBundle } from './teta-plugin-metadata.types';
 import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
 import {
   buildColumnMappingsFromBundle,
+  resolveColumnMappingsForSql,
   resolveFilterMappingFromQuery,
   resolveOutputMappingsFromQuery,
 } from './teta-plugin-column-mapping';
+import type { TetaPluginComputedIntent } from './teta-plugin-computed-intent.types';
+import {
+  buildComputedClarificationMessage,
+  buildDirectComputedSelect,
+  resolveComputedIntentForQuery,
+} from './teta-plugin-computed-intent.resolver';
+import { buildDirectListSelect } from './teta-plugin-list-query.util';
+import { resolveContextFilterClause, resolveTableFromConversation, hasResolvableFilterForQuery } from './teta-plugin-filter-clause.util';
+import { formatPluginWhereClause } from './teta-plugin-filter-clause.types';
+import {
+  extractFilterValueForQuery,
+  extractFilterValueFromQuery,
+} from './teta-plugin-filter-value.util';
+import { resolveFilterMappingFromHistory } from './teta-plugin-filter-clause.util';
 import { queryMentionsLink, type GridOracleColumnLink } from './teta-plugin-grid-column-mapper';
 import type { TetaPluginColumnHint, TetaPluginGatewayHint } from './teta-plugin-query-resolver';
-import {
-  extractPrimaryTableFromSql,
-  parseOracleThreadContextTable,
-} from '../oracle/oracle-schema.util';
 
-export function extractFilterValueFromQuery(message: string): string | null {
-  const quoted = message.match(/['"]([^'"]+)['"]/);
-  if (quoted?.[1]?.trim()) {
-    return quoted[1].trim();
-  }
+export {
+  extractFilterValueFromQuery,
+  extractFilterValueForQuery,
+  extractFilterValueFromHistory,
+  extractEmployeeFilterValue,
+  querySpecifiesFilterInText,
+} from './teta-plugin-filter-value.util';
 
-  const numeric = message.match(/\b(0*\d{4,})\b/);
-  return numeric?.[1] ?? null;
-}
-
-export function extractFilterValueFromHistory(history: ChatHistoryMessage[]): string | null {
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const content = history[index]?.content ?? '';
-    const fromText = extractFilterValueFromQuery(content);
-    if (fromText) {
-      return fromText;
-    }
-
-    const sqlMatch = content.match(/\[SQL:\s*([\s\S]*?)\]/i);
-    const sql = sqlMatch?.[1] ?? content;
-    const whereMatch = sql.match(/\bWHERE\s+([A-Z0-9_$.]+)\s*=\s*'([^']+)'/i);
-    if (whereMatch?.[2]?.trim()) {
-      return whereMatch[2].trim();
-    }
-  }
-
-  return null;
-}
-
-export function extractFilterValueForQuery(
-  message: string,
-  history: ChatHistoryMessage[] = [],
-): string | null {
-  return extractFilterValueFromQuery(message) ?? extractFilterValueFromHistory(history);
-}
-
-function resolveFilterMappingFromHistory(
-  history: ChatHistoryMessage[],
-  mappings: TetaPluginColumnMapping[],
-): TetaPluginColumnMapping | null {
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const content = history[index]?.content ?? '';
-    const sqlMatch = content.match(/\[SQL:\s*([\s\S]*?)\]/i);
-    const sql = sqlMatch?.[1] ?? content;
-    const whereMatch = sql.match(/\bWHERE\s+([A-Z0-9_$.]+)\s*=\s*'([^']+)'/i);
-    if (!whereMatch?.[1]) {
-      continue;
-    }
-
-    const columnName = whereMatch[1].includes('.')
-      ? whereMatch[1].split('.').pop()!.toUpperCase()
-      : whereMatch[1].toUpperCase();
-
-    const mapping = mappings.find(
-      (item) =>
-        item.oracleColumnName.toUpperCase() === columnName ||
-        item.resolvedColumnName?.toUpperCase() === columnName ||
-        item.pluginColumnName.toUpperCase() === columnName,
-    );
-    if (mapping) {
-      return mapping;
-    }
-  }
-
-  return null;
-}
-
-function resolveFilterColumnFromHistory(history: ChatHistoryMessage[]): string | null {
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const content = history[index]?.content ?? '';
-    const sqlMatch = content.match(/\[SQL:\s*([\s\S]*?)\]/i);
-    const sql = sqlMatch?.[1] ?? content;
-    const whereMatch = sql.match(/\bWHERE\s+([A-Z0-9_$.]+)\s*=\s*'([^']+)'/i);
-    if (!whereMatch?.[1]) {
-      continue;
-    }
-
-    return whereMatch[1].includes('.')
-      ? whereMatch[1].split('.').pop()!.toUpperCase()
-      : whereMatch[1].toUpperCase();
-  }
-
-  return null;
-}
-
-/** @deprecated use extractFilterValueFromQuery */
-export const extractEmployeeFilterValue = extractFilterValueFromQuery;
+export { resolveTableFromConversation, hasResolvableFilterForQuery } from './teta-plugin-filter-clause.util';
 
 function pickResolvedColumn(
   mapping: TetaPluginColumnMapping,
@@ -121,82 +54,25 @@ function pickResolvedColumn(
   return mapping.resolvedColumnName ?? mapping.pluginColumnName;
 }
 
+function columnExistsInSchema(columnName: string, schemaColumns: SchemaColumnMeta[]): boolean {
+  if (schemaColumns.length === 0) {
+    return true;
+  }
+  const upper = columnName.toUpperCase();
+  return schemaColumns.some((column) => column.name.toUpperCase() === upper);
+}
+
 export function resolveFilterColumnFromQuery(
   query: string,
   mappings: TetaPluginColumnMapping[],
   schemaColumns: SchemaColumnMeta[] = [],
 ): string | null {
-  const filterValue = extractFilterValueFromQuery(query);
+  const filterValue = extractFilterValueFromQuery(query, mappings);
   const filterMapping = resolveFilterMappingFromQuery(query, mappings, filterValue);
   if (!filterMapping) {
     return null;
   }
   return pickResolvedColumn(filterMapping, schemaColumns);
-}
-
-export function resolveTableFromConversation(
-  message: string,
-  history: ChatHistoryMessage[],
-): string | null {
-  const fromMessage = message.match(/\b(?:NT_[A-Z0-9_]+|T_[A-Z0-9_]+)\b/i)?.[0]?.toUpperCase();
-  if (fromMessage) {
-    return fromMessage;
-  }
-
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const content = history[index]?.content ?? '';
-    const sqlMatch = content.match(/\[SQL:\s*([\s\S]*?)\]/i);
-    if (sqlMatch?.[1]) {
-      const table = extractPrimaryTableFromSql(sqlMatch[1]);
-      if (table) {
-        return table.includes('.') ? table.split('.').pop()!.toUpperCase() : table.toUpperCase();
-      }
-    }
-
-    const contextMatch = content.match(/\[Kontekst wątku Oracle:\s*([^\]]+)\]/i);
-    if (contextMatch?.[1]) {
-      const parsed = parseOracleThreadContextTable(contextMatch[1]);
-      if (parsed?.name) {
-        return parsed.name.toUpperCase();
-      }
-    }
-
-    const inlineTable = content.match(/\b(?:NT_[A-Z0-9_]+|T_[A-Z0-9_]+)\b/i)?.[0]?.toUpperCase();
-    if (inlineTable) {
-      return inlineTable;
-    }
-  }
-
-  return null;
-}
-
-function resolvePreferredTable(
-  message: string,
-  history: ChatHistoryMessage[],
-  gateways: TetaPluginGatewayHint[],
-  mappings: TetaPluginColumnMapping[],
-  preferredTable?: string | null,
-): string | null {
-  if (preferredTable?.trim()) {
-    return preferredTable.toUpperCase();
-  }
-
-  for (const mapping of mappings) {
-    if (mapping.targetObject?.trim()) {
-      return mapping.targetObject.toUpperCase();
-    }
-  }
-
-  for (const gateway of gateways) {
-    if (gateway.viewName?.trim()) {
-      return gateway.viewName.toUpperCase();
-    }
-    if (gateway.baseTableName?.trim()) {
-      return gateway.baseTableName.toUpperCase();
-    }
-  }
-
-  return resolveTableFromConversation(message, history);
 }
 
 function resolveOutputColumns(
@@ -206,8 +82,53 @@ function resolveOutputColumns(
   schemaColumns: SchemaColumnMeta[],
 ): string[] {
   const outputs = resolveOutputMappingsFromQuery(message, mappings, filterMapping);
-  const resolved = outputs.map((mapping) => pickResolvedColumn(mapping, schemaColumns));
+  const resolved = outputs
+    .map((mapping) => pickResolvedColumn(mapping, schemaColumns))
+    .filter((column) => columnExistsInSchema(column, schemaColumns));
   return [...new Set(resolved)];
+}
+
+export { resolveColumnMappingsForSql };
+
+export function buildDirectPluginSelect(input: {
+  message: string;
+  history: ChatHistoryMessage[];
+  defaultOwner: string;
+  columnMappings: TetaPluginColumnMapping[];
+  computedIntents: TetaPluginComputedIntent[];
+  gateways?: TetaPluginGatewayHint[];
+  preferredTable?: string | null;
+  schemaColumns?: SchemaColumnMeta[];
+}): string | null {
+  const schemaColumns = input.schemaColumns ?? [];
+  const listSql = buildDirectListSelect(input);
+  if (listSql) {
+    return listSql;
+  }
+
+  const computed = buildDirectComputedSelect({
+    ...input,
+    pickResolvedColumn,
+    columnExistsInSchema,
+  });
+  if (computed) {
+    return computed.sql;
+  }
+
+  if (resolveComputedIntentForQuery(input.message, input.computedIntents)) {
+    return null;
+  }
+
+  return buildDirectEmployeeSelect(input);
+}
+
+export function buildPluginClarificationMessage(
+  message: string,
+  history: ChatHistoryMessage[],
+  mappings: TetaPluginColumnMapping[],
+  computedIntents: TetaPluginComputedIntent[],
+): string | null {
+  return buildComputedClarificationMessage(message, history, mappings, computedIntents);
 }
 
 export function buildDirectEmployeeSelect(input: {
@@ -215,34 +136,32 @@ export function buildDirectEmployeeSelect(input: {
   history: ChatHistoryMessage[];
   defaultOwner: string;
   columnMappings: TetaPluginColumnMapping[];
+  computedIntents?: TetaPluginComputedIntent[];
   gateways?: TetaPluginGatewayHint[];
   preferredTable?: string | null;
   schemaColumns?: SchemaColumnMeta[];
 }): string | null {
-  const filterValue = extractFilterValueForQuery(input.message, input.history);
-  if (!filterValue) {
-    return null;
-  }
-
-  let filterMapping = resolveFilterMappingFromQuery(
-    input.message,
-    input.columnMappings,
-    filterValue,
-  );
-  const filterFromCurrentMessage = Boolean(extractFilterValueFromQuery(input.message));
-  if (!filterMapping) {
-    filterMapping = resolveFilterMappingFromHistory(input.history, input.columnMappings);
-  }
-  if (!filterMapping) {
-    return null;
-  }
-
   const schemaColumns = input.schemaColumns ?? [];
-  const historyFilterColumn = resolveFilterColumnFromHistory(input.history);
-  const filterColumn =
-    !filterFromCurrentMessage && historyFilterColumn
-      ? historyFilterColumn
-      : pickResolvedColumn(filterMapping, schemaColumns);
+  const filter = resolveContextFilterClause({
+    ...input,
+    schemaColumns,
+    pickResolvedColumn,
+    columnExistsInSchema,
+    intentPhrases: input.computedIntents?.flatMap((item) => item.phrases) ?? [],
+  });
+  if (!filter) {
+    return null;
+  }
+
+  const hasExplicitFilter = Boolean(extractFilterValueFromQuery(input.message, input.columnMappings));
+  const primaryFilterValue = filter.conditions[0]?.filterValue ?? null;
+  const filterMapping = hasExplicitFilter
+    ? resolveFilterMappingFromQuery(
+        input.message,
+        input.columnMappings,
+        primaryFilterValue,
+      ) ?? resolveFilterMappingFromHistory(input.history, input.columnMappings)
+    : null;
   const outputColumns = resolveOutputColumns(
     input.message,
     input.columnMappings,
@@ -253,21 +172,10 @@ export function buildDirectEmployeeSelect(input: {
     return null;
   }
 
-  const table = resolvePreferredTable(
-    input.message,
-    input.history,
-    input.gateways ?? [],
-    input.columnMappings,
-    input.preferredTable ?? filterMapping.targetObject,
-  );
-  if (!table) {
-    return null;
-  }
-
   const owner = input.defaultOwner.toUpperCase();
-  const qualifiedTable = table.includes('.') ? table : `${owner}.${table}`;
-  const safeValue = filterValue.replace(/'/g, "''");
-  return `SELECT ${outputColumns.join(', ')} FROM ${qualifiedTable} WHERE ${filterColumn} = '${safeValue}'`;
+  const qualifiedTable = filter.table.includes('.') ? filter.table : `${owner}.${filter.table}`;
+  const whereClause = formatPluginWhereClause(filter);
+  return `SELECT ${outputColumns.join(', ')} FROM ${qualifiedTable} WHERE ${whereClause}`;
 }
 
 export function resolveColumnHintsFromBundle(
@@ -296,7 +204,7 @@ export function resolveColumnHintsFromMappings(
     }
 
     let confidence = 0;
-    if (phraseMatchesQueryLabel(query, mapping.label, mapping.synonyms)) {
+    if (queryMentionsLink(query, { ...link, synonyms: mapping.synonyms })) {
       confidence += 4;
     }
     for (const synonym of mapping.synonyms) {
@@ -318,15 +226,6 @@ export function resolveColumnHintsFromMappings(
   }
 
   return hints.sort((a, b) => b.confidence - a.confidence);
-}
-
-function phraseMatchesQueryLabel(query: string, label: string, synonyms: string[]): boolean {
-  return queryMentionsLink(query, {
-    oracleColumnName: '',
-    label,
-    gridColumnName: null,
-    synonyms,
-  });
 }
 
 export function resolvePluginColumnHintsAgainstSchema(

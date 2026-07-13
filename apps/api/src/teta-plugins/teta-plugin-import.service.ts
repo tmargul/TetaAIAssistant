@@ -69,6 +69,7 @@ import {
   createSchemaLookupFromColumns,
   enrichGatewaysWithLabeledSelect,
 } from './teta-plugin-column-mapping';
+import { loadComputedIntentsForBundle } from './teta-plugin-computed-intent.loader';
 
 import {
   countVerifiedOracleRefs,
@@ -484,6 +485,7 @@ export class TetaPluginImportService {
     return {
       ...validated,
       columnMappings,
+      computedIntents: loadComputedIntentsForBundle(validated),
     };
   }
 

@@ -9,8 +9,8 @@ import {
   type ChatRuntimeStatusResponse,
 } from '@teta/shared';
 import { JwtAuthGuard, type AuthenticatedRequest } from '../auth/jwt-auth.guard';
-import { OracleAgentService } from '../schema/oracle-agent.service';
 import { getRequestWorkMode } from '../rag/work-mode.util';
+import { ChatOrchestratorService } from './chat-orchestrator.service';
 import { ChatService } from './chat.service';
 import { OllamaChatService } from './ollama-chat.service';
 
@@ -20,7 +20,7 @@ export class ChatController {
   constructor(
     private readonly chat: ChatService,
     private readonly ollama: OllamaChatService,
-    private readonly oracleAgent: OracleAgentService,
+    private readonly orchestrator: ChatOrchestratorService,
   ) {}
 
   @Get('models')
@@ -47,9 +47,6 @@ export class ChatController {
     @Req() req: AuthenticatedRequest,
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
-    if (body.source === 'oracle') {
-      return this.oracleAgent.streamComplete(body, res, req.user.id, getRequestWorkMode(req));
-    }
-    return this.chat.streamComplete(body, res, getRequestWorkMode(req));
+    return this.orchestrator.streamComplete(body, res, req.user.id, getRequestWorkMode(req));
   }
 }

@@ -6,8 +6,6 @@ import {
   type ChatModelsResponse,
   type ChatQualityMode,
   type ChatRuntimeStatusResponse,
-  type ChatSourceMode,
-  type OracleAgentDomain,
   type OracleAgentSqlStep,
   type OracleReport,
   type RagSearchFilter,
@@ -36,15 +34,7 @@ import {
 import { formatChatTiming } from './format-duration';
 import { ModelSelect } from './ModelSelect';
 import { QualitySelect } from './QualitySelect';
-import { SourceSelect } from './SourceSelect';
-import { DomainSelect } from './DomainSelect';
 import { ReportTable } from './ReportTable';
-import {
-  loadChatSourcePreference,
-  loadOracleDomainPreference,
-  saveChatSourcePreference,
-  saveOracleDomainPreference,
-} from './chat-source-preference';
 import './chat.css';
 
 const SUGGESTIONS = [
@@ -204,10 +194,6 @@ export function ChatView({
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ChatModel>('qwen3');
   const [quality, setQuality] = useState<ChatQualityMode>(() => loadChatQualityPreference());
-  const [chatSource, setChatSource] = useState<ChatSourceMode>(() => loadChatSourcePreference());
-  const [oracleDomain, setOracleDomain] = useState<OracleAgentDomain>(() =>
-    loadOracleDomainPreference(),
-  );
   const [availableModels, setAvailableModels] = useState<ChatModel[]>(['qwen3']);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [isLoadingConversation, setIsLoadingConversation] = useState(true);
@@ -385,14 +371,6 @@ export function ChatView({
     saveChatQualityPreference(quality);
   }, [quality]);
 
-  useEffect(() => {
-    saveChatSourcePreference(chatSource);
-  }, [chatSource]);
-
-  useEffect(() => {
-    saveOracleDomainPreference(oracleDomain);
-  }, [oracleDomain]);
-
   const handleQualityChange = (next: ChatQualityMode) => {
     setQuality(next);
   };
@@ -477,13 +455,7 @@ export function ChatView({
     setInput('');
     setError(null);
     setStreamingMessageId(null);
-    setTypingHint(
-      chatSource === 'oracle'
-        ? 'Agent Oracle analizuje schemat…'
-        : quality === 'high'
-          ? 'Szukam w bazie wiedzy (tryb najlepszej jakości)…'
-          : 'Szukam w bazie wiedzy…',
-    );
+    setTypingHint('Analizuję pytanie…');
     requestStartedRef.current = Date.now();
     setIsBusy(true);
 
@@ -493,13 +465,12 @@ export function ChatView({
     let oracleReports: OracleReport[] = [];
 
     try {
-      const historyLimit =
-        chatSource === 'oracle' ? historyOracleLimit(quality) : historyClientLimit(quality);
+      const historyLimit = Math.max(historyOracleLimit(quality), historyClientLimit(quality));
       const history = nextMessages
         .slice(-historyLimit)
         .map((item) => {
           let content = item.content;
-          if (chatSource === 'oracle' && item.role === 'assistant') {
+          if (item.role === 'assistant') {
             if (item.oracleThreadContext) {
               content = `${content}\n[Kontekst wątku Oracle: ${item.oracleThreadContext}]`;
             } else if (item.oracleSql && item.oracleSql.length > 0) {
@@ -524,11 +495,14 @@ export function ChatView({
           quality,
           history: history.slice(0, -1),
           ragFilter: buildRagFilterPayload(ragFilter),
-          source: chatSource,
-          oracleDomain: chatSource === 'oracle' ? oracleDomain : undefined,
           conversationId: conversationId || undefined,
         },
         (event) => {
+          if (event.type === 'status') {
+            setTypingHint(event.message);
+            return;
+          }
+
           if (event.type === 'oracle_step') {
             setTypingHint(oracleProgressHint(event.step.tool));
             return;
@@ -696,29 +670,6 @@ export function ChatView({
               disabled={modelsLoading || availableModels.length === 0 || isBusy}
             />
           </div>
-          <div className="chat__toolbar-field chat__toolbar-field--source">
-            <span className="chat__model-label">Źródło:</span>
-            <SourceSelect
-              value={chatSource}
-              onChange={setChatSource}
-              disabled={isBusy}
-            />
-          </div>
-          <div
-            className="chat__toolbar-field chat__toolbar-field--domain"
-            title={
-              chatSource !== 'oracle'
-                ? 'Agent Oracle — wybierz źródło „Baza Oracle”, aby zmienić domenę'
-                : undefined
-            }
-          >
-            <span className="chat__model-label">Agent:</span>
-            <DomainSelect
-              value={oracleDomain}
-              onChange={setOracleDomain}
-              disabled={isBusy || chatSource !== 'oracle'}
-            />
-          </div>
           <div className="chat__toolbar-field">
             <span className="chat__model-label">Jakość:</span>
             <QualitySelect
@@ -729,7 +680,6 @@ export function ChatView({
           </div>
         </div>
         <div className="chat__toolbar-actions">
-          {chatSource === 'docs' && (
           <details className="chat__filters">
             <summary>Filtry RAG{hasActiveFilters ? ' •' : ''}</summary>
             <div className="chat__filters-grid">
@@ -807,7 +757,6 @@ export function ChatView({
               )}
             </div>
           </details>
-          )}
           <button
             type="button"
             className="chat__new-btn"
@@ -848,8 +797,8 @@ export function ChatView({
             </div>
             <p className="chat__empty-title">Czym mogę pomóc?</p>
             <p className="chat__empty-desc">
-              Zadaj pytanie na podstawie zindeksowanej bazy wiedzy RAG. Odpowiedź pojawi się na
-              bieżąco (streaming).
+              Zadaj pytanie — asystent sam wybierze, czy odpowiedzieć z bazy wiedzy, z danych
+              Oracle, czy poprosi o doprecyzowanie.
             </p>
             <div className="chat__suggestions">
               {SUGGESTIONS.map((s) => (
@@ -874,7 +823,10 @@ export function ChatView({
                 elapsedSec={msg.id === streamingMessageId ? elapsedSec : undefined}
                 showOracleDebug={showOracleDebug}
                 progressHint={msg.id === streamingMessageId ? typingHint : null}
-                showOracleFeedback={showOracleDebug && chatSource === 'oracle'}
+                showOracleFeedback={
+                  showOracleDebug &&
+                  Boolean(msg.oracleReports?.length || msg.oracleThreadContext)
+                }
                 feedbackBusy={feedbackBusyId === msg.id}
                 onFeedback={handleMessageFeedback}
               />

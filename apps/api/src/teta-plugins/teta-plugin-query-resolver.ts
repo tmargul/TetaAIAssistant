@@ -5,6 +5,7 @@ import type {
   TetaPluginMetadataBundle,
 } from './teta-plugin-metadata.types';
 import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
+import type { TetaPluginComputedIntent } from './teta-plugin-computed-intent.types';
 
 export type TetaPluginGatewayHint = {
   dllName: string;
@@ -38,6 +39,7 @@ export type TetaPluginOracleHints = {
   gateways: TetaPluginGatewayHint[];
   columnHints: TetaPluginColumnHint[];
   columnMappings: TetaPluginColumnMapping[];
+  computedIntents: TetaPluginComputedIntent[];
   hasPluginMetadata: boolean;
 };
 
@@ -76,7 +78,7 @@ export function parseRelativePathFromRagSource(source: string): string | null {
   }
 
   const rest = source.slice(TETA_PLUGIN_RAG_SOURCE_PREFIX.length);
-  const cutPatterns = ['/forms/', '/overview', '/columns'];
+  const cutPatterns = ['/forms/', '/overview', '/columns', '/fields/'];
   let cutAt = -1;
   for (const pattern of cutPatterns) {
     const index = rest.indexOf(pattern);
@@ -284,6 +286,21 @@ export function formatColumnHintsForPrompt(hints: TetaPluginColumnHint[], query?
   });
 
   return `Mapowanie etykiet grida / synonimów → kolumny Oracle (z SELECT gatewaya — użyj kolumny technicznej w SQL, etykiety tylko do dopasowania pytania):${intentNote}\n${lines.join('\n')}`;
+}
+
+export function mappingsToColumnHints(
+  mappings: TetaPluginColumnMapping[],
+): TetaPluginColumnHint[] {
+  return mappings.map((mapping) => ({
+    dllName: mapping.dllName,
+    formName: mapping.formName,
+    label: mapping.label,
+    columnName: mapping.oracleColumnName,
+    confidence: 1,
+    targetObject: mapping.targetObject,
+    resolvedColumnName: mapping.resolvedColumnName,
+    synonyms: mapping.synonyms,
+  }));
 }
 
 export function formatPluginOracleHintsForPrompt(
