@@ -109,4 +109,22 @@ export class TetaPluginRegistryService {
         updated_at: now,
       });
   }
+
+  deleteImport(dllPath: string): boolean {
+    const result = this.db.connection
+      .prepare('DELETE FROM teta_plugin_imports WHERE lower(dll_path) = lower(?)')
+      .run(dllPath);
+    return result.changes > 0;
+  }
+
+  deleteAllImports(): number {
+    const result = this.db.connection.prepare('DELETE FROM teta_plugin_imports').run();
+    return result.changes;
+  }
+
+  listImports(): TetaPluginImportRow[] {
+    return this.db.connection
+      .prepare('SELECT * FROM teta_plugin_imports ORDER BY dll_name COLLATE NOCASE')
+      .all() as TetaPluginImportRow[];
+  }
 }

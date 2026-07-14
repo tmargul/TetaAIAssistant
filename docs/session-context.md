@@ -147,7 +147,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
   - wzorzec jak: `VendorRagController`, `VendorSchemaLearningController`, ingest wideo
 - Klienci (instalacja client) **nie** dostają tych endpointów ani UI.
 - **Ustawienia → Aplikacja Teta** (vendor): ścieżki `clientDirectory` + `serverDirectory` w SQLite (`app_settings`); API `GET/PUT /api/vendor/teta-app/paths`.
-- **Sidebar → Wtyczki Teta** (vendor only, nad AI Doctor): `TetaPluginsView` — moduł metadanych wtyczek.
+- **Sidebar → Wtyczki Teta** (vendor only, nad AI Doctor): `TetaPluginsView` — moduł metadanych wtyczek. **RAG bulk/delete (2026-07-14):** usuń RAG jednej DLL, usuń cały RAG (`USUN_WSZYSTKIE_RAG_WTYCZEK`), import zbiorczy z postępem `Importuję N/M`.
 
 **Spec UI / danych (2026-07-11, ustalenia):**
 

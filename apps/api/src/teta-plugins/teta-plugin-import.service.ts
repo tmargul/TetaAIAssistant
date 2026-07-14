@@ -8,6 +8,10 @@ import * as path from 'path';
 
 import type {
 
+  TetaPluginDeleteAllRagResponse,
+
+  TetaPluginDeleteRagResponse,
+
   TetaPluginImportDetailResponse,
 
   TetaPluginImportResponse,
@@ -281,6 +285,41 @@ export class TetaPluginImportService {
 
     };
 
+  }
+
+
+
+  async deletePluginRag(dllPath: string): Promise<TetaPluginDeleteRagResponse> {
+    const normalizedPath = path.resolve(dllPath.trim());
+    const row = this.registry.getImportByPath(normalizedPath);
+    if (!row) {
+      throw new NotFoundException('Wtyczka nie ma wpisu w RAG — nic do usunięcia.');
+    }
+
+    const prefix = this.resolveSourcePrefixForDll(row.relative_path);
+    await this.qdrant.deletePointsBySourcePrefix(this.qdrant.globalCollection, prefix);
+    this.registry.deleteImport(normalizedPath);
+
+    this.logger.log(`Usunięto RAG wtyczki ${row.dll_name} (prefiks ${prefix}).`);
+
+    return {
+      dllName: row.dll_name,
+      dllPath: row.dll_path,
+      relativePath: row.relative_path,
+      ok: true,
+    };
+  }
+
+  async deleteAllPluginRag(): Promise<TetaPluginDeleteAllRagResponse> {
+    const deletedImports = this.registry.deleteAllImports();
+    await this.qdrant.deletePointsBySourceType(this.qdrant.globalCollection, 'teta_plugin');
+
+    this.logger.log(`Usunięto cały RAG wtyczek (${deletedImports} wpisów SQLite + chunki teta_plugin w Qdrant).`);
+
+    return {
+      deletedImports,
+      ok: true,
+    };
   }
 
 

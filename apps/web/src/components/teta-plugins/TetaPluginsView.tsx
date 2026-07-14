@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   TetaAppPathsStatusResponse,
+  TetaPluginBulkImportStatusResponse,
   TetaPluginDllRecord,
   TetaPluginImportDetailResponse,
   TetaPluginsStatusResponse,
 } from '@teta/shared';
+import { TETA_PLUGIN_DELETE_ALL_RAG_CONFIRM } from '@teta/shared';
 import type { NavItem } from '../layout/Sidebar';
 import { authFetch } from '../../lib/auth-storage';
 import { readResponseJson } from '../../lib/read-response-json';
@@ -16,6 +18,12 @@ type TetaPluginsViewProps = {
 };
 
 type ImportStatusFilter = 'all' | 'imported' | 'pending';
+
+type ConfirmDialogState =
+  | { kind: 'delete-all'; phrase: string }
+  | { kind: 'bulk-reimport'; categoryLabel: string }
+  | { kind: 'delete-one'; plugin: TetaPluginDllRecord }
+  | null;
 
 function parseError(data: unknown, fallback: string): string {
   if (data && typeof data === 'object' && 'message' in data) {
@@ -56,7 +64,11 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
   const [importDetail, setImportDetail] = useState<TetaPluginImportDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [importingPath, setImportingPath] = useState<string | null>(null);
+  const [deletingPath, setDeletingPath] = useState<string | null>(null);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [bulkStatus, setBulkStatus] = useState<TetaPluginBulkImportStatusResponse | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
+  const bulkPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadAll = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -113,6 +125,137 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
       setDetailLoading(false);
     }
   }, []);
+
+  const stopBulkPolling = useCallback(() => {
+    if (bulkPollRef.current) {
+      clearInterval(bulkPollRef.current);
+      bulkPollRef.current = null;
+    }
+  }, []);
+
+  const pollBulkStatus = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/vendor/teta-plugins/import/bulk/status');
+      const data = await readResponseJson<TetaPluginBulkImportStatusResponse>(res);
+      if (!res.ok) {
+        throw new Error(parseError(data, `HTTP ${res.status}`));
+      }
+      setBulkStatus(data);
+      if (data.status !== 'running') {
+        stopBulkPolling();
+        if (data.status === 'completed' || data.status === 'failed') {
+          setImportMessage(data.progressMessage);
+        }
+        await loadAll(true);
+      }
+    } catch {
+      stopBulkPolling();
+    }
+  }, [loadAll, stopBulkPolling]);
+
+  const startBulkPolling = useCallback(() => {
+    stopBulkPolling();
+    void pollBulkStatus();
+    bulkPollRef.current = setInterval(() => {
+      void pollBulkStatus();
+    }, 1200);
+  }, [pollBulkStatus, stopBulkPolling]);
+
+  useEffect(() => {
+    return () => stopBulkPolling();
+  }, [stopBulkPolling]);
+
+  const handleBulkImport = useCallback(
+    async (options: { reimport?: boolean }) => {
+      setError(null);
+      setImportMessage(null);
+      const categoryDir =
+        categoryFilter === 'all' ? undefined : categoryFilter;
+      try {
+        const res = await authFetch('/api/vendor/teta-plugins/import/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            categoryDir,
+            skipImported: !options.reimport,
+            reimport: options.reimport === true,
+          }),
+        });
+        const data = await readResponseJson<{ total?: number; status?: TetaPluginBulkImportStatusResponse }>(
+          res,
+        );
+        if (!res.ok) {
+          throw new Error(parseError(data, `HTTP ${res.status}`));
+        }
+        setBulkStatus(data.status ?? null);
+        startBulkPolling();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Import zbiorczy nie powiódł się.');
+      }
+    },
+    [categoryFilter, startBulkPolling],
+  );
+
+  const handleDeleteRag = useCallback(
+    async (plugin: TetaPluginDllRecord) => {
+      setDeletingPath(plugin.dllPath);
+      setError(null);
+      setImportMessage(null);
+      try {
+        const params = new URLSearchParams({ dllPath: plugin.dllPath });
+        const res = await authFetch(`/api/vendor/teta-plugins/rag?${params.toString()}`, {
+          method: 'DELETE',
+        });
+        const data = await readResponseJson<{ message?: string | string[] }>(res);
+        if (!res.ok) {
+          throw new Error(parseError(data, `HTTP ${res.status}`));
+        }
+        setImportMessage(`Usunięto RAG dla ${plugin.dllName}.`);
+        if (selectedPlugin?.dllPath === plugin.dllPath) {
+          setSelectedPlugin(null);
+          setImportDetail(null);
+        }
+        await loadAll(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Usuwanie RAG nie powiodło się.');
+      } finally {
+        setDeletingPath(null);
+        setConfirmDialog(null);
+      }
+    },
+    [loadAll, selectedPlugin],
+  );
+
+  const handleDeleteAllRag = useCallback(
+    async (phrase: string) => {
+      setError(null);
+      setImportMessage(null);
+      try {
+        const res = await authFetch('/api/vendor/teta-plugins/rag/all', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: phrase }),
+        });
+        const data = await readResponseJson<{ deletedImports?: number; message?: string | string[] }>(
+          res,
+        );
+        if (!res.ok) {
+          throw new Error(parseError(data, `HTTP ${res.status}`));
+        }
+        setImportMessage(
+          `Usunięto RAG wszystkich wtyczek (${data.deletedImports ?? 0} wpisów).`,
+        );
+        setSelectedPlugin(null);
+        setImportDetail(null);
+        await loadAll(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Usuwanie całego RAG nie powiodło się.');
+      } finally {
+        setConfirmDialog(null);
+      }
+    },
+    [loadAll],
+  );
 
   const handleImport = useCallback(
     async (plugin: TetaPluginDllRecord) => {
@@ -182,6 +325,9 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
   }, [categoryFilteredPlugins, importStatusFilter, searchQuery]);
 
   const pathsConfigured = !!paths?.clientDirectory.trim();
+  const bulkRunning = bulkStatus?.status === 'running';
+  const categoryLabel = categoryFilter === 'all' ? 'wszystkie kategorie' : categoryFilter;
+  const pendingInScope = importFilterCounts.pending;
 
   return (
     <div className="teta-plugins">
@@ -193,6 +339,19 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
         <div className="teta-plugins__message teta-plugins__message--progress">
           Trwa import wtyczki… ekstrakcja metadanych, embedding i zapis do RAG — przy pierwszym imporcie
           z serwera aplikacyjnego może to potrwać 1–3 minuty.
+        </div>
+      )}
+      {bulkRunning && bulkStatus && (
+        <div className="teta-plugins__message teta-plugins__message--progress">
+          <div className="teta-plugins__bulk-progress">
+            <div className="teta-plugins__bulk-progress-label">{bulkStatus.progressMessage}</div>
+            <div className="teta-plugins__bulk-progress-bar" aria-hidden="true">
+              <div
+                className="teta-plugins__bulk-progress-fill"
+                style={{ width: `${bulkStatus.progress}%` }}
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -208,14 +367,44 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
               zasoby kolumn z DLL wtyczki. Wykluczone segmenty: <strong>en</strong>, <strong>hu</strong>.
             </p>
           </div>
-          <button
-            type="button"
-            className="teta-plugins__btn"
-            disabled={loading || refreshing || !pathsConfigured}
-            onClick={() => void loadAll(true)}
-          >
-            {refreshing ? 'Odświeżanie…' : 'Odśwież skan'}
-          </button>
+          <div className="teta-plugins__toolbar-actions">
+            <button
+              type="button"
+              className="teta-plugins__btn"
+              disabled={loading || refreshing || !pathsConfigured || bulkRunning}
+              onClick={() => void loadAll(true)}
+            >
+              {refreshing ? 'Odświeżanie…' : 'Odśwież skan'}
+            </button>
+            <button
+              type="button"
+              className="teta-plugins__btn teta-plugins__btn--primary"
+              disabled={
+                loading || !pathsConfigured || bulkRunning || pendingInScope === 0 || !!importingPath
+              }
+              onClick={() => void handleBulkImport({ reimport: false })}
+            >
+              Importuj oczekujące ({pendingInScope})
+            </button>
+            <button
+              type="button"
+              className="teta-plugins__btn"
+              disabled={loading || !pathsConfigured || bulkRunning || !!importingPath}
+              onClick={() =>
+                setConfirmDialog({ kind: 'bulk-reimport', categoryLabel })
+              }
+            >
+              Reimportuj kategorię
+            </button>
+            <button
+              type="button"
+              className="teta-plugins__btn teta-plugins__btn--danger"
+              disabled={loading || !pathsConfigured || bulkRunning || (status?.totalImported ?? 0) === 0}
+              onClick={() => setConfirmDialog({ kind: 'delete-all', phrase: '' })}
+            >
+              Usuń cały RAG
+            </button>
+          </div>
         </div>
 
         {loading && <p className="teta-plugins__hint">Wczytywanie…</p>}
@@ -318,6 +507,7 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
               <div className="teta-plugins__grid">
                 {filteredPlugins.map((plugin) => {
                   const isImporting = importingPath === plugin.dllPath;
+                  const isDeleting = deletingPath === plugin.dllPath;
                   return (
                     <div
                       key={plugin.dllPath}
@@ -351,26 +541,41 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
                             : 'Nie zaimportowano'}
                         </span>
                       </button>
-                      <button
-                        type="button"
-                        className={`teta-plugins__tile-import${isImporting ? ' teta-plugins__tile-import--loading' : ''}`}
-                        disabled={isImporting}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void handleImport(plugin);
-                        }}
-                      >
-                        {isImporting && (
-                          <span className="teta-plugins__spinner" aria-hidden="true" />
+                      <div className="teta-plugins__tile-actions">
+                        <button
+                          type="button"
+                          className={`teta-plugins__tile-import${isImporting ? ' teta-plugins__tile-import--loading' : ''}`}
+                          disabled={isImporting || isDeleting || bulkRunning}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleImport(plugin);
+                          }}
+                        >
+                          {isImporting && (
+                            <span className="teta-plugins__spinner" aria-hidden="true" />
+                          )}
+                          <span>
+                            {isImporting
+                              ? 'Import…'
+                              : plugin.imported
+                                ? 'Reimportuj'
+                                : 'Importuj'}
+                          </span>
+                        </button>
+                        {plugin.imported && (
+                          <button
+                            type="button"
+                            className="teta-plugins__tile-delete"
+                            disabled={isDeleting || isImporting || bulkRunning}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setConfirmDialog({ kind: 'delete-one', plugin });
+                            }}
+                          >
+                            {isDeleting ? 'Usuwanie…' : 'Usuń RAG'}
+                          </button>
                         )}
-                        <span>
-                          {isImporting
-                            ? 'Import…'
-                            : plugin.imported
-                              ? 'Reimportuj'
-                              : 'Importuj'}
-                        </span>
-                      </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -434,6 +639,115 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
 
               <TetaPluginImportDetailPanel importDetail={importDetail} loading={detailLoading} />
             </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDialog && (
+        <div
+          className="teta-plugins__dialog-backdrop"
+          role="presentation"
+          onClick={() => setConfirmDialog(null)}
+        >
+          <div
+            className="teta-plugins__dialog"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {confirmDialog.kind === 'delete-one' && (
+              <>
+                <h3 className="teta-plugins__dialog-title">Usunąć RAG wtyczki?</h3>
+                <p className="teta-plugins__hint">
+                  Zostaną usunięte chunki w Qdrant i wpis metadanych dla{' '}
+                  <strong>{confirmDialog.plugin.dllName}</strong>. Plik DLL na dysku pozostaje.
+                </p>
+                <div className="teta-plugins__dialog-actions">
+                  <button
+                    type="button"
+                    className="teta-plugins__btn"
+                    onClick={() => setConfirmDialog(null)}
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    type="button"
+                    className="teta-plugins__btn teta-plugins__btn--danger"
+                    onClick={() => void handleDeleteRag(confirmDialog.plugin)}
+                  >
+                    Usuń RAG
+                  </button>
+                </div>
+              </>
+            )}
+
+            {confirmDialog.kind === 'delete-all' && (
+              <>
+                <h3 className="teta-plugins__dialog-title">Usunąć cały RAG wtyczek?</h3>
+                <p className="teta-plugins__hint">
+                  Operacja usuwa <strong>wszystkie</strong> chunki <code>teta_plugin</code> z Qdrant
+                  oraz wpisy w bazie metadanych. Aby potwierdzić, wpisz:
+                </p>
+                <p className="teta-plugins__confirm-phrase">{TETA_PLUGIN_DELETE_ALL_RAG_CONFIRM}</p>
+                <input
+                  type="text"
+                  className="teta-plugins__search-input"
+                  value={confirmDialog.phrase}
+                  onChange={(e) =>
+                    setConfirmDialog({ kind: 'delete-all', phrase: e.target.value })
+                  }
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <div className="teta-plugins__dialog-actions">
+                  <button
+                    type="button"
+                    className="teta-plugins__btn"
+                    onClick={() => setConfirmDialog(null)}
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    type="button"
+                    className="teta-plugins__btn teta-plugins__btn--danger"
+                    disabled={confirmDialog.phrase.trim() !== TETA_PLUGIN_DELETE_ALL_RAG_CONFIRM}
+                    onClick={() => void handleDeleteAllRag(confirmDialog.phrase.trim())}
+                  >
+                    Usuń wszystko
+                  </button>
+                </div>
+              </>
+            )}
+
+            {confirmDialog.kind === 'bulk-reimport' && (
+              <>
+                <h3 className="teta-plugins__dialog-title">Reimportować wtyczki?</h3>
+                <p className="teta-plugins__hint">
+                  Zostaną ponownie zaimportowane wszystkie DLL z zakresu:{' '}
+                  <strong>{confirmDialog.categoryLabel}</strong>. Istniejące chunki każdej wtyczki
+                  zostaną zastąpione.
+                </p>
+                <div className="teta-plugins__dialog-actions">
+                  <button
+                    type="button"
+                    className="teta-plugins__btn"
+                    onClick={() => setConfirmDialog(null)}
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    type="button"
+                    className="teta-plugins__btn teta-plugins__btn--primary"
+                    onClick={() => {
+                      setConfirmDialog(null);
+                      void handleBulkImport({ reimport: true });
+                    }}
+                  >
+                    Rozpocznij reimport
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

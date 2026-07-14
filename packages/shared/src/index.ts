@@ -6,8 +6,8 @@ export type {
   TetaAppPathsUpdateRequest,
 } from './teta-app.js';
 
-export type { TetaPluginDllRecord, TetaPluginImportDetailResponse, TetaPluginImportRequest, TetaPluginImportResponse, TetaPluginsStatusResponse } from './teta-plugins.js';
-export { TETA_PLUGIN_RAG_SOURCE_PREFIX } from './teta-plugins.js';
+export type { TetaPluginDllRecord, TetaPluginImportDetailResponse, TetaPluginImportRequest, TetaPluginImportResponse, TetaPluginsStatusResponse, TetaPluginDeleteRagResponse, TetaPluginDeleteAllRagRequest, TetaPluginDeleteAllRagResponse, TetaPluginBulkImportRequest, TetaPluginBulkImportStatusResponse, TetaPluginBulkImportStartResponse, TetaPluginBulkImportJobStatus } from './teta-plugins.js';
+export { TETA_PLUGIN_RAG_SOURCE_PREFIX, TETA_PLUGIN_DELETE_ALL_RAG_CONFIRM } from './teta-plugins.js';
 
 export type {
   ClientUpdatesStatusResponse,

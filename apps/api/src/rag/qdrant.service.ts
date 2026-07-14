@@ -159,6 +159,22 @@ export class QdrantService {
     });
   }
 
+  /** Usuwa wszystkie chunki danego typu źródła (np. teta_plugin). */
+  async deletePointsBySourceType(collection: string, sourceType: string): Promise<void> {
+    const normalized = sourceType.trim();
+    if (!normalized) return;
+
+    await this.request(`/collections/${collection}/points/delete?wait=true`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filter: {
+          must: [{ key: 'source_type', match: { value: normalized } }],
+        },
+      }),
+    });
+  }
+
   /** Usuwa wiele źródeł w paczkach (OR w filtrze) zamiast pojedynczych żądań. */
   async deletePointsBySourcesBatched(
     collection: string,

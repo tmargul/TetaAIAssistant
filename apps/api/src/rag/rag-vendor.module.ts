@@ -21,6 +21,7 @@ import { VendorSchemaLearningController } from '../schema/vendor-schema-learning
 import { OracleModule } from '../oracle/oracle.module';
 import { TetaAppPathsService } from '../teta-app/teta-app-paths.service';
 import { VendorTetaAppController } from '../teta-app/vendor-teta-app.controller';
+import { TetaPluginBulkImportService } from '../teta-plugins/teta-plugin-bulk-import.service';
 import { TetaPluginImportService } from '../teta-plugins/teta-plugin-import.service';
 import { TetaPluginsService } from '../teta-plugins/teta-plugins.service';
 import { TetaPluginOracleColumnsService } from '../teta-plugins/teta-plugin-oracle-columns.service';
@@ -52,6 +53,7 @@ import { VendorTetaPluginsController } from '../teta-plugins/vendor-teta-plugins
     TetaAppPathsService,
     TetaPluginsService,
     TetaPluginImportService,
+    TetaPluginBulkImportService,
     TetaPluginOracleColumnsService,
   ],
   exports: [GlobalRagIngestService, GlobalRagExportService],
