@@ -68,7 +68,10 @@ export class OllamaChatService implements OnModuleInit {
     };
   }
 
-  private getChatTimeoutMs(): number {
+  private getChatTimeoutMs(overrideMs?: number): number {
+    if (overrideMs !== undefined && Number.isFinite(overrideMs) && overrideMs > 0) {
+      return overrideMs;
+    }
     return Number(this.config.get('OLLAMA_CHAT_TIMEOUT_MS', 600_000));
   }
 
@@ -249,7 +252,7 @@ export class OllamaChatService implements OnModuleInit {
         keep_alive: this.getKeepAlive(),
         options,
       }),
-      signal: AbortSignal.timeout(this.getChatTimeoutMs()),
+      signal: AbortSignal.timeout(this.getChatTimeoutMs(overrides?.timeoutMs)),
     });
 
     if (!res.ok) {

@@ -12,6 +12,14 @@ import { OllamaChatService } from './ollama-chat.service';
 import { ChatService } from './chat.service';
 import { createNdjsonResponseTee } from './chat-stream-collector.util';
 import { isFailedChatAttempt } from './chat-orchestrator-result.util';
+import {
+  assertWithinDeadline,
+  createRequestDeadline,
+  isAbortTimeoutError,
+  remainingMs,
+  RequestDeadlineExceededError,
+  type RequestDeadline,
+} from '../common/request-deadline.util';
 
 type AttemptMode = 'oracle' | 'docs';
 
@@ -56,12 +64,27 @@ export class ChatOrchestratorService {
     const history = input.history ?? [];
     const route = classifyAgentQueryRoute({ message, history });
     const attempts = this.resolveAttemptOrder(route.route);
+    const startedAt = Date.now();
+    const orchestratorDeadline = createRequestDeadline(
+      this.getOrchestratorTotalTimeoutMs(),
+      startedAt,
+    );
 
     this.logger.log(
       `Chat orchestrator — route=${route.route} (${route.confidence}): ${route.reason}; attempts=${attempts.join(' → ')}`,
     );
 
     for (let attemptIndex = 0; attemptIndex < attempts.length; attemptIndex += 1) {
+      try {
+        assertWithinDeadline(orchestratorDeadline, 'orchestrator czatu');
+      } catch (error) {
+        const timeoutMessage = this.buildOrchestratorTimeoutAnswer(error, orchestratorDeadline);
+        this.logger.warn(timeoutMessage);
+        writeEvent({ type: 'error', message: timeoutMessage });
+        res.end();
+        return;
+      }
+
       const attempt = attempts[attemptIndex]!;
       const hasMoreAttempts = attemptIndex < attempts.length - 1;
       writeEvent({
@@ -99,6 +122,16 @@ export class ChatOrchestratorService {
         }
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
+        if (
+          error instanceof RequestDeadlineExceededError ||
+          isAbortTimeoutError(error)
+        ) {
+          const timeoutMessage = this.buildOrchestratorTimeoutAnswer(error, orchestratorDeadline);
+          this.logger.warn(`Chat orchestrator — timeout: ${timeoutMessage}`);
+          writeEvent({ type: 'error', message: timeoutMessage });
+          res.end();
+          return;
+        }
         this.logger.warn(`Chat orchestrator — ${attempt} rzucił wyjątek: ${detail}`);
         continue;
       }
@@ -112,7 +145,30 @@ export class ChatOrchestratorService {
       this.logger.warn(`Chat orchestrator — ${attempt} nie dał użytecznej odpowiedzi, próbuję dalej`);
     }
 
-    await this.streamClarification(input, history, writeEvent, res);
+    await this.streamClarification(input, history, writeEvent, res, orchestratorDeadline);
+  }
+
+  private getOrchestratorTotalTimeoutMs(): number {
+    return Number(this.config.get('TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS', 240_000));
+  }
+
+  private buildOrchestratorTimeoutAnswer(
+    error: unknown,
+    deadline: RequestDeadline,
+  ): string {
+    const totalSec = Math.round(deadline.limitMs / 1000);
+    const elapsedSec = Math.round((Date.now() - deadline.startedAt) / 1000);
+    const remainingSec = Math.max(0, Math.round(remainingMs(deadline) / 1000));
+    const configHint =
+      'Zwiększ TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS lub TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS w apps/api/.env.';
+    if (error instanceof RequestDeadlineExceededError) {
+      return (
+        `Przekroczono limit czasu odpowiedzi asystenta (${totalSec} s, upłynęło ${elapsedSec} s). ${configHint}`
+      );
+    }
+    return (
+      `Asystent nie zdążył odpowiedzieć w limicie czasu (pozostało ok. ${remainingSec} s budżetu). ${configHint}`
+    );
   }
 
   private resolveAttemptOrder(route: AgentQueryRoute): AttemptMode[] {
@@ -130,7 +186,19 @@ export class ChatOrchestratorService {
     history: ChatHistoryMessage[],
     writeEvent: (event: ChatStreamEvent) => void,
     res: Response,
+    orchestratorDeadline: RequestDeadline,
   ): Promise<void> {
+    try {
+      assertWithinDeadline(orchestratorDeadline, 'doprecyzowanie');
+    } catch (error) {
+      writeEvent({
+        type: 'error',
+        message: this.buildOrchestratorTimeoutAnswer(error, orchestratorDeadline),
+      });
+      res.end();
+      return;
+    }
+
     writeEvent({
       type: 'status',
       phase: 'clarify',
@@ -150,6 +218,7 @@ export class ChatOrchestratorService {
       {
         think: this.config.get<string>('TETA_ORACLE_AGENT_THINK', 'true') !== 'false',
         maxNumPredict: Number(this.config.get('TETA_ORACLE_AGENT_NUM_PREDICT') ?? 4096),
+        timeoutMs: remainingMs(orchestratorDeadline),
       },
     )) {
       content += delta;

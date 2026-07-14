@@ -5,6 +5,8 @@ export type OllamaChatOverrides = {
   maxNumPredict?: number;
   temperature?: number;
   numCtx?: number;
+  /** Limit czasu pojedynczego wywołania Ollama (ms). Domyślnie OLLAMA_CHAT_TIMEOUT_MS. */
+  timeoutMs?: number;
 };
 
 export function applyOllamaChatOverrides(

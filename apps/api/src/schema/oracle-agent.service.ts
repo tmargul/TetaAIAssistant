@@ -40,6 +40,15 @@ import type { AgentQueryRoute } from '../agent/agent-query-route.types';
 import { buildAgentLlmSystemPrompt } from '../agent/agent-llm-prompts';
 import { SchemaGraphService } from './schema-graph.service';
 import {
+  assertWithinDeadline,
+  createRequestDeadline,
+  isAbortTimeoutError,
+  remainingMs,
+  RequestDeadlineExceededError,
+  stepTimeoutMs,
+  type RequestDeadline,
+} from '../common/request-deadline.util';
+import {
   buildAgentJsonFailureMessage,
   buildAgentJsonRetryHint,
   looksLikeAgentJson,
@@ -120,7 +129,9 @@ export class OracleAgentService {
           Number(this.config.get('TETA_ORACLE_AGENT_MAX_HISTORY_CHARS', 800)),
         ),
       );
-      const maxIterations = Number(this.config.get('TETA_ORACLE_AGENT_MAX_STEPS', 10));
+      const maxIterations = Number(this.config.get('TETA_ORACLE_AGENT_MAX_STEPS', 5));
+      const agentDeadline = this.createAgentDeadline(startedAt);
+      const stepLimitMs = this.getAgentStepTimeoutMs();
 
       const routeDecision = classifyAgentQueryRoute({ message, history });
       this.logger.log(
@@ -135,6 +146,8 @@ export class OracleAgentService {
           writeEvent,
           startedAt,
           res,
+          agentDeadline,
+          stepLimitMs,
         });
         return;
       }
@@ -239,20 +252,36 @@ export class OracleAgentService {
 
       if (!finalAnswer) {
       for (let i = 0; i < maxIterations; i += 1) {
+        try {
+          assertWithinDeadline(agentDeadline, 'agent Oracle');
+        } catch (deadlineError) {
+          finalAnswer = this.buildAgentTimeoutAnswer(deadlineError, agentDeadline);
+          break;
+        }
+
         const systemPrompt = this.buildSystemPrompt(domain, toolContext, entityContext, pluginContext);
         const agentPrompt = this.buildAgentPrompt(message, i, pluginHints.hasPluginMetadata);
         const llmStartedAt = Date.now();
 
-        const response = await this.ollama.complete(
-          [
-            { role: 'system', content: systemPrompt },
-            ...history.map((item) => ({ role: item.role, content: item.content })),
-            { role: 'user', content: agentPrompt },
-          ],
-          input.model,
-          input.quality,
-          this.getOracleLlmOverrides(message),
-        );
+        let response: string;
+        try {
+          response = await this.ollama.complete(
+            [
+              { role: 'system', content: systemPrompt },
+              ...history.map((item) => ({ role: item.role, content: item.content })),
+              { role: 'user', content: agentPrompt },
+            ],
+            input.model,
+            input.quality,
+            this.getOracleLlmOverrides(message, agentDeadline, stepLimitMs),
+          );
+        } catch (error) {
+          if (this.isAgentTimeoutError(error)) {
+            finalAnswer = this.buildAgentTimeoutAnswer(error, agentDeadline, stepLimitMs);
+            break;
+          }
+          throw error;
+        }
 
         const llmMs = Date.now() - llmStartedAt;
         this.logger.log(
@@ -369,7 +398,15 @@ export class OracleAgentService {
       res.end();
     } catch (error) {
       const message =
-        error instanceof BadRequestException || error instanceof ServiceUnavailableException
+        error instanceof RequestDeadlineExceededError
+          ? this.buildAgentTimeoutAnswer(error, this.createAgentDeadline(startedAt))
+          : this.isAgentTimeoutError(error)
+            ? this.buildAgentTimeoutAnswer(
+                error,
+                this.createAgentDeadline(startedAt),
+                this.getAgentStepTimeoutMs(),
+              )
+          : error instanceof BadRequestException || error instanceof ServiceUnavailableException
           ? error.message
           : error instanceof Error
             ? error.message
@@ -379,6 +416,44 @@ export class OracleAgentService {
     }
   }
 
+  private createAgentDeadline(startedAt: number): RequestDeadline {
+    return createRequestDeadline(this.getAgentTotalTimeoutMs(), startedAt);
+  }
+
+  private getAgentTotalTimeoutMs(): number {
+    return Number(this.config.get('TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS', 180_000));
+  }
+
+  private getAgentStepTimeoutMs(): number {
+    return Number(this.config.get('TETA_ORACLE_AGENT_LLM_TIMEOUT_MS', 60_000));
+  }
+
+  private isAgentTimeoutError(error: unknown): boolean {
+    return error instanceof RequestDeadlineExceededError || isAbortTimeoutError(error);
+  }
+
+  private buildAgentTimeoutAnswer(
+    error: unknown,
+    deadline: RequestDeadline,
+    stepLimitMs?: number,
+  ): string {
+    const totalSec = Math.round(deadline.limitMs / 1000);
+    const elapsedSec = Math.round((Date.now() - deadline.startedAt) / 1000);
+    const configHint =
+      'Doprecyzuj pytanie (np. numer ewidencyjny, nazwisko) lub zwiększ limity w apps/api/.env: ' +
+      'TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS, TETA_ORACLE_AGENT_LLM_TIMEOUT_MS, TETA_ORACLE_AGENT_MAX_STEPS.';
+    if (error instanceof RequestDeadlineExceededError) {
+      return (
+        `Przekroczono całkowity limit czasu agenta Oracle (${totalSec} s, upłynęło ${elapsedSec} s). ${configHint}`
+      );
+    }
+    const stepSec = Math.round((stepLimitMs ?? this.getAgentStepTimeoutMs()) / 1000);
+    return (
+      `Model nie zdążył odpowiedzieć w limicie pojedynczego kroku (${stepSec} s). ` +
+      `Pozostały budżet całego żądania: ok. ${Math.max(0, Math.round(remainingMs(deadline) / 1000))} s. ${configHint}`
+    );
+  }
+
   private async streamLlmOnlyAnswer(input: {
     input: ChatCompletionRequest;
     history: ChatHistoryMessage[];
@@ -386,23 +461,37 @@ export class OracleAgentService {
     writeEvent: (event: ChatStreamEvent) => void;
     startedAt: number;
     res: Response;
+    agentDeadline: RequestDeadline;
+    stepLimitMs: number;
   }): Promise<void> {
     const llmStartedAt = Date.now();
     let content = '';
     const message = input.input.message.trim();
 
-    for await (const delta of this.ollama.streamTokens(
-      [
-        { role: 'system', content: buildAgentLlmSystemPrompt(input.route) },
-        ...input.history.map((item) => ({ role: item.role, content: item.content })),
-        { role: 'user', content: message },
-      ],
-      input.input.model,
-      input.input.quality,
-      this.getOracleLlmOverrides(),
-    )) {
-      content += delta;
-      input.writeEvent({ type: 'token', delta });
+    try {
+      for await (const delta of this.ollama.streamTokens(
+        [
+          { role: 'system', content: buildAgentLlmSystemPrompt(input.route) },
+          ...input.history.map((item) => ({ role: item.role, content: item.content })),
+          { role: 'user', content: message },
+        ],
+        input.input.model,
+        input.input.quality,
+        this.getOracleLlmOverrides(undefined, input.agentDeadline, input.stepLimitMs),
+      )) {
+        content += delta;
+        input.writeEvent({ type: 'token', delta });
+      }
+    } catch (error) {
+      if (this.isAgentTimeoutError(error)) {
+        input.writeEvent({
+          type: 'error',
+          message: this.buildAgentTimeoutAnswer(error, input.agentDeadline, input.stepLimitMs),
+        });
+        input.res.end();
+        return;
+      }
+      throw error;
     }
 
     const llmMs = Date.now() - llmStartedAt;
@@ -417,12 +506,16 @@ export class OracleAgentService {
     input.res.end();
   }
 
-  private getOracleLlmOverrides(message?: string): OllamaChatOverrides {
+  private getOracleLlmOverrides(
+    message?: string,
+    agentDeadline?: RequestDeadline,
+    stepLimitMs?: number,
+  ): OllamaChatOverrides {
     const thinkDefault = this.config.get<string>('TETA_ORACLE_AGENT_THINK', 'true') !== 'false';
     const think =
       message && isBroadListQuery(message) ? false : thinkDefault;
     const maxPredict = this.config.get('TETA_ORACLE_AGENT_NUM_PREDICT');
-    return {
+    const overrides: OllamaChatOverrides = {
       think,
       maxNumPredict: Number(
         maxPredict ?? (think ? 4096 : message && isBroadListQuery(message) ? 1536 : 768),
@@ -430,6 +523,10 @@ export class OracleAgentService {
       temperature: Number(this.config.get('TETA_ORACLE_AGENT_TEMPERATURE', 0.05)),
       numCtx: Number(this.config.get('TETA_ORACLE_AGENT_NUM_CTX', 4096)),
     };
+    if (agentDeadline && stepLimitMs) {
+      overrides.timeoutMs = stepTimeoutMs(agentDeadline, stepLimitMs);
+    }
+    return overrides;
   }
 
   private appendToolContext(

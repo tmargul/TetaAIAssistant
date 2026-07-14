@@ -187,7 +187,12 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Wiek pracownika (2026-07-13):** follow-up *„ile ma lat / wiek tego pracownika”* — brak kolumny WIEK; szybka ścieżka: `TRUNC(MONTHS_BETWEEN(SYSDATE, DATA_URODZENIA)/12) AS WIEK` + WHERE z historii (nr ewidencyjny). Bez kontekstu pracownika → dopytanie zamiast SELECT wszystkich. Słowo „lat” nie może trafiać w `LATA_STAZU`.
 - **Computed intents + filtry bez hardcodu (2026-07-13):** formuły SQL (np. wiek) w `apps/api/config/teta-computed-intents.json`; język zapytań (przyimki filtra, grupy imiennych) w `apps/api/config/teta-query-language.json`. Ekstrakcja jawna: etykiety/synonimy z mapowań wtyczki. **Filtr implicite:** np. *„Podaj wiek pracownika Kowalski Janusz”* → `WHERE (NAZWISKO='Kowalski' AND IMIE='Janusz') OR (…odwrotna kolejność…)` — role z tokenów etykiet (`nazwisko`, `imie`) powiązane z kolumnami z metadanych; bez zgadywania kolejności w jednym SQL. Jedno nazwisko: `WHERE NAZWISKO='Kowalski'`. **Fix zapętlenia ~90 s (2026-07-13):** przy filtrze implicite nie wykluczać kolumny OUTPUT na podstawie `resolveFilterMappingFromQuery` (błędnie wiązało `DATA_URODZENIA` ze słowem „urodzenia” w pytaniu → pusty SELECT → fallback LLM). Dodatkowo: `queryNoiseTokens` + `ma`, pomijanie tokenów etykiet mapowań w literałach, `date`↔`data` (prefiks 3 znaki), case-insensitive `UPPER()` w WHERE. **Wiek teoretyczny + thinking:** lata w kontekście daty (np. lipiec 2026, styczeń 1998) nie są filtrem pracownika; pytanie bez rekordu → LLM. Agent Oracle: `TETA_ORACLE_AGENT_THINK=true` domyślnie, `num_predict` 4096. **Follow-up „Ok, a teraz powiedz…” (2026-07-13):** tokeny `ok`/`teraz`/`powiedz` w `queryNoiseTokens` + fallback `selectPersonNameLiterals` — inaczej 5 literałów → brak filtra imiennego → pętla LLM ~100 s. Orchestrator streamuje pierwszą próbę na żywo (`createNdjsonResponseTee`), nie buforuje do końca.
 
-### 2026-06-05 (komputer 2 → kontekst z czatu)
+### 2026-07-14 — limity czasu agenta Oracle
+
+- **Problem:** pętla agenta (do 10 kroków × timeout Ollama 10 min) → wiszenie ~900 s bez odpowiedzi.
+- **Fix:** konfigurowalne limity w `.env`: `TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS=180000` (3 min), `TETA_ORACLE_AGENT_LLM_TIMEOUT_MS=60000` (1 min/krok), `TETA_ORACLE_AGENT_MAX_STEPS=5`, `TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS=240000`. Przy przekroczeniu — event `error` z komunikatem PL + wskazówka `.env`. UI: bezpiecznik 270 s w `chat-stream.ts`.
+
+---
 
 - Użytkownik pracował na drugim PC; historia czatów Cursor się nie synchronizuje — ten plik + git mają to zastąpić.
 - Reguła: na starcie sesji czytać `docs/session-context.md` + `git log`.

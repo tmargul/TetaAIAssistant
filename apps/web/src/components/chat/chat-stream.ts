@@ -1,6 +1,9 @@
 import type { ChatCompletionRequest, ChatStreamEvent } from '@teta/shared';
 import { getAccessToken } from '../../lib/auth-storage';
 
+/** Bezpiecznik UI — nieco powyżej TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS (domyślnie 240 s). */
+const CHAT_STREAM_TIMEOUT_MS = 270_000;
+
 export async function streamChatCompletion(
   input: ChatCompletionRequest,
   onEvent: (event: ChatStreamEvent) => void,
@@ -11,11 +14,26 @@ export async function streamChatCompletion(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch('/api/chat/completions/stream', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(input),
-  });
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), CHAT_STREAM_TIMEOUT_MS);
+
+  try {
+  let res: Response;
+  try {
+    res = await fetch('/api/chat/completions/stream', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(input),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(
+        `Brak odpowiedzi w limicie ${Math.round(CHAT_STREAM_TIMEOUT_MS / 1000)} s. Odśwież stronę lub doprecyzuj pytanie.`,
+      );
+    }
+    throw error;
+  }
 
   const contentType = res.headers.get('Content-Type') ?? '';
 
@@ -65,5 +83,8 @@ export async function streamChatCompletion(
 
   if (!finished) {
     throw new Error('Strumień odpowiedzi zakończył się przedwcześnie.');
+  }
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 }
