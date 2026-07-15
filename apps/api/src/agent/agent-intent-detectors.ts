@@ -1,6 +1,7 @@
 import type { ChatHistoryMessage } from '@teta/shared';
 import { normalizeSearchText } from '../teta-plugins/teta-plugin-grid-column-mapper';
 import { isBroadListQuery } from '../teta-plugins/teta-plugin-list-query.util';
+import { isFieldHelpQuestion } from '../teta-plugins/teta-plugin-help-resolver';
 
 const POLISH_MONTH =
   /\b(?:stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|wrzesnia|pazdziernika|listopada|grudnia)\b/;
@@ -127,6 +128,9 @@ export function isFollowUpWithoutGeneralReset(message: string, history: ChatHist
 }
 
 export function requestsLiveDatabaseData(message: string): boolean {
+  if (isFieldHelpQuestion(message)) {
+    return false;
+  }
   if (isDefinitionOrConceptQuestion(message) || isMetaSqlQuestion(message) || isMathQuestion(message)) {
     return false;
   }

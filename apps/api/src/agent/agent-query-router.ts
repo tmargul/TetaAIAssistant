@@ -1,4 +1,5 @@
 import type { AgentQueryRouteDecision, AgentQueryRouteInput } from './agent-query-route.types';
+import { isFieldHelpQuestion } from '../teta-plugins/teta-plugin-help-resolver';
 import {
   isFollowUpWithoutGeneralReset,
   matchesLlmOnlySignals,
@@ -20,8 +21,16 @@ export function classifyAgentQueryRoute(input: AgentQueryRouteInput): AgentQuery
     };
   }
 
-  const llmSignal = matchesLlmOnlySignals(message);
   const needsDatabase = requestsLiveDatabaseData(message);
+  if (isFieldHelpQuestion(message) && !needsDatabase) {
+    return {
+      route: 'application_help',
+      reason: 'pytanie o znaczenie pola lub formularza — help kontekstowy Teta',
+      confidence: 'high',
+    };
+  }
+
+  const llmSignal = matchesLlmOnlySignals(message);
 
   if (llmSignal && !needsDatabase) {
     return {

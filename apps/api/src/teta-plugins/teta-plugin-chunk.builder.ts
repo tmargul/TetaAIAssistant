@@ -344,12 +344,76 @@ function buildColumnChunks(
   });
 }
 
+function buildHelpChunks(
+  bundle: TetaPluginMetadataBundle,
+  form: TetaPluginFormMetadata,
+  baseSource: string,
+): TetaKnowledgeChunkInput[] {
+  const help = form.Help;
+  if (!help) return [];
+
+  const formKey = formSegment(form);
+  const pluginName = form.Plugin.Languages?.[0]?.Name ?? bundle.dllName;
+  const chunks: TetaKnowledgeChunkInput[] = [];
+
+  chunks.push({
+    id: randomUUID(),
+    source: `${baseSource}/forms/${formKey}/help/overview`,
+    source_type: 'teta_plugin',
+    text: [
+      `Pomoc Teta — formularz ${pluginName} (${bundle.dllName}).`,
+      help.title ? `Tytuł helpu: ${help.title}.` : '',
+      help.summary,
+      help.sections.length > 0 ? `Sekcje: ${help.sections.join('; ')}.` : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
+    summary: `Help: ${pluginName}`,
+    plugin_names: [bundle.dllName.replace(/\.dll$/i, '')],
+    form_names: [pluginName],
+    keywords: [pluginName, help.title, ...help.sections],
+    knowledge_version: TETA_KNOWLEDGE_CHUNK_FORMAT,
+  });
+
+  for (const field of help.fields.slice(0, MAX_FIELD_MAPPING_CHUNKS)) {
+    const object = bundle.applicationObjects?.find(
+      (item) =>
+        item.fieldLabel &&
+        item.fieldLabel.toLowerCase() === field.label.toLowerCase() &&
+        item.formName === pluginName,
+    );
+    chunks.push({
+      id: randomUUID(),
+      source: `${baseSource}/forms/${formKey}/help/fields/${field.label.replace(/\s+/g, '_')}`,
+      source_type: 'teta_plugin',
+      text: [
+        `Pomoc Teta — pole ${field.label} na formularzu ${pluginName}.`,
+        field.section ? `Sekcja: ${field.section}.` : '',
+        field.description,
+        object?.binding?.oracleColumnName
+          ? `Powiązanie techniczne: ${object.binding.targetObject ? `${object.binding.targetObject}.` : ''}${object.binding.oracleColumnName}.`
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+      summary: `${pluginName}: ${field.label}`,
+      plugin_names: [bundle.dllName.replace(/\.dll$/i, '')],
+      form_names: [pluginName],
+      keywords: [field.label, pluginName, ...(object?.keywords ?? [])],
+      knowledge_version: TETA_KNOWLEDGE_CHUNK_FORMAT,
+    });
+  }
+
+  return chunks;
+}
+
 export function buildTetaPluginKnowledgeChunks(bundle: TetaPluginMetadataBundle): TetaKnowledgeChunkInput[] {
   const baseSource = pluginBaseSource(bundle.relativePath);
   const chunks: TetaKnowledgeChunkInput[] = [];
 
   for (const form of bundle.forms) {
     chunks.push(buildOverviewChunk(bundle, form, baseSource));
+    chunks.push(...buildHelpChunks(bundle, form, baseSource));
     for (const gateway of form.Gateways ?? []) {
       chunks.push(buildGatewayChunk(bundle, form, gateway, baseSource));
     }

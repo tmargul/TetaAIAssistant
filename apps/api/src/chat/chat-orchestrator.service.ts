@@ -172,6 +172,9 @@ export class ChatOrchestratorService {
   }
 
   private resolveAttemptOrder(route: AgentQueryRoute): AttemptMode[] {
+    if (route === 'application_help') {
+      return ['oracle'];
+    }
     if (route === 'database') {
       return ['oracle', 'docs'];
     }

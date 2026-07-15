@@ -36,10 +36,12 @@ export type TetaPluginColumnHint = {
 
 export type TetaPluginOracleHints = {
   promptSection: string;
+  helpPromptSection?: string;
   gateways: TetaPluginGatewayHint[];
   columnHints: TetaPluginColumnHint[];
   columnMappings: TetaPluginColumnMapping[];
   computedIntents: TetaPluginComputedIntent[];
+  applicationObjects?: import('./teta-application-object.types').TetaApplicationObject[];
   hasPluginMetadata: boolean;
 };
 

@@ -67,6 +67,8 @@ import { inferSqlForGateways } from './teta-plugin-sql-inferrer';
 import { SchemaGraphService } from '../schema/schema-graph.service';
 
 import { TetaPluginOracleColumnsService } from './teta-plugin-oracle-columns.service';
+import { TetaHelpEnrichmentService } from './teta-help-enrichment.service';
+import { TetaAppObjectRegistryService } from './teta-app-object-registry.service';
 
 import {
   buildColumnMappingsFromBundle,
@@ -105,6 +107,10 @@ export class TetaPluginImportService {
     private readonly graph: SchemaGraphService,
 
     private readonly config: ConfigService,
+
+    private readonly helpEnrichment: TetaHelpEnrichmentService,
+
+    private readonly appObjectRegistry: TetaAppObjectRegistryService,
 
   ) {}
 
@@ -171,14 +177,15 @@ export class TetaPluginImportService {
     });
 
     const validatedBundle = await this.validateBundleBeforeRag(bundle);
+    const withHelp = this.helpEnrichment.enrichBundleWithHelp(validatedBundle, clientDirectory);
 
     this.logger.log(
-      `Import wtyczki — metadane (${Date.now() - startedAt} ms): ${validatedBundle.forms.length} formularzy, ${validatedBundle.relatedBusinessObjectDlls?.length ?? 0} BO DLL.`,
+      `Import wtyczki — metadane (${Date.now() - startedAt} ms): ${withHelp.forms.length} formularzy, ${withHelp.relatedBusinessObjectDlls?.length ?? 0} BO DLL, help: ${withHelp.applicationObjects?.length ?? 0} obiektów.`,
     );
 
 
 
-    const chunks = buildTetaPluginKnowledgeChunks(validatedBundle);
+    const chunks = buildTetaPluginKnowledgeChunks(withHelp);
 
     if (chunks.length === 0) {
 
@@ -229,9 +236,9 @@ export class TetaPluginImportService {
 
     const importedAt = new Date().toISOString();
 
-    const gatewayCount = validatedBundle.forms.reduce((sum, form) => sum + (form.Gateways?.length ?? 0), 0);
+    const gatewayCount = withHelp.forms.reduce((sum, form) => sum + (form.Gateways?.length ?? 0), 0);
 
-    const columnCount = validatedBundle.forms.reduce((sum, form) => sum + (form.Columns?.length ?? 0), 0);
+    const columnCount = withHelp.forms.reduce((sum, form) => sum + (form.Columns?.length ?? 0), 0);
 
 
 
@@ -249,7 +256,7 @@ export class TetaPluginImportService {
 
       chunkCount: chunks.length,
 
-      metadataJson: JSON.stringify(validatedBundle),
+      metadataJson: JSON.stringify(withHelp),
 
     });
 
@@ -257,7 +264,7 @@ export class TetaPluginImportService {
 
     this.logger.log(
 
-      `Zaimportowano wtyczkę ${pluginRecord.dllName}: ${chunks.length} chunków (${validatedBundle.extractionMode}, BO: ${validatedBundle.relatedBusinessObjectDlls?.length ?? 0}).`,
+      `Zaimportowano wtyczkę ${pluginRecord.dllName}: ${chunks.length} chunków (${withHelp.extractionMode}, BO: ${withHelp.relatedBusinessObjectDlls?.length ?? 0}, help: ${withHelp.applicationObjects?.length ?? 0}).`,
 
     );
 
@@ -281,7 +288,7 @@ export class TetaPluginImportService {
 
       columnCount,
 
-      extractionMode: validatedBundle.extractionMode,
+      extractionMode: withHelp.extractionMode,
 
     };
 
@@ -299,6 +306,7 @@ export class TetaPluginImportService {
     const prefix = this.resolveSourcePrefixForDll(row.relative_path);
     await this.qdrant.deletePointsBySourcePrefix(this.qdrant.globalCollection, prefix);
     this.registry.deleteImport(normalizedPath);
+    this.appObjectRegistry.deleteForDll(normalizedPath);
 
     this.logger.log(`Usunięto RAG wtyczki ${row.dll_name} (prefiks ${prefix}).`);
 
@@ -313,6 +321,7 @@ export class TetaPluginImportService {
   async deleteAllPluginRag(): Promise<TetaPluginDeleteAllRagResponse> {
     const deletedImports = this.registry.deleteAllImports();
     await this.qdrant.deletePointsBySourceType(this.qdrant.globalCollection, 'teta_plugin');
+    this.appObjectRegistry.deleteAll();
 
     this.logger.log(`Usunięto cały RAG wtyczek (${deletedImports} wpisów SQLite + chunki teta_plugin w Qdrant).`);
 

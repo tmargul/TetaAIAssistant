@@ -35,6 +35,12 @@ import {
 } from './teta-plugin-query-resolver';
 import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
 import type { TetaPluginComputedIntent } from './teta-plugin-computed-intent.types';
+import type { TetaApplicationObject } from './teta-application-object.types';
+import { TetaAppObjectRegistryService } from './teta-app-object-registry.service';
+import {
+  rankApplicationObjectsForQuery,
+  resolveHelpAnswerFromObjects,
+} from './teta-plugin-help-resolver';
 import { TetaPluginRegistryService } from './teta-plugin-registry.service';
 
 @Injectable()
@@ -46,6 +52,7 @@ export class TetaPluginHintsService {
     private readonly rag: RagRetrievalService,
     private readonly registry: TetaPluginRegistryService,
     private readonly graph: SchemaGraphService,
+    private readonly appObjects: TetaAppObjectRegistryService,
   ) {}
 
   async findHintsForQuery(query: string): Promise<TetaPluginOracleHints> {
@@ -80,6 +87,8 @@ export class TetaPluginHintsService {
     const columnMappingsByKey = new Map<string, TetaPluginColumnMapping>();
     const promptMappingsByKey = new Map<string, TetaPluginColumnMapping>();
     const computedIntentsById = new Map<string, TetaPluginComputedIntent>();
+    const applicationObjectsById = new Map<string, TetaApplicationObject>();
+    const seenDllPaths = new Set<string>();
     const seenBundles = new Set<string>();
 
     for (const hit of ragHits.slice(0, Math.max(pluginTopK, 8))) {
@@ -91,6 +100,10 @@ export class TetaPluginHintsService {
       const bundleKey = bundle.dllPath.toLowerCase();
       if (!seenBundles.has(bundleKey)) {
         seenBundles.add(bundleKey);
+        seenDllPaths.add(bundle.dllPath);
+        for (const object of bundle.applicationObjects ?? []) {
+          applicationObjectsById.set(object.objectId, object);
+        }
         const mappings =
           bundle.columnMappings ??
           buildColumnMappingsFromBundle(
@@ -143,6 +156,12 @@ export class TetaPluginHintsService {
       }
     }
 
+    for (const dllPath of seenDllPaths) {
+      for (const object of this.appObjects.listForDll(dllPath)) {
+        applicationObjectsById.set(object.objectId, object);
+      }
+    }
+
     const gateways = [...hintsByKey.values()]
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, 5);
@@ -181,7 +200,10 @@ export class TetaPluginHintsService {
       (tableRef) => this.graph.getColumnDetailsForTable(tableRef),
     );
     const defaultOwner = resolveDefaultOracleOwner(this.config);
+    const applicationObjects = [...applicationObjectsById.values()];
+    const helpPromptSection = formatApplicationHelpForPrompt(query, applicationObjects);
     const promptSection = [
+      helpPromptSection,
       formatPluginOracleHintsForPrompt(
         gateways,
         promptColumnHints.length > 0 ? promptColumnHints : columnHints,
@@ -194,17 +216,30 @@ export class TetaPluginHintsService {
       .join('\n\n');
 
     this.logger.log(
-      `Plugin hints: ${gateways.length} gateway(ów), ${columnHints.length} kolumn (prompt: ${promptColumnHints.length}), ${columnMappings.length} mapowań z ${ragHits.length} trafień RAG (${Date.now() - startedAt} ms)`,
+      `Plugin hints: ${gateways.length} gateway(ów), ${columnHints.length} kolumn (prompt: ${promptColumnHints.length}), ${columnMappings.length} mapowań, ${applicationObjects.length} obiektów help (${Date.now() - startedAt} ms)`,
     );
 
     return {
       promptSection,
+      helpPromptSection,
       gateways,
       columnHints,
       columnMappings,
       computedIntents,
-      hasPluginMetadata: gateways.length > 0 || columnHints.length > 0 || columnMappings.length > 0,
+      applicationObjects,
+      hasPluginMetadata:
+        gateways.length > 0 ||
+        columnHints.length > 0 ||
+        columnMappings.length > 0 ||
+        applicationObjects.length > 0,
     };
+  }
+
+  tryResolveHelpAnswer(query: string, hints?: Pick<TetaPluginOracleHints, 'applicationObjects'>): string | null {
+    const fromHints = hints?.applicationObjects ?? [];
+    const candidates =
+      fromHints.length > 0 ? fromHints : this.appObjects.listAll();
+    return resolveHelpAnswerFromObjects(query, candidates);
   }
 
   private resolveBundleFromHit(hit: ChatRagSource) {
@@ -227,4 +262,29 @@ export class TetaPluginHintsService {
 
     return null;
   }
+}
+
+function formatApplicationHelpForPrompt(
+  query: string,
+  objects: TetaApplicationObject[],
+): string {
+  const ranked = rankApplicationObjectsForQuery(objects, query).slice(0, 4);
+  if (ranked.length === 0) {
+    return '';
+  }
+
+  const lines = ranked.map((object) => {
+    if (object.fieldLabel && object.helpFieldText) {
+      return `- ${object.formName} / ${object.fieldLabel}: ${object.helpFieldText}` +
+        (object.binding?.oracleColumnName
+          ? ` (Oracle: ${object.binding.targetObject ? `${object.binding.targetObject}.` : ''}${object.binding.oracleColumnName})`
+          : '');
+    }
+    if (!object.fieldLabel && object.helpSummary) {
+      return `- ${object.formName}: ${object.helpSummary}`;
+    }
+    return `- ${object.formName}${object.fieldLabel ? ` / ${object.fieldLabel}` : ''}`;
+  });
+
+  return ['Pomoc kontekstowa Teta (obiekty aplikacyjne):', ...lines].join('\n');
 }

@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-13** (computed intents + filtry z metadanych)
+> Ostatnia aktualizacja: **2026-07-15** (help kontekstowy Teta — Etap 1)
 
 ---
 
@@ -191,6 +191,15 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 - **Problem:** pętla agenta (do 10 kroków × timeout Ollama 10 min) → wiszenie ~900 s bez odpowiedzi.
 - **Fix:** konfigurowalne limity w `.env`: `TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS=180000` (3 min), `TETA_ORACLE_AGENT_LLM_TIMEOUT_MS=60000` (1 min/krok), `TETA_ORACLE_AGENT_MAX_STEPS=5`, `TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS=240000`. Przy przekroczeniu — event `error` z komunikatem PL + wskazówka `.env`. UI: bezpiecznik 270 s w `chat-stream.ts`.
+
+### 2026-07-15 — help kontekstowy Teta (Etap 1)
+
+- **Źródło helpu:** `{clientDirectory}/Help/{GUID-formularza}.html` (ISO-8859-2). GUID z `plugins.xml` / metadanych importu wtyczki.
+- **Import wtyczki:** po walidacji `enrichBundleWithHelp()` — parser HTML → `applicationObjects` w `metadata_json` + tabela SQLite `teta_app_objects` + chunki RAG `/help/overview`, `/help/fields/{label}`.
+- **Czat (pytanie o znaczenie pola):** trasa `application_help` → RAG `teta_plugin` → `tryResolveHelpAnswer()` (deterministyczna odpowiedź z helpu + binding Oracle); fallback LLM z sekcją `helpPromptSection`.
+- **Przykład testowy:** *„Do czego służy pole Staż na formularzu Wykształcenie?”* → help + `LATA_STAZU` / gateway `SzkolyTG`.
+- **Wymaga ponownego importu** wtyczek (stary import bez `applicationObjects`). W Ustawieniach → Aplikacja Teta musi być ustawiony `clientDirectory` z katalogiem `Help/`.
+- **Pliki:** `teta-help-*.ts`, `teta-application-object.*`, `teta-plugin-help-resolver.ts`, `oracle-agent.service.ts` (`streamApplicationHelpAnswer`).
 
 ---
 

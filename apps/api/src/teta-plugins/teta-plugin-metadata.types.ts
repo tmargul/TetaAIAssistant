@@ -78,11 +78,13 @@ export type TetaPluginFormMetadata = {
   Columns?: TetaPluginColumnMeta[];
   Synonyms?: Record<string, string[]>;
   Tags?: string[];
+  Help?: TetaFormHelpSnapshot | null;
 };
 
 import type { TetaPluginOracleDiscovery } from './teta-plugin-oracle-discovery';
 import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
 import type { TetaPluginComputedIntent } from './teta-plugin-computed-intent.types';
+import type { TetaApplicationObject, TetaFormHelpSnapshot } from './teta-application-object.types';
 
 export type TetaPluginMetadataBundle = {
   dllName: string;
@@ -95,5 +97,7 @@ export type TetaPluginMetadataBundle = {
   oracleDiscovery?: TetaPluginOracleDiscovery;
   columnMappings?: TetaPluginColumnMapping[];
   computedIntents?: TetaPluginComputedIntent[];
+  helpDirectory?: string | null;
+  applicationObjects?: TetaApplicationObject[];
   forms: TetaPluginFormMetadata[];
 };

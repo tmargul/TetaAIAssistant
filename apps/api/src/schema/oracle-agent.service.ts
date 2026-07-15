@@ -146,8 +146,21 @@ export class OracleAgentService {
           writeEvent,
           startedAt,
           res,
-          agentDeadline,
-          stepLimitMs,
+          agentDeadline: this.createAgentDeadline(startedAt),
+          stepLimitMs: this.getAgentStepTimeoutMs(),
+        });
+        return;
+      }
+
+      if (routeDecision.route === 'application_help') {
+        await this.streamApplicationHelpAnswer({
+          input,
+          history,
+          writeEvent,
+          startedAt,
+          res,
+          agentDeadline: this.createAgentDeadline(startedAt),
+          stepLimitMs: this.getAgentStepTimeoutMs(),
         });
         return;
       }
@@ -502,6 +515,89 @@ export class OracleAgentService {
       model: input.input.model,
       createdAt: new Date().toISOString(),
       timing: { totalMs, ragMs: 0, llmMs },
+    });
+    input.res.end();
+  }
+
+  private async streamApplicationHelpAnswer(input: {
+    input: ChatCompletionRequest;
+    history: ChatHistoryMessage[];
+    writeEvent: (event: ChatStreamEvent) => void;
+    startedAt: number;
+    res: Response;
+    agentDeadline: RequestDeadline;
+    stepLimitMs: number;
+  }): Promise<void> {
+    const message = input.input.message.trim();
+    const ragStartedAt = Date.now();
+    const pluginHints = await this.pluginHints.findHintsForQuery(message);
+    const ragMs = Date.now() - ragStartedAt;
+
+    const step: ChatOracleStep = {
+      tool: 'application_help',
+      summary: `${pluginHints.applicationObjects?.length ?? 0} obiektów aplikacyjnych z helpu Teta`,
+    };
+    input.writeEvent({ type: 'oracle_step', step });
+
+    let content = this.pluginHints.tryResolveHelpAnswer(message, pluginHints);
+
+    if (!content) {
+      input.writeEvent({
+        type: 'status',
+        phase: 'clarify',
+        message: 'Szukam w helpie Teta i metadanych wtyczek…',
+      });
+      const llmStartedAt = Date.now();
+      let streamed = '';
+      for await (const delta of this.ollama.streamTokens(
+        [
+          {
+            role: 'system',
+            content:
+              buildAgentLlmSystemPrompt('llm_only') +
+              '\n\nOdpowiadaj na podstawie pomocy kontekstowej Teta i metadanych formularza. ' +
+              'Wyjaśnij znaczenie biznesowe pola. Nie zgaduj wpływu na obliczenia bez potwierdzenia w helpie.',
+          },
+          ...input.history.map((item) => ({ role: item.role, content: item.content })),
+          {
+            role: 'user',
+            content: [pluginHints.helpPromptSection ?? pluginHints.promptSection, message]
+              .filter(Boolean)
+              .join('\n\n'),
+          },
+        ],
+        input.input.model,
+        input.input.quality,
+        this.getOracleLlmOverrides(undefined, input.agentDeadline, input.stepLimitMs),
+      )) {
+        streamed += delta;
+        input.writeEvent({ type: 'token', delta });
+      }
+      content = streamed.trim();
+      const llmMs = Date.now() - llmStartedAt;
+      const totalMs = Date.now() - input.startedAt;
+      input.writeEvent({
+        type: 'done',
+        content,
+        model: input.input.model,
+        createdAt: new Date().toISOString(),
+        timing: { totalMs, ragMs, llmMs },
+      });
+      input.res.end();
+      return;
+    }
+
+    for (const char of content) {
+      input.writeEvent({ type: 'token', delta: char });
+    }
+
+    const totalMs = Date.now() - input.startedAt;
+    input.writeEvent({
+      type: 'done',
+      content,
+      model: input.input.model,
+      createdAt: new Date().toISOString(),
+      timing: { totalMs, ragMs, llmMs: Math.max(0, totalMs - ragMs) },
     });
     input.res.end();
   }
