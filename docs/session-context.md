@@ -207,6 +207,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Fix:** mały prompt (tylko pola z pytania, max 24); `preferredTable` z outputu; nie filtruj mapowań cross-table; dopytanie bez LLM gdy brak pracownika w kontekście; `SELECT LATA_STAZU … WHERE IPRA_ID IN (SELECT ID …)` gdy jest filtr; `think=false` na krótkich follow-upach.
 - **Błąd „Kolumna STAŻ nie istnieje… describe_table”:** LLM wstawiał etykietę UI zamiast `LATA_STAZU`. **Fix:** `rewriteSqlLabelsUsingPluginMappings` przed `executeSelect` + komunikaty użytkownika bez żargonu narzędzi (`formatUserFacingSqlColumnError`).
 - **Follow-up „ten pracownik” gubi imię/nazwisko:** UI przy `oracleThreadContext` **nie doklejało** `[SQL: …]` do historii → ginął WHERE. Fix w `ChatView` + reuse pełnego WHERE / implicite imię+nazwisko z historii (`rawWhereSql`).
+- **ORA-00904 LATA_STAZU:** SELECT szedł z widoku pracowników (brak kolumny). Rewrite retargetuje na `NT_KP_IMP_SZKOLY` + `IPRA_ID IN (…)`; preferencja IMP_SZKOL vs słownik SLO_*.
 
 ---
 

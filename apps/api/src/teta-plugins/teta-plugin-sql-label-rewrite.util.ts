@@ -15,6 +15,17 @@ const EMPLOYEE_FILTER_COLUMNS = new Set([
   'PESEL',
 ]);
 
+const IDENTITY_OR_SKIP_COLUMNS = new Set([
+  ...EMPLOYEE_FILTER_COLUMNS,
+  'ID',
+  'IPRA_ID',
+]);
+
+function bareTableName(table: string): string {
+  const cleaned = table.replace(/"/g, '');
+  return (cleaned.includes('.') ? cleaned.split('.').pop()! : cleaned).toUpperCase();
+}
+
 function buildLabelRewrites(mappings: TetaPluginColumnMapping[]): LabelRewrite[] {
   const byOracle = new Map<string, LabelRewrite>();
 
@@ -45,9 +56,55 @@ function buildLabelRewrites(mappings: TetaPluginColumnMapping[]): LabelRewrite[]
   }));
 }
 
+function scoreTargetObject(target: string): number {
+  const upper = bareTableName(target);
+  if (/IMP_SZKOL/.test(upper)) return 0;
+  if (/^NT_KP_PRC_|^T_PRAC$/.test(upper)) return 3;
+  if (/^NT_KP_SLO_|_SLO_/.test(upper)) return 4;
+  if (/SZKOL|WYKSZT/.test(upper)) return 1;
+  return 2;
+}
+
+function pickBestTarget(targets: Iterable<string>): string | null {
+  const unique = [...new Set([...targets].map((item) => bareTableName(item)))];
+  if (unique.length === 0) {
+    return null;
+  }
+  unique.sort((a, b) => scoreTargetObject(a) - scoreTargetObject(b));
+  return unique[0] ?? null;
+}
+
+function collectSelectListTargets(
+  sql: string,
+  mappings: TetaPluginColumnMapping[],
+): Set<string> {
+  const selectMatch = sql.match(/^\s*SELECT\s+([\s\S]+?)\s+FROM\b/i);
+  const selectList = selectMatch?.[1] ?? '';
+  const targets = new Set<string>();
+  if (!selectList.trim() || selectList.trim() === '*') {
+    return targets;
+  }
+
+  for (const mapping of mappings) {
+    const target = mapping.targetObject?.trim().toUpperCase();
+    if (!target) {
+      continue;
+    }
+    const column = mapping.oracleColumnName.toUpperCase();
+    if (IDENTITY_OR_SKIP_COLUMNS.has(column)) {
+      continue;
+    }
+    if (new RegExp(`\\b${escapeRegExp(column)}\\b`, 'i').test(selectList)) {
+      targets.add(target);
+    }
+  }
+
+  return targets;
+}
+
 /**
- * LLM czasem wstawia etykiety UI (np. STAŻ) zamiast kolumn Oracle (LATA_STAZU).
- * Przepisuje identyfikatory w SQL wg mapowań wtyczki i ewentualnie poprawia FROM / filtr IPRA_ID.
+ * LLM czasem wstawia etykiety UI (np. STAŻ) zamiast kolumn Oracle (LATA_STAZU)
+ * albo SELECT LATA_STAZU z widoku pracowników — poprawia nazwy i FROM/IPRA_ID.
  */
 export function rewriteSqlLabelsUsingPluginMappings(
   sql: string,
@@ -88,8 +145,20 @@ export function rewriteSqlLabelsUsingPluginMappings(
     }
   }
 
-  if (usedTargets.size === 1) {
-    next = retargetFromAndEmployeeFilter(next, [...usedTargets][0]!);
+  for (const target of collectSelectListTargets(next, mappings)) {
+    usedTargets.add(target);
+  }
+
+  const selectMatch = next.match(/^\s*SELECT\s+([\s\S]+?)\s+FROM\b/i);
+  const selectList = selectMatch?.[1] ?? '';
+  const selectHasEmployeeIdentity = [...EMPLOYEE_FILTER_COLUMNS].some((column) =>
+    new RegExp(`\\b${column}\\b`, 'i').test(selectList),
+  );
+
+  // Nie przenoś FROM na widok stażu, gdy SELECT miesza pola pracownika (IMIE/NAZWISKO) ze stażem.
+  const bestTarget = selectHasEmployeeIdentity ? null : pickBestTarget(usedTargets);
+  if (bestTarget) {
+    next = retargetFromAndEmployeeFilter(next, bestTarget);
   }
 
   return next;
@@ -102,21 +171,30 @@ function retargetFromAndEmployeeFilter(sql: string, targetObject: string): strin
   }
 
   const current = fromMatch[1].replace(/"/g, '');
-  const currentBare = (current.includes('.') ? current.split('.').pop()! : current).toUpperCase();
-  const targetBare = (
-    targetObject.includes('.') ? targetObject.split('.').pop()! : targetObject
-  ).toUpperCase();
+  const currentBare = bareTableName(current);
+  const targetBare = bareTableName(targetObject);
   if (currentBare === targetBare) {
     return sql;
   }
 
   const owner = current.includes('.') ? current.split('.')[0]! : 'TETA_ADMIN';
-  const qualifiedTarget = targetObject.includes('.') ? targetObject : `${owner}.${targetObject}`;
+  const qualifiedTarget = targetObject.includes('.')
+    ? targetObject
+    : `${owner}.${targetBare}`;
   const employeeTable = current.includes('.') ? current : `${owner}.${current}`;
 
   const whereMatch = sql.match(/\bWHERE\s+([\s\S]+?)(?=\s+FETCH\b|\s+ORDER\b|\s+GROUP\b|$)/i);
   const whereClause = whereMatch?.[1]?.trim();
-  if (whereClause && whereUsesEmployeeIdentityColumn(whereClause)) {
+  if (!whereClause) {
+    return sql.replace(/\bFROM\s+[A-Z0-9_."]+/i, `FROM ${qualifiedTarget}`);
+  }
+
+  // Już jest mostek IPRA_ID — tylko zamień tabelę w FROM.
+  if (/\bIPRA_ID\s+IN\s*\(/i.test(whereClause)) {
+    return sql.replace(/\bFROM\s+[A-Z0-9_."]+/i, `FROM ${qualifiedTarget}`);
+  }
+
+  if (whereUsesEmployeeIdentityColumn(whereClause)) {
     const selectMatch = sql.match(/^\s*SELECT\s+([\s\S]+?)\s+FROM\b/i);
     const selectList = selectMatch?.[1]?.trim() ?? '*';
     const fetchMatch = sql.match(/\bFETCH\s+FIRST\s+\d+\s+ROWS\s+ONLY\b/i)?.[0] ?? '';
@@ -143,7 +221,8 @@ function escapeRegExp(value: string): string {
 export function formatUserFacingSqlColumnError(message: string): string {
   const columnMatch =
     message.match(/Kolumna\s+"?([^\s"]+)"?/i) ??
-    message.match(/Kolumny\s+([^\s][^.]+?)\s+nie występują/i);
+    message.match(/Kolumny\s+([^\s][^.]+?)\s+nie występują/i) ??
+    message.match(/pola\s+[„"]([^”"]+)[”"]/i);
   const column = columnMatch?.[1]?.replace(/,/g, '').trim();
 
   if (column) {

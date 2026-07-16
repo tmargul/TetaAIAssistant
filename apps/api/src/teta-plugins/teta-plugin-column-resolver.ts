@@ -173,9 +173,12 @@ function tableHasEmployeeLink(
   mappings: TetaPluginColumnMapping[],
   schemaColumns: SchemaColumnMeta[],
 ): boolean {
-  const upper = table.toUpperCase();
-  if (schemaColumns.some((column) => column.name.toUpperCase() === 'IPRA_ID')) {
+  const upper = table.includes('.') ? table.split('.').pop()!.toUpperCase() : table.toUpperCase();
+  if (/IMP_SZKOL/.test(upper)) {
     return true;
+  }
+  if (/SLO_/.test(upper)) {
+    return false;
   }
   if (
     mappings.some(
@@ -186,8 +189,10 @@ function tableHasEmployeeLink(
   ) {
     return true;
   }
-  // Widoki zależne od pracownika (wykształcenie / import) — typowy FK IPRA_ID.
-  return /IMP_SZKOL|WYKSZT|SZKOL/.test(upper);
+  if (/SZKOL|WYKSZT/.test(upper)) {
+    return schemaColumns.some((column) => column.name.toUpperCase() === 'IPRA_ID');
+  }
+  return false;
 }
 
 function isEmployeeIdentityTable(table: string): boolean {
@@ -221,7 +226,7 @@ export function buildDirectEmployeeSelect(input: {
 
   // Filtr pracownika z historii nie może dziedziczyć preferredTable z widoku stażu/wykształcenia.
   const filterPreferredTable =
-    outputTablePreview && /IMP_SZKOL|WYKSZT|SZKOL/.test(outputTablePreview)
+    outputTablePreview && /IMP_SZKOL/.test(outputTablePreview)
       ? null
       : input.preferredTable;
 

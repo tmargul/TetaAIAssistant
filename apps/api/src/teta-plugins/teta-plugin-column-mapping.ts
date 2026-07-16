@@ -256,7 +256,10 @@ export function resolveOutputMappingsFromQuery(
       return {
         mapping,
         mentionIndex: findEarliestMentionIndex(outputScope, link),
-        score: outputMentionScore(outputScope, link),
+        score:
+          outputMentionScore(outputScope, link) +
+          (/IMP_SZKOL/i.test(mapping.targetObject ?? '') ? 50 : 0) -
+          (/SLO_/i.test(mapping.targetObject ?? '') ? 40 : 0),
       };
     })
     .filter((item): item is NonNullable<typeof item> => item != null)
