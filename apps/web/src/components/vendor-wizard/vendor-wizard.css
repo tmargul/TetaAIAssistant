@@ -238,6 +238,14 @@
   color: var(--text-primary);
   font: inherit;
   font-size: 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.vendor-wizard__input:focus,
+.vendor-wizard__textarea:focus {
+  outline: none;
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .vendor-wizard__textarea {

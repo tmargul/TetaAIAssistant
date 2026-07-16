@@ -124,6 +124,13 @@
   color: var(--text-primary);
   font-size: 0.8125rem;
   font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.teta-plugins__filter-select:focus {
+  outline: none;
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .teta-plugins__search-input {
@@ -136,6 +143,13 @@
   color: var(--text-primary);
   font-size: 0.8125rem;
   font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.teta-plugins__search-input:focus {
+  outline: none;
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .teta-plugins__search-input::placeholder {

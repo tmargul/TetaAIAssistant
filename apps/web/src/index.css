@@ -22,6 +22,10 @@
   --accent-dark: #2563eb;
   --accent-muted: rgba(59, 130, 246, 0.12);
 
+  /* Focus ring — jasnoniebieski (nie systemowy pomarańcz Windows) */
+  --focus-border: #7dd3fc;
+  --focus-ring: rgba(125, 211, 252, 0.28);
+
   --accent-warm: #f59e0b;
   --accent-warm-dark: #d97706;
 
@@ -38,6 +42,22 @@
 
 * {
   box-sizing: border-box;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--focus-border);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):focus,
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none;
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 html,

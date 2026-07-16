@@ -99,7 +99,8 @@
 
 .settings__input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .settings__btn {

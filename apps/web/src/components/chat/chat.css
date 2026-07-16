@@ -363,8 +363,8 @@
 
 .chat__select-trigger:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-muted);
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .chat__select-chevron {
@@ -673,7 +673,8 @@
 }
 
 .chat__input-wrap:focus-within {
-  border-color: var(--accent);
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .chat__input {
@@ -691,6 +692,8 @@
 
 .chat__input:focus {
   outline: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .chat__input::placeholder {

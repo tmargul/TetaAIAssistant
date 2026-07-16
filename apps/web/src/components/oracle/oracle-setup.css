@@ -134,7 +134,8 @@
 .oracle-setup__input:focus,
 .oracle-setup__select:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .oracle-setup__row {
@@ -158,7 +159,7 @@
 }
 
 .oracle-setup__radio input {
-  accent-color: var(--accent);
+  accent-color: var(--focus-border);
 }
 
 .oracle-setup__tns-info {

@@ -28,8 +28,8 @@
 
 .custom-select__trigger:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-muted);
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .custom-select__trigger:disabled {

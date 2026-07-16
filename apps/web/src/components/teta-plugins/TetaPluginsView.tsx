@@ -69,11 +69,22 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
   const [bulkStatus, setBulkStatus] = useState<TetaPluginBulkImportStatusResponse | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>(null);
   const bulkPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastBulkCurrentRef = useRef(0);
+  const wasBulkRunningRef = useRef(false);
+  const loadAllInFlightRef = useRef(false);
+  const loadAllQueuedRef = useRef(false);
 
   const loadAll = useCallback(async (isRefresh = false) => {
+    if (loadAllInFlightRef.current) {
+      loadAllQueuedRef.current = true;
+      return;
+    }
+    loadAllInFlightRef.current = true;
+    loadAllQueuedRef.current = false;
+
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
-    setError(null);
+    if (!isRefresh) setError(null);
 
     try {
       const pathsRes = await authFetch('/api/vendor/teta-app/paths');
@@ -94,12 +105,24 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
         throw new Error(parseError(statusData, `HTTP ${statusRes.status}`));
       }
       setStatus(statusData);
+      if (isRefresh) setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nie udało się wczytać wtyczek.');
-      setStatus(null);
+      const message = err instanceof Error ? err.message : 'Nie udało się wczytać wtyczek.';
+      // Przy odświeżaniu w tle (np. podczas bulk) nie czyść listy — inaczej zakładka „pada”.
+      if (!isRefresh) {
+        setError(message);
+        setStatus(null);
+      } else {
+        setError(message);
+      }
     } finally {
+      loadAllInFlightRef.current = false;
       setLoading(false);
       setRefreshing(false);
+      if (loadAllQueuedRef.current) {
+        loadAllQueuedRef.current = false;
+        void loadAll(true);
+      }
     }
   }, []);
 
@@ -126,44 +149,52 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
     }
   }, []);
 
-  const stopBulkPolling = useCallback(() => {
-    if (bulkPollRef.current) {
-      clearInterval(bulkPollRef.current);
-      bulkPollRef.current = null;
-    }
-  }, []);
-
   const pollBulkStatus = useCallback(async () => {
     try {
       const res = await authFetch('/api/vendor/teta-plugins/import/bulk/status');
       const data = await readResponseJson<TetaPluginBulkImportStatusResponse>(res);
       if (!res.ok) {
-        throw new Error(parseError(data, `HTTP ${res.status}`));
+        return;
       }
       setBulkStatus(data);
-      if (data.status !== 'running') {
-        stopBulkPolling();
-        if (data.status === 'completed' || data.status === 'failed') {
-          setImportMessage(data.progressMessage);
+
+      if (data.status === 'running') {
+        wasBulkRunningRef.current = true;
+        // Backend ustawia `current` przed startem kolejnej DLL — wtedy poprzednia już jest w SQLite/RAG.
+        if (data.current !== lastBulkCurrentRef.current) {
+          lastBulkCurrentRef.current = data.current;
+          void loadAll(true);
         }
+        return;
+      }
+
+      if (
+        wasBulkRunningRef.current &&
+        (data.status === 'completed' || data.status === 'failed')
+      ) {
+        wasBulkRunningRef.current = false;
+        lastBulkCurrentRef.current = 0;
+        setImportMessage(data.progressMessage);
         await loadAll(true);
       }
     } catch {
-      stopBulkPolling();
+      // Kolejny tick spróbuje ponownie — nie chowaj paska przy chwilowym błędzie.
     }
-  }, [loadAll, stopBulkPolling]);
+  }, [loadAll]);
 
-  const startBulkPolling = useCallback(() => {
-    stopBulkPolling();
+  /** Przez cały czas trwania widoku odpytuj status bulk — także po wyjściu i powrocie. */
+  useEffect(() => {
     void pollBulkStatus();
     bulkPollRef.current = setInterval(() => {
       void pollBulkStatus();
     }, 1200);
-  }, [pollBulkStatus, stopBulkPolling]);
-
-  useEffect(() => {
-    return () => stopBulkPolling();
-  }, [stopBulkPolling]);
+    return () => {
+      if (bulkPollRef.current) {
+        clearInterval(bulkPollRef.current);
+        bulkPollRef.current = null;
+      }
+    };
+  }, [pollBulkStatus]);
 
   const handleBulkImport = useCallback(
     async (options: { reimport?: boolean }) => {
@@ -187,13 +218,14 @@ export function TetaPluginsView({ onNavigate }: TetaPluginsViewProps) {
         if (!res.ok) {
           throw new Error(parseError(data, `HTTP ${res.status}`));
         }
+        lastBulkCurrentRef.current = 0;
+        wasBulkRunningRef.current = true;
         setBulkStatus(data.status ?? null);
-        startBulkPolling();
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Import zbiorczy nie powiódł się.');
       }
     },
-    [categoryFilter, startBulkPolling],
+    [categoryFilter],
   );
 
   const handleDeleteRag = useCallback(
