@@ -471,18 +471,15 @@ export function ChatView({
         .map((item) => {
           let content = item.content;
           if (item.role === 'assistant') {
+            // Kontekst tabeli NIE zastępuje SQL — bez [SQL:] ginie WHERE (imię/nazwisko, nr ewid.).
             if (item.oracleThreadContext) {
               content = `${content}\n[Kontekst wątku Oracle: ${item.oracleThreadContext}]`;
-            } else if (item.oracleSql && item.oracleSql.length > 0) {
-              const lastSql = item.oracleSql[item.oracleSql.length - 1]?.sql;
-              if (lastSql) {
-                content = `${content}\n[SQL: ${lastSql}]`;
-              }
-            } else if (item.oracleReports && item.oracleReports.length > 0) {
-              const lastReport = item.oracleReports[item.oracleReports.length - 1];
-              if (lastReport?.sql) {
-                content = `${content}\n[SQL: ${lastReport.sql}]`;
-              }
+            }
+            const lastSql =
+              item.oracleReports?.[item.oracleReports.length - 1]?.sql ??
+              item.oracleSql?.[item.oracleSql.length - 1]?.sql;
+            if (lastSql) {
+              content = `${content}\n[SQL: ${lastSql}]`;
             }
           }
           return { role: item.role, content };

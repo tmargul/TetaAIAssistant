@@ -1,8 +1,8 @@
 import type { ChatCompletionRequest, ChatStreamEvent } from '@teta/shared';
 import { getAccessToken } from '../../lib/auth-storage';
 
-/** Bezpiecznik UI — nieco powyżej TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS (domyślnie 240 s). */
-const CHAT_STREAM_TIMEOUT_MS = 270_000;
+/** Bezpiecznik UI — nieco powyżej TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS (domyślnie 270 s). */
+const CHAT_STREAM_TIMEOUT_MS = 300_000;
 
 export async function streamChatCompletion(
   input: ChatCompletionRequest,

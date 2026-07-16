@@ -125,7 +125,7 @@ export class TetaPluginBulkImportService {
       };
 
       try {
-        await this.importService.importPlugin(plugin.dllPath);
+        await this.importPluginWithQdrantRetry(plugin);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         this.logger.warn(`Bulk import — błąd ${plugin.dllName}: ${message}`);
@@ -155,5 +155,39 @@ export class TetaPluginBulkImportService {
       currentDllName: null,
       finishedAt: new Date().toISOString(),
     };
+  }
+
+  /** Duże wtyczki potrafią trafić w chwilowy brak Qdranta — 1–2 retry z pauzą. */
+  private async importPluginWithQdrantRetry(plugin: ScannedPluginDll): Promise<void> {
+    const maxAttempts = 3;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        await this.importService.importPlugin(plugin.dllPath);
+        return;
+      } catch (error) {
+        lastError = error;
+        const message = error instanceof Error ? error.message : String(error);
+        const qdrantIssue = /Qdrant nie odpowiada|fetch failed|ECONNREFUSED|Qdrant request failed/i.test(
+          message,
+        );
+        if (!qdrantIssue || attempt >= maxAttempts) {
+          throw error;
+        }
+        this.logger.warn(
+          `Bulk import — Qdrant niedostępny dla ${plugin.dllName}, ponawiam (${attempt}/${maxAttempts})…`,
+        );
+        if (this.job) {
+          this.job = {
+            ...this.job,
+            progressMessage: `Ponawiam ${plugin.dllName} po błędzie Qdrant (${attempt}/${maxAttempts})…`,
+          };
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
   }
 }

@@ -138,7 +138,7 @@ export function formatUnknownColumnsMessage(
   const tableList = tables.map(bareTableName).join(', ');
   const columnList = unknownColumns.join(', ');
   return (
-    `Kolumny ${columnList} nie występują w metadanych tabel (${tableList}). ` +
-    'Nie wymyślaj skróconych nazw pól — użyj describe_table, aby zobaczyć prawdziwe nazwy kolumn.'
+    `Nie udało się odczytać pól: ${columnList} (tabele: ${tableList}). ` +
+    'Spróbuj inaczej nazwać pole albo wskaż konkretnego pracownika.'
   );
 }

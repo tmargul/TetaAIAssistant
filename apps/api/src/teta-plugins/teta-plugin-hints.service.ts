@@ -181,6 +181,7 @@ export class TetaPluginHintsService {
         mappings,
         query,
         gateways.map((gateway) => gateway.gatewayClassName),
+        24,
       )) {
         const key = `${mapping.targetObject ?? 'ANY'}:${mapping.oracleColumnName.toUpperCase()}:${mapping.gatewayClassName ?? ''}`;
         promptMappingsByKey.set(key, mapping);
@@ -189,8 +190,9 @@ export class TetaPluginHintsService {
 
     const columnMappings = [...columnMappingsByKey.values()];
     const computedIntents = [...computedIntentsById.values()];
+    const promptMappingsLimited = [...promptMappingsByKey.values()].slice(0, 24);
     const promptColumnHints = resolvePluginColumnHintsAgainstSchema(
-      mappingsToColumnHints([...promptMappingsByKey.values()]),
+      mappingsToColumnHints(promptMappingsLimited),
       (tableRef) => this.graph.getColumnDetailsForTable(tableRef),
     );
     const columnHints = resolvePluginColumnHintsAgainstSchema(
@@ -200,6 +202,7 @@ export class TetaPluginHintsService {
       (tableRef) => this.graph.getColumnDetailsForTable(tableRef),
     );
     const defaultOwner = resolveDefaultOracleOwner(this.config);
+    // Nie ładuj setek obiektów help do promptu bazy — tylko ranking pod pytanie (max 4 w sekcji).
     const applicationObjects = [...applicationObjectsById.values()];
     const helpPromptSection = formatApplicationHelpForPrompt(query, applicationObjects);
     const promptSection = [

@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-15** (help kontekstowy Teta — Etap 1)
+> Ostatnia aktualizacja: **2026-07-16** (follow-up „ten pracownik” — SQL/WHERE z historii)
 
 ---
 
@@ -190,7 +190,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ### 2026-07-14 — limity czasu agenta Oracle
 
 - **Problem:** pętla agenta (do 10 kroków × timeout Ollama 10 min) → wiszenie ~900 s bez odpowiedzi.
-- **Fix:** konfigurowalne limity w `.env`: `TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS=180000` (3 min), `TETA_ORACLE_AGENT_LLM_TIMEOUT_MS=60000` (1 min/krok), `TETA_ORACLE_AGENT_MAX_STEPS=5`, `TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS=240000`. Przy przekroczeniu — event `error` z komunikatem PL + wskazówka `.env`. UI: bezpiecznik 270 s w `chat-stream.ts`.
+- **Fix:** konfigurowalne limity w `.env`: `TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS=240000` (4 min), `TETA_ORACLE_AGENT_LLM_TIMEOUT_MS=60000` (1 min/krok), `TETA_ORACLE_AGENT_MAX_STEPS=5`, `TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS=270000`. Przy przekroczeniu — event `error` z komunikatem PL + wskazówka `.env`. UI: bezpiecznik 300 s w `chat-stream.ts`.
 
 ### 2026-07-15 — help kontekstowy Teta (Etap 1)
 
@@ -200,6 +200,13 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Przykład testowy:** *„Do czego służy pole Staż na formularzu Wykształcenie?”* → help + `LATA_STAZU` / gateway `SzkolyTG`.
 - **Wymaga ponownego importu** wtyczek (stary import bez `applicationObjects`). W Ustawieniach → Aplikacja Teta musi być ustawiony `clientDirectory` z katalogiem `Help/`.
 - **Pliki:** `teta-help-*.ts`, `teta-application-object.*`, `teta-plugin-help-resolver.ts`, `oracle-agent.service.ts` (`streamApplicationHelpAnswer`).
+
+### 2026-07-16 — timeout na „jaki ma staż ten pracownik”
+
+- **Przyczyna:** brak szybkiej ścieżki + prompt ~100+ kolumn gateway + `think=true` → wiszenie/timeout.
+- **Fix:** mały prompt (tylko pola z pytania, max 24); `preferredTable` z outputu; nie filtruj mapowań cross-table; dopytanie bez LLM gdy brak pracownika w kontekście; `SELECT LATA_STAZU … WHERE IPRA_ID IN (SELECT ID …)` gdy jest filtr; `think=false` na krótkich follow-upach.
+- **Błąd „Kolumna STAŻ nie istnieje… describe_table”:** LLM wstawiał etykietę UI zamiast `LATA_STAZU`. **Fix:** `rewriteSqlLabelsUsingPluginMappings` przed `executeSelect` + komunikaty użytkownika bez żargonu narzędzi (`formatUserFacingSqlColumnError`).
+- **Follow-up „ten pracownik” gubi imię/nazwisko:** UI przy `oracleThreadContext` **nie doklejało** `[SQL: …]` do historii → ginął WHERE. Fix w `ChatView` + reuse pełnego WHERE / implicite imię+nazwisko z historii (`rawWhereSql`).
 
 ---
 

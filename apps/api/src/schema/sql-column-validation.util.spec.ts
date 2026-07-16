@@ -39,7 +39,8 @@ describe('sql-column-validation.util', () => {
   });
 
   it('formats user-facing message', () => {
-    expect(formatUnknownColumnsMessage(['NR_EWD'], ['T_PRAC'])).toContain('NR_EWD');
-    expect(formatUnknownColumnsMessage(['NR_EWD'], ['T_PRAC'])).toContain('describe_table');
+    const message = formatUnknownColumnsMessage(['NR_EWD'], ['T_PRAC']);
+    expect(message).toContain('NR_EWD');
+    expect(message).not.toContain('describe_table');
   });
 });

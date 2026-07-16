@@ -149,7 +149,7 @@ export class ChatOrchestratorService {
   }
 
   private getOrchestratorTotalTimeoutMs(): number {
-    return Number(this.config.get('TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS', 240_000));
+    return Number(this.config.get('TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS', 270_000));
   }
 
   private buildOrchestratorTimeoutAnswer(

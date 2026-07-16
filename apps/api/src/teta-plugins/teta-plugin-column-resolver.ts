@@ -26,7 +26,7 @@ import {
   extractFilterValueFromQuery,
 } from './teta-plugin-filter-value.util';
 import { resolveFilterMappingFromHistory } from './teta-plugin-filter-clause.util';
-import { queryMentionsLink, type GridOracleColumnLink } from './teta-plugin-grid-column-mapper';
+import { normalizeSearchText, queryMentionsLink, type GridOracleColumnLink } from './teta-plugin-grid-column-mapper';
 import type { TetaPluginColumnHint, TetaPluginGatewayHint } from './teta-plugin-query-resolver';
 
 export {
@@ -128,7 +128,75 @@ export function buildPluginClarificationMessage(
   mappings: TetaPluginColumnMapping[],
   computedIntents: TetaPluginComputedIntent[],
 ): string | null {
-  return buildComputedClarificationMessage(message, history, mappings, computedIntents);
+  const computed = buildComputedClarificationMessage(message, history, mappings, computedIntents);
+  if (computed) {
+    return computed;
+  }
+
+  const outputMappings = resolveOutputMappingsFromQuery(message, mappings, null);
+  if (outputMappings.length === 0) {
+    return null;
+  }
+
+  if (
+    hasResolvableFilterForQuery({
+      message,
+      history,
+      columnMappings: mappings,
+      intentPhrases: computedIntents.flatMap((item) => item.phrases),
+    })
+  ) {
+    return null;
+  }
+
+  const normalized = normalizeSearchText(message);
+  const refersToContextEmployee = /\b(ten|tego|tej|tamten|tamtą|ów)\s+pracownik/.test(normalized);
+  const labels = [...new Set(outputMappings.map((mapping) => mapping.label).filter(Boolean))];
+  const labelText = labels.slice(0, 3).join(', ');
+
+  if (refersToContextEmployee) {
+    return (
+      `Pytanie dotyczy „${labelText || 'pola'}”, ale nie wskazano jeszcze konkretnego pracownika. ` +
+      'Podaj nr ewidencyjny albo imię i nazwisko.'
+    );
+  }
+
+  if (outputMappings.some((mapping) => /staz|lata_stazu/i.test(`${mapping.label} ${mapping.oracleColumnName}`))) {
+    return 'Aby podać staż, wskaż pracownika: nr ewidencyjny albo imię i nazwisko.';
+  }
+
+  return null;
+}
+
+function tableHasEmployeeLink(
+  table: string,
+  mappings: TetaPluginColumnMapping[],
+  schemaColumns: SchemaColumnMeta[],
+): boolean {
+  const upper = table.toUpperCase();
+  if (schemaColumns.some((column) => column.name.toUpperCase() === 'IPRA_ID')) {
+    return true;
+  }
+  if (
+    mappings.some(
+      (mapping) =>
+        mapping.targetObject?.toUpperCase() === upper &&
+        mapping.oracleColumnName.toUpperCase() === 'IPRA_ID',
+    )
+  ) {
+    return true;
+  }
+  // Widoki zależne od pracownika (wykształcenie / import) — typowy FK IPRA_ID.
+  return /IMP_SZKOL|WYKSZT|SZKOL/.test(upper);
+}
+
+function isEmployeeIdentityTable(table: string): boolean {
+  const upper = table.toUpperCase();
+  return (
+    upper.includes('PRACOWNIC') ||
+    upper === 'T_PRAC' ||
+    upper.endsWith('.T_PRAC')
+  );
 }
 
 export function buildDirectEmployeeSelect(input: {
@@ -142,8 +210,24 @@ export function buildDirectEmployeeSelect(input: {
   schemaColumns?: SchemaColumnMeta[];
 }): string | null {
   const schemaColumns = input.schemaColumns ?? [];
+  const outputMappingsPreview = resolveOutputMappingsFromQuery(
+    input.message,
+    input.columnMappings,
+    null,
+  );
+  const outputTablePreview = outputMappingsPreview
+    .find((mapping) => mapping.targetObject?.trim())
+    ?.targetObject?.toUpperCase();
+
+  // Filtr pracownika z historii nie może dziedziczyć preferredTable z widoku stażu/wykształcenia.
+  const filterPreferredTable =
+    outputTablePreview && /IMP_SZKOL|WYKSZT|SZKOL/.test(outputTablePreview)
+      ? null
+      : input.preferredTable;
+
   const filter = resolveContextFilterClause({
     ...input,
+    preferredTable: filterPreferredTable,
     schemaColumns,
     pickResolvedColumn,
     columnExistsInSchema,
@@ -162,20 +246,62 @@ export function buildDirectEmployeeSelect(input: {
         primaryFilterValue,
       ) ?? resolveFilterMappingFromHistory(input.history, input.columnMappings)
     : null;
-  const outputColumns = resolveOutputColumns(
+
+  const outputMappings = resolveOutputMappingsFromQuery(
     input.message,
     input.columnMappings,
     filterMapping,
-    schemaColumns,
   );
+  if (outputMappings.length === 0) {
+    return null;
+  }
+
+  const outputTable =
+    outputMappings.find((mapping) => mapping.targetObject?.trim())?.targetObject?.toUpperCase() ??
+    filter.table.toUpperCase();
+
+  const outputSchemaColumns =
+    outputTable === filter.table.toUpperCase()
+      ? schemaColumns
+      : [];
+
+  const outputColumns = [
+    ...new Set(
+      outputMappings
+        .map((mapping) =>
+          pickResolvedColumn(
+            mapping,
+            outputSchemaColumns.length > 0 ? outputSchemaColumns : schemaColumns,
+          ),
+        )
+        .filter(Boolean),
+    ),
+  ];
   if (outputColumns.length === 0) {
     return null;
   }
 
   const owner = input.defaultOwner.toUpperCase();
-  const qualifiedTable = filter.table.includes('.') ? filter.table : `${owner}.${filter.table}`;
   const whereClause = formatPluginWhereClause(filter);
-  return `SELECT ${outputColumns.join(', ')} FROM ${qualifiedTable} WHERE ${whereClause}`;
+  const filterTable = filter.table.includes('.') ? filter.table : `${owner}.${filter.table}`;
+  const qualifiedOutput = outputTable.includes('.') ? outputTable : `${owner}.${outputTable}`;
+
+  if (outputTable === filter.table.toUpperCase()) {
+    return `SELECT ${outputColumns.join(', ')} FROM ${filterTable} WHERE ${whereClause}`;
+  }
+
+  // Staż / wykształcenie siedzi na innym widoku (np. NT_KP_IMP_SZKOLY) powiązanym przez IPRA_ID.
+  if (
+    tableHasEmployeeLink(outputTable, input.columnMappings, schemaColumns) &&
+    isEmployeeIdentityTable(filter.table)
+  ) {
+    return (
+      `SELECT ${outputColumns.join(', ')} FROM ${qualifiedOutput} ` +
+      `WHERE IPRA_ID IN (SELECT ID FROM ${filterTable} WHERE ${whereClause})`
+    );
+  }
+
+  return null;
 }
 
 export function resolveColumnHintsFromBundle(

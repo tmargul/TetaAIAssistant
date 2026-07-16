@@ -29,4 +29,13 @@ describe('teta-plugin-filter-clause.types', () => {
       "(UPPER(NAZWISKO) = UPPER('Kowalski') AND UPPER(IMIE) = UPPER('Janusz')) OR (UPPER(NAZWISKO) = UPPER('Janusz') AND UPPER(IMIE) = UPPER('Kowalski'))",
     );
   });
+
+  it('prefers rawWhereSql from history over conditions', () => {
+    expect(
+      formatPluginWhereClause({
+        conditions: [],
+        rawWhereSql: "UPPER(NAZWISKO) = UPPER('Kowalski') AND UPPER(IMIE) = UPPER('Jan')",
+      }),
+    ).toBe("UPPER(NAZWISKO) = UPPER('Kowalski') AND UPPER(IMIE) = UPPER('Jan')");
+  });
 });

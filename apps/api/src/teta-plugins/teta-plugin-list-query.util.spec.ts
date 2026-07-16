@@ -50,6 +50,8 @@ describe('teta-plugin-list-query.util', () => {
   it('parses requested row limit from message', () => {
     expect(parseRequestedRowLimit('pierwsze 10 rekordow')).toBe(10);
     expect(parseRequestedRowLimit('lista pracowników')).toBe(10);
+    expect(parseRequestedRowLimit('Wypisz z tabeli pracownikow 5 pierwszych rekordow')).toBe(5);
+    expect(parseRequestedRowLimit('podaj 5 pierwszych rekordow')).toBe(5);
   });
 
   it('builds FETCH FIRST list SQL without WHERE', () => {
@@ -65,6 +67,23 @@ describe('teta-plugin-list-query.util', () => {
     expect(sql).toContain('FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY');
     expect(sql).toContain('FETCH FIRST 10 ROWS ONLY');
     expect(sql).not.toContain('WHERE');
-    expect(sql).toMatch(/NR_EWD|IMIE|NAZWISKO/);
+    expect(sql).toMatch(/NR_EWD/);
+    expect(sql).toMatch(/IMIE/);
+    expect(sql).toMatch(/NAZWISKO/);
+  });
+
+  it('parses “5 pierwszych” and keeps identity columns for list SQL', () => {
+    const sql = buildDirectListSelect({
+      message: 'Wypisz z tabeli pracownikow 5 pierwszych rekordow',
+      history: [],
+      defaultOwner: 'TETA_ADMIN',
+      columnMappings: employeeMappings,
+      preferredTable: 'NT_KP_PRC_PRACOWNICY',
+      schemaColumns: [{ name: 'NR_EWD' }, { name: 'IMIE' }, { name: 'NAZWISKO' }],
+    });
+
+    expect(sql).toBe(
+      'SELECT NR_EWD, IMIE, NAZWISKO FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY FETCH FIRST 5 ROWS ONLY',
+    );
   });
 });

@@ -14,6 +14,7 @@ export function parseRequestedRowLimit(message: string): number {
   const normalized = normalizeSearchText(message);
   const patterns = [
     /\b(?:pierwsz\w*|top|limit|maks(?:ymalnie)?)\s*(\d{1,3})\b/,
+    /\b(\d{1,3})\s*(?:pierwsz\w*|top)\b/,
     /\b(\d{1,3})\s*(?:rekord\w*|wiersz\w*|pozycj\w*)\b/,
   ];
 
@@ -60,6 +61,14 @@ function pickResolvedColumn(
   return mapping.resolvedColumnName ?? mapping.pluginColumnName;
 }
 
+function preferredListColumnRank(column: string): number {
+  const upper = column.toUpperCase();
+  if (upper === 'NR_EWD' || upper.startsWith('NR_EWID')) return 0;
+  if (upper === 'IMIE') return 1;
+  if (upper === 'NAZWISKO') return 2;
+  return 50;
+}
+
 function resolveListOutputMappings(
   message: string,
   mappings: TetaPluginColumnMapping[],
@@ -68,7 +77,14 @@ function resolveListOutputMappings(
   const roleMappings = resolveFilterRoleMappings(mappings);
   const nrEwid = mappings.find((mapping) => {
     const label = normalizeSearchText(mapping.label);
-    return label.includes('numer') && label.includes('ewid');
+    const column = normalizeSearchText(
+      `${mapping.oracleColumnName} ${mapping.pluginColumnName ?? ''} ${mapping.resolvedColumnName ?? ''}`,
+    );
+    return (
+      (label.includes('numer') && label.includes('ewid')) ||
+      column.includes('nr_ewd') ||
+      column.includes('nr_ewid')
+    );
   });
 
   const byKey = new Map<string, TetaPluginColumnMapping>();
@@ -86,6 +102,20 @@ function resolveListOutputMappings(
   add(nrEwid);
   for (const mapping of roleMappings) {
     add(mapping);
+  }
+
+  // Lista rekordów — zawsze dociągaj kolumny tożsamości z mapowań tej samej tabeli.
+  for (const mapping of mappings) {
+    const column = pickResolvedColumn(mapping, schemaColumns).toUpperCase();
+    if (
+      column === 'IMIE' ||
+      column === 'NAZWISKO' ||
+      column === 'NR_EWD' ||
+      column === 'NR_EWIDENCYJNY' ||
+      column.startsWith('NR_EWID')
+    ) {
+      add(mapping);
+    }
   }
 
   if (byKey.size >= 2) {
@@ -181,7 +211,7 @@ export function buildDirectListSelect(input: {
     ...new Set(
       outputMappings.map((mapping) => pickResolvedColumn(mapping, schemaColumns)).filter(Boolean),
     ),
-  ];
+  ].sort((a, b) => preferredListColumnRank(a) - preferredListColumnRank(b));
   if (outputColumns.length === 0) {
     return null;
   }

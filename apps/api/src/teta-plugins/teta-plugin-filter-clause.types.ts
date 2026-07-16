@@ -9,6 +9,8 @@ export type TetaPluginFilterClause = {
   table: string;
   conditions: TetaPluginFilterCondition[];
   orAlternatives?: TetaPluginFilterCondition[][];
+  /** Gotowy fragment WHERE z historii (np. imię+nazwisko) — ma pierwszeństwo nad conditions. */
+  rawWhereSql?: string;
 };
 
 export function escapeSqlLiteral(value: string): string {
@@ -28,9 +30,19 @@ export function formatFilterComparison(column: string, value: string): string {
   return `${column} = '${escaped}'`;
 }
 
+export function extractWhereClauseBody(sql: string): string | null {
+  const match = sql.match(/\bWHERE\s+([\s\S]+?)(?=\s+FETCH\b|\s+ORDER\b|\s+GROUP\b|$)/i);
+  const body = match?.[1]?.trim();
+  return body || null;
+}
+
 export function formatPluginWhereClause(
-  clause: Pick<TetaPluginFilterClause, 'conditions' | 'orAlternatives'>,
+  clause: Pick<TetaPluginFilterClause, 'conditions' | 'orAlternatives' | 'rawWhereSql'>,
 ): string {
+  if (clause.rawWhereSql?.trim()) {
+    return clause.rawWhereSql.trim();
+  }
+
   const groups = [clause.conditions, ...(clause.orAlternatives ?? [])].filter(
     (group) => group.length > 0,
   );

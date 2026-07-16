@@ -187,9 +187,8 @@ export function buildComputedClarificationMessage(
   }
 
   return (
-    `Pytanie dotyczy „${intent.phrases[0]}”, ale nie wskazano rekordu do filtrowania. ` +
-    'Podaj pole identyfikujące (z etykiet formularza w metadanych wtyczki) ' +
-    'albo kontynuuj wątek po poprzednim pytaniu o konkretny rekord.'
+    `Pytanie dotyczy „${intent.phrases[0]}”, ale nie wskazano konkretnego rekordu. ` +
+    'Podaj nr ewidencyjny albo imię i nazwisko, albo kontynuuj po pytaniu o konkretną osobę.'
   );
 }
 

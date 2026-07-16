@@ -4,6 +4,7 @@ import type { TetaPluginComputedIntent } from './teta-plugin-computed-intent.typ
 import {
   buildDirectEmployeeSelect,
   buildDirectPluginSelect,
+  buildPluginClarificationMessage,
   extractEmployeeFilterValue,
   resolveFilterColumnFromQuery,
 } from './teta-plugin-column-resolver';
@@ -280,5 +281,179 @@ describe('teta-plugin-column-resolver', () => {
     expect(sql).toBe(
       "SELECT S_ULICA, S_MIEJSCOWOSC, S_KOD_POCZTOWY FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY WHERE NR_EWIDENCYJNY = '00122'",
     );
+  });
+
+  it('clarifies staż follow-up when list context has no employee filter', () => {
+    const stazMappings: TetaPluginColumnMapping[] = [
+      ...employeeMappings,
+      {
+        oracleColumnName: 'LATA_STAZU',
+        label: 'Staż',
+        gridColumnName: 'dgcLSZKLataStaz',
+        synonyms: ['Staż'],
+        pluginColumnName: 'LATA_STAZU',
+        resolvedColumnName: 'LATA_STAZU',
+        targetObject: 'NT_KP_IMP_SZKOLY',
+        dllName: 'plgDaneOsobowe.dll',
+        formName: 'Wykształcenie',
+        gatewayClassName: 'SzkolyTG',
+      },
+    ];
+
+    const message = buildPluginClarificationMessage(
+      'jaki ma staż ten pracownik',
+      [
+        {
+          role: 'assistant',
+          content:
+            'Lista\n[SQL: SELECT NR_EWD, IMIE, NAZWISKO FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY FETCH FIRST 5 ROWS ONLY]',
+        },
+      ],
+      stazMappings,
+      [],
+    );
+
+    expect(message).toMatch(/nr ewidencyjny|imię i nazwisko|konkretnego pracownika/i);
+  });
+
+  it('builds cross-table staż select via IPRA_ID when employee filter exists', () => {
+    const stazMappings: TetaPluginColumnMapping[] = [
+      ...employeeMappings,
+      {
+        oracleColumnName: 'LATA_STAZU',
+        label: 'Staż',
+        gridColumnName: 'dgcLSZKLataStaz',
+        synonyms: ['Staż'],
+        pluginColumnName: 'LATA_STAZU',
+        resolvedColumnName: 'LATA_STAZU',
+        targetObject: 'NT_KP_IMP_SZKOLY',
+        dllName: 'plgDaneOsobowe.dll',
+        formName: 'Wykształcenie',
+        gatewayClassName: 'SzkolyTG',
+      },
+    ];
+
+    const sql = buildDirectEmployeeSelect({
+      message: 'jaki ma staż ten pracownik',
+      history: [
+        {
+          role: 'assistant',
+          content:
+            "Kowalski\n[SQL: SELECT IMIE, NAZWISKO FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY WHERE NR_EWIDENCYJNY = '00122']",
+        },
+      ],
+      defaultOwner: 'TETA_ADMIN',
+      columnMappings: stazMappings,
+      preferredTable: 'NT_KP_IMP_SZKOLY',
+      schemaColumns: [{ name: 'LATA_STAZU' }, { name: 'IPRA_ID' }],
+    });
+
+    expect(sql).toBe(
+      "SELECT LATA_STAZU FROM TETA_ADMIN.NT_KP_IMP_SZKOLY WHERE IPRA_ID IN (SELECT ID FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY WHERE NR_EWIDENCYJNY = '00122')",
+    );
+  });
+
+  it('reuses compound imię+nazwisko WHERE from history for staż follow-up', () => {
+    const stazMappings: TetaPluginColumnMapping[] = [
+      ...employeeMappings,
+      {
+        oracleColumnName: 'LATA_STAZU',
+        label: 'Staż',
+        gridColumnName: 'dgcLSZKLataStaz',
+        synonyms: ['Staż'],
+        pluginColumnName: 'LATA_STAZU',
+        resolvedColumnName: 'LATA_STAZU',
+        targetObject: 'NT_KP_IMP_SZKOLY',
+        dllName: 'plgDaneOsobowe.dll',
+        formName: 'Wykształcenie',
+        gatewayClassName: 'SzkolyTG',
+      },
+    ];
+
+    const nameWhere =
+      "(UPPER(NAZWISKO) = UPPER('Kowalski') AND UPPER(IMIE) = UPPER('Janusz')) OR (UPPER(NAZWISKO) = UPPER('Janusz') AND UPPER(IMIE) = UPPER('Kowalski'))";
+
+    const sql = buildDirectEmployeeSelect({
+      message: 'jaki ma staż ten pracownik',
+      history: [
+        {
+          role: 'user',
+          content: 'podaj dane Kowalski Janusz',
+        },
+        {
+          role: 'assistant',
+          content:
+            `Janusz Kowalski\n[Kontekst wątku Oracle: ostatnia tabela: TETA_ADMIN.NT_KP_PRC_PRACOWNICY; kolumny wyniku: IMIE, NAZWISKO]\n` +
+            `[SQL: SELECT IMIE, NAZWISKO FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY WHERE ${nameWhere}]`,
+        },
+      ],
+      defaultOwner: 'TETA_ADMIN',
+      columnMappings: stazMappings,
+      preferredTable: 'NT_KP_IMP_SZKOLY',
+      schemaColumns: [{ name: 'LATA_STAZU' }, { name: 'IPRA_ID' }],
+    });
+
+    expect(sql).toBe(
+      `SELECT LATA_STAZU FROM TETA_ADMIN.NT_KP_IMP_SZKOLY WHERE IPRA_ID IN (SELECT ID FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY WHERE ${nameWhere})`,
+    );
+  });
+
+  it('reuses imię+nazwisko from earlier user message when SQL missing from history', () => {
+    const stazMappings: TetaPluginColumnMapping[] = [
+      ...employeeMappings,
+      {
+        oracleColumnName: 'LATA_STAZU',
+        label: 'Staż',
+        gridColumnName: 'dgcLSZKLataStaz',
+        synonyms: ['Staż'],
+        pluginColumnName: 'LATA_STAZU',
+        resolvedColumnName: 'LATA_STAZU',
+        targetObject: 'NT_KP_IMP_SZKOLY',
+        dllName: 'plgDaneOsobowe.dll',
+        formName: 'Wykształcenie',
+        gatewayClassName: 'SzkolyTG',
+      },
+    ];
+
+    const clarification = buildPluginClarificationMessage(
+      'jaki ma staż ten pracownik',
+      [
+        { role: 'user', content: 'Kowalski Janusz' },
+        {
+          role: 'assistant',
+          content:
+            'Janusz Kowalski\n[Kontekst wątku Oracle: ostatnia tabela: TETA_ADMIN.NT_KP_PRC_PRACOWNICY; kolumny wyniku: IMIE, NAZWISKO]',
+        },
+      ],
+      stazMappings,
+      [],
+    );
+    expect(clarification).toBeNull();
+
+    const sql = buildDirectEmployeeSelect({
+      message: 'jaki ma staż ten pracownik',
+      history: [
+        { role: 'user', content: 'Kowalski Janusz' },
+        {
+          role: 'assistant',
+          content:
+            'Janusz Kowalski\n[Kontekst wątku Oracle: ostatnia tabela: TETA_ADMIN.NT_KP_PRC_PRACOWNICY; kolumny wyniku: IMIE, NAZWISKO]',
+        },
+      ],
+      defaultOwner: 'TETA_ADMIN',
+      columnMappings: stazMappings,
+      preferredTable: 'NT_KP_IMP_SZKOLY',
+      schemaColumns: [
+        { name: 'LATA_STAZU' },
+        { name: 'IPRA_ID' },
+        { name: 'IMIE' },
+        { name: 'NAZWISKO' },
+      ],
+    });
+
+    expect(sql).toMatch(/LATA_STAZU/);
+    expect(sql).toMatch(/IPRA_ID IN \(SELECT ID FROM/);
+    expect(sql).toMatch(/Kowalski/);
+    expect(sql).toMatch(/Janusz/);
   });
 });

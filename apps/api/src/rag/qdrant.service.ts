@@ -31,15 +31,44 @@ export class QdrantService {
   }
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, init);
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`Qdrant request failed (${res.status}) ${path}: ${body}`);
+    const maxAttempts = 4;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const res = await fetch(`${this.baseUrl}${path}`, init);
+        if (!res.ok) {
+          const body = await res.text();
+          const error = new Error(`Qdrant request failed (${res.status}) ${path}: ${body}`);
+          // 5xx / 429 — chwilowe przeciążenie; 4xx inne niż 429 nie retry'ujemy
+          if (res.status === 429 || res.status >= 500) {
+            lastError = error;
+            if (attempt < maxAttempts) {
+              await sleep(400 * attempt);
+              continue;
+            }
+          }
+          throw error;
+        }
+        if (res.status === 204) {
+          return undefined as T;
+        }
+        return (await res.json()) as T;
+      } catch (err) {
+        lastError = err;
+        const message = err instanceof Error ? err.message : String(err);
+        const transient =
+          /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|socket hang up|Qdrant request failed \(5\d\d\)|Qdrant request failed \(429\)/i.test(
+            message,
+          );
+        if (!transient || attempt >= maxAttempts) {
+          throw err;
+        }
+        await sleep(400 * attempt);
+      }
     }
-    if (res.status === 204) {
-      return undefined as T;
-    }
-    return (await res.json()) as T;
+
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
   }
 
   async ensureCollection(collection: string, vectorSize: number): Promise<void> {
@@ -238,4 +267,8 @@ export class QdrantService {
       return [];
     }
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

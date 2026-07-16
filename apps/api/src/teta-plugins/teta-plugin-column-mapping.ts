@@ -309,25 +309,26 @@ export function resolveMappingsForPrompt(
   mappings: TetaPluginColumnMapping[],
   query: string,
   gatewayClassNames: string[],
-  limit = 48,
+  limit = 24,
 ): TetaPluginColumnMapping[] {
   const gatewaySet = new Set(gatewayClassNames.map((name) => name.toLowerCase()).filter(Boolean));
-  const merged = new Map<string, TetaPluginColumnMapping>();
+  const mentioned: TetaPluginColumnMapping[] = [];
+  const fromGateways: TetaPluginColumnMapping[] = [];
+  const seen = new Set<string>();
 
-  const add = (mapping: TetaPluginColumnMapping) => {
-    const key = `${mapping.targetObject ?? 'ANY'}:${mapping.oracleColumnName.toUpperCase()}:${mapping.gatewayClassName ?? ''}`;
-    merged.set(key, mapping);
+  const keyOf = (mapping: TetaPluginColumnMapping) =>
+    `${mapping.targetObject ?? 'ANY'}:${mapping.oracleColumnName.toUpperCase()}:${mapping.gatewayClassName ?? ''}`;
+
+  const pushUnique = (bucket: TetaPluginColumnMapping[], mapping: TetaPluginColumnMapping) => {
+    const key = keyOf(mapping);
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    bucket.push(mapping);
   };
 
-  for (const mapping of mappings) {
-    if (
-      mapping.gatewayClassName &&
-      gatewaySet.has(mapping.gatewayClassName.toLowerCase())
-    ) {
-      add(mapping);
-    }
-  }
-
+  // Najpierw pola wspomniane w pytaniu — to wystarcza do szybkiej ścieżki i trzyma prompt mały.
   for (const mapping of mappings) {
     const link: GridOracleColumnLink = {
       oracleColumnName: mapping.oracleColumnName,
@@ -336,9 +337,23 @@ export function resolveMappingsForPrompt(
       synonyms: mapping.synonyms,
     };
     if (queryMentionsLink(query, link)) {
-      add(mapping);
+      pushUnique(mentioned, mapping);
     }
   }
 
-  return [...merged.values()].slice(0, limit);
+  for (const mapping of mappings) {
+    if (
+      mapping.gatewayClassName &&
+      gatewaySet.has(mapping.gatewayClassName.toLowerCase())
+    ) {
+      pushUnique(fromGateways, mapping);
+    }
+  }
+
+  // Gdy pytanie precyzuje pola — nie dokładaj całego gatewaya (wcześniej 100+ kolumn → timeout LLM).
+  if (mentioned.length > 0) {
+    return mentioned.slice(0, limit);
+  }
+
+  return fromGateways.slice(0, limit);
 }

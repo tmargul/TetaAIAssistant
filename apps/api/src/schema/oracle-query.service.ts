@@ -83,8 +83,8 @@ export class OracleQueryService {
       const columnMatch = message.match(/"([^"]+)"/);
       const column = columnMatch?.[1] ?? 'nieznana';
       return (
-        `Kolumna ${column} nie istnieje w bazie. Nie wymyślaj ani nie skracaj nazw pól — ` +
-        'najpierw użyj describe_table, aby zobaczyć prawdziwe nazwy kolumn.'
+        `Nie udało się odczytać pola „${column}” — w bazie nie ma takiej kolumny pod tą nazwą. ` +
+        'Spróbuj inaczej nazwać pole albo wskaż pracownika (nr ewidencyjny / imię i nazwisko).'
       );
     }
     return message;

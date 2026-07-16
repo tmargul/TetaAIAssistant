@@ -33,6 +33,12 @@ import {
   buildDirectPluginSelect,
   buildPluginClarificationMessage,
 } from '../teta-plugins/teta-plugin-column-resolver';
+import { resolveOutputMappingsFromQuery } from '../teta-plugins/teta-plugin-column-mapping';
+import type { TetaPluginColumnMapping } from '../teta-plugins/teta-plugin-column-mapping';
+import {
+  formatUserFacingSqlColumnError,
+  rewriteSqlLabelsUsingPluginMappings,
+} from '../teta-plugins/teta-plugin-sql-label-rewrite.util';
 import { hasResolvableFilterForQuery } from '../teta-plugins/teta-plugin-filter-clause.util';
 import { isBroadListQuery } from '../teta-plugins/teta-plugin-list-query.util';
 import { classifyAgentQueryRoute } from '../agent/agent-query-router';
@@ -196,19 +202,22 @@ export class OracleAgentService {
       let oracleThreadContext: string | undefined;
 
       const defaultOwner = resolveDefaultOracleOwner(this.config);
+      const outputForTable = resolveOutputMappingsFromQuery(
+        message,
+        pluginHints.columnMappings,
+        null,
+      );
       const preferredTable =
+        outputForTable.find((mapping) => mapping.targetObject)?.targetObject ??
         pluginHints.columnHints.find((hint) => hint.targetObject)?.targetObject ??
         pluginHints.gateways.find((gateway) => gateway.viewName)?.viewName ??
         null;
       const schemaColumns = preferredTable
         ? this.graph.getColumnDetailsForTable(preferredTable)
         : [];
-      const columnMappings = pluginHints.columnMappings.filter(
-        (mapping) =>
-          !preferredTable ||
-          !mapping.targetObject ||
-          mapping.targetObject.toUpperCase() === preferredTable.toUpperCase(),
-      );
+      // Nie odfiltrowuj mapowań po preferredTable — staż (SZKOLY) + filtr pracownika (PRACOWNICY)
+      // muszą być dostępne jednocześnie dla szybkiej ścieżki.
+      const columnMappings = pluginHints.columnMappings;
       const filterCheck = {
         message,
         history,
@@ -251,6 +260,7 @@ export class OracleAgentService {
             steps,
             sqlSteps,
             reports,
+            columnMappings,
           );
           finalAnswer = this.buildSqlResultSummary(report);
           oracleThreadContext = buildOracleThreadContext(report);
@@ -329,6 +339,7 @@ export class OracleAgentService {
                 steps,
                 sqlSteps,
                 reports,
+                columnMappings,
               );
               finalAnswer = this.buildSqlResultSummary(report);
               oracleThreadContext = buildOracleThreadContext(report);
@@ -342,8 +353,8 @@ export class OracleAgentService {
               writeEvent({ type: 'oracle_step', step });
               toolContext.push(
                 `execute_sql ERROR:\n${sqlError}\n` +
-                  'Nie zgaduj nazw kolumn (np. NR_EWD zamiast NR_EWIDENCYJNY). ' +
-                  'Użyj describe_table, wybierz kolumnę z listy metadanych, popraw SELECT albo clarify.',
+                  'Nie używaj etykiet UI (np. STAŻ) jako nazw kolumn. ' +
+                  'Użyj nazw Oracle z metadanych wtyczki (np. LATA_STAZU) albo clarify.',
               );
 
               if (i >= maxIterations - 1) {
@@ -434,7 +445,7 @@ export class OracleAgentService {
   }
 
   private getAgentTotalTimeoutMs(): number {
-    return Number(this.config.get('TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS', 180_000));
+    return Number(this.config.get('TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS', 240_000));
   }
 
   private getAgentStepTimeoutMs(): number {
@@ -608,8 +619,9 @@ export class OracleAgentService {
     stepLimitMs?: number,
   ): OllamaChatOverrides {
     const thinkDefault = this.config.get<string>('TETA_ORACLE_AGENT_THINK', 'true') !== 'false';
+    const shortFollowUp = Boolean(message && message.trim().length <= 96);
     const think =
-      message && isBroadListQuery(message) ? false : thinkDefault;
+      message && (isBroadListQuery(message) || shortFollowUp) ? false : thinkDefault;
     const maxPredict = this.config.get('TETA_ORACLE_AGENT_NUM_PREDICT');
     const overrides: OllamaChatOverrides = {
       think,
@@ -777,8 +789,14 @@ export class OracleAgentService {
     steps: ChatOracleStep[],
     sqlSteps: OracleAgentSqlStep[],
     reports: OracleReport[],
+    columnMappings: TetaPluginColumnMapping[] = [],
   ): Promise<OracleReport> {
-    const result = await this.query.executeSelect(sql, { userId, domain });
+    const rewrittenSql = rewriteSqlLabelsUsingPluginMappings(sql, columnMappings);
+    if (rewrittenSql !== sql) {
+      this.logger.log(`Oracle agent — przepisano etykiety UI w SQL: ${rewrittenSql}`);
+    }
+
+    const result = await this.query.executeSelect(rewrittenSql, { userId, domain });
     const maxRows = Number(this.config.get('TETA_ORACLE_AGENT_MAX_ROWS', 200));
     const truncated = result.rowCount >= maxRows;
     const preview = result.rows.slice(0, 5).map((row) => row.join(' | '));
@@ -845,14 +863,7 @@ export class OracleAgentService {
   }
 
   private buildSqlFailureAnswer(message: string): string {
-    if (/nie występują w metadanych|nie istnieje w bazie|ORA-00904/i.test(message)) {
-      return (
-        `${message}\n\n` +
-        'Nie udało się wykonać zapytania — użyta nazwa kolumny nie pochodzi z metadanych bazy. ' +
-        'Spróbuj doprecyzować pytanie albo podaj nazwę tabeli/widoku.'
-      );
-    }
-    return message;
+    return formatUserFacingSqlColumnError(message);
   }
 
   private buildSystemPrompt(
@@ -869,6 +880,7 @@ ${pluginContext}
 Gdy powyżej jest widok i sugerowany SELECT:
 - użyj tego widoku jako źródła danych dla raportu
 - dołącz JOIN/WHERE zgodnie z pytaniem — pole tuż przed wartością filtra (po «o», «z», «ze») idzie do WHERE; pole z części «podaj/pokaż …» idzie do SELECT
+- **NIGDY nie wstawiaj etykiet UI jako nazw kolumn** (np. STAŻ) — używaj wyłącznie nazw Oracle z mapowań powyżej (np. LATA_STAZU)
 - **describe_table obowiązkowo** gdy filtrujesz po polu biznesowym i **brak** mapowania etykieta→kolumna w metadanych wtyczki poniżej
 - jeśli użytkownik prosi o dane — zakończ {"action":"answer","text":"—","sql":"SELECT …"}`
       : '';

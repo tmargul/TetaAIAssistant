@@ -48,6 +48,29 @@ describe('resolveMappingsForPrompt', () => {
     );
   });
 
+  it('keeps prompt small when query mentions a field — does not dump whole gateway', () => {
+    const many: TetaPluginColumnMapping[] = [
+      ...mappings,
+      ...Array.from({ length: 40 }, (_, index) => ({
+        oracleColumnName: `COL_${index}`,
+        label: `Pole ${index}`,
+        gridColumnName: `dgc${index}`,
+        synonyms: [`Pole ${index}`],
+        pluginColumnName: `COL_${index}`,
+        targetObject: 'NT_KP_PRC_PRACOWNICY',
+        dllName: 'plgPracownik.dll',
+        gatewayClassName: 'PracownikMTG',
+      })),
+    ];
+
+    const result = resolveMappingsForPrompt(many, 'jaki ma staż ten pracownik', [
+      'PracownikMTG',
+      'SzkolyTG',
+    ]);
+
+    expect(result.map((item) => item.oracleColumnName)).toEqual(['LATA_STAZU']);
+  });
+
   it('adds query-mentioned mapping from another gateway', () => {
     const result = resolveMappingsForPrompt(
       mappings,
