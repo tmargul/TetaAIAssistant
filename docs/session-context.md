@@ -131,11 +131,28 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [ ] Admin zarejestrowany na real Oracle (nie fake `teta_admin`)
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
 - [ ] **Oracle agent + wtyczki:** przetestować w czacie (źródło „Baza Oracle”) pytanie o dane z formularza np. wykształcenie → tabela w wyniku
-- [ ] **Pipeline Oracle (standard 2026-07-17):** wdrożyć kolejność help→DLL→widoki→tabele→pakiety→stara ścieżka/RAG (dziś: jeden SELECT z jednego targetObject)
+- [ ] **Pipeline Oracle (standard 2026-07-17):** wdrożony w kodzie (probe widoki→tabele→pakiety→LLM); smoke: Beata Styś → KDR → „SPECJALISTA DS. KADR” — potwierdzić w UI
 
 ---
 
 ## Notatki sesji
+
+### 2026-07-17 — wdrożenie pipeline (help→DLL→widoki→tabele→pakiety→RAG)
+
+**Kod:**
+- `teta-plugin-candidate-probe.ts` — zbiera kandydatów (widoki przed tabelami), buduje SQL per obiekt, stop przy pierwszym wyniku z wierszami
+- `oracle-agent.service.ts` — pętla probe zamiast jednego SELECT; przy 0 wierszach **nie** kończy odpowiedzią „brak wierszy”, tylko następny kandydat / pakiety / LLM
+- `forceOutputTable` + link `PRAC_ID` (KDR) obok `IPRA_ID`
+- KDR stanowisko: `JOIN NT_KP_SLO_STANOWISKA` → kolumna `STANOWISKO` (nazwa)
+- Hints: doładowanie DLL z rankingu help (`supplementBundlesFromHelp`)
+- Gateway hints: `relatedPackages`
+
+**Smoke Oracle (Beata Styś, ID 1033):**
+1. `IMP_UMOWY_UC` → 0
+2. `IMP_STANOWISKA` → 0
+3. `KDR_STANOWISKA` → 3 wiersze, aktualne: **SPECJALISTA DS. KADR** (`DATA_DO` null)
+
+**Testy:** `teta-plugin-candidate-probe.spec.ts` + dotychczasowe resolver — OK.
 
 ### 2026-07-17 — standard pipeline asystenta (Oracle / dane z Tety)
 

@@ -302,6 +302,34 @@ export class SchemaGraphService {
       .all(row.id) as Array<{ name: string; comment: string | null }>;
   }
 
+  /** Preferuje widok gdy obie formy istnieją — do rankingu kandydatów SQL. */
+  getObjectNodeType(tableRef: string): 'view' | 'table' | null {
+    const parsed = this.parseTableRef(tableRef);
+    if (!parsed) {
+      return null;
+    }
+
+    const preferredOwner = resolveDefaultOracleOwner(this.config);
+    const row = this.db.connection
+      .prepare(
+        `SELECT node_type
+         FROM schema_nodes
+         WHERE UPPER(name) = UPPER(?)
+           AND (? IS NULL OR UPPER(owner) = UPPER(?))
+         ORDER BY CASE WHEN UPPER(owner) = UPPER(?) THEN 0 ELSE 1 END,
+                  CASE node_type WHEN 'view' THEN 0 WHEN 'table' THEN 1 ELSE 2 END
+         LIMIT 1`,
+      )
+      .get(parsed.name, parsed.owner, parsed.owner, preferredOwner) as
+      | { node_type: string }
+      | undefined;
+
+    if (row?.node_type === 'view' || row?.node_type === 'table') {
+      return row.node_type;
+    }
+    return null;
+  }
+
   getColumnsForTableNames(tableNames: string[]): Map<string, Set<string>> {
     const result = new Map<string, Set<string>>();
     const preferredOwner = resolveDefaultOracleOwner(this.config);

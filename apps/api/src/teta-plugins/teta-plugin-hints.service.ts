@@ -187,6 +187,17 @@ export class TetaPluginHintsService {
     // RAG często nie zwraca DLL ze „Stanowisko” — doładuj mapowania OUTPUT z rejestru.
     this.supplementOutputMappingsFromRegistry(query, columnMappingsByKey, computedIntentsById);
 
+    // Help kontekstowy → DLL: doładuj wtyczki z rankingowanych obiektów help (nawet poza top RAG).
+    this.supplementBundlesFromHelp(query, {
+      seenBundles,
+      seenDllPaths,
+      hintsByKey,
+      columnMappingsByKey,
+      columnHintsByKey,
+      computedIntentsById,
+      applicationObjectsById,
+    });
+
     const gateways = [...hintsByKey.values()]
       .sort((a, b) => b.confidence - a.confidence)
       .slice(0, 5);
@@ -289,6 +300,98 @@ export class TetaPluginHintsService {
     }
 
     return null;
+  }
+
+  /**
+   * Help RAG / teta_app_objects → konkretne DLL z bindingami Oracle.
+   */
+  private supplementBundlesFromHelp(
+    query: string,
+    state: {
+      seenBundles: Set<string>;
+      seenDllPaths: Set<string>;
+      hintsByKey: Map<string, TetaPluginGatewayHint>;
+      columnMappingsByKey: Map<string, TetaPluginColumnMapping>;
+      columnHintsByKey: Map<string, TetaPluginColumnHint>;
+      computedIntentsById: Map<string, TetaPluginComputedIntent>;
+      applicationObjectsById: Map<string, TetaApplicationObject>;
+    },
+  ): void {
+    const ranked = rankApplicationObjectsForQuery(this.appObjects.listAll(), query).slice(0, 8);
+    if (ranked.length === 0) {
+      return;
+    }
+
+    let addedDlls = 0;
+    for (const object of ranked) {
+      state.applicationObjectsById.set(object.objectId, object);
+      const importRow = this.registry.findImportByDllName(object.dllName);
+      if (!importRow) {
+        continue;
+      }
+      const bundle = parseMetadataBundle(importRow.metadata_json);
+      if (!bundle) {
+        continue;
+      }
+      const bundleKey = bundle.dllPath.toLowerCase();
+      if (state.seenBundles.has(bundleKey)) {
+        continue;
+      }
+      state.seenBundles.add(bundleKey);
+      state.seenDllPaths.add(bundle.dllPath);
+      addedDlls += 1;
+
+      for (const appObject of bundle.applicationObjects ?? []) {
+        state.applicationObjectsById.set(appObject.objectId, appObject);
+      }
+
+      const mappings =
+        bundle.columnMappings ??
+        buildColumnMappingsFromBundle(
+          bundle,
+          createSchemaLookupFromColumns((tableRef) => this.graph.getColumnDetailsForTable(tableRef)),
+        );
+      const bundleIntents = loadComputedIntentsForBundle(bundle);
+      for (const intent of bundleIntents) {
+        state.computedIntentsById.set(intent.id, intent);
+      }
+
+      const sqlMappings = resolveColumnMappingsForSql(
+        query,
+        mappings,
+        extractFilterValueFromQuery(query, mappings),
+      );
+      for (const mapping of [
+        ...sqlMappings,
+        ...resolveFilterRoleMappings(mappings),
+        ...resolveComputedIntentSourceMappings(mappings, bundleIntents),
+      ]) {
+        const mappingKey = `${mapping.targetObject ?? 'ANY'}:${mapping.oracleColumnName.toUpperCase()}:${mapping.gatewayClassName ?? ''}`;
+        state.columnMappingsByKey.set(mappingKey, mapping);
+      }
+
+      for (const columnHint of resolveColumnHintsFromMappings(mappings, query)) {
+        const key = `${columnHint.targetObject ?? 'ANY'}:${columnHint.columnName.toUpperCase()}`;
+        const existing = state.columnHintsByKey.get(key);
+        if (!existing || columnHint.confidence > existing.confidence) {
+          state.columnHintsByKey.set(key, columnHint);
+        }
+      }
+
+      for (const hint of resolveHintsFromBundle(bundle, query, { ragScore: 0.7 })) {
+        const key = `${hint.dllPath.toLowerCase()}:${hint.gatewayClassName.toLowerCase()}`;
+        const existing = state.hintsByKey.get(key);
+        if (!existing || hint.confidence > existing.confidence) {
+          state.hintsByKey.set(key, hint);
+        }
+      }
+    }
+
+    if (addedDlls > 0) {
+      this.logger.log(
+        `Plugin hints: doładowano ${addedDlls} DLL z helpu (ranking pól) dla: ${query.slice(0, 60)}`,
+      );
+    }
   }
 
   /**

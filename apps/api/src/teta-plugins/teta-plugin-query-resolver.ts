@@ -18,6 +18,11 @@ export type TetaPluginGatewayHint = {
   tableAlias?: string | null;
   datasetTableName?: string | null;
   packageName?: string | null;
+  relatedPackages?: {
+    dac?: string | null;
+    agl?: string | null;
+    lep?: string | null;
+  };
   selectSql?: string | null;
   confidence: number;
   ragScore?: number;
@@ -188,6 +193,13 @@ function buildGatewayHint(
     tableAlias: gateway.TableAlias ?? null,
     datasetTableName: gateway.DatasetTableName ?? null,
     packageName: gateway.PackageName ?? null,
+    relatedPackages: gateway.RelatedPackages
+      ? {
+          dac: gateway.RelatedPackages.dac ?? null,
+          agl: gateway.RelatedPackages.agl ?? null,
+          lep: gateway.RelatedPackages.lep ?? null,
+        }
+      : undefined,
     selectSql: extractExecutableSelect(gateway),
     confidence,
     ragScore,

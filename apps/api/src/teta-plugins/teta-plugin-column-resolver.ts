@@ -189,8 +189,11 @@ function tableHasEmployeeLink(
   ) {
     return true;
   }
-  // Umowy / zatrudnienie / stanowiska — standardowo powiązane z pracownikiem przez IPRA_ID.
-  if (/UMOW|IMP_STANOW|ZATRUD|PELNION|FUNKCJ|POSITION/i.test(upper)) {
+  // Umowy / zatrudnienie / stanowiska — IPRA_ID lub PRAC_ID (KDR).
+  if (/UMOW|IMP_STANOW|KDR_STANOW|ZATRUD|PELNION|FUNKCJ|POSITION/i.test(upper)) {
+    return true;
+  }
+  if (schemaColumns.some((column) => column.name.toUpperCase() === 'PRAC_ID')) {
     return true;
   }
   if (/SZKOL|WYKSZT/.test(upper)) {
@@ -211,6 +214,23 @@ function isEmployeeIdentityTable(table: string): boolean {
   );
 }
 
+function resolveEmployeeLinkColumn(
+  table: string,
+  schemaColumns: SchemaColumnMeta[],
+): 'IPRA_ID' | 'PRAC_ID' {
+  const upper = table.includes('.') ? table.split('.').pop()!.toUpperCase() : table.toUpperCase();
+  if (schemaColumns.some((column) => column.name.toUpperCase() === 'IPRA_ID')) {
+    return 'IPRA_ID';
+  }
+  if (schemaColumns.some((column) => column.name.toUpperCase() === 'PRAC_ID')) {
+    return 'PRAC_ID';
+  }
+  if (/KDR_STANOW/i.test(upper)) {
+    return 'PRAC_ID';
+  }
+  return 'IPRA_ID';
+}
+
 export function buildDirectEmployeeSelect(input: {
   message: string;
   history: ChatHistoryMessage[];
@@ -219,6 +239,8 @@ export function buildDirectEmployeeSelect(input: {
   computedIntents?: TetaPluginComputedIntent[];
   gateways?: TetaPluginGatewayHint[];
   preferredTable?: string | null;
+  /** Gdy true — preferredTable jest wymuszonym FROM (probe wielu kandydatów). */
+  forceOutputTable?: boolean;
   schemaColumns?: SchemaColumnMeta[];
 }): string | null {
   const schemaColumns = input.schemaColumns ?? [];
@@ -232,15 +254,18 @@ export function buildDirectEmployeeSelect(input: {
     ?.targetObject?.toUpperCase();
 
   // Filtr pracownika z historii nie może dziedziczyć preferredTable z widoku stażu/wykształcenia.
+  // Przy forceOutputTable schemat kandydata OUTPUT nie dotyczy IMIE/NAZWISKO na pracowniku.
   const filterPreferredTable =
-    outputTablePreview && /IMP_SZKOL/.test(outputTablePreview)
+    input.forceOutputTable || (outputTablePreview && /IMP_SZKOL/.test(outputTablePreview))
       ? null
       : input.preferredTable;
+
+  const filterSchemaColumns = input.forceOutputTable ? [] : schemaColumns;
 
   const filter = resolveContextFilterClause({
     ...input,
     preferredTable: filterPreferredTable,
-    schemaColumns,
+    schemaColumns: filterSchemaColumns,
     pickResolvedColumn,
     columnExistsInSchema,
     intentPhrases: input.computedIntents?.flatMap((item) => item.phrases) ?? [],
@@ -269,13 +294,18 @@ export function buildDirectEmployeeSelect(input: {
   }
 
   const outputTable =
+    (input.forceOutputTable && input.preferredTable?.trim()
+      ? input.preferredTable.trim().toUpperCase()
+      : null) ??
     outputMappings.find((mapping) => mapping.targetObject?.trim())?.targetObject?.toUpperCase() ??
     filter.table.toUpperCase();
 
   const outputSchemaColumns =
     outputTable === filter.table.toUpperCase()
       ? schemaColumns
-      : [];
+      : input.forceOutputTable
+        ? schemaColumns
+        : [];
 
   const outputColumns = [
     ...new Set(
@@ -286,7 +316,12 @@ export function buildDirectEmployeeSelect(input: {
             outputSchemaColumns.length > 0 ? outputSchemaColumns : schemaColumns,
           ),
         )
-        .filter(Boolean),
+        .filter((column) => {
+          if (outputSchemaColumns.length === 0) {
+            return Boolean(column);
+          }
+          return columnExistsInSchema(column, outputSchemaColumns);
+        }),
     ),
   ];
   if (outputColumns.length === 0) {
@@ -314,14 +349,15 @@ export function buildDirectEmployeeSelect(input: {
     return `SELECT ${outputColumns.join(', ')} FROM ${filterTable} WHERE ${whereClause}`;
   }
 
-  // Staż / wykształcenie siedzi na innym widoku (np. NT_KP_IMP_SZKOLY) powiązanym przez IPRA_ID.
+  // Staż / stanowisko / umowy — inny widok powiązany przez IPRA_ID lub PRAC_ID.
   if (
     tableHasEmployeeLink(outputTable, input.columnMappings, schemaColumns) &&
     isEmployeeIdentityTable(filter.table)
   ) {
+    const linkColumn = resolveEmployeeLinkColumn(outputTable, schemaColumns);
     return (
       `SELECT ${outputColumns.join(', ')} FROM ${qualifiedOutput} ` +
-      `WHERE IPRA_ID IN (SELECT ID FROM ${filterTable} WHERE ${whereClause})`
+      `WHERE ${linkColumn} IN (SELECT ID FROM ${filterTable} WHERE ${whereClause})`
     );
   }
 

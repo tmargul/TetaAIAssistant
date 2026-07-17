@@ -37,6 +37,12 @@ import {
 import { resolveOutputMappingsFromQuery } from '../teta-plugins/teta-plugin-column-mapping';
 import type { TetaPluginColumnMapping } from '../teta-plugins/teta-plugin-column-mapping';
 import {
+  buildSqlForCandidate,
+  collectPluginPackageCandidates,
+  collectPluginSqlCandidates,
+  formatPackageHintsForAgent,
+} from '../teta-plugins/teta-plugin-candidate-probe';
+import {
   formatUserFacingSqlColumnError,
   rewriteSqlLabelsUsingPluginMappings,
 } from '../teta-plugins/teta-plugin-sql-label-rewrite.util';
@@ -201,40 +207,13 @@ export class OracleAgentService {
       let oracleThreadContext: string | undefined;
 
       const defaultOwner = resolveDefaultOracleOwner(this.config);
-      const outputForTable = resolveOutputMappingsFromQuery(
-        message,
-        pluginHints.columnMappings,
-        null,
-      );
-      const preferredTable =
-        outputForTable.find((mapping) => mapping.targetObject)?.targetObject ??
-        pluginHints.columnHints.find((hint) => hint.targetObject)?.targetObject ??
-        pluginHints.gateways.find((gateway) => gateway.viewName)?.viewName ??
-        null;
-      const schemaColumns = preferredTable
-        ? this.graph.getColumnDetailsForTable(preferredTable)
-        : [];
-      // Nie odfiltrowuj mapowań po preferredTable — staż (SZKOLY) + filtr pracownika (PRACOWNICY)
-      // muszą być dostępne jednocześnie dla szybkiej ścieżki.
       const columnMappings = pluginHints.columnMappings;
-      const filterCheck = {
+      const filterCheckBase = {
         message,
         history,
         columnMappings,
         intentPhrases: pluginHints.computedIntents.flatMap((item) => item.phrases),
-        preferredTable,
-        schemaColumns,
       };
-      const directSql = buildDirectPluginSelect({
-        message,
-        history,
-        defaultOwner,
-        columnMappings,
-        computedIntents: pluginHints.computedIntents,
-        gateways: pluginHints.gateways,
-        preferredTable,
-        schemaColumns,
-      });
 
       const pluginClarification = buildPluginClarificationMessage(
         message,
@@ -245,29 +224,198 @@ export class OracleAgentService {
       if (pluginClarification) {
         finalAnswer = pluginClarification;
       } else if (
-        directSql &&
-        (hasResolvableFilterForQuery(filterCheck) || isBroadListQuery(message))
+        hasResolvableFilterForQuery(filterCheckBase) ||
+        isBroadListQuery(message)
       ) {
+        const candidates = collectPluginSqlCandidates({
+          message,
+          columnMappings,
+          gateways: pluginHints.gateways,
+          applicationObjects: pluginHints.applicationObjects,
+          lookupNodeType: (objectName) => this.graph.getObjectNodeType(objectName),
+        });
+
+        // Fallback: pojedynczy preferredTable jak wcześniej, gdy brak kandydatów z mapowań.
+        if (candidates.length === 0) {
+          const outputForTable = resolveOutputMappingsFromQuery(message, columnMappings, null);
+          const preferredTable =
+            outputForTable.find((mapping) => mapping.targetObject)?.targetObject ??
+            pluginHints.columnHints.find((hint) => hint.targetObject)?.targetObject ??
+            pluginHints.gateways.find((gateway) => gateway.viewName)?.viewName ??
+            null;
+          if (preferredTable) {
+            candidates.push({
+              kind: this.graph.getObjectNodeType(preferredTable) ?? 'unknown',
+              objectName: preferredTable.toUpperCase(),
+              source: 'mapping',
+              packageNames: [],
+            });
+          }
+        }
+
         const pathLabel = isBroadListQuery(message) ? 'listy' : 'SQL';
-        this.logger.log(`Oracle agent — szybka ścieżka ${pathLabel}: ${directSql}`);
-        try {
-          const report = await this.runSql(
-            directSql,
-            userId,
-            domain,
-            writeEvent,
-            steps,
-            sqlSteps,
-            reports,
+        let probedEmpty = false;
+        const triedSql: string[] = [];
+
+        for (const candidate of candidates) {
+          try {
+            assertWithinDeadline(agentDeadline, 'agent Oracle');
+          } catch (deadlineError) {
+            finalAnswer = this.buildAgentTimeoutAnswer(deadlineError, agentDeadline);
+            break;
+          }
+
+          const schemaColumns = this.graph.getColumnDetailsForTable(candidate.objectName);
+          const directSql = buildSqlForCandidate({
+            candidate,
+            message,
+            history,
+            defaultOwner,
             columnMappings,
+            computedIntents: pluginHints.computedIntents,
+            gateways: pluginHints.gateways,
+            schemaColumns,
+          });
+          if (!directSql) {
+            continue;
+          }
+          if (triedSql.includes(directSql)) {
+            continue;
+          }
+          triedSql.push(directSql);
+
+          this.logger.log(
+            `Oracle agent — szybka ścieżka ${pathLabel} [${candidate.kind}/${candidate.objectName}]: ${directSql}`,
           );
-          finalAnswer = this.buildSqlResultSummary(report);
-          oracleThreadContext = buildOracleThreadContext(report);
-        } catch (error) {
-          const sqlError = error instanceof Error ? error.message : String(error);
-          this.logger.warn(`Oracle agent — szybka ścieżka nieudana: ${sqlError}`);
+          try {
+            const report = await this.runSql(
+              directSql,
+              userId,
+              domain,
+              writeEvent,
+              steps,
+              sqlSteps,
+              reports,
+              columnMappings,
+            );
+            if (report.rowCount > 0) {
+              finalAnswer = this.buildSqlResultSummary(report);
+              oracleThreadContext = buildOracleThreadContext(report);
+              break;
+            }
+            probedEmpty = true;
+            this.logger.log(
+              `Oracle agent — kandydat ${candidate.objectName}: 0 wierszy, próbuję następny`,
+            );
+          } catch (error) {
+            const sqlError = error instanceof Error ? error.message : String(error);
+            this.logger.warn(
+              `Oracle agent — kandydat ${candidate.objectName} nieudany: ${sqlError}`,
+            );
+            toolContext.push(
+              `direct_sql (${candidate.objectName}) ERROR:\n${sqlError}\nSpróbuj poprawić SELECT w kolejnym kroku agenta.`,
+            );
+          }
+        }
+
+        // Lista bez filtra — jeden stary buildDirectPluginSelect gdy brak kandydatów z filtrem.
+        if (!finalAnswer && isBroadListQuery(message) && triedSql.length === 0) {
+          const preferredTable = candidates[0]?.objectName ?? null;
+          const schemaColumns = preferredTable
+            ? this.graph.getColumnDetailsForTable(preferredTable)
+            : [];
+          const directSql = buildDirectPluginSelect({
+            message,
+            history,
+            defaultOwner,
+            columnMappings,
+            computedIntents: pluginHints.computedIntents,
+            gateways: pluginHints.gateways,
+            preferredTable,
+            schemaColumns,
+          });
+          if (directSql) {
+            try {
+              const report = await this.runSql(
+                directSql,
+                userId,
+                domain,
+                writeEvent,
+                steps,
+                sqlSteps,
+                reports,
+                columnMappings,
+              );
+              if (report.rowCount > 0) {
+                finalAnswer = this.buildSqlResultSummary(report);
+                oracleThreadContext = buildOracleThreadContext(report);
+              } else {
+                probedEmpty = true;
+              }
+            } catch (error) {
+              const sqlError = error instanceof Error ? error.message : String(error);
+              toolContext.push(`direct_sql ERROR:\n${sqlError}`);
+            }
+          }
+        }
+
+        if (!finalAnswer) {
+          const packageCandidates = collectPluginPackageCandidates(
+            pluginHints.gateways,
+            candidates,
+          );
+          const packageHint = formatPackageHintsForAgent(packageCandidates);
+          if (packageHint) {
+            toolContext.push(packageHint);
+            const step: ChatOracleStep = {
+              tool: 'plugin_packages',
+              summary: `${packageCandidates.length} powiązanych pakietów do sprawdzenia`,
+            };
+            steps.push(step);
+            writeEvent({ type: 'oracle_step', step });
+          }
+
+          // Spróbuj gotowych SELECT z gateway (LabeledSelect) jako dodatkowy kandydat.
+          for (const pkg of packageCandidates) {
+            const selectSql = pkg.selectSql?.trim();
+            if (!selectSql || !/^SELECT\s/i.test(selectSql)) {
+              continue;
+            }
+            if (triedSql.includes(selectSql)) {
+              continue;
+            }
+            triedSql.push(selectSql);
+            this.logger.log(
+              `Oracle agent — próbuję SELECT z metadanych pakietu/gateway ${pkg.packageName}: ${selectSql.slice(0, 120)}`,
+            );
+            try {
+              const report = await this.runSql(
+                selectSql,
+                userId,
+                domain,
+                writeEvent,
+                steps,
+                sqlSteps,
+                reports,
+                columnMappings,
+              );
+              if (report.rowCount > 0) {
+                finalAnswer = this.buildSqlResultSummary(report);
+                oracleThreadContext = buildOracleThreadContext(report);
+                break;
+              }
+              probedEmpty = true;
+            } catch (error) {
+              const sqlError = error instanceof Error ? error.message : String(error);
+              toolContext.push(`gateway_select (${pkg.packageName}) ERROR:\n${sqlError}`);
+            }
+          }
+        }
+
+        if (!finalAnswer && probedEmpty && triedSql.length > 0) {
           toolContext.push(
-            `direct_sql ERROR:\n${sqlError}\nSpróbuj poprawić SELECT w kolejnym kroku agenta.`,
+            `Szybka ścieżka: ${triedSql.length} SELECT(ów) zwróciło 0 wierszy. ` +
+              `Spróbuj innego widoku/tabeli/pakietu albo RAG. Ostatnie SQL:\n${triedSql.slice(-3).join('\n')}`,
           );
         }
       }
