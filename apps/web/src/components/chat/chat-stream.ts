@@ -1,12 +1,12 @@
 import type { ChatCompletionRequest, ChatStreamEvent } from '@teta/shared';
 import { getAccessToken } from '../../lib/auth-storage';
 
-/** Bezpiecznik UI — nieco powyżej TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS (domyślnie 270 s). */
-const CHAT_STREAM_TIMEOUT_MS = 300_000;
+const DEFAULT_CHAT_STREAM_TIMEOUT_MS = 195_000;
 
 export async function streamChatCompletion(
   input: ChatCompletionRequest,
   onEvent: (event: ChatStreamEvent) => void,
+  streamTimeoutMs = DEFAULT_CHAT_STREAM_TIMEOUT_MS,
 ): Promise<void> {
   const headers = new Headers({ 'Content-Type': 'application/json' });
   const token = getAccessToken();
@@ -15,7 +15,7 @@ export async function streamChatCompletion(
   }
 
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), CHAT_STREAM_TIMEOUT_MS);
+  const timeoutId = window.setTimeout(() => controller.abort(), streamTimeoutMs);
 
   try {
   let res: Response;
@@ -29,7 +29,7 @@ export async function streamChatCompletion(
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error(
-        `Brak odpowiedzi w limicie ${Math.round(CHAT_STREAM_TIMEOUT_MS / 1000)} s. Odśwież stronę lub doprecyzuj pytanie.`,
+        `Brak odpowiedzi w limicie ${Math.round(streamTimeoutMs / 1000)} s. Odśwież stronę lub doprecyzuj pytanie.`,
       );
     }
     throw error;

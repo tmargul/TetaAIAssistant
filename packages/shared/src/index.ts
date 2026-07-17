@@ -57,6 +57,8 @@ export type {
 } from './doctor.js';
 
 export type {
+  ChatAssistantSettingsResponse,
+  ChatAssistantSettingsUpdateRequest,
   ChatCompletionRequest,
   ChatCompletionResponse,
   ChatCompletionTiming,
@@ -65,6 +67,7 @@ export type {
   ChatMessageFeedback,
   ChatModel,
   ChatModelsResponse,
+  OllamaRuntimeStatus,
   ChatRuntimeStatusResponse,
   ChatRagCollection,
   ChatRagSource,

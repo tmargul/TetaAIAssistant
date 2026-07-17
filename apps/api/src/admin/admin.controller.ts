@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import type {
   AppUserRecord,
+  ChatAssistantSettingsResponse,
+  ChatAssistantSettingsUpdateRequest,
   CreateTetaServerRequest,
   GrantUserAccessRequest,
   TetaServer,
@@ -10,11 +12,15 @@ import { AdminGuard } from '../auth/admin.guard';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminService } from './admin.service';
+import { ChatQueryTimeoutService } from '../chat/chat-query-timeout.service';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly chatQueryTimeout: ChatQueryTimeoutService,
+  ) {}
 
   @Get('users')
   listUsers(): AppUserRecord[] {
@@ -56,5 +62,18 @@ export class AdminController {
   deleteTetaServer(@Param('id', ParseIntPipe) id: number): { ok: true } {
     this.admin.deleteTetaServer(id);
     return { ok: true };
+  }
+
+  @Get('chat-assistant')
+  getChatAssistantSettings(): ChatAssistantSettingsResponse {
+    return this.chatQueryTimeout.getSettings();
+  }
+
+  @Post('chat-assistant')
+  saveChatAssistantSettings(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: ChatAssistantSettingsUpdateRequest,
+  ): ChatAssistantSettingsResponse {
+    return this.chatQueryTimeout.saveSettings(body, req.user.id);
   }
 }

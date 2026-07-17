@@ -6,10 +6,11 @@ import { authFetch } from '../../lib/auth-storage';
 import { VendorPackagesPanel } from './VendorPackagesPanel';
 import { ClientUpdatesPanel } from './ClientUpdatesPanel';
 import { TetaAppSettingsPanel } from './TetaAppSettingsPanel';
+import { ChatAssistantSettingsPanel } from './ChatAssistantSettingsPanel';
 import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
 import './settings.css';
 
-type SettingsTab = 'users' | 'servers' | 'oracle' | 'packages' | 'updates' | 'tetaApp';
+type SettingsTab = 'users' | 'servers' | 'oracle' | 'assistant' | 'packages' | 'updates' | 'tetaApp';
 
 const SETTINGS_TAB_KEY = 'teta-settings-tab';
 
@@ -19,7 +20,7 @@ export function AdminSettingsView() {
   const isVendorMode = health?.appMode === 'vendor' && health?.vendorEnabled;
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     const pending = sessionStorage.getItem(SETTINGS_TAB_KEY) as SettingsTab | null;
-    if (pending && ['users', 'servers', 'oracle', 'packages', 'updates', 'tetaApp'].includes(pending)) {
+    if (pending && ['users', 'servers', 'oracle', 'assistant', 'packages', 'updates', 'tetaApp'].includes(pending)) {
       sessionStorage.removeItem(SETTINGS_TAB_KEY);
       return pending;
     }
@@ -147,6 +148,13 @@ export function AdminSettingsView() {
         >
           Połączenie Oracle
         </button>
+        <button
+          type="button"
+          className={`settings__tab${activeTab === 'assistant' ? ' settings__tab--active' : ''}`}
+          onClick={() => setActiveTab('assistant')}
+        >
+          Asystent AI
+        </button>
         {isVendorMode && (
           <button
             type="button"
@@ -257,6 +265,8 @@ export function AdminSettingsView() {
         )}
 
         {activeTab === 'tetaApp' && isVendorMode && <TetaAppSettingsPanel />}
+
+        {activeTab === 'assistant' && <ChatAssistantSettingsPanel />}
 
         {activeTab === 'packages' && isVendorMode && <VendorPackagesPanel />}
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CHAT_MODELS, type ChatModel, type ChatQualityMode, type ChatRuntimeStatusResponse } from '@teta/shared';
+import { CHAT_MODELS, type ChatModel, type ChatQualityMode, type OllamaRuntimeStatus } from '@teta/shared';
 import { getOllamaBaseUrl, getOllamaKeepAlive } from './ollama-config.util';
 import { resolveChatQualityProfile, type ChatQualityProfile } from './chat-quality.profile';
 import { applyOllamaChatOverrides, type OllamaChatOverrides } from './ollama-chat-overrides';
@@ -130,7 +130,7 @@ export class OllamaChatService implements OnModuleInit {
     );
   }
 
-  async getRuntimeStatus(model: ChatModel): Promise<ChatRuntimeStatusResponse> {
+  async getRuntimeStatus(model: ChatModel): Promise<OllamaRuntimeStatus> {
     let resolvedModelName = this.resolveModelName(model);
     try {
       resolvedModelName = await this.resolveInstalledModel(model);

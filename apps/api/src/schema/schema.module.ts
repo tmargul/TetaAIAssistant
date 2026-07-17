@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { ChatQueryTimeoutModule } from '../chat/chat-query-timeout.module';
 import { OllamaModule } from '../chat/ollama.module';
 import { OracleModule } from '../oracle/oracle.module';
 import { SchemaController } from './schema.controller';
@@ -18,6 +19,7 @@ import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module'
     forwardRef(() => AuthModule),
     forwardRef(() => OracleModule),
     OllamaModule,
+    ChatQueryTimeoutModule,
     SchemaLearningModule,
     SchemaGraphCoreModule,
     TetaPluginsCoreModule,

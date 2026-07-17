@@ -83,13 +83,32 @@ export interface ChatModelsResponse {
 }
 
 /** Czy wybrany model czatu jest już załadowany w RAM Ollamy (/api/ps). */
-export interface ChatRuntimeStatusResponse {
+export interface OllamaRuntimeStatus {
   chatModel: ChatModel;
   resolvedModelName: string;
   loadedInMemory: boolean;
   loadedModels: string[];
   /** false gdy Ollama nie odpowiada na GET /api/ps — wtedy nie pokazuj ostrzeżenia o RAM. */
   psAvailable: boolean;
+}
+
+export interface ChatRuntimeStatusResponse extends OllamaRuntimeStatus {
+  /** Jeden limit czasu całego zapytania (ms) — wspólny dla orchestratora, agenta Oracle i UI. */
+  queryTimeoutMs: number;
+  /** Bezpiecznik przeglądarki (ms) — nieco powyżej queryTimeoutMs. */
+  clientStreamTimeoutMs: number;
+}
+
+export interface ChatAssistantSettingsResponse {
+  queryTimeoutMs: number;
+  queryTimeoutSec: number;
+  clientStreamTimeoutMs: number;
+  updatedAt: string | null;
+  source: 'settings' | 'default';
+}
+
+export interface ChatAssistantSettingsUpdateRequest {
+  queryTimeoutSec: number;
 }
 
 export interface ChatCompletionResponse {

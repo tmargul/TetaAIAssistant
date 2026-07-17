@@ -11,6 +11,7 @@ import {
 import { JwtAuthGuard, type AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { getRequestWorkMode } from '../rag/work-mode.util';
 import { ChatOrchestratorService } from './chat-orchestrator.service';
+import { ChatQueryTimeoutService } from './chat-query-timeout.service';
 import { ChatService } from './chat.service';
 import { OllamaChatService } from './ollama-chat.service';
 
@@ -21,6 +22,7 @@ export class ChatController {
     private readonly chat: ChatService,
     private readonly ollama: OllamaChatService,
     private readonly orchestrator: ChatOrchestratorService,
+    private readonly queryTimeout: ChatQueryTimeoutService,
   ) {}
 
   @Get('models')
@@ -30,10 +32,16 @@ export class ChatController {
   }
 
   @Get('runtime')
-  getRuntime(@Query('model') model?: ChatModel): Promise<ChatRuntimeStatusResponse> {
+  async getRuntime(@Query('model') model?: ChatModel): Promise<ChatRuntimeStatusResponse> {
     const chatModel =
       model && (CHAT_MODELS as readonly string[]).includes(model) ? model : 'qwen3';
-    return this.ollama.getRuntimeStatus(chatModel);
+    const status = await this.ollama.getRuntimeStatus(chatModel);
+    const timeout = this.queryTimeout.getSettings();
+    return {
+      ...status,
+      queryTimeoutMs: timeout.queryTimeoutMs,
+      clientStreamTimeoutMs: timeout.clientStreamTimeoutMs,
+    };
   }
 
   @Post('completions')

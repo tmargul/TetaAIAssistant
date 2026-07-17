@@ -10,6 +10,7 @@ import { getBuildAppMode } from '../rag/app-mode';
 import { OracleAgentService } from '../schema/oracle-agent.service';
 import { OllamaChatService } from './ollama-chat.service';
 import { ChatService } from './chat.service';
+import { ChatQueryTimeoutService } from './chat-query-timeout.service';
 import { createNdjsonResponseTee } from './chat-stream-collector.util';
 import { isFailedChatAttempt } from './chat-orchestrator-result.util';
 import {
@@ -32,6 +33,7 @@ export class ChatOrchestratorService {
     private readonly chat: ChatService,
     private readonly oracleAgent: OracleAgentService,
     private readonly ollama: OllamaChatService,
+    private readonly queryTimeout: ChatQueryTimeoutService,
   ) {}
 
   async streamComplete(
@@ -66,7 +68,7 @@ export class ChatOrchestratorService {
     const attempts = this.resolveAttemptOrder(route.route);
     const startedAt = Date.now();
     const orchestratorDeadline = createRequestDeadline(
-      this.getOrchestratorTotalTimeoutMs(),
+      this.queryTimeout.getQueryTimeoutMs(),
       startedAt,
     );
 
@@ -116,6 +118,7 @@ export class ChatOrchestratorService {
             collector.res,
             userId,
             workMode,
+            orchestratorDeadline,
           );
         } else {
           await this.chat.streamComplete({ ...input, source: 'docs' }, collector.res, workMode);
@@ -148,26 +151,21 @@ export class ChatOrchestratorService {
     await this.streamClarification(input, history, writeEvent, res, orchestratorDeadline);
   }
 
-  private getOrchestratorTotalTimeoutMs(): number {
-    return Number(this.config.get('TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS', 270_000));
-  }
-
   private buildOrchestratorTimeoutAnswer(
     error: unknown,
     deadline: RequestDeadline,
   ): string {
     const totalSec = Math.round(deadline.limitMs / 1000);
     const elapsedSec = Math.round((Date.now() - deadline.startedAt) / 1000);
-    const remainingSec = Math.max(0, Math.round(remainingMs(deadline) / 1000));
     const configHint =
-      'Zwiększ TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS lub TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS w apps/api/.env.';
+      'Zwiększ limit w Ustawienia → Asystent AI (domyślnie 180 s) lub TETA_CHAT_QUERY_TIMEOUT_MS w apps/api/.env.';
     if (error instanceof RequestDeadlineExceededError) {
       return (
         `Przekroczono limit czasu odpowiedzi asystenta (${totalSec} s, upłynęło ${elapsedSec} s). ${configHint}`
       );
     }
     return (
-      `Asystent nie zdążył odpowiedzieć w limicie czasu (pozostało ok. ${remainingSec} s budżetu). ${configHint}`
+      `Asystent nie zdążył odpowiedzieć w limicie czasu (${totalSec} s, upłynęło ${elapsedSec} s). ${configHint}`
     );
   }
 

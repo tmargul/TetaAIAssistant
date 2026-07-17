@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-16** (follow-up „ten pracownik” — SQL/WHERE z historii)
+> Ostatnia aktualizacja: **2026-07-17** (jeden timeout zapytania 180 s)
 
 ---
 
@@ -190,7 +190,15 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ### 2026-07-14 — limity czasu agenta Oracle
 
 - **Problem:** pętla agenta (do 10 kroków × timeout Ollama 10 min) → wiszenie ~900 s bez odpowiedzi.
-- **Fix:** konfigurowalne limity w `.env`: `TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS=240000` (4 min), `TETA_ORACLE_AGENT_LLM_TIMEOUT_MS=60000` (1 min/krok), `TETA_ORACLE_AGENT_MAX_STEPS=5`, `TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS=270000`. Przy przekroczeniu — event `error` z komunikatem PL + wskazówka `.env`. UI: bezpiecznik 300 s w `chat-stream.ts`.
+- **Fix (2026-07-14):** osobne limity w `.env` — **zastąpione 2026-07-17** jednym budżetem (patrz niżej).
+
+### 2026-07-17 — jeden timeout całego zapytania (180 s)
+
+- **Problem:** „Beata Styś ile ma lat?” — timeout po ~60 s (`TETA_ORACLE_AGENT_LLM_TIMEOUT_MS` na pojedynczy krok LLM).
+- **Fix:** jeden budżet czasu dla całego zapytania (orchestrator + Oracle + docs + doprecyzowanie + kroki LLM). Domyślnie **180 s**.
+- **Konfiguracja:** **Ustawienia → Asystent AI** (SQLite `chat.query_timeout_ms`) lub `TETA_CHAT_QUERY_TIMEOUT_MS=180000` w `apps/api/.env`. Przeglądarka: +15 s (`clientStreamTimeoutMs` z `/api/chat/runtime`).
+- **Stare zmienne** (`TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS`, `TETA_ORACLE_AGENT_LLM_TIMEOUT_MS`, `TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS`) — ignorowane przez kod; można usunąć z `.env`.
+- **Pliki:** `chat-query-timeout.service.ts`, `ChatAssistantSettingsPanel`, `chat-orchestrator.service.ts`, `oracle-agent.service.ts` (`remainingMs(agentDeadline)` zamiast stałego 60 s/krok).
 
 ### 2026-07-15 — help kontekstowy Teta (Etap 1)
 

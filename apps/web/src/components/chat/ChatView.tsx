@@ -610,6 +610,7 @@ export function ChatView({
             streamError = event.message;
           }
         },
+        runtime?.clientStreamTimeoutMs ?? 195_000,
       );
 
       if (streamError) {
