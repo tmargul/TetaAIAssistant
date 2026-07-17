@@ -189,10 +189,17 @@ function tableHasEmployeeLink(
   ) {
     return true;
   }
-  if (/SZKOL|WYKSZT/.test(upper)) {
-    return schemaColumns.some((column) => column.name.toUpperCase() === 'IPRA_ID');
+  // Umowy / zatrudnienie / stanowiska — standardowo powiązane z pracownikiem przez IPRA_ID.
+  if (/UMOW|IMP_STANOW|ZATRUD|PELNION|FUNKCJ|POSITION/i.test(upper)) {
+    return true;
   }
-  return false;
+  if (/SZKOL|WYKSZT/.test(upper)) {
+    return (
+      schemaColumns.some((column) => column.name.toUpperCase() === 'IPRA_ID') ||
+      /IMP_/.test(upper)
+    );
+  }
+  return schemaColumns.some((column) => column.name.toUpperCase() === 'IPRA_ID');
 }
 
 function isEmployeeIdentityTable(table: string): boolean {
@@ -290,6 +297,18 @@ export function buildDirectEmployeeSelect(input: {
   const whereClause = formatPluginWhereClause(filter);
   const filterTable = filter.table.includes('.') ? filter.table : `${owner}.${filter.table}`;
   const qualifiedOutput = outputTable.includes('.') ? outputTable : `${owner}.${outputTable}`;
+
+  // Gdy znamy schemat tabeli OUTPUT i filtr (IMIE/NAZWISKO) na niej nie istnieje — nie emituj złego SQL.
+  if (
+    !filter.rawWhereSql &&
+    schemaColumns.length > 0 &&
+    outputTable === filter.table.toUpperCase() &&
+    !filter.conditions.every((condition) =>
+      columnExistsInSchema(condition.filterColumn, schemaColumns),
+    )
+  ) {
+    return null;
+  }
 
   if (outputTable === filter.table.toUpperCase()) {
     return `SELECT ${outputColumns.join(', ')} FROM ${filterTable} WHERE ${whereClause}`;

@@ -358,10 +358,18 @@ function tokensOverlap(left: string, right: string): boolean {
   if (left === right) {
     return true;
   }
-  if (left.includes(right) || right.includes(left)) {
+  const shorter = left.length <= right.length ? left : right;
+  const longer = left.length <= right.length ? right : left;
+  // „akt” ⊂ „aktualne” nie może być trafieniem pola OUTPUT
+  if (longer.includes(shorter) && shorter.length >= 5) {
     return true;
   }
   const minLen = Math.min(left.length, right.length);
+  const maxLen = Math.max(left.length, right.length);
+  // Prefiks 3 znaków: „akt” ≠ „aktualne”
+  if (minLen < 5 && maxLen - minLen >= 3) {
+    return false;
+  }
   const prefixLength = Math.min(minLen, Math.max(3, Math.floor(minLen * 0.75)));
   return left.slice(0, prefixLength) === right.slice(0, prefixLength);
 }
@@ -454,7 +462,22 @@ function derivativeNameColumnAllowed(
   );
 }
 
-/** Dopasowanie pól SELECT: tylko etykieta UI, bez luźnych synonimów i bez IMIE_* gdy pytanie mówi tylko „imię”. */
+/** Same przymiotniki statusu słownika — nie mogą same wybierać kolumny OUTPUT. */
+const GENERIC_STATUS_LABEL_PATTERN = /^(aktualn[aey]|aktualnych|biezac[aey]|biezacych|czy aktualn\w*)$/;
+
+function isGenericStatusLabel(labelNorm: string): boolean {
+  return GENERIC_STATUS_LABEL_PATTERN.test(labelNorm.trim());
+}
+
+function queryHasFieldNounBeyondStatusAdjective(normalizedSection: string): boolean {
+  const tokens = normalizedSection.split(/\s+/).filter((part) => part.length >= 4);
+  return tokens.some((token) => !GENERIC_STATUS_LABEL_PATTERN.test(token));
+}
+
+/**
+ * Dopasowanie pól SELECT: tylko etykieta UI, bez luźnych synonimów i bez IMIE_* gdy pytanie mówi tylko „imię”.
+ * Etykiety typu „Aktualne” (flaga UP_TO_DATE) nie wygrywają z rzeczownikiem pola („stanowisko”).
+ */
 export function linkMatchesSqlOutputIntent(section: string, link: GridOracleColumnLink): boolean {
   if (queryMentionsRegistrationAddress(section) && linkLooksLikeRegistrationAddress(link)) {
     return true;
@@ -463,6 +486,10 @@ export function linkMatchesSqlOutputIntent(section: string, link: GridOracleColu
   const normalizedSection = normalizeSearchText(section);
   const labelNorm = normalizeSearchText(link.label);
   if (labelNorm.length < 3) {
+    return false;
+  }
+
+  if (isGenericStatusLabel(labelNorm) && queryHasFieldNounBeyondStatusAdjective(normalizedSection)) {
     return false;
   }
 
@@ -476,10 +503,30 @@ export function linkMatchesSqlOutputIntent(section: string, link: GridOracleColu
     return false;
   }
 
-  const allLabelTokensInQuery = labelTokens.every((labelToken) =>
+  const entityNoise = new Set([
+    'pracownik',
+    'pracownika',
+    'pracownicy',
+    'pracownikow',
+    'osoby',
+    'osoba',
+  ]);
+  const distinctiveLabelTokens = labelTokens.filter((token) => !entityNoise.has(token));
+  const tokensToRequire =
+    distinctiveLabelTokens.length > 0 ? distinctiveLabelTokens : labelTokens;
+
+  const requiredTokensInQuery = tokensToRequire.every((labelToken) =>
     queryTokens.some((queryToken) => queryTokenMatchesLabelToken(queryToken, labelToken)),
   );
-  if (!allLabelTokensInQuery) {
+  if (!requiredTokensInQuery) {
+    return false;
+  }
+
+  // Cała etykieta zredukowana do samego przymiotnika statusu (po dopasowaniu tokenów).
+  if (
+    tokensToRequire.every((token) => isGenericStatusLabel(token)) &&
+    queryHasFieldNounBeyondStatusAdjective(normalizedSection)
+  ) {
     return false;
   }
 

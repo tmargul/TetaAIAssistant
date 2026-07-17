@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-17** (jeden timeout zapytania 180 s)
+> Ostatnia aktualizacja: **2026-07-17** (pipeline Oracle: help→DLL→widoki→pakiety→RAG)
 
 ---
 
@@ -131,10 +131,29 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [ ] Admin zarejestrowany na real Oracle (nie fake `teta_admin`)
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
 - [ ] **Oracle agent + wtyczki:** przetestować w czacie (źródło „Baza Oracle”) pytanie o dane z formularza np. wykształcenie → tabela w wyniku
+- [ ] **Pipeline Oracle (standard 2026-07-17):** wdrożyć kolejność help→DLL→widoki→tabele→pakiety→stara ścieżka/RAG (dziś: jeden SELECT z jednego targetObject)
 
 ---
 
 ## Notatki sesji
+
+### 2026-07-17 — standard pipeline asystenta (Oracle / dane z Tety)
+
+**Ustalona kolejność (obowiązujący standard):**
+
+1. **Dopasuj wtyczkę (DLL)** do pytania — RAG Help (`teta_plugin` /help) → kontekst formularza/pola → konkretna DLL.
+2. **W DLL** znajdź bindingi kolumn (etykiety UI ↔ Oracle) → widok / tabela / pakiet.
+3. **Wykonaj SELECT** na wyselekcjonowanych obiektach: **najpierw widoki, potem tabele**. Pierwszy wynik z wierszami = **stop** i pokaż użytkownikowi (max kilka kandydatów, w budżecie timeoutu).
+4. Jeśli pkt 3 puste — sprawdź **powiązane pakiety** (`_DAC` / `_AGL` / `_LEP` / funkcje) pod kątem pobrania danych.
+5. Nadal brak — **stara ścieżka**: agent LLM + RAG (schema / docs / plugin), jak dziś.
+
+**Reguły:**
+- Kandydaci tylko z kontekstu pytania (help + mapowania DLL), nie pełny katalog Oracle.
+- Preferuj kolumnę tekstową (`NAZWA` / `STANOWISKO`) przed samym `*_ID`.
+- Przy 0 wierszach **nie** kończ od razu komunikatem „brak w źródłach” — dopiero po wyczerpaniu 1–4.
+- Pytania o *znaczenie pola* (nie o dane) nadal mogą kończyć się na helpie (`application_help`) bez SQL.
+
+**Stan kodu dziś:** szybka ścieżka = jeden `buildDirectPluginSelect` + jeden obiekt; przy 0 wierszach często skok do docs/RAG zamiast kolejnych widoków/pakietów.
 
 ### 2026-07-11 — metadane wtyczek / RAG (plan od nowa)
 
@@ -199,6 +218,18 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Konfiguracja:** **Ustawienia → Asystent AI** (SQLite `chat.query_timeout_ms`) lub `TETA_CHAT_QUERY_TIMEOUT_MS=180000` w `apps/api/.env`. Przeglądarka: +15 s (`clientStreamTimeoutMs` z `/api/chat/runtime`).
 - **Stare zmienne** (`TETA_ORACLE_AGENT_TOTAL_TIMEOUT_MS`, `TETA_ORACLE_AGENT_LLM_TIMEOUT_MS`, `TETA_CHAT_ORCHESTRATOR_TIMEOUT_MS`) — ignorowane przez kod; można usunąć z `.env`.
 - **Pliki:** `chat-query-timeout.service.ts`, `ChatAssistantSettingsPanel`, `chat-orchestrator.service.ts`, `oracle-agent.service.ts` (`remainingMs(agentDeadline)` zamiast stałego 60 s/krok).
+
+### 2026-07-17 — historia: „Nowa rozmowa · 0 wiad.”
+
+- **Bug:** przy starcie / „Nowa rozmowa” od razu `POST` pustego rekordu → w historii „Nowa rozmowa · 0 wiad.”; potem po odpowiedzi aktualizacja.
+- **Fix:** szkic tylko lokalnie (`crypto.randomUUID`); zapis na serwer przy pierwszej wiadomości (PUT upsert); lista historii usuwa/filtruje puste; `saveChatConversation` nie zapisuje `messages: []`.
+
+
+- **Problem:** „A jakie ma Beata Styś aktualne stanowisko?” → timeout 180 s. Log: szybka ścieżka budowała `SELECT UP_TO_DATE…` albo w ogóle nie budowała SQL → LLM.
+- **Przyczyny:** (1) etykieta „Aktualne” / substring „akt”⊂„aktualne”; (2) RAG bez mapowań Stanowisko; (3) `UCP_UMOWY` bez linku IPRA_ID; (4) literał „aktualne” brany jako imię po „Styś”; (5) API padło na `EADDRINUSE` — stary proces na :3000.
+- **Fix:** matcher OUTPUT, doładowanie mapowań z rejestru DLL, link UMOW→IPRA_ID, preferencja wielkich liter w imionach, restart API.
+- **Oczekiwany SQL:** `SELECT STANOWISKO, SSTN_ID FROM …NT_KP_IMP_UMOWY_UC WHERE IPRA_ID IN (SELECT ID FROM …PRACOWNICY WHERE Beata/Styś)`.
+- **Uwaga:** źródło to umowy cywilnoprawne (`IMP_UMOWY_UC`) — przy etacie bez UC wynik może być pusty; docelowo pipeline ma próbować kolejne widoki (np. `KDR_STANOWISKA` / `IMP_STANOWISKA`) zanim RAG.
 
 ### 2026-07-15 — help kontekstowy Teta (Etap 1)
 

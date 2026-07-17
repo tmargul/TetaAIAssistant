@@ -183,6 +183,15 @@ function selectPersonNameLiterals(message: string, literals: string[]): string[]
     return nameParts.slice(-2);
   }
 
+  // Preferuj tokeny z wielkiej litery (Beata Styś), nie przymiotniki po nazwisku („aktualne”).
+  const capitalizedNameParts = nameParts.filter((word) => /^[A-ZÀ-ŽĄĆĘŁŃÓŚŹŻ]/.test(word));
+  if (capitalizedNameParts.length >= 1 && capitalizedNameParts.length <= 2) {
+    return capitalizedNameParts.slice(-2);
+  }
+  if (capitalizedNameParts.length > 2) {
+    return capitalizedNameParts.slice(-2);
+  }
+
   const capitalized = literals.filter((word) => /^[A-ZÀ-ŽĄĆĘŁŃÓŚŹŻ]/.test(word) && looksLikeNamePart(word));
   if (capitalized.length >= 1) {
     const tail = literals.filter(
@@ -244,9 +253,14 @@ export function resolveImplicitFilterClause(input: {
       continue;
     }
 
-    const table =
-      input.preferredTable?.trim().toUpperCase() ??
+    const tableFromRoles =
       roleMappings.find((mapping) => mapping.targetObject?.trim())?.targetObject?.toUpperCase() ??
+      null;
+    // Filtr imię/nazwisko zawsze z tabeli ról (pracownik), nie z preferredTable OUTPUT
+    // (np. słownik REK_STATUSY po mylnym dopasowaniu „Aktualne”).
+    const table =
+      tableFromRoles ??
+      input.preferredTable?.trim().toUpperCase() ??
       null;
     if (!table) {
       continue;
@@ -254,6 +268,14 @@ export function resolveImplicitFilterClause(input: {
 
     const usableRoles = roleMappings.filter((mapping) => {
       const column = input.pickResolvedColumn(mapping, input.schemaColumns);
+      // Schemat z preferredTable OUTPUT nie dotyczy tabeli ról (IMIE/NAZWISKO na pracowniku).
+      if (
+        tableFromRoles &&
+        input.preferredTable?.trim() &&
+        tableFromRoles !== input.preferredTable.trim().toUpperCase()
+      ) {
+        return true;
+      }
       return input.columnExistsInSchema(column, input.schemaColumns);
     });
     if (usableRoles.length !== roleMappings.length) {

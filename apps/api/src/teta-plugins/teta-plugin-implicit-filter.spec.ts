@@ -31,6 +31,14 @@ const employeeMappings: TetaPluginColumnMapping[] = [
 ];
 
 describe('teta-plugin-implicit-filter.util', () => {
+  it('extracts Beata Styś without trailing adjective aktualne', () => {
+    expect(
+      extractQueryLiteralTokens('A jakie ma Beata Styś aktualne stanowisko?', employeeMappings, [
+        'stanowisko',
+      ]),
+    ).toEqual(['Beata', 'Styś']);
+  });
+
   it('extracts person name literals without explicit filter preposition', () => {
     expect(
       extractQueryLiteralTokens('Podaj wiek pracownika Kowalski Janusz', employeeMappings, [

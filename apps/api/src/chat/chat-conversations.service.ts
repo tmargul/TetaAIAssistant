@@ -47,6 +47,15 @@ export class ChatConversationsService {
   ) {}
 
   listForUser(userId: number, workMode = getBuildAppMode()): ChatConversationSummary[] {
+    // Usuń puste szkice („Nowa rozmowa · 0 wiad.”) powstałe przy starym POST na start.
+    this.db.connection
+      .prepare(
+        `DELETE FROM chat_conversations
+         WHERE user_id = ?
+           AND (messages_json IS NULL OR messages_json = '[]' OR messages_json = '')`,
+      )
+      .run(userId);
+
     const rows = this.db.connection
       .prepare(
         `SELECT id, title, model, messages_json, created_at, updated_at
@@ -57,7 +66,9 @@ export class ChatConversationsService {
       )
       .all(userId, MAX_CONVERSATIONS_PER_USER) as SummaryRow[];
 
-    return rows.map((row) => this.toSummary(row));
+    return rows
+      .map((row) => this.toSummary(row))
+      .filter((item) => item.messageCount > 0);
   }
 
   getForUser(userId: number, id: string, workMode = getBuildAppMode()): ChatConversationRecord {

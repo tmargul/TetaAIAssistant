@@ -135,6 +135,54 @@ describe('teta-plugin-grid-column-mapper', () => {
     ).toBe(false);
   });
 
+  it('does not match Nr akt via substring akt inside aktualne', () => {
+    const query = 'A jakie ma Beata Styś aktualne stanowisko?';
+    expect(
+      linkMatchesSqlOutputIntent(query, {
+        oracleColumnName: 'NR_AKT_ZGONU',
+        label: 'Nr akt',
+        gridColumnName: null,
+        synonyms: ['Nr akt'],
+      }),
+    ).toBe(false);
+  });
+
+  it('does not match generic Aktualne flag when query asks for stanowisko', () => {
+    const query = 'A jakie ma Beata Styś aktualne stanowisko?';
+    expect(
+      linkMatchesSqlOutputIntent(query, {
+        oracleColumnName: 'UP_TO_DATE',
+        label: 'Aktualne',
+        gridColumnName: 'dgcCuseUpToDate',
+        synonyms: ['Aktualne', 'Czy aktualny?'],
+      }),
+    ).toBe(false);
+    expect(
+      linkMatchesSqlOutputIntent(query, {
+        oracleColumnName: 'DATA_URODZENIA',
+        label: 'Aktualne',
+        gridColumnName: null,
+        synonyms: ['Aktualne'],
+      }),
+    ).toBe(false);
+    expect(
+      linkMatchesSqlOutputIntent(query, {
+        oracleColumnName: 'STANOWISKO',
+        label: 'Stanowisko',
+        gridColumnName: 'dgcSstnName',
+        synonyms: ['Stanowisko', 'Nazwa stanowiska'],
+      }),
+    ).toBe(true);
+    expect(
+      linkMatchesSqlOutputIntent(query, {
+        oracleColumnName: 'STANOWISKO',
+        label: 'Stanowisko pracownika',
+        gridColumnName: 'dgcPosition',
+        synonyms: ['Stanowisko pracownika'],
+      }),
+    ).toBe(true);
+  });
+
   it('links dgcLSZKLataStaz to LATA_STAZU via semantic grid tokens', () => {
     const educationForm: TetaPluginFormMetadata = {
       Plugin: { ClassName: 'WyksztalcenieWidok', Languages: [{ Name: 'Wykształcenie' }] },

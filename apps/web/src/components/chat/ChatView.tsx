@@ -18,6 +18,7 @@ import { authFetch } from '../../lib/auth-storage';
 import { IconChat } from '../layout/icons';
 import {
   bootstrapConversation,
+  createConversationTitle,
   loadChatConversation,
   saveChatConversation,
   setCurrentConversationId,
@@ -324,7 +325,7 @@ export function ChatView({
       skipSaveRef.current = false;
       return;
     }
-    if (!conversationId || isBusy || isLoadingConversation) return;
+    if (!conversationId || isBusy || isLoadingConversation || messages.length === 0) return;
 
     void saveChatConversation({
       id: conversationId,
@@ -448,9 +449,11 @@ export function ChatView({
     };
 
     const nextMessages = [...messages, userMessage];
+    const nextTitle =
+      messages.length === 0 ? createConversationTitle(trimmed) : conversationTitle;
     setMessages(nextMessages);
     if (messages.length === 0) {
-      setConversationTitle(trimmed.slice(0, 48));
+      setConversationTitle(nextTitle);
     }
     setInput('');
     setError(null);
@@ -458,6 +461,24 @@ export function ChatView({
     setTypingHint('Analizuję pytanie…');
     requestStartedRef.current = Date.now();
     setIsBusy(true);
+
+    // Zapisz od razu z pierwszą wiadomością — bez czekania na odpowiedź AI
+    // (wcześniej POST tworzył „Nowa rozmowa · 0 wiad.”).
+    let activeConversationId = conversationId;
+    if (!activeConversationId) {
+      const fresh = await startNewConversation(model);
+      activeConversationId = fresh.id;
+      skipSaveRef.current = true;
+      setConversationId(fresh.id);
+    }
+    void saveChatConversation({
+      id: activeConversationId,
+      title: nextTitle,
+      model,
+      messages: nextMessages,
+    }).catch(() => {
+      // zapis końcowy i tak pójdzie po streamie
+    });
 
     let assistantId = '';
     let streamError: string | null = null;
@@ -492,7 +513,7 @@ export function ChatView({
           quality,
           history: history.slice(0, -1),
           ragFilter: buildRagFilterPayload(ragFilter),
-          conversationId: conversationId || undefined,
+          conversationId: activeConversationId || undefined,
         },
         (event) => {
           if (event.type === 'status') {

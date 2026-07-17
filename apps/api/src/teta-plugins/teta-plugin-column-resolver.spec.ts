@@ -456,4 +456,68 @@ describe('teta-plugin-column-resolver', () => {
     expect(sql).toMatch(/Kowalski/);
     expect(sql).toMatch(/Janusz/);
   });
+
+  it('builds stanowisko SQL instead of matching Aktualne/UP_TO_DATE flags', () => {
+    const stanowiskoMappings: TetaPluginColumnMapping[] = [
+      ...employeeMappings,
+      {
+        oracleColumnName: 'UP_TO_DATE',
+        label: 'Aktualne',
+        gridColumnName: 'dgcCuseUpToDate',
+        synonyms: ['Aktualne', 'Czy aktualny?'],
+        pluginColumnName: 'UP_TO_DATE',
+        resolvedColumnName: 'UP_TO_DATE',
+        targetObject: 'NT_KP_REK_STATUSY_ROZMOWY',
+        dllName: 'plgPersonelSlowniki.dll',
+        gatewayClassName: 'StatusyRozmowyTG',
+      },
+      {
+        oracleColumnName: 'DATA_URODZENIA',
+        label: 'Aktualne',
+        gridColumnName: null,
+        synonyms: ['Aktualne'],
+        pluginColumnName: 'DATA_URODZENIA',
+        resolvedColumnName: 'DATA_URODZENIA',
+        targetObject: 'NT_KP_PRC_PRACOWNICY',
+        dllName: 'plgPersonelSlowniki.dll',
+        gatewayClassName: 'PracownicyMTG',
+      },
+      {
+        oracleColumnName: 'STANOWISKO',
+        label: 'Stanowisko',
+        gridColumnName: 'dgcSstnName',
+        synonyms: ['Stanowisko', 'Nazwa stanowiska'],
+        pluginColumnName: 'STANOWISKO',
+        resolvedColumnName: 'STANOWISKO',
+        targetObject: 'NT_KP_IMP_UMOWY_UC',
+        dllName: 'plgPracownik.dll',
+        gatewayClassName: 'UmowyCywilneTG',
+      },
+      {
+        oracleColumnName: 'IPRA_ID',
+        label: 'ID pracownika',
+        gridColumnName: null,
+        synonyms: ['ID pracownika'],
+        pluginColumnName: 'IPRA_ID',
+        resolvedColumnName: 'IPRA_ID',
+        targetObject: 'NT_KP_IMP_UMOWY_UC',
+        dllName: 'plgPracownik.dll',
+        gatewayClassName: 'UmowyCywilneTG',
+      },
+    ];
+
+    const sql = buildDirectEmployeeSelect({
+      message: 'A jakie ma Beata Styś aktualne stanowisko?',
+      history: [],
+      defaultOwner: 'TETA_ADMIN',
+      columnMappings: stanowiskoMappings,
+      preferredTable: 'NT_KP_REK_STATUSY_ROZMOWY',
+      schemaColumns: [{ name: 'UP_TO_DATE' }, { name: 'KOD' }],
+    });
+
+    expect(sql).toMatch(/STANOWISKO/);
+    expect(sql).not.toMatch(/UP_TO_DATE/);
+    expect(sql).toMatch(/Beata/);
+    expect(sql).toMatch(/Sty/);
+  });
 });

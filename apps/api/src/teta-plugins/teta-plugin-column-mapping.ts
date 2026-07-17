@@ -182,6 +182,22 @@ function outputMentionScore(section: string, link: GridOracleColumnLink): number
   if (oracleUpper === 'IMIE' || oracleUpper === 'NAZWISKO') {
     score += 20;
   }
+  if (oracleUpper === 'UP_TO_DATE' || oracleUpper === 'KOME_ID') {
+    score -= 80;
+  }
+  if (/^(aktualn[aey]|aktualnych|biezac[aey])$/.test(labelNorm)) {
+    score -= 100;
+  }
+  if (/\bstanowisk/.test(labelNorm) && /\bstanowisk/.test(normalizedSection)) {
+    score += 60;
+  }
+  // Preferuj nazwę stanowiska, nie samo ID (SSTN_ID).
+  if (oracleUpper === 'STANOWISKO' || /nazwa stanowiska/.test(labelNorm)) {
+    score += 40;
+  }
+  if (/\bstanowisk/.test(normalizedSection) && /_ID$/.test(oracleUpper)) {
+    score -= 25;
+  }
 
   return score;
 }
@@ -264,6 +280,11 @@ export function resolveOutputMappingsFromQuery(
     })
     .filter((item): item is NonNullable<typeof item> => item != null)
     .sort((left, right) => {
+      // Duża różnica trafności → sortuj po score (Stanowisko > Aktualne).
+      // Bliskie wyniki → kolejność wzmianki w pytaniu (imię przed nazwiskiem).
+      if (Math.abs(right.score - left.score) >= 25) {
+        return right.score - left.score;
+      }
       const leftIndex = left.mentionIndex < 0 ? Number.MAX_SAFE_INTEGER : left.mentionIndex;
       const rightIndex = right.mentionIndex < 0 ? Number.MAX_SAFE_INTEGER : right.mentionIndex;
       if (leftIndex !== rightIndex) {

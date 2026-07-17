@@ -89,6 +89,19 @@ export async function saveChatConversation(input: {
   model: ChatModel;
   messages: ChatMessage[];
 }): Promise<StoredChatConversation> {
+  if (input.messages.length === 0) {
+    // Nie zapisuj pustych szkiców — inaczej w historii pojawia się „Nowa rozmowa · 0 wiad.”
+    setCurrentConversationId(input.id);
+    return {
+      id: input.id,
+      title: input.title,
+      model: input.model,
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
   const res = await authFetch(`/api/chat/conversations/${encodeURIComponent(input.id)}`, {
     method: 'PUT',
     body: JSON.stringify({
@@ -141,14 +154,16 @@ export async function bootstrapConversation(): Promise<StoredChatConversation> {
 }
 
 export async function startNewConversation(model: ChatModel): Promise<StoredChatConversation> {
-  const res = await authFetch('/api/chat/conversations', {
-    method: 'POST',
-    body: JSON.stringify({ model }),
-  });
-  if (!res.ok) {
-    throw new Error(`Nie udało się utworzyć rozmowy (HTTP ${res.status}).`);
-  }
-  const conversation = (await res.json()) as StoredChatConversation;
+  // Nie twórz pustego rekordu na serwerze — zapis dopiero przy pierwszej wiadomości (PUT upsert).
+  const now = new Date().toISOString();
+  const conversation: StoredChatConversation = {
+    id: crypto.randomUUID(),
+    title: 'Nowa rozmowa',
+    model,
+    messages: [],
+    createdAt: now,
+    updatedAt: now,
+  };
   setCurrentConversationId(conversation.id);
   return conversation;
 }
