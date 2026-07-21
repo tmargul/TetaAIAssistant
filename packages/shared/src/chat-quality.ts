@@ -1,7 +1,7 @@
 export const CHAT_QUALITY_MODES = ['low', 'medium', 'high'] as const;
 export type ChatQualityMode = (typeof CHAT_QUALITY_MODES)[number];
 
-export const DEFAULT_CHAT_QUALITY: ChatQualityMode = 'low';
+export const DEFAULT_CHAT_QUALITY: ChatQualityMode = 'high';
 
 export const CHAT_QUALITY_LABELS: Record<ChatQualityMode, string> = {
   low: 'Niska (szybko)',

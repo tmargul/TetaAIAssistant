@@ -29,6 +29,29 @@ export type PluginPackageCandidate = {
 
 const MAX_SQL_CANDIDATES = 5;
 
+/** Obiekty Oracle sensowne przy pytaniu o stanowisko/stanowiska (nie BHP, urlopy, …). */
+export function isStanowiskoRelatedObject(objectName: string): boolean {
+  const bare = bareObjectName(objectName);
+  return /STANOWISK|UMOWY_UC|ZATRUD|PELNION|ETAT/i.test(bare);
+}
+
+export function isStanowiskoQuery(message: string): boolean {
+  return /\bstanowisk/.test(normalizeSearchText(message));
+}
+
+/** Odrzuć SQL bez listy kolumn (np. SELECT FROM FROM …). */
+export function isMalformedSelectSql(sql: string): boolean {
+  const trimmed = sql.trim();
+  if (!trimmed) return true;
+  if (!/^SELECT\s/i.test(trimmed)) return true;
+  if (/^SELECT\s+FROM\b/i.test(trimmed)) return true;
+  if (/SELECT\s+FROM\s+FROM\b/i.test(trimmed)) return true;
+  const selectMatch = trimmed.match(/^\s*SELECT\s+([\s\S]+?)\s+FROM\b/i);
+  const selectList = selectMatch?.[1]?.trim() ?? '';
+  if (!selectList || /^FROM\b/i.test(selectList)) return true;
+  return false;
+}
+
 const TEXT_COLUMN_ALIASES: Record<string, string[]> = {
   STANOWISKO: ['STANOWISKO', 'NAZWA', 'NAME', 'NAME_2', 'OPIS'],
   NAZWA: ['NAZWA', 'STANOWISKO', 'NAME'],
@@ -122,7 +145,8 @@ export function collectPluginSqlCandidates(input: {
 
   // Stanowisko etatowe — najpierw KDR (aktualne etaty), potem IMP, na końcu UC.
   const normalizedMessage = normalizeSearchText(input.message);
-  if (/\bstanowisk/.test(normalizedMessage)) {
+  const stanowiskoQuery = isStanowiskoQuery(input.message);
+  if (stanowiskoQuery) {
     for (const name of ['NT_KP_KDR_STANOWISKA', 'NT_KP_IMP_STANOWISKA', 'NT_KP_IMP_UMOWY_UC']) {
       pushNamed(name, 'mapping');
     }
@@ -153,18 +177,23 @@ export function collectPluginSqlCandidates(input: {
   const tables: PluginSqlCandidate[] = [];
   const unknown: PluginSqlCandidate[] = [];
 
-  const rankedNames =
-    /\bstanowisk/.test(normalizedMessage)
-      ? [
-          ...orderedNames.filter((item) => /KDR_STANOWISKA$/i.test(item.name)),
-          ...orderedNames.filter(
-            (item) => /IMP_STANOWISKA$/i.test(item.name) && !/KDR_STANOWISKA$/i.test(item.name),
-          ),
-          ...orderedNames.filter(
-            (item) => !/KDR_STANOWISKA$/i.test(item.name) && !/IMP_STANOWISKA$/i.test(item.name),
-          ),
-        ]
-      : orderedNames;
+  // Przy pytaniu o stanowiska nie próbuj obcych widoków (np. BHP_SRODKI),
+  // nawet jeśli RAG/DLL ma pole „Stanowisko” na innym formularzu.
+  const scopedNames = stanowiskoQuery
+    ? orderedNames.filter((item) => isStanowiskoRelatedObject(item.name))
+    : orderedNames;
+
+  const rankedNames = stanowiskoQuery
+    ? [
+        ...scopedNames.filter((item) => /KDR_STANOWISKA$/i.test(item.name)),
+        ...scopedNames.filter(
+          (item) => /IMP_STANOWISKA$/i.test(item.name) && !/KDR_STANOWISKA$/i.test(item.name),
+        ),
+        ...scopedNames.filter(
+          (item) => !/KDR_STANOWISKA$/i.test(item.name) && !/IMP_STANOWISKA$/i.test(item.name),
+        ),
+      ]
+    : scopedNames;
 
   for (const item of rankedNames) {
     const lookedUp = input.lookupNodeType?.(item.name) ?? null;

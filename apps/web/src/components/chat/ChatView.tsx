@@ -4,12 +4,12 @@ import {
   type ChatMessageFeedback,
   type ChatModel,
   type ChatModelsResponse,
-  type ChatQualityMode,
   type ChatRuntimeStatusResponse,
   type OracleAgentSqlStep,
   type OracleReport,
   type RagSearchFilter,
   type SubmitChatMessageFeedbackResponse,
+  DEFAULT_CHAT_QUALITY,
   KNOWLEDGE_SOURCE_TYPES,
   oracleProgressHint,
   sanitizeChatMessageOracleForClient,
@@ -26,15 +26,9 @@ import {
   type StoredChatConversation,
 } from './chat-storage';
 import { streamChatCompletion } from './chat-stream';
-import {
-  historyClientLimit,
-  historyOracleLimit,
-  loadChatQualityPreference,
-  saveChatQualityPreference,
-} from './chat-quality-preference';
+import { historyClientLimit, historyOracleLimit } from './chat-quality-preference';
 import { formatChatTiming } from './format-duration';
 import { ModelSelect } from './ModelSelect';
-import { QualitySelect } from './QualitySelect';
 import { ReportTable } from './ReportTable';
 import './chat.css';
 
@@ -200,7 +194,6 @@ export function ChatView({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ChatModel>('qwen3');
-  const [quality, setQuality] = useState<ChatQualityMode>(() => loadChatQualityPreference());
   const [availableModels, setAvailableModels] = useState<ChatModel[]>(['qwen3']);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [isLoadingConversation, setIsLoadingConversation] = useState(true);
@@ -374,14 +367,6 @@ export function ChatView({
     [conversationId],
   );
 
-  useEffect(() => {
-    saveChatQualityPreference(quality);
-  }, [quality]);
-
-  const handleQualityChange = (next: ChatQualityMode) => {
-    setQuality(next);
-  };
-
   const refreshRuntime = useCallback(async () => {
     try {
       const res = await authFetch(`/api/chat/runtime?model=${encodeURIComponent(model)}`);
@@ -492,7 +477,7 @@ export function ChatView({
     let oracleReports: OracleReport[] = [];
 
     try {
-      const historyLimit = Math.max(historyOracleLimit(quality), historyClientLimit(quality));
+      const historyLimit = Math.max(historyOracleLimit(), historyClientLimit());
       const history = nextMessages
         .slice(-historyLimit)
         .map((item) => {
@@ -516,7 +501,7 @@ export function ChatView({
         {
           message: trimmed,
           model,
-          quality,
+          quality: DEFAULT_CHAT_QUALITY,
           history: history.slice(0, -1),
           ragFilter: buildRagFilterPayload(ragFilter),
           conversationId: activeConversationId || undefined,
@@ -570,9 +555,7 @@ export function ChatView({
 
           if (event.type === 'rag') {
             setTypingHint(
-              quality === 'high'
-                ? `Model rozumuje (RAG ${Math.round(event.ragMs / 1000)} s, najlepsza jakość)…`
-                : `Generuję odpowiedź (RAG ${Math.round(event.ragMs / 1000)} s)…`,
+              `Model rozumuje (RAG ${Math.round(event.ragMs / 1000)} s)…`,
             );
             return;
           }
@@ -693,14 +676,6 @@ export function ChatView({
               models={availableModels}
               onChange={setModel}
               disabled={modelsLoading || availableModels.length === 0 || isBusy}
-            />
-          </div>
-          <div className="chat__toolbar-field">
-            <span className="chat__model-label">Jakość:</span>
-            <QualitySelect
-              value={quality}
-              onChange={handleQualityChange}
-              disabled={isBusy}
             />
           </div>
         </div>

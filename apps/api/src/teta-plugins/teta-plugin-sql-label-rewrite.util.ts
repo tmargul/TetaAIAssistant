@@ -273,6 +273,9 @@ function retargetFromAndEmployeeFilter(sql: string, targetObject: string): strin
   if (whereUsesEmployeeIdentityColumn(whereClause)) {
     const selectMatch = sql.match(/^\s*SELECT\s+([\s\S]+?)\s+FROM\b/i);
     const selectList = selectMatch?.[1]?.trim() ?? '*';
+    if (!selectList || /^FROM\b/i.test(selectList)) {
+      return sql;
+    }
     const fetchMatch = sql.match(/\bFETCH\s+FIRST\s+\d+\s+ROWS\s+ONLY\b/i)?.[0] ?? '';
     return (
       `SELECT ${selectList} FROM ${qualifiedTarget} ` +

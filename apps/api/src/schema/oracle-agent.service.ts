@@ -42,6 +42,9 @@ import {
   collectPluginPackageCandidates,
   collectPluginSqlCandidates,
   formatPackageHintsForAgent,
+  isMalformedSelectSql,
+  isStanowiskoQuery,
+  isStanowiskoRelatedObject,
 } from '../teta-plugins/teta-plugin-candidate-probe';
 import {
   formatUserFacingSqlColumnError,
@@ -279,7 +282,7 @@ export class OracleAgentService {
             gateways: pluginHints.gateways,
             schemaColumns,
           });
-          if (!directSql) {
+          if (!directSql || isMalformedSelectSql(directSql)) {
             continue;
           }
           if (triedSql.includes(directSql)) {
@@ -396,9 +399,17 @@ export class OracleAgentService {
           }
 
           // Spróbuj gotowych SELECT z gateway (LabeledSelect) jako dodatkowy kandydat.
+          const stanowiskoOnly = isStanowiskoQuery(message);
           for (const pkg of packageCandidates) {
             const selectSql = pkg.selectSql?.trim();
-            if (!selectSql || !/^SELECT\s/i.test(selectSql)) {
+            if (!selectSql || !/^SELECT\s/i.test(selectSql) || isMalformedSelectSql(selectSql)) {
+              continue;
+            }
+            if (
+              stanowiskoOnly &&
+              pkg.sourceObject &&
+              !isStanowiskoRelatedObject(pkg.sourceObject)
+            ) {
               continue;
             }
             if (triedSql.includes(selectSql)) {
@@ -946,6 +957,11 @@ export class OracleAgentService {
     const rewrittenSql = rewriteSqlLabelsUsingPluginMappings(sql, columnMappings);
     if (rewrittenSql !== sql) {
       this.logger.log(`Oracle agent — przepisano etykiety UI w SQL: ${rewrittenSql}`);
+    }
+    if (isMalformedSelectSql(rewrittenSql)) {
+      throw new Error(
+        `Nieprawidłowy SELECT (pusta lista kolumn): ${rewrittenSql.slice(0, 120)}`,
+      );
     }
 
     const result = await this.query.executeSelect(rewrittenSql, {

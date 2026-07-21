@@ -1,4 +1,8 @@
-import { collectPluginSqlCandidates, buildSqlForCandidate } from './teta-plugin-candidate-probe';
+import {
+  collectPluginSqlCandidates,
+  buildSqlForCandidate,
+  isMalformedSelectSql,
+} from './teta-plugin-candidate-probe';
 import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
 import type { TetaPluginGatewayHint } from './teta-plugin-query-resolver';
 
@@ -178,5 +182,85 @@ describe('teta-plugin-candidate-probe', () => {
       lookupNodeType: () => 'view',
     });
     expect(candidates[0]?.objectName).toBe('NT_KP_KDR_STANOWISKA');
+  });
+
+  it('excludes unrelated BHP objects for stanowiska list query', () => {
+    const withBhp: TetaPluginColumnMapping[] = [
+      ...stanowiskoMappings,
+      {
+        oracleColumnName: 'STANOWISKO',
+        label: 'Stanowisko',
+        gridColumnName: 'dgcStanowisko',
+        synonyms: ['Stanowisko'],
+        pluginColumnName: 'STANOWISKO',
+        resolvedColumnName: 'STANOWISKO',
+        targetObject: 'NT_KP_BHP_SRODKI_PRACOWNIK',
+        dllName: 'plgBhp.dll',
+        gatewayClassName: 'BhpTG',
+      },
+    ];
+    const candidates = collectPluginSqlCandidates({
+      message: 'Wypisz stanowiska pracownika Beata Styś',
+      columnMappings: withBhp,
+      gateways: [
+        ...gateways,
+        {
+          dllName: 'plgBhp.dll',
+          dllPath: 'Bhp/plgBhp.dll',
+          gatewayClassName: 'BhpTG',
+          viewName: 'NT_KP_BHP_SRODKI_PRACOWNIK',
+          baseTableName: 'T_BHP_SRODKI',
+          packageName: 'PKG_BHP_DAC',
+          selectSql: 'SELECT FROM FROM TETA_ADMIN.NT_KP_BHP_SRODKI_PRACOWNIK',
+          confidence: 3,
+        },
+      ],
+      lookupNodeType: () => 'view',
+    });
+    const names = candidates.map((c) => c.objectName);
+    expect(names).toContain('NT_KP_KDR_STANOWISKA');
+    expect(names).not.toContain('NT_KP_BHP_SRODKI_PRACOWNIK');
+    expect(candidates[0]?.objectName).toBe('NT_KP_KDR_STANOWISKA');
+  });
+
+  it('builds full history SQL for „wypisz stanowiska” (not current-only)', () => {
+    const sql = buildSqlForCandidate({
+      candidate: {
+        kind: 'view',
+        objectName: 'NT_KP_KDR_STANOWISKA',
+        source: 'mapping',
+        packageNames: [],
+      },
+      message: 'Wypisz stanowiska pracownika Beata Styś',
+      history: [],
+      defaultOwner: 'TETA_ADMIN',
+      columnMappings: stanowiskoMappings,
+      computedIntents: [],
+      schemaColumns: [
+        { name: 'PRAC_ID' },
+        { name: 'SSTN_ID' },
+        { name: 'DATA_OD' },
+        { name: 'DATA_DO' },
+      ],
+    });
+
+    expect(sql).toMatch(/NT_KP_KDR_STANOWISKA/);
+    expect(sql).toMatch(/DATA_OD/);
+    expect(sql).not.toMatch(/FETCH FIRST 1/);
+    expect(sql).not.toMatch(/TRUNC\(SYSDATE\)/);
+  });
+});
+
+describe('isMalformedSelectSql', () => {
+  it('rejects empty select list / double FROM', () => {
+    expect(isMalformedSelectSql('SELECT FROM FROM TETA_ADMIN.NT_KP_BHP_SRODKI_PRACOWNIK')).toBe(
+      true,
+    );
+    expect(isMalformedSelectSql('SELECT FROM TETA_ADMIN.NT_KP_KDR_STANOWISKA')).toBe(true);
+    expect(
+      isMalformedSelectSql(
+        'SELECT s.NAZWA AS STANOWISKO FROM TETA_ADMIN.NT_KP_KDR_STANOWISKA k WHERE 1=1',
+      ),
+    ).toBe(false);
   });
 });

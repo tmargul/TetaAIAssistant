@@ -235,7 +235,7 @@ export class OllamaChatService implements OnModuleInit {
     }
 
     this.logger.log(
-      `Ollama chat stream: model=${resolvedModel}, quality=${quality ?? 'low'}, think=${think}, ` +
+      `Ollama chat stream: model=${resolvedModel}, quality=${quality ?? 'high'}, think=${think}, ` +
         `num_predict=${options.num_predict}, num_thread=${options.num_thread}, ` +
         `num_ctx=${options.num_ctx}, num_batch=${options.num_batch}, ` +
         `prompt_chars=${promptChars}, messages=${messages.length}`,

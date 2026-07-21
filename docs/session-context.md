@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-21** (daty YYYY-MM-DD + sort najnowsze na górze)
+> Ostatnia aktualizacja: **2026-07-21** (jakość rozmów zawsze high)
 
 ---
 
@@ -165,6 +165,17 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Kolumny o nazwie `DATA*` → zawsze data bez czasu; czas tylko gdy użytkownik prosi (`z czasem`, `godzina`, …).
 - Wynik tabelaryczny: sort **najnowsze na górze** (po `DATA_OD` / pierwszej kolumnie `DATA*`), nulls na dole.
 - Pliki: `oracle-result-format.util.ts`, `oracle-query.service.ts`, `oracle-agent.service.ts`.
+
+### 2026-07-21 — stanowiska vs BHP (`SELECT FROM FROM`)
+
+- Pytanie „Wypisz stanowiska…” → po 0 wierszach (np. literówka **Byś** zamiast **Styś**) probe/LLM brał obce obiekty z RAG (np. `NT_KP_BHP_SRODKI_PRACOWNIK` — też ma pole „Stanowisko”) i psuł SQL (`SELECT FROM FROM …`).
+- **Fix:** przy `stanowisk*` kandydaci tylko `STANOWISK|UMOWY_UC|ZATRUD|…`; odrzut zepsutego SELECT; nie uruchamiaj gateway SELECT spoza stanowisk.
+- Poprawne SQL listy: `SELECT s.NAZWA AS STANOWISKO, … FROM NT_KP_KDR_STANOWISKA` (bez `FETCH FIRST 1`).
+
+### 2026-07-21 — jakość rozmów zawsze najlepsza
+
+- Usunięto combobox **Jakość** z toolbaru czatu (`QualitySelect`).
+- `DEFAULT_CHAT_QUALITY = 'high'` — każde zapytanie idzie z profilem najlepszej jakości (API + UI).
 
 ### 2026-07-20 — skan wtyczek = 0 DLL
 
