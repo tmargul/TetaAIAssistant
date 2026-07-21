@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-21** (jakość rozmów zawsze high)
+> Ostatnia aktualizacja: **2026-07-21** (audyt mapowania AIA→Oracle)
 
 ---
 
@@ -176,6 +176,12 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 - Usunięto combobox **Jakość** z toolbaru czatu (`QualitySelect`).
 - `DEFAULT_CHAT_QUALITY = 'high'` — każde zapytanie idzie z profilem najlepszej jakości (API + UI).
+
+### 2026-07-21 — audyt mapowania aplikacji↔Oracle
+
+- Raport: `docs/AIA_APPLICATION_DB_MAPPING_AUDIT.md` (bez zmian kodu).
+- Główne awarie: heurystyczne/sprzeczne bindings, strip SqlJoin, widoki bez kolumn w grafie, lokalnie 0× GUID/help_field_text.
+- SQLite lokalnie: 107 importów DLL, 2315 app_objects (wszystkie `inferred`).
 
 ### 2026-07-20 — skan wtyczek = 0 DLL
 
