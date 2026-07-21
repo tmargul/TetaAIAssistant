@@ -6,6 +6,7 @@ import { getOracleBackendMode } from '../oracle/oracle-mode';
 import { DatabaseService } from '../database/database.service';
 import { SqlValidatorService } from './sql-validator.service';
 import { resolveDefaultOracleOwner } from '../oracle/oracle-schema.util';
+import { formatOracleCell, sortRowsNewestFirst } from './oracle-result-format.util';
 
 export type QueryExecutionResult = {
   columns: string[];
@@ -28,7 +29,7 @@ export class OracleQueryService {
 
   async executeSelect(
     sql: string,
-    options?: { userId?: number; domain?: string },
+    options?: { userId?: number; domain?: string; includeTime?: boolean },
   ): Promise<QueryExecutionResult> {
     const sanitized = this.validator.sanitizeSelectSql(sql);
     const validation = this.validator.validateSelectSql(sanitized);
@@ -42,7 +43,7 @@ export class OracleQueryService {
     const startedAt = Date.now();
 
     try {
-      const result = await this.runQuery(limitedSql);
+      const result = await this.runQuery(limitedSql, { includeTime: options?.includeTime });
       const durationMs = Date.now() - startedAt;
       this.audit({
         userId: options?.userId,
@@ -90,7 +91,10 @@ export class OracleQueryService {
     return message;
   }
 
-  private async runQuery(sql: string): Promise<Omit<QueryExecutionResult, 'sql' | 'durationMs'>> {
+  private async runQuery(
+    sql: string,
+    options?: { includeTime?: boolean },
+  ): Promise<Omit<QueryExecutionResult, 'sql' | 'durationMs'>> {
     if (getOracleBackendMode(this.config) === 'fake') {
       return {
         columns: ['INFO'],
@@ -119,13 +123,21 @@ export class OracleQueryService {
         maxRows: Number(this.config.get('TETA_ORACLE_AGENT_MAX_ROWS', 200)),
       });
 
-      const rows = result.rows ?? [];
+      const rawRows = result.rows ?? [];
       const columns =
-        rows.length > 0
-          ? Object.keys(rows[0] as Record<string, unknown>)
+        rawRows.length > 0
+          ? Object.keys(rawRows[0] as Record<string, unknown>)
           : [];
-      const formatted = rows.map((row) =>
-        columns.map((col: string) => this.formatCell((row as Record<string, unknown>)[col])),
+      const sortedRows = sortRowsNewestFirst(columns, rawRows, (row, colIndex) => {
+        const col = columns[colIndex];
+        return (row as Record<string, unknown>)[col];
+      });
+      const formatted = sortedRows.map((row) =>
+        columns.map((col: string) =>
+          formatOracleCell((row as Record<string, unknown>)[col], col, {
+            includeTime: options?.includeTime,
+          }),
+        ),
       );
 
       return {
@@ -138,12 +150,6 @@ export class OracleQueryService {
         await connection.close();
       }
     }
-  }
-
-  private formatCell(value: unknown): string {
-    if (value === null || value === undefined) return '';
-    if (value instanceof Date) return value.toISOString();
-    return String(value);
   }
 
   private audit(entry: {

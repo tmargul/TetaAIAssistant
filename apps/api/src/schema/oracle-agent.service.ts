@@ -18,6 +18,7 @@ import { resolveChatQualityProfile } from '../chat/chat-quality.profile';
 import { ConfigService } from '@nestjs/config';
 import { SchemaExplorerService } from './schema-explorer.service';
 import { OracleQueryService } from './oracle-query.service';
+import { userAsksForDateTime } from './oracle-result-format.util';
 import { SchemaProcedureService } from './schema-procedure.service';
 import { SchemaCrawlService } from './schema-crawl.service';
 import {
@@ -124,12 +125,14 @@ export class OracleAgentService {
     const steps: ChatOracleStep[] = [];
     const sqlSteps: OracleAgentSqlStep[] = [];
     const reports: OracleReport[] = [];
+    let includeTimeInDates = false;
 
     try {
       const message = input.message.trim();
       if (!message) {
         throw new BadRequestException('Wiadomość nie może być pusta.');
       }
+      includeTimeInDates = userAsksForDateTime(message);
 
       const profile = resolveChatQualityProfile(input.quality, this.config);
       const history = this.normalizeHistory(
@@ -297,8 +300,24 @@ export class OracleAgentService {
               sqlSteps,
               reports,
               columnMappings,
+              { emitReport: false, includeTime: includeTimeInDates },
             );
             if (report.rowCount > 0) {
+              // Dopiero wynik z wierszami trafia do UI (bez pustych raportów z wcześniejszych prób).
+              const step: ChatOracleStep = {
+                tool: 'execute_sql',
+                summary: `${report.rowCount} wierszy`,
+              };
+              steps.push(step);
+              writeEvent({ type: 'oracle_step', step });
+              writeEvent({ type: 'oracle_report', report });
+              writeEvent({
+                type: 'oracle_sql',
+                sql: report.sql,
+                rowCount: report.rowCount,
+                preview: report.rows.slice(0, 5).map((row) => row.join(' | ')),
+              });
+              reports.push(report);
               finalAnswer = this.buildSqlResultSummary(report);
               oracleThreadContext = buildOracleThreadContext(report);
               break;
@@ -345,6 +364,7 @@ export class OracleAgentService {
                 sqlSteps,
                 reports,
                 columnMappings,
+                { includeTime: includeTimeInDates },
               );
               if (report.rowCount > 0) {
                 finalAnswer = this.buildSqlResultSummary(report);
@@ -398,6 +418,7 @@ export class OracleAgentService {
                 sqlSteps,
                 reports,
                 columnMappings,
+                { includeTime: includeTimeInDates },
               );
               if (report.rowCount > 0) {
                 finalAnswer = this.buildSqlResultSummary(report);
@@ -487,6 +508,7 @@ export class OracleAgentService {
                 sqlSteps,
                 reports,
                 columnMappings,
+                { includeTime: includeTimeInDates },
               );
               finalAnswer = this.buildSqlResultSummary(report);
               oracleThreadContext = buildOracleThreadContext(report);
@@ -918,13 +940,19 @@ export class OracleAgentService {
     sqlSteps: OracleAgentSqlStep[],
     reports: OracleReport[],
     columnMappings: TetaPluginColumnMapping[] = [],
+    options?: { emitReport?: boolean; includeTime?: boolean },
   ): Promise<OracleReport> {
+    const emitReport = options?.emitReport !== false;
     const rewrittenSql = rewriteSqlLabelsUsingPluginMappings(sql, columnMappings);
     if (rewrittenSql !== sql) {
       this.logger.log(`Oracle agent — przepisano etykiety UI w SQL: ${rewrittenSql}`);
     }
 
-    const result = await this.query.executeSelect(rewrittenSql, { userId, domain });
+    const result = await this.query.executeSelect(rewrittenSql, {
+      userId,
+      domain,
+      includeTime: options?.includeTime,
+    });
     const maxRows = Number(this.config.get('TETA_ORACLE_AGENT_MAX_ROWS', 200));
     const truncated = result.rowCount >= maxRows;
     const preview = result.rows.slice(0, 5).map((row) => row.join(' | '));
@@ -937,11 +965,14 @@ export class OracleAgentService {
       truncated,
     };
 
-    const step: ChatOracleStep = { tool: 'execute_sql', summary: `${result.rowCount} wierszy` };
-    steps.push(step);
-    writeEvent({ type: 'oracle_step', step });
-    writeEvent({ type: 'oracle_report', report });
-    writeEvent({ type: 'oracle_sql', sql: result.sql, rowCount: result.rowCount, preview });
+    if (emitReport) {
+      const step: ChatOracleStep = { tool: 'execute_sql', summary: `${result.rowCount} wierszy` };
+      steps.push(step);
+      writeEvent({ type: 'oracle_step', step });
+      writeEvent({ type: 'oracle_report', report });
+      writeEvent({ type: 'oracle_sql', sql: result.sql, rowCount: result.rowCount, preview });
+      reports.push(report);
+    }
 
     const sqlStep: OracleAgentSqlStep = {
       sql: result.sql,
@@ -952,7 +983,6 @@ export class OracleAgentService {
       preview,
     };
     sqlSteps.push(sqlStep);
-    reports.push(report);
     return report;
   }
 

@@ -19,6 +19,7 @@ const IDENTITY_OR_SKIP_COLUMNS = new Set([
   ...EMPLOYEE_FILTER_COLUMNS,
   'ID',
   'IPRA_ID',
+  'PRAC_ID',
 ]);
 
 function bareTableName(table: string): string {
@@ -102,6 +103,51 @@ function collectSelectListTargets(
   return targets;
 }
 
+const SQL_KEYWORDS = new Set([
+  'WHERE',
+  'JOIN',
+  'LEFT',
+  'RIGHT',
+  'INNER',
+  'OUTER',
+  'FULL',
+  'CROSS',
+  'ON',
+  'AND',
+  'OR',
+  'ORDER',
+  'GROUP',
+  'HAVING',
+  'FETCH',
+  'OFFSET',
+  'UNION',
+  'MINUS',
+  'INTERSECT',
+  'START',
+  'CONNECT',
+  'WITH',
+  'AS',
+  'SET',
+  'INTO',
+]);
+
+/** SQL z joinami / aliasami tabel — już techniczny SELECT z szybkiej ścieżki. */
+export function isTechnicallyQualifiedSql(sql: string): boolean {
+  if (/\bJOIN\b/i.test(sql)) {
+    return true;
+  }
+  // FROM owner.table alias  (np. FROM TETA_ADMIN.NT_KP_KDR_STANOWISKA k) — nie mylić z WHERE.
+  const fromAlias = sql.match(/\bFROM\s+[A-Z0-9_."]+\s+([A-Z][A-Z0-9_]*)\b/i);
+  if (fromAlias?.[1] && !SQL_KEYWORDS.has(fromAlias[1].toUpperCase())) {
+    return true;
+  }
+  // Prefiksy aliasów kolumn: k.PRAC_ID, s.NAZWA (nie OWNER.TABLE w FROM — to ma kropkę w kwalifikacji tabeli)
+  if (/(?<![A-Z0-9_])[A-Z]\.[A-Z][A-Z0-9_]*\b/i.test(sql)) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * LLM czasem wstawia etykiety UI (np. STAŻ) zamiast kolumn Oracle (LATA_STAZU)
  * albo SELECT LATA_STAZU z widoku pracowników — poprawia nazwy i FROM/IPRA_ID.
@@ -114,10 +160,20 @@ export function rewriteSqlLabelsUsingPluginMappings(
     return sql;
   }
 
+  // Nie ruszaj SQL-a z joinami/aliasami — rewrite psujeł KDR (s.NAZWA AS STANOWISKO)
+  // i powodował ORA-00904 / ucięte literały (ORA-01756) w fallbacku LLM.
+  if (isTechnicallyQualifiedSql(sql)) {
+    return sql;
+  }
+
   const rewrites = buildLabelRewrites(mappings);
   if (rewrites.length === 0) {
     return sql;
   }
+
+  const knownOracleColumns = new Set(
+    mappings.map((mapping) => mapping.oracleColumnName.toUpperCase()),
+  );
 
   let next = sql;
   const usedTargets = new Set<string>();
@@ -129,11 +185,27 @@ export function rewriteSqlLabelsUsingPluginMappings(
       }
 
       const pattern = new RegExp(
-        `(^|[^\\p{L}\\p{N}_"])(?:"?)${escapeRegExp(phrase)}(?:"?)(?=[^\\p{L}\\p{N}_"]|$)`,
+        `(^|[^\\p{L}\\p{N}_."])(?:"?)${escapeRegExp(phrase)}(?:"?)(?=[^\\p{L}\\p{N}_."]|$)`,
         'giu',
       );
       const before = next;
-      next = next.replace(pattern, (_match, prefix: string) => {
+      next = next.replace(pattern, (match, prefix: string) => {
+        const matchedToken = match.slice(prefix.length).replace(/^"|"$/g, '');
+        const matchedUpper = matchedToken.toUpperCase();
+        // Nie podmieniaj istniejącej kolumny Oracle (np. NAZWA) synonimem innej (ODRZ_ID←„Nazwa”).
+        if (
+          knownOracleColumns.has(matchedUpper) &&
+          matchedUpper !== rewrite.oracleColumnName
+        ) {
+          return match;
+        }
+        // Token już wygląda jak identyfikator Oracle (NAZWA, SSTN_ID) — nie zamieniaj etykietą UI.
+        if (
+          /^[A-Z][A-Z0-9_]*$/.test(matchedUpper) &&
+          matchedUpper !== rewrite.oracleColumnName
+        ) {
+          return match;
+        }
         if (rewrite.targetObject) {
           usedTargets.add(rewrite.targetObject);
         }
@@ -155,7 +227,11 @@ export function rewriteSqlLabelsUsingPluginMappings(
     new RegExp(`\\b${column}\\b`, 'i').test(selectList),
   );
 
-  // Nie przenoś FROM na widok stażu, gdy SELECT miesza pola pracownika (IMIE/NAZWISKO) ze stażem.
+  // Nie przenoś FROM, gdy filtr pracownika jest już mostkiem IPRA_ID/PRAC_ID IN (…).
+  if (/\b(?:IPRA_ID|PRAC_ID)\s+IN\s*\(/i.test(next)) {
+    return next;
+  }
+
   const bestTarget = selectHasEmployeeIdentity ? null : pickBestTarget(usedTargets);
   if (bestTarget) {
     next = retargetFromAndEmployeeFilter(next, bestTarget);
@@ -189,9 +265,9 @@ function retargetFromAndEmployeeFilter(sql: string, targetObject: string): strin
     return sql.replace(/\bFROM\s+[A-Z0-9_."]+/i, `FROM ${qualifiedTarget}`);
   }
 
-  // Już jest mostek IPRA_ID — tylko zamień tabelę w FROM.
-  if (/\bIPRA_ID\s+IN\s*\(/i.test(whereClause)) {
-    return sql.replace(/\bFROM\s+[A-Z0-9_."]+/i, `FROM ${qualifiedTarget}`);
+  // Już jest mostek IPRA_ID/PRAC_ID — nie zmieniaj FROM (szybka ścieżka wybrała właściwy widok).
+  if (/\b(?:IPRA_ID|PRAC_ID)\s+IN\s*\(/i.test(whereClause)) {
+    return sql;
   }
 
   if (whereUsesEmployeeIdentityColumn(whereClause)) {
@@ -222,8 +298,16 @@ export function formatUserFacingSqlColumnError(message: string): string {
   const columnMatch =
     message.match(/Kolumna\s+"?([^\s"]+)"?/i) ??
     message.match(/Kolumny\s+([^\s][^.]+?)\s+nie występują/i) ??
-    message.match(/pola\s+[„"]([^”"]+)[”"]/i);
+    message.match(/pola\s+[„"]([^”"]+)[”"]/i) ??
+    message.match(/ORA-01756/i);
   const column = columnMatch?.[1]?.replace(/,/g, '').trim();
+
+  if (/ORA-01756/i.test(message)) {
+    return (
+      'Nie udało się wykonać zapytania — błąd składni SQL (niezamknięty napis). ' +
+      'Spróbuj ponowić pytanie albo uprościć nazwisko / filtr.'
+    );
+  }
 
   if (column) {
     return (

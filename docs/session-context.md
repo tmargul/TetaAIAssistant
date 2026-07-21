@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-17** (pipeline Oracle: help→DLL→widoki→pakiety→RAG)
+> Ostatnia aktualizacja: **2026-07-21** (daty YYYY-MM-DD + sort najnowsze na górze)
 
 ---
 
@@ -11,10 +11,10 @@
 |---------|---------|
 | Dev | `pnpm dev` — API `:3000`, web `:5173` |
 | VM Oracle | `WIN-PDDJCBNU8LI` (Hyper-V **Default Switch**) |
-| IP VM | **`172.26.228.145`** — **statyczne** (maska `/20`, brama `172.26.224.1`); stary z paczki `172.20.23.182` — inna sieć, nie używać |
+| IP VM | **`172.22.240.145`** — **statyczne** (maska `/20`, brama `172.22.240.1`); Default Switch okresowo zmienia zakres — stary `172.26.228.145` / `172.20.23.182` nie używać |
 | Port / SID | `1521` / **`TETAHR`** |
-| Firewall VM | Reguła TCP 1521 z podsieci hosta (`172.26.224.0/20`) |
-| Teta na VM (share) | `\\172.26.228.145\teta` — wymaga `net use` z `WIN-PDDJCBNU8LI\Administrator` (mapowany dysk na hoście, np. `T:` lub `X:`) |
+| Firewall VM | Reguła TCP 1521 z podsieci hosta (obecnie `172.22.240.0/20`) |
+| Teta na VM (share) | `\\172.22.240.145\teta` — wymaga `net use` z `WIN-PDDJCBNU8LI\Administrator` (mapowany dysk na hoście, np. `T:` lub `X:`) |
 | Ustawienia ścieżek | **Ustawienia → Aplikacja Teta** — `clientDirectory` + `serverDirectory` (zmapowany dysk lub UNC); zapis w SQLite ✅ działa |
 | Tryb Oracle w `.env` | `TETA_ORACLE_MODE=real` (na dev; fake tylko do symulacji) |
 | `oracledb` | Wersja 7.x, domyślnie **Thin** — Instant Client nie jest wymagany na start |
@@ -126,7 +126,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ## Otwarte / do sprawdzenia
 
 - [ ] **RAG smoke test:** `_temp/zu1/zu1.jsonl` rozpakowany (44 chunki, `trainings/zu1.mp4`) — import + chat po uruchomieniu Qdrant
-- [x] VM Oracle: Default Switch, statyczne IP `172.26.228.145`, port 1521 OK
+- [x] VM Oracle: Default Switch, statyczne IP `172.22.240.145`, port 1521 OK
 - [x] Ścieżki Teta (vendor): share VM + mapowanie dysku na hoście — **Ustawienia → Aplikacja Teta** zapisuje poprawnie
 - [ ] Admin zarejestrowany na real Oracle (nie fake `teta_admin`)
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
@@ -136,6 +136,41 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-07-20 — IP VM Oracle (Default Switch)
+
+- Host `vEthernet (Default Switch)`: **`172.22.240.1/20`** (wcześniej `172.26.224.0/20`).
+- VM: **`172.22.240.145`**, brama `172.22.240.1`, adapter **Ethernet 3**.
+- Ping host→VM OK. W aplikacji Oracle host = `172.22.240.145` (stary `172.26.228.145` nie działa).
+
+### 2026-07-20 — Qdrant offline (dev)
+
+- Brak usługi `TetaAI-Qdrant` / brak `qdrant.exe` w PATH.
+- Dev: pobrano `tools/qdrant/qdrant.exe` (v1.18.3), start: `cd tools\qdrant; .\qdrant.exe` → http://127.0.0.1:6333
+- Świeży storage — kolekcje puste; po restarcie hosta trzeba ponownie uruchomić proces i ewentualnie **ponowny import RAG** (wtyczki / metadata).
+
+### 2026-07-21 — aktualne stanowisko + mylący komunikat
+
+- „aktualne stanowisko” → KDR z filtrem `DATA_OD/DATA_DO` vs `SYSDATE`, `FETCH FIRST 1`, tylko kolumna `STANOWISKO`; ranking kandydatów: KDR → IMP → UC.
+- Puste raporty z prób probe **nie** idą do UI (`emitReport: false`); UI filtruje raporty bez kolumn / 0 wierszy gdy jest wynik z danymi — stąd znikało „Zapytanie nie zwróciło kolumn” obok tabeli.
+
+### 2026-07-21 — ORA-01756 / stanowisko KDR
+
+- **Przyczyna:** `rewriteSqlLabelsUsingPluginMappings` psuło poprawny SQL z probe (`JOIN`, `s.NAZWA AS STANOWISKO`) → złe FROM / alias `k.` bez tabeli → potem LLM z uciętym SQL → ORA-01756.
+- **Fix:** nie rewrite’uj SQL z JOIN/aliasami; nie podmieniaj istniejących kolumn Oracle synonimami innych; nie retargetuj FROM gdy jest już `IPRA_ID`/`PRAC_ID IN (…)`.
+
+### 2026-07-21 — daty i sortowanie tabel (jak Teta)
+
+- Format komórek: **data** → `YYYY-MM-DD`; **data+czas** → `YYYY-MM-DD hh:mm`.
+- Kolumny o nazwie `DATA*` → zawsze data bez czasu; czas tylko gdy użytkownik prosi (`z czasem`, `godzina`, …).
+- Wynik tabelaryczny: sort **najnowsze na górze** (po `DATA_OD` / pierwszej kolumnie `DATA*`), nulls na dole.
+- Pliki: `oracle-result-format.util.ts`, `oracle-query.service.ts`, `oracle-agent.service.ts`.
+
+### 2026-07-20 — skan wtyczek = 0 DLL
+
+- Przyczyna: dysk `A:` mapowany na **`\\172.26.228.145\teta`** → stan **Brak dostępu** po zmianie IP VM.
+- Ścieżki w SQLite: `A:\TETA Aplikacja klienta - 33.5` / `A:\TETA Serwer Aplikacji - 33.5` — katalog `Plugins` nieosiągalny → skan zwraca [].
+- Fix: `net use A: /delete` → `net use A: \\172.22.240.145\teta /user:WIN-PDDJCBNU8LI\Administrator <hasło> /persistent:yes`
 
 ### 2026-07-17 — wdrożenie pipeline (help→DLL→widoki→tabele→pakiety→RAG)
 

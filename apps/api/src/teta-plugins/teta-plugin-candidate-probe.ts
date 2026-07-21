@@ -120,10 +120,10 @@ export function collectPluginSqlCandidates(input: {
     }
   }
 
-  // Stanowisko etatowe — typowe widoki Teta, gdy mapowania UC nie wystarczą.
+  // Stanowisko etatowe — najpierw KDR (aktualne etaty), potem IMP, na końcu UC.
   const normalizedMessage = normalizeSearchText(input.message);
   if (/\bstanowisk/.test(normalizedMessage)) {
-    for (const name of ['NT_KP_IMP_STANOWISKA', 'NT_KP_KDR_STANOWISKA', 'NT_KP_IMP_UMOWY_UC']) {
+    for (const name of ['NT_KP_KDR_STANOWISKA', 'NT_KP_IMP_STANOWISKA', 'NT_KP_IMP_UMOWY_UC']) {
       pushNamed(name, 'mapping');
     }
   }
@@ -153,7 +153,20 @@ export function collectPluginSqlCandidates(input: {
   const tables: PluginSqlCandidate[] = [];
   const unknown: PluginSqlCandidate[] = [];
 
-  for (const item of orderedNames) {
+  const rankedNames =
+    /\bstanowisk/.test(normalizedMessage)
+      ? [
+          ...orderedNames.filter((item) => /KDR_STANOWISKA$/i.test(item.name)),
+          ...orderedNames.filter(
+            (item) => /IMP_STANOWISKA$/i.test(item.name) && !/KDR_STANOWISKA$/i.test(item.name),
+          ),
+          ...orderedNames.filter(
+            (item) => !/KDR_STANOWISKA$/i.test(item.name) && !/IMP_STANOWISKA$/i.test(item.name),
+          ),
+        ]
+      : orderedNames;
+
+  for (const item of rankedNames) {
     const lookedUp = input.lookupNodeType?.(item.name) ?? null;
     const kind: PluginSqlCandidateKind =
       lookedUp ??
@@ -326,6 +339,19 @@ export function remappedMappingsForCandidate(
   return [...remappedOutputs, ...(linkMapping ? [linkMapping] : []), ...filterKeep];
 }
 
+/** Pytanie o jedno aktualne stanowisko (nie historię / listę). */
+export function wantsCurrentPositionOnly(message: string): boolean {
+  const normalized = normalizeSearchText(message);
+  if (/\bstanowiska\b|\bhistor|\bwszystk/.test(normalized)) {
+    return false;
+  }
+  if (/\baktualn|\bbiezac|\bobecn/.test(normalized)) {
+    return true;
+  }
+  // „stanowisko” w liczbie pojedynczej (bez „stanowiska”)
+  return /\bstanowisko\b/.test(normalized) || /\bstanowisk\b/.test(normalized);
+}
+
 export function buildSqlForCandidate(input: {
   candidate: PluginSqlCandidate;
   message: string;
@@ -362,11 +388,25 @@ export function buildSqlForCandidate(input: {
       const owner = input.defaultOwner.toUpperCase();
       const whereMatch = base.match(/\bWHERE\s+([\s\S]+)$/i);
       if (whereMatch) {
+        const personWhere = whereMatch[1]
+          .replace(/\bPRAC_ID\b/g, 'k.PRAC_ID')
+          .replace(/\bIPRA_ID\b/g, 'k.PRAC_ID');
+        const currentOnly = wantsCurrentPositionOnly(input.message);
+        const dateFilter = currentOnly
+          ? ` AND (k.DATA_OD IS NULL OR TRUNC(k.DATA_OD) <= TRUNC(SYSDATE))` +
+            ` AND (k.DATA_DO IS NULL OR TRUNC(k.DATA_DO) >= TRUNC(SYSDATE))`
+          : '';
+        const selectList = currentOnly
+          ? `s.NAZWA AS STANOWISKO`
+          : `s.NAZWA AS STANOWISKO, k.SSTN_ID, k.DATA_OD, k.DATA_DO`;
+        const orderLimit = currentOnly
+          ? ` ORDER BY k.DATA_OD DESC NULLS LAST FETCH FIRST 1 ROW ONLY`
+          : ` ORDER BY k.DATA_OD DESC NULLS LAST`;
         return (
-          `SELECT s.NAZWA AS STANOWISKO, k.SSTN_ID, k.DATA_OD, k.DATA_DO ` +
+          `SELECT ${selectList} ` +
           `FROM ${owner}.${bare} k ` +
           `LEFT JOIN ${owner}.NT_KP_SLO_STANOWISKA s ON s.ID = k.SSTN_ID ` +
-          `WHERE ${whereMatch[1].replace(/\bPRAC_ID\b/g, 'k.PRAC_ID').replace(/\bIPRA_ID\b/g, 'k.PRAC_ID')}`
+          `WHERE ${personWhere}${dateFilter}${orderLimit}`
         );
       }
     }

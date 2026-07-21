@@ -165,5 +165,18 @@ describe('teta-plugin-candidate-probe', () => {
     expect(sql).toMatch(/k\.PRAC_ID IN \(SELECT ID FROM/);
     expect(sql).toMatch(/NT_KP_SLO_STANOWISKA/);
     expect(sql).toMatch(/STANOWISKO/);
+    expect(sql).toMatch(/TRUNC\(SYSDATE\)/);
+    expect(sql).toMatch(/FETCH FIRST 1 ROW ONLY/);
+    expect(sql).toMatch(/^SELECT s\.NAZWA AS STANOWISKO FROM/i);
+  });
+
+  it('ranks KDR before UMOWY_UC for stanowisko', () => {
+    const candidates = collectPluginSqlCandidates({
+      message: 'A jakie ma Beata Styś aktualne stanowisko?',
+      columnMappings: stanowiskoMappings,
+      gateways,
+      lookupNodeType: () => 'view',
+    });
+    expect(candidates[0]?.objectName).toBe('NT_KP_KDR_STANOWISKA');
   });
 });

@@ -83,4 +83,69 @@ describe('teta-plugin-sql-label-rewrite.util', () => {
     expect(message).not.toContain('describe_table');
     expect(message).not.toMatch(/wymyślaj/i);
   });
+
+  it('does not rewrite technically qualified JOIN SQL (KDR stanowisko)', () => {
+    const sql =
+      "SELECT s.NAZWA AS STANOWISKO, k.SSTN_ID, k.DATA_OD, k.DATA_DO " +
+      "FROM TETA_ADMIN.NT_KP_KDR_STANOWISKA k " +
+      "LEFT JOIN TETA_ADMIN.NT_KP_SLO_STANOWISKA s ON s.ID = k.SSTN_ID " +
+      "WHERE k.PRAC_ID IN (SELECT ID FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY WHERE UPPER(NAZWISKO) = UPPER('Styś'))";
+
+    const mappingsWithNoise: TetaPluginColumnMapping[] = [
+      ...mappings,
+      {
+        oracleColumnName: 'ODRZ_ID',
+        label: 'Nazwa',
+        gridColumnName: null,
+        synonyms: ['Nazwa'],
+        pluginColumnName: 'ODRZ_ID',
+        targetObject: 'NT_KP_KDR_ODPOW_RZECZOWA',
+        dllName: 'x.dll',
+      },
+      {
+        oracleColumnName: 'SSTN_ID',
+        label: 'Stanowisko',
+        gridColumnName: null,
+        synonyms: ['Stanowisko'],
+        pluginColumnName: 'SSTN_ID',
+        targetObject: 'NT_KP_IMP_UMOWY_UC',
+        dllName: 'x.dll',
+      },
+    ];
+
+    expect(rewriteSqlLabelsUsingPluginMappings(sql, mappingsWithNoise)).toBe(sql);
+  });
+
+  it('does not retarget FROM when IPRA_ID IN bridge already present', () => {
+    const sql =
+      "SELECT NAZWA, SSTN_ID FROM TETA_ADMIN.NT_KP_IMP_STANOWISKA " +
+      "WHERE IPRA_ID IN (SELECT ID FROM TETA_ADMIN.NT_KP_PRC_PRACOWNICY WHERE UPPER(NAZWISKO) = UPPER('Styś'))";
+
+    const mappingsWithNoise: TetaPluginColumnMapping[] = [
+      ...mappings,
+      {
+        oracleColumnName: 'NAZWA',
+        label: 'Stanowisko',
+        gridColumnName: null,
+        synonyms: ['Stanowisko', 'Nazwa'],
+        pluginColumnName: 'NAZWA',
+        targetObject: 'NT_KP_IMP_STANOWISKA',
+        dllName: 'x.dll',
+      },
+      {
+        oracleColumnName: 'ODRZ_ID',
+        label: 'Nazwa',
+        gridColumnName: null,
+        synonyms: ['Nazwa'],
+        pluginColumnName: 'ODRZ_ID',
+        targetObject: 'NT_KP_KDR_ODPOW_RZECZOWA',
+        dllName: 'x.dll',
+      },
+    ];
+
+    const rewritten = rewriteSqlLabelsUsingPluginMappings(sql, mappingsWithNoise);
+    expect(rewritten).toContain('NT_KP_IMP_STANOWISKA');
+    expect(rewritten).not.toContain('ODPOW_RZECZOWA');
+    expect(rewritten).toMatch(/\bNAZWA\b/);
+  });
 });

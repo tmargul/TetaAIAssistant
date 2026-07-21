@@ -151,9 +151,15 @@ function ChatBubble({
           )}
         {!isUser && displayMessage.oracleReports && displayMessage.oracleReports.length > 0 && (
           <div className="chat__reports">
-            {displayMessage.oracleReports.map((report, index) => (
-              <ReportTable key={`report-${index}`} report={report} showSql={showOracleDebug} />
-            ))}
+            {displayMessage.oracleReports
+              .filter((report) => report.columns.length > 0)
+              .filter((report, _index, all) => {
+                const hasData = all.some((item) => item.rowCount > 0);
+                return hasData ? report.rowCount > 0 : true;
+              })
+              .map((report, index) => (
+                <ReportTable key={`report-${index}`} report={report} showSql={showOracleDebug} />
+              ))}
           </div>
         )}
       </div>
