@@ -189,6 +189,15 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Etapy: diagnostyka GUID → reconcile XML → help → kolumny widoków → SqlJoin → binding confidence → dedupe → re-import ze stabilnymi chunk id.
 - SQL generator / prompty / Qdrant retrieval — poza zakresem do czasu czystych faktów.
 
+### 2026-07-21 — Etap 0 diagnostyki plugins.xml ✅
+
+- **Root cause A:** brak `plugins.xml` pod `{clientDirectory}/Plugins/plugins.xml`.
+- `clientDirectory` = `A:\TETA Aplikacja klienta - 33.5` (istnieje, z SQLite); skan w client+server (depth 4) = 0× `plugins.xml`.
+- Skutek: 425/425 DLL → infer; 0 GUID → help nie mapowany mimo **2064** plików `Help/*.html`.
+- Artefakty: `docs/AIA_PLUGIN_XML_DIAGNOSTIC.md` + `.json`; CLI `pnpm --filter @teta/api run diagnose:plugins-xml`.
+- Kod read-only: `teta-plugin-xml-diagnostic.ts`, `teta-plugin-assembly-match.util.ts` (+ testy); **bez** zmian importu / SQLite write / Qdrant.
+- **Odblokowanie Etapu 1:** przywrócić `plugins.xml` do `Plugins/`, ponowić diagnostykę.
+
 ### 2026-07-20 — skan wtyczek = 0 DLL
 
 - Przyczyna: dysk `A:` mapowany na **`\\172.26.228.145\teta`** → stan **Brak dostępu** po zmianie IP VM.
