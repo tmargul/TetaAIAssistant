@@ -66,14 +66,6 @@ export function ChatAssistantSettingsPanel() {
             onChange={(e) => setTimeoutSec(e.target.value)}
           />
         </label>
-        <button
-          type="button"
-          className="settings__button"
-          disabled={saving || !timeoutSec.trim()}
-          onClick={() => void handleSave()}
-        >
-          {saving ? 'Zapisuję…' : 'Zapisz'}
-        </button>
       </div>
 
       {settings && (
@@ -83,6 +75,17 @@ export function ChatAssistantSettingsPanel() {
           {settings.updatedAt ? ` Ostatnia zmiana: ${settings.updatedAt}.` : ' Wartość domyślna.'}
         </p>
       )}
+
+      <div className="settings__actions">
+        <button
+          type="button"
+          className="settings__btn"
+          disabled={saving || !timeoutSec.trim()}
+          onClick={() => void handleSave()}
+        >
+          {saving ? 'Zapisywanie…' : 'Zapisz'}
+        </button>
+      </div>
     </>
   );
 }
