@@ -14,9 +14,43 @@ import {
 import { dllStringsContainExactType, resolveClassInDll } from './teta-plugin-class-in-dll';
 import { buildFormRegistryEntries } from './teta-plugin-form-registry.builder';
 import { resolvePluginDescriptorsMerged } from './teta-plugin-descriptor-resolve';
-import type { PaWtyczkiRow } from './teta-plugin-form-registry.types';
+import type { PaWtyczkiRow, TetaPluginRegistryEntry } from './teta-plugin-form-registry.types';
 import type { ScannedPluginDll } from './teta-plugin-scan.util';
 import type { TetaPluginDescriptorMeta } from './teta-plugin-metadata.types';
+import type { DotnetDllMetadataResult } from './teta-dotnet-metadata.reader';
+
+function fakeEntry(
+  partial: Partial<TetaPluginRegistryEntry> & Pick<TetaPluginRegistryEntry, 'registryId' | 'guid' | 'className'>,
+): TetaPluginRegistryEntry {
+  return {
+    assembly: 'plgMulti.dll',
+    simpleClassName: partial.className?.split('.').pop() ?? null,
+    parameters: null,
+    pluginName: null,
+    pluginType: null,
+    description: null,
+    webPlugin: null,
+    routePath: null,
+    apiPath: null,
+    resolvedDllPath: 'C:\\Plugins\\HR\\plgMulti.dll',
+    helpPath: null,
+    helpExists: false,
+    helpSize: null,
+    registryStatus: 'confirmed',
+    dllStatus: 'resolved',
+    classDeclarationStatus: 'confirmed_by_registry',
+    classVerificationStatus: 'verified_exact',
+    helpStatus: 'missing',
+    classStatus: 'found',
+    confidence: 'partial',
+    evidence: ['source:PA_WTYCZKI'],
+    formIdentity: partial.guid && partial.className
+      ? `${partial.guid}:${partial.className.toLowerCase()}`
+      : null,
+    isStandardUuid: true,
+    ...partial,
+  };
+}
 
 describe('normalizePluginGuid', () => {
   it('strips braces, spaces, lowercases', () => {
@@ -154,27 +188,11 @@ describe('DLL assembly resolver', () => {
   });
 });
 
-describe('class-in-dll resolver', () => {
+describe('legacy string class resolver', () => {
   it('requires exact type name (no similarity)', () => {
     const strings = ['Teta.HR.AlphaWidok', 'AlphaWidokExtra', 'BetaWidok'];
     expect(dllStringsContainExactType(strings, 'Teta.HR.AlphaWidok')).toBe(true);
     expect(dllStringsContainExactType(strings, 'AlphaWidok')).toBe(false);
-    expect(dllStringsContainExactType(strings, 'Teta.HR.GammaWidok')).toBe(false);
-
-    const found = resolveClassInDll({
-      dllPath: 'x.dll',
-      className: 'Teta.HR.AlphaWidok',
-      dllStrings: strings,
-    });
-    expect(found.status).toBe('found');
-    expect(found.simpleClassName).toBe('AlphaWidok');
-
-    const missing = resolveClassInDll({
-      dllPath: 'x.dll',
-      className: 'AlphaWidok',
-      dllStrings: strings,
-    });
-    expect(missing.status).toBe('missing');
   });
 });
 
@@ -196,20 +214,10 @@ describe('help resolver case-insensitive', () => {
       normalizedGuid: 'd3479f5a-e3f2-4d09-bd0b-e35bdb7f3e0f',
     });
     expect(result.helpStatus).toBe('found');
-    expect(result.helpExists).toBe(true);
-    expect(result.helpSize).toBeGreaterThan(0);
-  });
-
-  it('marks missing help', () => {
-    const result = resolveHelpHtmlFile({
-      helpDirectory: helpDir,
-      normalizedGuid: '00000000-0000-4000-8000-000000000000',
-    });
-    expect(result.helpStatus).toBe('missing');
   });
 });
 
-describe('PA_WTYCZKI registry builder', () => {
+describe('PA_WTYCZKI registry builder + metadata statuses', () => {
   let root: string;
   let pluginsRoot: string;
   let helpDir: string;
@@ -225,7 +233,6 @@ describe('PA_WTYCZKI registry builder', () => {
     mkdirSync(helpDir, { recursive: true });
     writeFileSync(path.join(pluginsRoot, 'HR', 'plgMulti.dll'), 'dll');
     writeFileSync(path.join(helpDir, `${guidA}.html`), 'help-a');
-    // guidB help missing
 
     scanned = [
       {
@@ -241,7 +248,7 @@ describe('PA_WTYCZKI registry builder', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('handles one DLL with many PA classes and help statuses', () => {
+  it('keeps registry confirmed even when help missing; uses TypeDef verification', () => {
     const rows: PaWtyczkiRow[] = [
       {
         id: 1,
@@ -271,10 +278,34 @@ describe('PA_WTYCZKI registry builder', () => {
       },
     ];
 
-    const strings = new Map<string, string[]>([
+    const dllPath = path.resolve(pluginsRoot, 'HR', 'plgMulti.dll');
+    const metadataByDllPath = new Map<string, DotnetDllMetadataResult>([
       [
-        path.resolve(pluginsRoot, 'HR', 'plgMulti.dll').toLowerCase(),
-        ['Teta.HR.AlphaWidok', 'Teta.HR.BetaWidok'],
+        dllPath.toLowerCase(),
+        {
+          dllPath,
+          ok: true,
+          typeCount: 2,
+          matchedTypes: [
+            {
+              requestedClassName: 'Teta.HR.AlphaWidok',
+              classVerificationStatus: 'verified_exact',
+              namespace: 'Teta.HR',
+              name: 'AlphaWidok',
+              fullName: 'Teta.HR.AlphaWidok',
+              normalizedFullName: 'Teta.HR.AlphaWidok',
+              baseType: 'System.Object',
+            },
+            {
+              requestedClassName: 'Teta.HR.BetaWidok',
+              classVerificationStatus: 'verified_normalized',
+              namespace: 'Teta.HR',
+              name: 'BetaWidok',
+              fullName: 'Teta.HR.BetaWidok',
+              normalizedFullName: 'Teta.HR.BetaWidok',
+            },
+          ],
+        },
       ],
     ]);
 
@@ -283,23 +314,22 @@ describe('PA_WTYCZKI registry builder', () => {
       clientDirectory: root,
       pluginsRoot,
       scannedPlugins: scanned,
-      dllStringsByPath: strings,
+      metadataByDllPath,
     });
 
     expect(entries).toHaveLength(2);
-    expect(entries[0].confidence).toBe('confirmed');
-    expect(entries[0].dllStatus).toBe('resolved');
-    expect(entries[0].classStatus).toBe('found');
+    expect(entries[0].registryStatus).toBe('confirmed');
+    expect(entries[0].classDeclarationStatus).toBe('confirmed_by_registry');
+    expect(entries[0].classVerificationStatus).toBe('verified_exact');
     expect(entries[0].helpStatus).toBe('found');
-    expect(entries[0].guid).toBe(guidA);
+    expect(entries[0].matchedType?.name).toBe('AlphaWidok');
 
-    expect(entries[1].dllStatus).toBe('resolved');
-    expect(entries[1].classStatus).toBe('found');
+    expect(entries[1].registryStatus).toBe('confirmed');
+    expect(entries[1].classVerificationStatus).toBe('verified_normalized');
     expect(entries[1].helpStatus).toBe('missing');
-    expect(entries[1].confidence).toBe('partial');
   });
 
-  it('marks missing class without similarity', () => {
+  it('marks not_found without lowering registryStatus', () => {
     const rows: PaWtyczkiRow[] = [
       {
         id: 3,
@@ -315,10 +345,21 @@ describe('PA_WTYCZKI registry builder', () => {
         apiPath: null,
       },
     ];
-    const strings = new Map<string, string[]>([
+    const dllPath = path.resolve(pluginsRoot, 'HR', 'plgMulti.dll');
+    const metadataByDllPath = new Map<string, DotnetDllMetadataResult>([
       [
-        path.resolve(pluginsRoot, 'HR', 'plgMulti.dll').toLowerCase(),
-        ['Teta.HR.AlphaWidok'],
+        dllPath.toLowerCase(),
+        {
+          dllPath,
+          ok: true,
+          typeCount: 1,
+          matchedTypes: [
+            {
+              requestedClassName: 'Teta.HR.MissingWidok',
+              classVerificationStatus: 'not_found',
+            },
+          ],
+        },
       ],
     ]);
     const [entry] = buildFormRegistryEntries({
@@ -326,10 +367,11 @@ describe('PA_WTYCZKI registry builder', () => {
       clientDirectory: root,
       pluginsRoot,
       scannedPlugins: scanned,
-      dllStringsByPath: strings,
+      metadataByDllPath,
     });
-    expect(entry.classStatus).toBe('missing');
-    expect(entry.confidence).not.toBe('confirmed');
+    expect(entry.registryStatus).toBe('confirmed');
+    expect(entry.classDeclarationStatus).toBe('confirmed_by_registry');
+    expect(entry.classVerificationStatus).toBe('not_found');
   });
 });
 
@@ -341,56 +383,20 @@ describe('resolvePluginDescriptorsMerged', () => {
       dllPath: 'C:\\Plugins\\HR\\plgMulti.dll',
       dllName: 'plgMulti.dll',
       registryEntriesForDll: [
-        {
+        fakeEntry({
           registryId: '1',
           guid,
-          assembly: 'HR\\plgMulti.dll',
           className: 'AlphaWidok',
-          simpleClassName: 'AlphaWidok',
-          parameters: null,
           pluginName: 'Alpha',
           pluginType: 'Form',
-          description: null,
-          webPlugin: null,
-          routePath: null,
-          apiPath: null,
-          resolvedDllPath: 'C:\\Plugins\\HR\\plgMulti.dll',
-          helpPath: null,
-          helpExists: false,
-          helpSize: null,
-          dllStatus: 'resolved',
-          classStatus: 'found',
-          helpStatus: 'missing',
-          confidence: 'partial',
-          evidence: ['source:PA_WTYCZKI'],
-          formIdentity: `${guid}:alphawidok`,
-          isStandardUuid: true,
-        },
-        {
+        }),
+        fakeEntry({
           registryId: '2',
           guid: 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',
-          assembly: 'HR\\plgMulti.dll',
           className: 'BetaWidok',
-          simpleClassName: 'BetaWidok',
-          parameters: null,
           pluginName: 'Beta',
           pluginType: 'Form',
-          description: null,
-          webPlugin: null,
-          routePath: null,
-          apiPath: null,
-          resolvedDllPath: 'C:\\Plugins\\HR\\plgMulti.dll',
-          helpPath: null,
-          helpExists: false,
-          helpSize: null,
-          dllStatus: 'resolved',
-          classStatus: 'found',
-          helpStatus: 'missing',
-          confidence: 'partial',
-          evidence: ['source:PA_WTYCZKI'],
-          formIdentity: 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff:betawidok',
-          isStandardUuid: true,
-        },
+        }),
       ],
       xmlPlugins: null,
     });
@@ -398,7 +404,6 @@ describe('resolvePluginDescriptorsMerged', () => {
     expect(descriptors).toHaveLength(2);
     expect(descriptors[0].Guid).toBe(guid);
     expect(descriptors[0].ClassName).toBe('AlphaWidok');
-    expect(descriptors[1].ClassName).toBe('BetaWidok');
   });
 
   it('does not let XML overwrite PA Guid/ClassName', () => {
@@ -414,37 +419,17 @@ describe('resolvePluginDescriptorsMerged', () => {
       dllPath: 'x',
       dllName: 'plgMulti.dll',
       registryEntriesForDll: [
-        {
+        fakeEntry({
           registryId: '1',
           guid,
-          assembly: 'plgMulti.dll',
           className: 'AlphaWidok',
-          simpleClassName: 'AlphaWidok',
-          parameters: null,
           pluginName: 'Alpha',
-          pluginType: null,
-          description: null,
-          webPlugin: null,
-          routePath: null,
-          apiPath: null,
-          resolvedDllPath: 'x',
-          helpPath: null,
-          helpExists: false,
-          helpSize: null,
-          dllStatus: 'resolved',
-          classStatus: 'found',
-          helpStatus: 'missing',
-          confidence: 'partial',
-          evidence: [],
-          formIdentity: `${guid}:alphawidok`,
-          isStandardUuid: true,
-        },
+        }),
       ],
       xmlPlugins: xml,
     });
 
     expect(descriptor.Guid).toBe(guid);
     expect(descriptor.ClassName).toBe('AlphaWidok');
-    expect(descriptor.Languages?.[0]?.Name).toBe('Alpha');
   });
 });

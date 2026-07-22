@@ -22,3 +22,10 @@ install-root.json
 _temp/
 .local/
 *.pfx
+
+# .NET build output (TetaDllMetadataReader etc.)
+tools/**/bin/
+tools/**/obj/
+
+# Full PA_WTYCZKI diagnose dump (~100MB+) — keep summary JSON in docs/, full under .local/
+docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.full.json

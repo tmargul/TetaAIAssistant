@@ -1,7 +1,18 @@
+import type {
+  DotnetClassVerificationStatus,
+  DotnetMatchedType,
+  DotnetResourceInfo,
+} from './teta-dotnet-metadata.reader';
+
 export type TetaPluginDllStatus = 'resolved' | 'missing' | 'conflicting';
+/** @deprecated use classVerificationStatus */
 export type TetaPluginClassStatus = 'found' | 'missing' | 'unverified';
 export type TetaPluginHelpStatus = 'found' | 'missing' | 'unavailable';
+/** @deprecated use registryStatus + classVerificationStatus + helpStatus */
 export type TetaPluginRegistryConfidence = 'confirmed' | 'partial' | 'inferred';
+
+export type TetaRegistryStatus = 'confirmed' | 'absent';
+export type TetaClassDeclarationStatus = 'confirmed_by_registry' | 'missing_in_registry';
 
 /** Raw row from Oracle PA_WTYCZKI (read-only). */
 export type PaWtyczkiRow = {
@@ -39,13 +50,25 @@ export type TetaPluginRegistryEntry = {
   helpPath: string | null;
   helpExists: boolean;
   helpSize: number | null;
+
+  /** PA_WTYCZKI is canonical — always confirmed when row exists. */
+  registryStatus: TetaRegistryStatus;
   dllStatus: TetaPluginDllStatus;
-  classStatus: TetaPluginClassStatus;
+  /** Class is declared by PA_WTYCZKI regardless of DLL verification. */
+  classDeclarationStatus: TetaClassDeclarationStatus;
+  classVerificationStatus: DotnetClassVerificationStatus;
   helpStatus: TetaPluginHelpStatus;
-  /** confirmed only when PA + DLL + class + help all OK. */
+
+  matchedType?: DotnetMatchedType | null;
+  dllResources?: DotnetResourceInfo[] | null;
+  dllTypeCount?: number | null;
+  dllXmlDocPath?: string | null;
+
+  /** @deprecated legacy aggregate — do not use for acceptance */
+  classStatus: TetaPluginClassStatus;
+  /** @deprecated legacy aggregate — prefer registryStatus */
   confidence: TetaPluginRegistryConfidence;
   evidence: string[];
-  /** Stable form id: guid:className */
   formIdentity: string | null;
   isStandardUuid: boolean;
 };
