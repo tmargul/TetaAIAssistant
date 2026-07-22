@@ -1,0 +1,3443 @@
+{
+  "generatedAt": "2026-07-22T21:35:11.380Z",
+  "stage": "2C",
+  "clientDirectory": "A:\\TETA Aplikacja klienta - 33.5",
+  "summary": {
+    "registryEntriesChecked": 3561,
+    "helpFilesFound": 1773,
+    "helpMissing": 1788,
+    "helpUnreadable": 0,
+    "encodingFailures": 0,
+    "parsedDocuments": 1773,
+    "sections": 3856,
+    "extractedFieldEntries": 18329,
+    "actionEntries": 1516,
+    "fieldEntriesMatchedToControls": 8900,
+    "confirmedMatches": 6652,
+    "probableMatches": 2248,
+    "ambiguous": 1692,
+    "unmatchedHelpFields": 9253,
+    "controlsWithoutHelp": 66148,
+    "helpMappingsWithOracleChain": 5441,
+    "lookupFieldsCorrectlySplit": 144,
+    "duplicateHelpDocuments": 8,
+    "parseWarnings": 218
+  },
+  "examples": {
+    "fullChains": [
+      {
+        "guid": "670ab806-2885-4f00-94cf-e86a5f545c85",
+        "formType": "Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
+        "helpLabel": "Kod",
+        "helpDescription": "W słowniku Logistyka | Sprzedaż | Rodzaje koncesji definiujemy \r\n rodzaje koncesji wykorzystywane w systemie. Definicja składa się z kodu \r\n i nazwy koncesji oraz oznaczenia, czy jest ona obecnie wykorzystywana. Z \r\n tego słownika korzysta się na formularzu \r\n Koncesje odbiorców .",
+        "helpKind": "fieldHelp",
+        "section": null,
+        "control": "dgcKod",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "RodzajeKoncesji",
+          "dataMember": "KOD"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_LG_SLO_RODZAJE_KONCESJI",
+            "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=overview_dictionary_fields",
+          "section=-",
+          "exact_caption=KOD",
+          "exact_name_tokens=kod",
+          "extraction=overview_dictionary_fields",
+          "confidence=candidate_text"
+        ]
+      },
+      {
+        "guid": "670ab806-2885-4f00-94cf-e86a5f545c85",
+        "formType": "Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
+        "helpLabel": "Nazwa",
+        "helpDescription": "W słowniku Logistyka | Sprzedaż | Rodzaje koncesji definiujemy \r\n rodzaje koncesji wykorzystywane w systemie. Definicja składa się z kodu \r\n i nazwy koncesji oraz oznaczenia, czy jest ona obecnie wykorzystywana. Z \r\n tego słownika korzysta się na formularzu \r\n Koncesje odbiorców .",
+        "helpKind": "fieldHelp",
+        "section": null,
+        "control": "dgcNazwa",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "RodzajeKoncesji",
+          "dataMember": "NAZWA"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_LG_SLO_RODZAJE_KONCESJI",
+            "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=overview_dictionary_fields",
+          "section=-",
+          "exact_caption=NAZWA",
+          "exact_name_tokens=nazwa",
+          "extraction=overview_dictionary_fields",
+          "confidence=candidate_text"
+        ]
+      },
+      {
+        "guid": "670ab806-2885-4f00-94cf-e86a5f545c85",
+        "formType": "Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
+        "helpLabel": "Aktualna",
+        "helpDescription": "W słowniku Logistyka | Sprzedaż | Rodzaje koncesji definiujemy \r\n rodzaje koncesji wykorzystywane w systemie. Definicja składa się z kodu \r\n i nazwy koncesji oraz oznaczenia, czy jest ona obecnie wykorzystywana. Z \r\n tego słownika korzysta się na formularzu \r\n Koncesje odbiorców .",
+        "helpKind": "fieldHelp",
+        "section": null,
+        "control": "dgcAktualna",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "RodzajeKoncesji",
+          "dataMember": "UP_TO_DATE"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_LG_SLO_RODZAJE_KONCESJI",
+            "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=overview_dictionary_fields",
+          "section=-",
+          "exact_name_tokens=aktualna",
+          "extraction=overview_dictionary_fields",
+          "confidence=candidate_text"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Stanowisko",
+        "helpDescription": "nazwa opisywanego stanowiska.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "ltxtStanowisko",
+        "controlKind": "text",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "SSTN_NAZWA"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "exact_name_tokens=stanowisko",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Jednostka organizacyjna",
+        "helpDescription": "nazwa jednostki, do której zostało przyporządkowane stanowisko.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "ltxtJednostka",
+        "controlKind": "text",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "JEOR_NAZWA"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Firma",
+        "helpDescription": "nazwa firmy, w której zostało utworzone stanowisko.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "ltxtFirma",
+        "controlKind": "text",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "FIRM_NAZWA"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "exact_name_tokens=firma",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Typ stanowiska",
+        "helpDescription": "pole uzupełniane wartościami ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "lcboTypStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "ZSTP_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_TYPY_STANOWISK",
+            "NT_KP_SLO_TYPY_STANOWISK_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "exact_name_tokens=typ,stanowiska",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Kierownicze",
+        "helpDescription": "pole dodatkowe, wykorzystywane \r\n do definiowania filtrów i wydruków własnych.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "chkKierownicze",
+        "controlKind": "checkbox",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "LIDER"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "exact_name_tokens=kierownicze",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Akademickie",
+        "helpDescription": "pole dodatkowe, wykorzystywane \r\n do definiowania filtrów i wydruków własnych.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "chkAkademickie",
+        "controlKind": "checkbox",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "STANOWISKO_AKADEMICKIE"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "exact_name_tokens=akademickie",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Rodzina",
+        "helpDescription": "wartości pochodzące ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "lcboRodzinaStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "RODS_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "RodzinyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_RODZINY_STAN",
+            "NT_KP_SLO_RODZINY_STAN_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Dane podstawowe",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "469e7730-e558-4631-a897-dfba526dda36",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdStanowiskoWStrukturzeOrg.StanowiskoWStrukturzeOrgWidok",
+        "helpLabel": "Data od",
+        "helpDescription": "okres istnienia danej jednostki organizacyjnej.",
+        "helpKind": "fieldHelp",
+        "section": "Stanowiska w strukturze organizacyjnej",
+        "control": "ldtpDataOd",
+        "controlKind": "date",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "JednostkiOrganizacyjne",
+          "dataMember": "DATA_OD"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_JEDNOSTKI_ORG",
+            "NT_PA_SLO_JEDNOSTKI_ORG_DAC",
+            "Teta.Sumo.Personel.bosSOrganizacja.MTG.JednostkiOrganizacyjneMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Stanowiska w strukturze organizacyjnej",
+          "exact_name_tokens=data,od",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "469e7730-e558-4631-a897-dfba526dda36",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdStanowiskoWStrukturzeOrg.StanowiskoWStrukturzeOrgWidok",
+        "helpLabel": "Data do",
+        "helpDescription": "okres istnienia danej jednostki organizacyjnej.",
+        "helpKind": "fieldHelp",
+        "section": "Stanowiska w strukturze organizacyjnej",
+        "control": "ldtpDataDo",
+        "controlKind": "date",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "JednostkiOrganizacyjne",
+          "dataMember": "DATA_DO"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_JEDNOSTKI_ORG",
+            "NT_PA_SLO_JEDNOSTKI_ORG_DAC",
+            "Teta.Sumo.Personel.bosSOrganizacja.MTG.JednostkiOrganizacyjneMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Stanowiska w strukturze organizacyjnej",
+          "exact_name_tokens=data,do",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "469e7730-e558-4631-a897-dfba526dda36",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdStanowiskoWStrukturzeOrg.StanowiskoWStrukturzeOrgWidok",
+        "helpLabel": "Kod MPK",
+        "helpDescription": "Miejsce Powstawania Kosztów skojarzone z daną jednostką na formularzu",
+        "helpKind": "fieldHelp",
+        "section": "Stanowiska w strukturze organizacyjnej",
+        "control": "ltxtKodMPK",
+        "controlKind": "text",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "JednostkiOrganizacyjne",
+          "dataMember": "KOD_MPK"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_JEDNOSTKI_ORG",
+            "NT_PA_SLO_JEDNOSTKI_ORG_DAC",
+            "Teta.Sumo.Personel.bosSOrganizacja.MTG.JednostkiOrganizacyjneMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Stanowiska w strukturze organizacyjnej",
+          "exact_name_tokens=kod,mpk",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "469e7730-e558-4631-a897-dfba526dda36",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdStanowiskoWStrukturzeOrg.StanowiskoWStrukturzeOrgWidok",
+        "helpLabel": "Nazwa MPK",
+        "helpDescription": "Miejsce Powstawania Kosztów skojarzone z daną jednostką na formularzu",
+        "helpKind": "fieldHelp",
+        "section": "Stanowiska w strukturze organizacyjnej",
+        "control": "ltxtNazwaMPK",
+        "controlKind": "text",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "JednostkiOrganizacyjne",
+          "dataMember": "NAZWA_MPK"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_JEDNOSTKI_ORG",
+            "NT_PA_SLO_JEDNOSTKI_ORG_DAC",
+            "Teta.Sumo.Personel.bosSOrganizacja.MTG.JednostkiOrganizacyjneMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Stanowiska w strukturze organizacyjnej",
+          "exact_name_tokens=nazwa,mpk",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c660b15e-8865-4a65-8692-d8e7df503ff0",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicZrodlaOcen",
+        "helpLabel": "Kod",
+        "helpDescription": "kod źródła oceny. \r\n Kolumna jest wymagana a wprowadzona wartość musi być \r\n unikalna w ramach słownika.",
+        "helpKind": "fieldHelp",
+        "section": "Źródła ocen",
+        "control": "dgcKod",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "ZrodlaOcen",
+          "dataMember": "KOD"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_SLO_ZRODLA_OCEN",
+            "NT_KP_SLO_ZRODLA_OCEN_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Źródła ocen",
+          "exact_caption=KOD",
+          "exact_name_tokens=kod",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c660b15e-8865-4a65-8692-d8e7df503ff0",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicZrodlaOcen",
+        "helpLabel": "Nazwa",
+        "helpDescription": "nazwa źródła oceny. Kolumna \r\n jest wymagana a wprowadzona wartość musi być \r\n unikalna w ramach słownika.",
+        "helpKind": "fieldHelp",
+        "section": "Źródła ocen",
+        "control": "dgcNazwa",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "ZrodlaOcen",
+          "dataMember": "NAZWA"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_SLO_ZRODLA_OCEN",
+            "NT_KP_SLO_ZRODLA_OCEN_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Źródła ocen",
+          "exact_caption=NAZWA",
+          "exact_name_tokens=nazwa",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c660b15e-8865-4a65-8692-d8e7df503ff0",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicZrodlaOcen",
+        "helpLabel": "Typ",
+        "helpDescription": "typ źródła oceny. Z listy wybieramy następujące \r\n wartości: Inne , Klient , Podwładny , \r\n Przełożony , Samoocena , Współpracownik .",
+        "helpKind": "fieldHelp",
+        "section": "Źródła ocen",
+        "control": "dgcTyp",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "ZrodlaOcen",
+          "dataMember": "TYP"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_SLO_ZRODLA_OCEN",
+            "NT_KP_SLO_ZRODLA_OCEN_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Źródła ocen",
+          "exact_caption=TYP",
+          "exact_name_tokens=typ",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c660b15e-8865-4a65-8692-d8e7df503ff0",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicZrodlaOcen",
+        "helpLabel": "Końcowa",
+        "helpDescription": "pole wyboru, decyduje czy to ocena \r\n końcowa.",
+        "helpKind": "fieldHelp",
+        "section": "Źródła ocen",
+        "control": "dgcKoncowa",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "ZrodlaOcen",
+          "dataMember": "KONCOWA"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_SLO_ZRODLA_OCEN",
+            "NT_KP_SLO_ZRODLA_OCEN_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Źródła ocen",
+          "exact_caption=KONCOWA",
+          "exact_name_tokens=koncowa",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "18afa59e-c034-4831-9198-cf919653354a",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicZadaniaStanowiska",
+        "helpLabel": "Nazwa",
+        "helpDescription": "nazwa zadania, wartość musi \r\n być unikalna w ramach słownika. Na formularzu jest \r\n możliwość nadpisania tej wartości, ale zmiany nie zostaną \r\n wprowadzone do słownika.",
+        "helpKind": "fieldHelp",
+        "section": "Zadania stanowiska",
+        "control": "dgcNazwa",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "ZadaniaStanowiska",
+          "dataMember": "NAZWA"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_SLO_ZADANIA_STAN",
+            "NT_KP_SLO_ZADANIA_STAN_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Zadania stanowiska",
+          "exact_caption=NAZWA",
+          "exact_name_tokens=nazwa",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "036d0794-9f71-4fcb-90c6-106d517dee9f",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicInformacjeDodatkowe",
+        "helpLabel": "Nazwa",
+        "helpDescription": "nazwa informacji dodatkowej, \r\n wartość musi być unikalna w ramach słownika.",
+        "helpKind": "fieldHelp",
+        "section": "Informacje dodatkowe",
+        "control": "dgcNazwa",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "InformacjeDodatkowe",
+          "dataMember": "NAZWA"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_SLO_INFO_DODATKOWE",
+            "NT_KP_SLO_INFO_DODATKOWE_DAC"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Informacje dodatkowe",
+          "exact_caption=NAZWA",
+          "exact_name_tokens=nazwa",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      }
+    ],
+    "lookupFields": [
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Typ stanowiska",
+        "helpDescription": "pole uzupełniane wartościami ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "lcboTypStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "ZSTP_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_TYPY_STANOWISK",
+            "NT_KP_SLO_TYPY_STANOWISK_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "exact_name_tokens=typ,stanowiska",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Rodzina",
+        "helpDescription": "wartości pochodzące ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": "lcboRodzinaStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "RODS_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "RodzinyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_RODZINY_STAN",
+            "NT_KP_SLO_RODZINY_STAN_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Dane podstawowe",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8b08a44a-4821-4cf4-87eb-477f853c2028",
+        "formType": "Teta.Sumo.Personel.plgDaneOsobowe.CrdDaneOsobowe.DaneOsoboweWidok",
+        "helpLabel": "Typ zleceniobiorcy",
+        "helpDescription": "wartość tego pola jest \r\n uwzględniana przy kontroli, czy zawierana umowa podlega obowiązkowym \r\n ubezpieczeniom. W polu mogą się znaleźć następujące wartości:",
+        "helpKind": "fieldHelp",
+        "section": "Zleceniobiorca",
+        "control": "lcboTypZleceniobiorcy",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "Pracownik",
+          "dataMember": "TYP_ZLECENIOBIORCY"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyZleceniobiorcy",
+          "valueMember": "WARTOSC_OD",
+          "displayMember": "ZNACZENIE"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_FIRMY",
+            "Teta.Sumo.Personel.bosSPracownikBase.MTG.PracownikBaseMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Zleceniobiorca",
+          "exact_name_tokens=typ,zleceniobiorcy",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8b08a44a-4821-4cf4-87eb-477f853c2028",
+        "formType": "Teta.Sumo.Personel.plgDaneOsobowe.CrdDaneOsobowe.DaneOsoboweWidok",
+        "helpLabel": "Płeć",
+        "helpDescription": "system zaznacza właściwą \r\n wartość podczas wykonywania funkcji dodania pracownika, \r\n identyfikując płeć na podstawie ostatniej litery pierwszego imienia. \r\n Dla imion męskich, takich jak np. Kosma, należy samodzilenie zmienić płeć określoną \r\n przez system na poprawną.",
+        "helpKind": "actionHelp",
+        "section": "Zakładka Dane osobowe",
+        "control": "lcboPlec",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "Pracownik",
+          "dataMember": "PLEC"
+        },
+        "lookupBinding": {
+          "datasetTable": "Plec",
+          "valueMember": "WARTOSC_ZWRACANA",
+          "displayMember": "WARTOSC_WYSWIETLANA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_FIRMY",
+            "Teta.Sumo.Personel.bosSPracownikBase.MTG.PracownikBaseMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Zakładka Dane osobowe",
+          "exact_name_tokens=plec",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "f931d258-ca40-4c28-b2f4-4dec1e679beb",
+        "formType": "Teta.Sumo.Personel.plgDaneOsobowe.CrdCzlonkowieRodziny.CzlonkowieRodzinyWidok",
+        "helpLabel": "Stan cywilny",
+        "helpDescription": "pole wype³niane na \r\n podstawie s³ownika zdefiniowanego w menu",
+        "helpKind": "fieldHelp",
+        "section": "Zak³adka Informacje o rodzinie",
+        "control": "lcboStanCywilny",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "Pracownik",
+          "dataMember": "SSTC_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "StanCywilny",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_FIRMY",
+            "Teta.Sumo.Personel.bosSPracownikBase.MTG.PracownikBaseMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_STAN_CYWILNY",
+            "NT_KP_SLO_STAN_CYWILNY_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Zak³adka Informacje o rodzinie",
+          "exact_name_tokens=stan,cywilny",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "d3479f5a-e3f2-4d09-bd0b-e35bdb7f3e0f",
+        "formType": "Teta.Sumo.Personel.plgDaneOsobowe.CrdWyksztalcenie.WyksztalcenieWidok",
+        "helpLabel": "Kod zatrudnienia (GUS)",
+        "helpDescription": "określa \r\n kod zatrudnienia wg klasyfikacji GUS, zawiera wartości ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Zakładka Przygotowanie zawodowe",
+        "control": "lcboKodZatrudnienia",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.7866666666666666,
+        "targetBinding": {
+          "datasetTable": "Pracownik",
+          "dataMember": "KOD_ZATRUDNIENIA"
+        },
+        "lookupBinding": {
+          "datasetTable": "KodyZatrudnienia",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_FIRMY",
+            "Teta.Sumo.Personel.bosSPracownikBase.MTG.PracownikBaseMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Zakładka Przygotowanie zawodowe",
+          "name_token_overlap=0.67",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "255a4780-3639-4c5f-b0eb-e2f776154349",
+        "formType": "Teta.Sumo.Finances.plgFinanseParametryRap.Rozrachunki.PrmRozrachunkiSumarycznie",
+        "helpLabel": "Język obcy",
+        "helpDescription": "służy do wyboru języka, w jakim zostanie wykonany \r\n raport. Parametr ten może przyjąć jedną z wartości wprowadzonych do \r\n słownika języków w menu Słowniki |",
+        "helpKind": "fieldHelp",
+        "section": "Zobowiązania i należności (analitycznie, sumarycznie i zagregowane)",
+        "control": "lcboJezyk",
+        "controlKind": "other",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "RaportParametry",
+          "dataMember": "JEZY_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "Jezyki",
+          "valueMember": "ID",
+          "displayMember": "JEZYK"
+        },
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Zobowiązania i należności (analitycznie, sumarycznie i zagregowane)",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "57695876-0d40-4b51-b566-b73b8309b51e",
+        "formType": "Teta.Sumo.Finances.plgFinanseParametryRap.Rozrachunki.PrmRozrachunkiZagregowane",
+        "helpLabel": "Język obcy",
+        "helpDescription": "służy do wyboru języka, w jakim zostanie wykonany \r\n raport. Parametr ten może przyjąć jedną z wartości wprowadzonych do \r\n słownika języków w menu Słowniki |",
+        "helpKind": "fieldHelp",
+        "section": "Zobowiązania i należności (analitycznie, sumarycznie i zagregowane)",
+        "control": "lcboJezyk",
+        "controlKind": "other",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "RaportParametry",
+          "dataMember": "JEZY_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "Jezyki",
+          "valueMember": "ID",
+          "displayMember": "JEZYK"
+        },
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Zobowiązania i należności (analitycznie, sumarycznie i zagregowane)",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "7cdef831-c907-4f6e-a858-e0b37ac09c05",
+        "formType": "Teta.Sumo.Production.plgProdukcjaSlowniki.CrdKalendarze.KalendarzeWidok",
+        "helpLabel": "Typ",
+        "helpDescription": "można tu wybrać jedną z \r\nwartości: Kwartał , Miesiąc , Pół roku , Rok , Tydzień .",
+        "helpKind": "fieldHelp",
+        "section": "Kalendarze",
+        "control": "lcboTyp",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "Kalendarze",
+          "dataMember": "TYP"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyKalendarza",
+          "valueMember": "WARTOSC_OD",
+          "displayMember": "ZNACZENIE"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PR_SLO_KALENDARZE",
+            "NT_PR_SLO_KALENDARZE_DAC",
+            "Teta.Sumo.Production.bosProdukcjaSlowniki.MTG.KalendarzeMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Kalendarze",
+          "exact_name_tokens=typ",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "00051a0c-b5a2-a758-e040-2f64070a9592",
+        "formType": "Teta.Sumo.SOP.plgFunkcjeBankowe.CrdFunkcjeBankowe.FunkcjeBankoweWidok",
+        "helpLabel": "Dopełnienie",
+        "helpDescription": "rodzaj dopełnienia wybierany z \r\n listy rozwijanej, możliwe jest dopełnienie\r\n Lewe , Prawe lub\r\n Brak dopełnienia .",
+        "helpKind": "fieldHelp",
+        "section": "Pola funkcji",
+        "control": "lcboDopelnianie",
+        "controlKind": "lookup",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "PolaFunkcji",
+          "dataMember": "DOPELNIENIE"
+        },
+        "lookupBinding": {
+          "datasetTable": "DopelnieniePola",
+          "valueMember": "WARTOSC_OD",
+          "displayMember": "WARTOSC_DO"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SOP_POLA_FUNK_BANK",
+            "NT_PA_SOP_POLA_FUNK_BANK_DAC",
+            "Teta.Sumo.SOP.bosFunkcjeBankowe.TG.PolaFunkcjiTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Pola funkcji",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "911eaad4-6091-4a91-b60f-fd8a614621cf",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlownikiRap.CrdEwidencjaCzasuPracy.EwidencjaCzasuPracyWidok",
+        "helpLabel": "Czas przepracowany ogółem wg",
+        "helpDescription": "w polu tym następuje \r\n wybór podstawy, na jakiej będzie obliczany czas przepracowany. \r\n Dostępne są opcje wg:",
+        "helpKind": "fieldHelp",
+        "section": "Blok danych Parametryzacja czasu pracy",
+        "control": "lcboCzasPrzepracowany",
+        "controlKind": "lookup",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "Parametry",
+          "dataMember": "CzasWg"
+        },
+        "lookupBinding": {
+          "datasetTable": "CzasPrzepracowanyEwcp",
+          "valueMember": "WARTOSC_OD",
+          "displayMember": "ZNACZENIE"
+        },
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Blok danych Parametryzacja czasu pracy",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "57de149e-6ab9-4152-b9c9-b9459781168a",
+        "formType": "Teta.Sumo.AccountAssignment.plgTypySzablony.CrdTypyDekretacyjne.TypyDekretacyjneWidok",
+        "helpLabel": "Typ dokumentu FK",
+        "helpDescription": "należy tu wybrać typ \r\n dokumentu finansowego, który ma powstać w wyniku dekretacji.",
+        "helpKind": "fieldHelp",
+        "section": "Typy dokumentów źródłowych",
+        "control": "lcboTypDokFk",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.7866666666666666,
+        "targetBinding": {
+          "datasetTable": "TypyDokumentow",
+          "dataMember": "TYP_DOKUMENTU_FK"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypDokumentuFk",
+          "valueMember": null,
+          "displayMember": "WARTOSC_OD"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_RK_SLO_TYPY_DOKUMENTOW",
+            "Teta.Sumo.Finances.bosFinanseSlowniki.TG.TypyDokumentowTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Typy dokumentów źródłowych",
+          "name_token_overlap=0.67",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "eba427f5-cf6d-493c-b6b4-82c8e0757393",
+        "formType": "Teta.Sumo.Personel.plgChorobyIUprawnienia.CrdChorobyIUprawnienia.ChorobyIUprawnieniaWidok",
+        "helpLabel": "Organ wydający emeryturę",
+        "helpDescription": "pole \r\n jest uzupełniane wartościami ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Blok danych Uprawnienia emerytalne",
+        "control": "lcboOrganWydajacyEmeryture",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "Pracownik",
+          "dataMember": "ORWE_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "OrganWydajacyEmeryture",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_SLO_FIRMY",
+            "Teta.Sumo.Personel.bosSPracownikBase.MTG.PracownikBaseMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Blok danych Uprawnienia emerytalne",
+          "exact_name_tokens=organ,wydajacy,emeryture",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "9db131d5-05b4-493d-89a2-e06796170708",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdPowiazaniaKOS.PowiazaniaKOSWidok",
+        "helpLabel": "Rodzina",
+        "helpDescription": "pole \r\n uzupełniane wartościami ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Powiązania w strukturze",
+        "control": "lcboRodzinaStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "RODS_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "RodzinyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_RODZINY_STAN",
+            "NT_KP_SLO_RODZINY_STAN_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Powiązania w strukturze",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "9db131d5-05b4-493d-89a2-e06796170708",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdPowiazaniaKOS.PowiazaniaKOSWidok",
+        "helpLabel": "Typ stanowiska",
+        "helpDescription": "pole \r\n uzupełniane wartościami ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Powiązania w strukturze",
+        "control": "lcboTypStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "ZSTP_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_TYPY_STANOWISK",
+            "NT_KP_SLO_TYPY_STANOWISK_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Powiązania w strukturze",
+          "exact_name_tokens=typ,stanowiska",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "ca981b56-5cc5-43e2-a6cb-ef31290da9fb",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdProfilKOS.ProfilKOSWidok",
+        "helpLabel": "Rodzina",
+        "helpDescription": "pole uzupełniane wartościami ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Profil kompetencyjny",
+        "control": "lcboRodzinaStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "RODS_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "RodzinyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_RODZINY_STAN",
+            "NT_KP_SLO_RODZINY_STAN_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Profil kompetencyjny",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "ca981b56-5cc5-43e2-a6cb-ef31290da9fb",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdProfilKOS.ProfilKOSWidok",
+        "helpLabel": "Typ stanowiska",
+        "helpDescription": "pole uzupełniane wartościami ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Profil kompetencyjny",
+        "control": "lcboTypStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "ZSTP_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_TYPY_STANOWISK",
+            "NT_KP_SLO_TYPY_STANOWISK_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Profil kompetencyjny",
+          "exact_name_tokens=typ,stanowiska",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "ca981b56-5cc5-43e2-a6cb-ef31290da9fb",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdProfilKOS.ProfilKOSWidok",
+        "helpLabel": "Typ",
+        "helpDescription": "pole uzupełniane wartościami ze słownika systemowego, do wyboru dwie wartości: \r\n Niezbędne , \r\n Pożądane .",
+        "helpKind": "fieldHelp",
+        "section": "Zakładka kompetencje twarde",
+        "control": "lcboTypStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "ZSTP_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_TYPY_STANOWISK",
+            "NT_KP_SLO_TYPY_STANOWISK_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Zakładka kompetencje twarde",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5a1dadf3-0bf4-4322-80d0-951d6bda5c32",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdKryteriaOcenKOS.KryteriaOcenKOSWidok",
+        "helpLabel": "Rodzina",
+        "helpDescription": "pole uzupełniane wartościami ze słownika",
+        "helpKind": "fieldHelp",
+        "section": "Kryteria ocen na stanowisku",
+        "control": "lcboRodzinaStanowiska",
+        "controlKind": "lookup",
+        "matchStatus": "probable_same_container",
+        "score": 0.55,
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "RODS_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "RodzinyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_RODZINY_STAN",
+            "NT_KP_SLO_RODZINY_STAN_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Kryteria ocen na stanowisku",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "d7c0f82e-b9f9-4da4-b520-3ec9a9c260f6",
+        "formType": "Teta.Sumo.Finances.plgKartotekaKont.CrdKontaObroty.KontaObrotyWidok",
+        "helpLabel": "Waluta",
+        "helpDescription": "domyślna waluta obca konta.",
+        "helpKind": "fieldHelp",
+        "section": "Obroty i salda kont analitycznych",
+        "control": "lcboWaluta",
+        "controlKind": "lookup",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "Zmienne",
+          "dataMember": "WALUTA"
+        },
+        "lookupBinding": {
+          "datasetTable": "WalutyJednostki",
+          "valueMember": "ID",
+          "displayMember": "KOD"
+        },
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [],
+          "lookupObjects": [
+            "NT_PA_SLO_WALUTY",
+            "NT_PA_SLO_WALUTY_DAC"
+          ]
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Obroty i salda kont analitycznych",
+          "exact_name_tokens=waluta",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      }
+    ],
+    "actionButtons": [
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Zamknięcie miesiąca",
+        "helpDescription": "bliczania z tego samego miesiąca i roku. Aby zamknąć listę dla \r\n tego pracownika, najpierw należy \r\n wykonać funkcję Zamknięcie miesiąca . Lista płac, która została zamknięta nie może \r\n już być usunięta.\n\r\n \n\r\n Formularz Listy zamknięte zawiera \r\n następujące informacje:\n\r\n Zakładka Składniki listy<",
+        "helpKind": "actionHelp",
+        "section": "Listy zamknięte",
+        "control": "tbbZamknijMiesiac",
+        "controlKind": "button",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.9,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": "KP_UPR_KART_LIST_ZAMKNIJ_MIES",
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Listy zamknięte",
+          "weak_name_token_overlap=0.50",
+          "action_to_button parameterName=KP_UPR_KART_LIST_ZAMKNIJ_MIES",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Zamkniętych miesięcy",
+        "helpDescription": "cownika. \r\n Zamknięcie miesiąca powoduje przeniesienie zawartości formularza Listy \r\n zamknięte do Zamkniętych miesięcy . \n\r\n W oknie funkcji należy podać miesiąc kalendarzowy i rok, dla których zostanie \r\nona wykonana dla danego pracownika. Domyślnie system podpowiada \r\n miesiąc i rok zgodny z datą za",
+        "helpKind": "actionHelp",
+        "section": "Zamykanie miesiąca",
+        "control": "tbbZamknijMiesiac",
+        "controlKind": "button",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.9,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": "KP_UPR_KART_LIST_ZAMKNIJ_MIES",
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Zamykanie miesiąca",
+          "weak_name_token_overlap=0.50",
+          "action_to_button parameterName=KP_UPR_KART_LIST_ZAMKNIJ_MIES",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Zamknięte miesiące",
+        "helpDescription": "list płac, których data \r\n obliczenia pochodzi z miesiąca zamykanego do zbioru zamkniętych \r\n miesięcy (formularz Zamknięte miesiące );\n\r\n \r\n zaktualizowanie podstaw do zasiłku i \r\n urlopu dla danego \r\n miesiąca (formularze Karta zasiłkowa , Podstawy do \r\n urlopu</b",
+        "helpKind": "actionHelp",
+        "section": "Zamykanie miesiąca",
+        "control": "tbbZamknijMiesiac",
+        "controlKind": "button",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.9,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": "KP_UPR_KART_LIST_ZAMKNIJ_MIES",
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Zamykanie miesiąca",
+          "weak_name_token_overlap=0.50",
+          "action_to_button parameterName=KP_UPR_KART_LIST_ZAMKNIJ_MIES",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
+        "helpLabel": "Liczba pracowników objętych operacją",
+        "helpDescription": "parametr zwraca \r\n liczbę pracowników, dla których zostanie wykonana funkcja.",
+        "helpKind": "actionHelp",
+        "section": "Usuwanie wyników ostatnich obliczeń",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Usuwanie wyników ostatnich obliczeń",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
+        "helpLabel": "Usuń listy zadekretowane",
+        "helpDescription": "zaznaczenie tej opcji \r\n powoduje, że funkcja będzie również dotyczyć usunięcia list \r\n zadekretowanych.",
+        "helpKind": "actionHelp",
+        "section": "Usuwanie wyników ostatnich obliczeń",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Usuwanie wyników ostatnich obliczeń",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
+        "helpLabel": "Usuń listy zadekretowane –",
+        "helpDescription": "wypełnienia; należy wskazać firmę, dla której ma zostać wykonana \r\n funkcja.\n\r\n \r\n Usuń listy zadekretowane – zaznaczenie tej opcji \r\n powoduje, że funkcja będzie również dotyczyć usunięcia list \r\n zadekretowanych.\n\r\n \r\n Pracownicy – dodatkowo można z t",
+        "helpKind": "actionHelp",
+        "section": "Usuwanie wyników ostatnich obliczeń",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Usuwanie wyników ostatnich obliczeń",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "469e7730-e558-4631-a897-dfba526dda36",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdStanowiskoWStrukturzeOrg.StanowiskoWStrukturzeOrgWidok",
+        "helpLabel": "Usuń",
+        "helpDescription": "ddObject16.png\" width=\"16\" height=\"16\"> można dodać nowe stanowisko do jednostki. \r\nUsunąć je można za pomocą polecenia Usuń z menu z menu kontekstowego \r\nwyświetlanego prawym klawiszem myszy. Można usunąć stanowiska, które nie zostały jeszcze obsadzone w kartotece \r\nstanowisk. W przeciwnym wypadku pojawi się komunikat: <",
+        "helpKind": "actionHelp",
+        "section": "Stanowiska w strukturze organizacyjnej",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Stanowiska w strukturze organizacyjnej",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Szablon operacji",
+        "helpDescription": "domyślnie podpowiada się szablon \r\n dekretacji przypisany do rachunku bankowego na formularzu",
+        "helpKind": "actionHelp",
+        "section": "Wyciągi bankowe",
+        "control": "tbbSzablonOperacji",
+        "controlKind": "button",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyciągi bankowe",
+          "exact_name_tokens=szablon,operacji",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Zatwierdzony",
+        "helpDescription": "pole jest zaznaczone, jeśli wyciąg \r\n został zatwierdzony.",
+        "helpKind": "actionHelp",
+        "section": "Wyciągi bankowe",
+        "control": "dgcWbwoZatwierdzony",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 1,
+        "targetBinding": {
+          "datasetTable": "WyciagiOperacje",
+          "dataMember": "ZATWIERDZONY"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_PA_WB_WBWO",
+            "NT_PA_WB_WBWO_DAC",
+            "Teta.Sumo.SOP.bosWyciagiBankowe.TG.WyciagiOperacjeTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyciągi bankowe",
+          "exact_caption=ZATWIERDZONY",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Zatwierdzona",
+        "helpDescription": "informacja o tym, czy \r\n operacja wyciągu bankowego jest zatwierdzona.",
+        "helpKind": "actionHelp",
+        "section": "Wyciągi bankowe",
+        "control": "tbbZatwierdz",
+        "controlKind": "button",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.9,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyciągi bankowe",
+          "weak_name_token_overlap=0.50",
+          "action_to_button parameterName=-",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Przejdź do następnej operacji WB",
+        "helpDescription": "po uzgodnieniu operacji \r\n zakończonym przyciskiem",
+        "helpKind": "actionHelp",
+        "section": "Uzgadnianie operacji \r\n wyciągu bankowego",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.9,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Uzgadnianie operacji \r\n wyciągu bankowego",
+          "ambiguous_top=gtiPrzejdzDoEdycjiPK(0.90)",
+          "ambiguous_second=gtiPrzejdzDoRachKontrahenta(0.90)",
+          "weak_name_token_overlap=0.40",
+          "action_to_button parameterName=-",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Zatwierdź uzgodnioną",
+        "helpDescription": "po całkowitym uzgodnieniu operacji WB zakończonym przyciskiem",
+        "helpKind": "actionHelp",
+        "section": "Uzgadnianie operacji \r\n wyciągu bankowego",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.9,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Uzgadnianie operacji \r\n wyciągu bankowego",
+          "ambiguous_top=gtiZatwierdzOperacje(0.90)",
+          "ambiguous_second=tbbZatwierdz(0.90)",
+          "weak_name_token_overlap=0.50",
+          "action_to_button parameterName=-",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Anuluj filtr korekt",
+        "helpDescription": "s/Buttons/AdvancedFilterFA16.png\" width=\"16\" height=\"16\"> \r\n udostępniający dwa polecenia: Ustaw filtr korekt i Anuluj filtr korekt .\n\r\n Po wybraniu opcji Ustaw filtr korekt \r\n wyświetla się okno, w którym można podać symbol korekty \r\n związanej, jak również inne parametry wyszukiwania. Filtrowanie jest \r\n urucham",
+        "helpKind": "actionHelp",
+        "section": "Uzgadnianie operacji \r\n wyciągu bankowego",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Uzgadnianie operacji \r\n wyciągu bankowego",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Edytuj dokument księgowy",
+        "helpDescription": "ie odbywa się.\n\r\n \r\n Edycja dokumentu księgowego \r\n Funkcja Edytuj dokument księgowy uruchamiana \r\n przyciskiem\r\n \r\n z paska narzędzi formularza Operacje wyciągów bankowych pozwa",
+        "helpKind": "actionHelp",
+        "section": "Edycja dokumentu księgowego",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Edycja dokumentu księgowego",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Importuj wyciąg bankowy",
+        "helpDescription": "se | Płatności bankowe . Służy do określenia, czy kontrahent na \r\n WB ma być wyznaczany podczas wykonywania funkcji Importuj wyciąg \r\n bankowy na podstawie pola Nr konta partnera . Parametr może \r\n przyjąć jedną z dwóch wartości:\n\r\n \r\n \r\n Tak \r\n – podczas importu kontrahent będzie w",
+        "helpKind": "actionHelp",
+        "section": "Parametr firmowy dotyczący importu",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Parametr firmowy dotyczący importu",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "970d89b3-e004-4c0e-aeeb-71ec48b42659",
+        "formType": "Teta.Sumo.Logistics.plgZapotrzebowaniaZakupu.CrdKartotekaZapotrzebowan.KartotekaZapotrzebowanWidok",
+        "helpLabel": "Zatwierdzone",
+        "helpDescription": "oznaczenie, czy zapotrzebowanie zostało zatwierdzone.",
+        "helpKind": "actionHelp",
+        "section": "Kartoteka zapotrzebowań",
+        "control": "dgcZatwierdzone",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_control_name",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "Zapotrzebowania",
+          "dataMember": "ZATWIERDZONY"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_LG_DZK_DOKUMENTY_ZAK_PDMN",
+            "Teta.Sumo.Logistics.bosZapotrzebowaniaZakupu.MTG.ZapotrzebowaniaZakupuMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Kartoteka zapotrzebowań",
+          "exact_name_tokens=zatwierdzone",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "970d89b3-e004-4c0e-aeeb-71ec48b42659",
+        "formType": "Teta.Sumo.Logistics.plgZapotrzebowaniaZakupu.CrdKartotekaZapotrzebowan.KartotekaZapotrzebowanWidok",
+        "helpLabel": "Zatwierdził",
+        "helpDescription": "identyfikator osoby zatwierdzającej \r\n zapotrzebowanie.",
+        "helpKind": "actionHelp",
+        "section": "Kartoteka zapotrzebowań",
+        "control": "dgcZatwierdzil",
+        "controlKind": "grid_column",
+        "matchStatus": "matched_by_caption",
+        "score": 0.95,
+        "targetBinding": {
+          "datasetTable": "Zapotrzebowania",
+          "dataMember": "KTO_ZATWIERDZIL"
+        },
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_LG_DZK_DOKUMENTY_ZAK_PDMN",
+            "Teta.Sumo.Logistics.bosZapotrzebowaniaZakupu.MTG.ZapotrzebowaniaZakupuMTG"
+          ],
+          "lookupObjects": []
+        },
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Kartoteka zapotrzebowań",
+          "partial_caption",
+          "exact_name_tokens=zatwierdzil",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "970d89b3-e004-4c0e-aeeb-71ec48b42659",
+        "formType": "Teta.Sumo.Logistics.plgZapotrzebowaniaZakupu.CrdKartotekaZapotrzebowan.KartotekaZapotrzebowanWidok",
+        "helpLabel": "Cofnij anulowanie realizacji wszystkich niezrealizowanych pozycji na wybranych dokumentach",
+        "helpDescription": "użycie tej funkcji \r\n umożliwia powrót do realizacji pozycji. Cofnięcie anulowania \r\n realizacji pozycji na wybranym zapotrzebowaniu zakupu zostanie \r\n przeprowadzone tylko wtedy, gdy pozycja spełnia następujące warunki:",
+        "helpKind": "actionHelp",
+        "section": "Kartoteka zapotrzebowań",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Kartoteka zapotrzebowań",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "9ece0517-799a-4f1e-8a64-6dc9ed8ed7d8",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdKartyPracy.KartyPracyWidok",
+        "helpLabel": "Obliczanie karty pracy dla wybranych pracowników",
+        "helpDescription": "IF są widoczne \r\n dopiero po wykonaniu obliczenia kart pracy (bezpośrednio na formularzu \r\n lub za pomocą funkcji Obliczanie karty pracy dla wybranych \r\n pracowników .\n\r\n \r\n Podpowiedź – jest to pole słownikowe; jeżeli \r\n typ składnika karty pracy jest ustawiony na Podpowiadany , to \r\n należy uzupełnić to pole war",
+        "helpKind": "actionHelp",
+        "section": "Karty pracy",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Karty pracy",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "9ece0517-799a-4f1e-8a64-6dc9ed8ed7d8",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdKartyPracy.KartyPracyWidok",
+        "helpLabel": "Oblicz",
+        "helpDescription": "nkcji obliczania kart pracy – bezpośrednio na formularzu\r\n \r\n Płace | Karty pracy \r\n (przycisk Oblicz ) \r\n lub formularzu Płace | Arkusz \r\n kart pracy \r\n (przycisk Oblicz ).\n\r\n Słownik podpowiedzi na \r\n kartach pracy zawiera następujące odwołania: \r\n \r\n <p class=\"w",
+        "helpKind": "actionHelp",
+        "section": "Podpowiadany",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Podpowiadany",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      }
+    ],
+    "ambiguous": [
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Tytuł",
+        "helpDescription": "jest to tytuł składnika \r\n płacowego.",
+        "helpKind": "fieldHelp",
+        "section": "Zakładka Składniki listy",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Zakładka Składniki listy",
+          "ambiguous_top=dgcSklpTytul(0.85)",
+          "ambiguous_second=dgcSklpTytulAgr(0.85)",
+          "partial_caption",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Wartość",
+        "helpDescription": "wartość składnika, która \r\n została obliczona w procesie obliczania listy.",
+        "helpKind": "fieldHelp",
+        "section": "Zakładka Składniki listy",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 1,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Zakładka Składniki listy",
+          "ambiguous_top=dgcWartosc(1.00)",
+          "ambiguous_second=dgcValue(1.00)",
+          "exact_caption=WARTOSC",
+          "exact_name_tokens=wartosc",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Numer listy płac",
+        "helpDescription": "numer listy płac, na której dany składnik został obliczony.",
+        "helpKind": "fieldHelp",
+        "section": "Zakładka Składniki listy",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Zakładka Składniki listy",
+          "ambiguous_top=dgcNumerListy(0.85)",
+          "ambiguous_second=dgcListNo(0.85)",
+          "partial_caption",
+          "name_token_overlap=0.67",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Nazwa właściciela",
+        "helpDescription": "symbol właściciela \r\n rachunku wybierany z listy właścicieli rachunków.",
+        "helpKind": "fieldHelp",
+        "section": "Wyciągi bankowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyciągi bankowe",
+          "ambiguous_top=dgcWbwoTobaNazwa(0.85)",
+          "ambiguous_second=dgcWbwoNazwaWlasciciela(0.79)",
+          "partial_caption",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Rodzaj kursu",
+        "helpDescription": "Kupno , Sprzedaż lub \r\n Średni .",
+        "helpKind": "fieldHelp",
+        "section": "Wyciągi bankowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyciągi bankowe",
+          "ambiguous_top=dgcKurs(0.85)",
+          "ambiguous_second=dgcWbwoRodzajKursu(0.79)",
+          "partial_caption",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Status dekretacji",
+        "helpDescription": "standardowa kolumna \r\n informująca o stanie przetworzenia dokumentu.",
+        "helpKind": "fieldHelp",
+        "section": "Wyciągi bankowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyciągi bankowe",
+          "ambiguous_top=dgcWbwoStatusOperacji(0.85)",
+          "ambiguous_second=dgcWbwoStatusDekretacji(0.79)",
+          "partial_caption",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Data KG",
+        "helpDescription": "data księgowania.",
+        "helpKind": "fieldHelp",
+        "section": "Wyciągi bankowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyciągi bankowe",
+          "ambiguous_top=dgcWbwoData(0.85)",
+          "ambiguous_second=dgcStdoDataKg(0.79)",
+          "partial_caption",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Odsetki",
+        "helpDescription": "pole określa \r\n sposób naliczania odsetek od przeterminowanych uzgodnień. Można tu wybrać jedną z następujących opcji:",
+        "helpKind": "fieldHelp",
+        "section": "Wyciągi bankowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyciągi bankowe",
+          "ambiguous_top=dgcWbwoChargeInterestsMode(0.85)",
+          "ambiguous_second=dgcWbuzPairInterests(0.85)",
+          "partial_caption",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Przejdź do następnej operacji WB",
+        "helpDescription": "po uzgodnieniu operacji \r\n zakończonym przyciskiem",
+        "helpKind": "actionHelp",
+        "section": "Uzgadnianie operacji \r\n wyciągu bankowego",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.9,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Uzgadnianie operacji \r\n wyciągu bankowego",
+          "ambiguous_top=gtiPrzejdzDoEdycjiPK(0.90)",
+          "ambiguous_second=gtiPrzejdzDoRachKontrahenta(0.90)",
+          "weak_name_token_overlap=0.40",
+          "action_to_button parameterName=-",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
+        "formType": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
+        "helpLabel": "Zatwierdź uzgodnioną",
+        "helpDescription": "po całkowitym uzgodnieniu operacji WB zakończonym przyciskiem",
+        "helpKind": "actionHelp",
+        "section": "Uzgadnianie operacji \r\n wyciągu bankowego",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.9,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Uzgadnianie operacji \r\n wyciągu bankowego",
+          "ambiguous_top=gtiZatwierdzOperacje(0.90)",
+          "ambiguous_second=tbbZatwierdz(0.90)",
+          "weak_name_token_overlap=0.50",
+          "action_to_button parameterName=-",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "0232fd3e-a698-d6b7-e040-2f64070a60a8",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeOdpraw",
+        "helpLabel": "Nazwa",
+        "helpDescription": "pole opisowe, które \r\n należy uzupełnić nazwą odprawy lub odszkodowania",
+        "helpKind": "fieldHelp",
+        "section": "Rodzaje odpraw",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 1,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Rodzaje odpraw",
+          "ambiguous_top=dgcNazwa(1.00)",
+          "ambiguous_second=dgcPracticeName(1.00)",
+          "exact_caption=NAZWA",
+          "exact_name_tokens=nazwa",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "3a3da61b-9b00-45ac-bbdd-8e6e47183633",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdTaxConstants.TaxConstantsView",
+        "helpLabel": "Zwiększone koszty uzyskania",
+        "helpDescription": "wartość \r\n zwiększonych kosztów uzyskania.",
+        "helpKind": "fieldHelp",
+        "section": "Stałe podatkowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.7866666666666666,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Stałe podatkowe",
+          "ambiguous_top=dgcKosztyUzyskania(0.79)",
+          "ambiguous_second=dgcZwiekszoneKoszty(0.79)",
+          "name_token_overlap=0.67",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "9ece0517-799a-4f1e-8a64-6dc9ed8ed7d8",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdKartyPracy.KartyPracyWidok",
+        "helpLabel": "Kod",
+        "helpDescription": "kod składnika karty pracy (dwuznakowy), \r\n unikalny w obrębie słownika.",
+        "helpKind": "fieldHelp",
+        "section": "Karty pracy",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 1,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Karty pracy",
+          "ambiguous_top=dgcDefKod(1.00)",
+          "ambiguous_second=dgcRcskCode(1.00)",
+          "exact_caption=KOD",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "9ece0517-799a-4f1e-8a64-6dc9ed8ed7d8",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdKartyPracy.KartyPracyWidok",
+        "helpLabel": "Tytuł",
+        "helpDescription": "nazwa składnika karty pracy, unikalna \r\n w obrębie słownika.",
+        "helpKind": "fieldHelp",
+        "section": "Karty pracy",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 1,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Karty pracy",
+          "ambiguous_top=dgcPodpTytul(1.00)",
+          "ambiguous_second=dgcDefPodpowiedz(1.00)",
+          "exact_caption=TYTUL",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "fe709ead-e074-a947-e030-2f64070aa2db",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdRodzajeNieobecnosci.RodzajeNieobecnosciWidok",
+        "helpLabel": "Tytuł",
+        "helpDescription": "nazwa nieobecności, musi być \r\n unikalna w ramach słownika.",
+        "helpKind": "fieldHelp",
+        "section": "Tabela Definicje absencji",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 1,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Tabela Definicje absencji",
+          "ambiguous_top=dgcRNTytul(1.00)",
+          "ambiguous_second=dgcRNTytulSklIloscDni(1.00)",
+          "exact_caption=TYTUL",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "fe709ead-e074-a947-e030-2f64070aa2db",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdRodzajeNieobecnosci.RodzajeNieobecnosciWidok",
+        "helpLabel": "Kod",
+        "helpDescription": "kod absencji uwzględniany przy \r\n podsumowaniu wykorzystania absencji na formularzu",
+        "helpKind": "fieldHelp",
+        "section": "Tabela Definicje absencji",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 1,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Tabela Definicje absencji",
+          "ambiguous_top=dgcRNKod(1.00)",
+          "ambiguous_second=dgcRNZUS(1.00)",
+          "exact_caption=KOD",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c331cbfd-5852-4e98-8544-e225abd05a3c",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdArkuszeOcen.ArkuszeOcenWidok",
+        "helpLabel": "Nazwa",
+        "helpDescription": "nazwa arkusza.",
+        "helpKind": "fieldHelp",
+        "section": "Arkusze ocen",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 1,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Arkusze ocen",
+          "ambiguous_top=dgcArkNazwa(1.00)",
+          "ambiguous_second=dgcArkSkalaOcen(1.00)",
+          "exact_caption=NAZWA",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c331cbfd-5852-4e98-8544-e225abd05a3c",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdArkuszeOcen.ArkuszeOcenWidok",
+        "helpLabel": "Nazwa stażu-stanowisko",
+        "helpDescription": "pola słownikowe; wypełnienie tych pól informuje osobę oceniającą \r\npracownika o jego stażu pracy na danym stanowisku.",
+        "helpKind": "fieldHelp",
+        "section": "Arkusze ocen",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Arkusze ocen",
+          "ambiguous_top=dgcArkNazwa(0.85)",
+          "ambiguous_second=dgcArkSkalaOcen(0.85)",
+          "partial_caption",
+          "weak_name_token_overlap=0.50",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c331cbfd-5852-4e98-8544-e225abd05a3c",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdArkuszeOcen.ArkuszeOcenWidok",
+        "helpLabel": "Nazwa stażu-firma, Kod stażu-firma",
+        "helpDescription": "pola słownikowe; wypełnienie tych pól informuje osobę oceniającą \r\npracownika o jego stażu pracy w firmie.",
+        "helpKind": "fieldHelp",
+        "section": "Arkusze ocen",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Arkusze ocen",
+          "ambiguous_top=dgcArkNazwa(0.85)",
+          "ambiguous_second=dgcArkSkalaOcen(0.85)",
+          "partial_caption",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c331cbfd-5852-4e98-8544-e225abd05a3c",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdArkuszeOcen.ArkuszeOcenWidok",
+        "helpLabel": "Nazwa stażu-ogółem, Kod stażu-ogółem",
+        "helpDescription": "pola słownikowe; wypełnienie tych pól informuje osobę oceniającą \r\npracownika o jego całkowitym stażu pracy.",
+        "helpKind": "fieldHelp",
+        "section": "Arkusze ocen",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "ambiguous",
+        "score": 0.85,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Arkusze ocen",
+          "ambiguous_top=dgcArkNazwa(0.85)",
+          "ambiguous_second=dgcArkSkalaOcen(0.85)",
+          "partial_caption",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      }
+    ],
+    "unmatched": [
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Stanowisko",
+        "helpDescription": "system pobiera MPK, które zostały \r\n skojarzone z pracownikiem na formularzu",
+        "helpKind": "fieldHelp",
+        "section": "Rozbijanie listy według MPK",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Rozbijanie listy według MPK",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Karta pracy",
+        "helpDescription": "system pobiera MPK z karty pracy, \r\n do której dany składnik płacowy odwołuje się za pomocą \r\n funkcji",
+        "helpKind": "fieldHelp",
+        "section": "Rozbijanie listy według MPK",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Rozbijanie listy według MPK",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "helpLabel": "Rachunek UC",
+        "helpDescription": "system pobiera MPK z rachunku, do \r\n której dany składnik płacowy odwołuje się za pomocą funkcji",
+        "helpKind": "fieldHelp",
+        "section": "Rozbijanie listy według MPK",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Rozbijanie listy według MPK",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Sędzia",
+        "helpDescription": "pole dodatkowe, wykorzystywane \r\n do definiowania filtrów i wydruków własnych.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Prokurator",
+        "helpDescription": "pole dodatkowe, wykorzystywane \r\n do definiowania filtrów i wydruków własnych.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Załączniki",
+        "helpDescription": "pole zaznaczone, gdy dodano \r\n załączniki.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "helpLabel": "Pokazuj w HRM",
+        "helpDescription": "pole zaznaczane w celu \r\n widoczności w HRM.",
+        "helpKind": "fieldHelp",
+        "section": "Dane podstawowe",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Dane podstawowe",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
+        "helpLabel": "Firma",
+        "helpDescription": "pole obowiązkowe do \r\n wypełnienia; należy wskazać firmę, dla której ma zostać wykonana \r\n funkcja.",
+        "helpKind": "fieldHelp",
+        "section": "Usuwanie wyników ostatnich obliczeń",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Usuwanie wyników ostatnich obliczeń",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
+        "helpLabel": "Pracownicy",
+        "helpDescription": "dodatkowo można z tego poziomu wskazać \r\n grupę pracowników, dla których \r\n zostanie wykonana funkcja.",
+        "helpKind": "fieldHelp",
+        "section": "Usuwanie wyników ostatnich obliczeń",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Usuwanie wyników ostatnich obliczeń",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
+        "helpLabel": "Liczba pracowników objętych operacją",
+        "helpDescription": "parametr zwraca \r\n liczbę pracowników, dla których zostanie wykonana funkcja.",
+        "helpKind": "actionHelp",
+        "section": "Usuwanie wyników ostatnich obliczeń",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Usuwanie wyników ostatnich obliczeń",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
+        "helpLabel": "Usuń listy zadekretowane",
+        "helpDescription": "zaznaczenie tej opcji \r\n powoduje, że funkcja będzie również dotyczyć usunięcia list \r\n zadekretowanych.",
+        "helpKind": "actionHelp",
+        "section": "Usuwanie wyników ostatnich obliczeń",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_inside",
+          "section=Usuwanie wyników ostatnich obliczeń",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_inside",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
+        "formType": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
+        "helpLabel": "Usuń listy zadekretowane –",
+        "helpDescription": "wypełnienia; należy wskazać firmę, dla której ma zostać wykonana \r\n funkcja.\n\r\n \r\n Usuń listy zadekretowane – zaznaczenie tej opcji \r\n powoduje, że funkcja będzie również dotyczyć usunięcia list \r\n zadekretowanych.\n\r\n \r\n Pracownicy – dodatkowo można z t",
+        "helpKind": "actionHelp",
+        "section": "Usuwanie wyników ostatnich obliczeń",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Usuwanie wyników ostatnich obliczeń",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "469e7730-e558-4631-a897-dfba526dda36",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdStanowiskoWStrukturzeOrg.StanowiskoWStrukturzeOrgWidok",
+        "helpLabel": "Usuń",
+        "helpDescription": "ddObject16.png\" width=\"16\" height=\"16\"> można dodać nowe stanowisko do jednostki. \r\nUsunąć je można za pomocą polecenia Usuń z menu z menu kontekstowego \r\nwyświetlanego prawym klawiszem myszy. Można usunąć stanowiska, które nie zostały jeszcze obsadzone w kartotece \r\nstanowisk. W przeciwnym wypadku pojawi się komunikat: <",
+        "helpKind": "actionHelp",
+        "section": "Stanowiska w strukturze organizacyjnej",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_action_name",
+          "section=Stanowiska w strukturze organizacyjnej",
+          "no_candidate_above_threshold",
+          "extraction=bold_action_name",
+          "confidence=probable_structural"
+        ]
+      },
+      {
+        "guid": "0aa96958-d542-4cdd-bd67-13ec9a554d13",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicWspolpraca",
+        "helpLabel": "Aktualna",
+        "helpDescription": "określenie czy dana \r\n pozycja słownikowa jest aktualna. Zaznaczenie pola wyboru \r\n spowoduje, że dana wartość będzie dostępna w listach wartości na \r\n formularzach.",
+        "helpKind": "fieldHelp",
+        "section": "Współpraca",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Współpraca",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "58c31964-fd36-486c-9f62-635e88d98f02",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicWyposazenie",
+        "helpLabel": "Aktualna",
+        "helpDescription": "określenie czy dana \r\n pozycja słownikowa jest aktualna. Zaznaczenie pola wyboru \r\n spowoduje, że dana wartość będzie dostępna w listach wartości na \r\n formularzach.",
+        "helpKind": "fieldHelp",
+        "section": "Wyposażenie",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Wyposażenie",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c12353a1-f617-4073-a803-cbe6df59a113",
+        "formType": "Teta.Sumo.Logistics.plgKontrahenci.CrdOsobyKontaktowe.OsobyKontaktoweWidok",
+        "helpLabel": "Rola",
+        "helpDescription": "pole słownikowe z listą \r\n ról, które mogą pełnić osoby kontaktowe. Hiperłącze w nagłówku kolumny wyświetla słownik",
+        "helpKind": "fieldHelp",
+        "section": "Osoby kontaktowe kontrahenta",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Osoby kontaktowe kontrahenta",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c12353a1-f617-4073-a803-cbe6df59a113",
+        "formType": "Teta.Sumo.Logistics.plgKontrahenci.CrdOsobyKontaktowe.OsobyKontaktoweWidok",
+        "helpLabel": "Stanowisko",
+        "helpDescription": "pole słownikowe z \r\n listą stanowisk, które zajmują osoby kontaktowe.",
+        "helpKind": "fieldHelp",
+        "section": "Osoby kontaktowe kontrahenta",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Osoby kontaktowe kontrahenta",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c12353a1-f617-4073-a803-cbe6df59a113",
+        "formType": "Teta.Sumo.Logistics.plgKontrahenci.CrdOsobyKontaktowe.OsobyKontaktoweWidok",
+        "helpLabel": "Dział",
+        "helpDescription": "pole słownikowe z listą \r\n działów, do których są przyporządkowane osoby kontaktowe.",
+        "helpKind": "fieldHelp",
+        "section": "Osoby kontaktowe kontrahenta",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Osoby kontaktowe kontrahenta",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c12353a1-f617-4073-a803-cbe6df59a113",
+        "formType": "Teta.Sumo.Logistics.plgKontrahenci.CrdOsobyKontaktowe.OsobyKontaktoweWidok",
+        "helpLabel": "E-mail",
+        "helpDescription": "adres e-mail osoby \r\n kontaktowej.",
+        "helpKind": "fieldHelp",
+        "section": "Osoby kontaktowe kontrahenta",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Osoby kontaktowe kontrahenta",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      },
+      {
+        "guid": "c12353a1-f617-4073-a803-cbe6df59a113",
+        "formType": "Teta.Sumo.Logistics.plgKontrahenci.CrdOsobyKontaktowe.OsobyKontaktoweWidok",
+        "helpLabel": "Telefon",
+        "helpDescription": "numer telefonu osoby \r\n kontaktowej.",
+        "helpKind": "fieldHelp",
+        "section": "Osoby kontaktowe kontrahenta",
+        "control": null,
+        "controlKind": null,
+        "matchStatus": "unmatched",
+        "score": 0,
+        "targetBinding": null,
+        "lookupBinding": null,
+        "parameterName": null,
+        "oracleMapping": null,
+        "evidence": [
+          "pattern=bold_dash_after",
+          "section=Osoby kontaktowe kontrahenta",
+          "no_candidate_above_threshold",
+          "extraction=bold_dash_after",
+          "confidence=confirmed_structural"
+        ]
+      }
+    ],
+    "missingHelp": [
+      {
+        "guid": "02e54042-6570-421e-9212-af1ee889f7e3",
+        "formType": "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit40"
+      },
+      {
+        "guid": "f8e02923-0f7d-4e19-b858-f4c94384f97d",
+        "formType": "Teta.Sumo.Personel.plgKredyty.ZmianaStopyProcentowej.ActZmianaStopyProcentowej"
+      },
+      {
+        "guid": "815114ef-f75a-48ff-9327-5ce26eb8a0f0",
+        "formType": "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit8b"
+      },
+      {
+        "guid": "7f20d697-43b7-4ff5-b277-ab7732c8f5ac",
+        "formType": "Teta.Sumo.Finances.plgFinanseParametryRap.ZestawieniaObrotow.PrmZestawieniaObrotow"
+      },
+      {
+        "guid": "1b2f7f81-68c6-4773-a617-439e59ff93de",
+        "formType": "Teta.Sumo.Finances.plgKartotekaKont.DodanieKonta.ActDodanieKonta"
+      },
+      {
+        "guid": "4bdc5979-2035-4f21-9228-13aacd048a2b",
+        "formType": "Teta.Sumo.FixedAssets.plgMajatekParametryRap.InwentaryzacjaUproszczona.PrmInwentaryzacjaUproszczona"
+      },
+      {
+        "guid": "ec62a9ea-975e-4a03-945a-dc7d9e573716",
+        "formType": "Teta.Sumo.FixedAssets.plgMajatekParametryRap.Inwentaryzacja.PrmSpisZNatury"
+      },
+      {
+        "guid": "86ce4a7a-19c9-4df0-b8d4-db449201eaf6",
+        "formType": "Teta.Sumo.FixedAssets.plgMajatekParametryRap.KodyKreskowe.PrmKodyKreskoweCzesciSkladowe"
+      },
+      {
+        "guid": "ffa1d1e7-58ed-d8df-e030-2f64070a60af",
+        "formType": "Teta.Sumo.Personel.plgPersonelParametryRap.DokumentyZus.PrmKartaZasilkowa"
+      },
+      {
+        "guid": "96589786-3b8b-436b-99e0-44e48bc8c225",
+        "formType": "Teta.Sumo.Production.plgProdukcjaParametryRap.DmnIndex.PrmIndex"
+      },
+      {
+        "guid": "c1fff154-e22c-4ec1-881e-596d7f193145",
+        "formType": "Teta.Sumo.Production.plgProdukcjaParametryRap.Index.PrmIndexOperationCard"
+      },
+      {
+        "guid": "313be962-085d-47cb-98f2-7600e0a97ec8",
+        "formType": "Teta.Sumo.Production.plgProdukcjaParametryRap.Index.PrmIndexComponents"
+      },
+      {
+        "guid": "2ea03c9b-677c-4c67-a16d-ddf1f2a8cb4b",
+        "formType": "Teta.Sumo.Personel.plgRCP.ObliczanieKart.ActObliczanieKart"
+      },
+      {
+        "guid": "fd590e0d-96cb-63e3-e030-2f64070a4448",
+        "formType": "Teta.Sumo.Personel.plgOrganizacja.DicTypyJednostek"
+      },
+      {
+        "guid": "dc8d88ac-846f-48f8-9c1c-82b7ed977829",
+        "formType": "Teta.Sumo.Personel.plgPersonelParametryRap.DokumentyZus.PrmZastepczaAsygnataZasilkowa"
+      },
+      {
+        "guid": "f62a84fc-e89f-4cb6-b719-59e49404a29c",
+        "formType": "Teta.Sumo.FixedAssets.plgMajatekParametryRap.Dokumenty.PrmDokument"
+      },
+      {
+        "guid": "9be7c7be-91e1-4337-b9b0-2599be9dadfe",
+        "formType": "Teta.Sumo.Finances.plgFinanseParametryRap.RaportyKasowe.PrmDokumentyKasowe"
+      },
+      {
+        "guid": "3683a5b6-7f60-4fa9-be36-4b3fb08b805f",
+        "formType": "Teta.Sumo.Finances.plgFinanseParametryRap.RaportyKasowe.PrmDokumentyKasowe"
+      },
+      {
+        "guid": "8aa37b41-605e-415a-b410-97a519501e05",
+        "formType": "Teta.Sumo.Personel.plgPersonelSlowniki.DicKodyZatrudnienia"
+      },
+      {
+        "guid": "eb73ecf9-b897-4d94-a2ff-9e7dba523f51",
+        "formType": "Teta.Sumo.Personel.plgBHP.BadaniePotrzeb.ActBadaniePotrzeb"
+      }
+    ],
+    "encodingProblems": []
+  },
+  "duplicates": [
+    {
+      "kind": "same_content_multiple_guids",
+      "guids": [
+        "255a4780-3639-4c5f-b0eb-e2f776154349",
+        "e7ce7432-4302-40bd-92e8-30452ab4342c"
+      ],
+      "formTypes": [
+        "Teta.Sumo.Finances.plgFinanseParametryRap.Rozrachunki.PrmRozrachunkiSumarycznie",
+        "Teta.Sumo.Finances.plgFinanseParametryRap.Rozrachunki.PrmRozrachunkiAnalitycznie"
+      ],
+      "message": "Identical Help content hash across GUIDs (not auto-merged)"
+    },
+    {
+      "kind": "same_content_multiple_guids",
+      "guids": [
+        "eefbb127-a395-4053-b417-01d885a85a34",
+        "5d6f07c9-d167-4c0e-ab2b-99171abab0ec",
+        "063509fa-08a3-4925-937b-a3d9d3a64cde",
+        "0ed63b05-3aa4-4b0c-8b49-144b68b61120",
+        "11ce7e6b-a6ca-46ba-93d2-cc249174a3b3",
+        "f988ca3e-7543-4bc8-a65a-19ea6bc08acf"
+      ],
+      "formTypes": [
+        "Teta.Sumo.Personel.plgKandydat.CrdKartotekaKandydatow.KartotekaKandydatowWidok",
+        "Teta.Sumo.CRM.plgAnkiety.CrdAktywnosciAnkiety.AktywnosciAnkietyWidok",
+        "Teta.Sumo.Personel.plgUmowyCywilnoprawne.AddEmployeeUC.ActAddEmployeeUC",
+        "Teta.Sumo.CRM.plgPrzesylki.CrdPrzesylkiPrzychodzace.PrzesylkiPrzychodzaceWidok",
+        "Teta.Sumo.Production.plgProductionDocuments.CrdDocumentByProducts.DocumentByProductsView",
+        "Teta.Sumo.Personel.plgTemporaryContracts.CrdTemporaryJobCardsSheet.TemporaryJobCardsSheetView"
+      ],
+      "message": "Identical Help content hash across GUIDs (not auto-merged)"
+    },
+    {
+      "kind": "same_content_multiple_guids",
+      "guids": [
+        "131f7cbb-2acc-4449-a947-0e9e3f801db5",
+        "fcec93c2-9ca2-4271-a316-af21674b879e",
+        "0d60c05f-0d0e-44b8-bc7b-fbf8bd518815",
+        "a3a21e4d-88bc-4554-b786-26cb5c176e2a",
+        "27e8a8a9-3d10-4623-9a5d-f73db6888ff5",
+        "54c4ad8d-4f35-4560-906e-9e93a10cdc26",
+        "3a3baf46-f59a-4e83-8cdd-31e92f71fb00",
+        "f371d2b6-66be-4990-b7de-0643482cf07f",
+        "fef746dd-90d0-47d5-be70-376380954a38",
+        "fafc006c-db60-43d8-bac4-966372929918",
+        "3bdad641-1a19-425b-a793-a6028ce39d5c",
+        "d025d67c-f2e5-45aa-9bfe-7e0106eec762",
+        "7c8ed738-3cbf-4f24-8717-49fcd4eadbba",
+        "e638b6ed-9b1d-4639-bab8-609ddfd69e2a",
+        "d3c1f5e5-1ad5-4da4-bacf-fe2f8743ef28",
+        "36e4e411-3f5a-409f-bc29-af56d283c8f9",
+        "890fda0d-dc12-4260-a3b9-9575048aaed2",
+        "cc68160b-bf83-4124-9859-45f59b2a300a",
+        "dc85b53f-c316-44b6-86a8-2ff9e9197afb",
+        "79289afe-126e-4d58-9b94-164f5e063d76",
+        "0b7b3240-4480-45a3-8c5c-e93c50b4ea5f",
+        "8748ff37-5a81-4af8-80f1-ae2bb261b0f2",
+        "194e3385-5ed7-41b8-97ec-3880a9f0775d",
+        "34021c89-c75b-4596-bb3b-07f95c4d308e",
+        "0f215fa5-01e8-4587-8108-8e1b2ce08a3a",
+        "60649a65-78b8-43de-9370-464143cea978",
+        "22c07415-e3bc-4d50-b159-bb5bde3681d5",
+        "a454980c-75f4-453f-a2af-86298084b02d",
+        "4a1e461a-9f11-4186-a09e-06fff027dbc0",
+        "3485a47d-5a9d-4e15-9834-61d841222598",
+        "dd7d1ba4-d7fc-4a85-a610-7dad0cc9efca",
+        "6cf5bc1f-1a3c-4193-9ec4-d672546fd690",
+        "a524baf9-4289-46ab-bcc0-0aa1e99bc998",
+        "6e479f68-78cf-4e21-a649-c506cabb1bdf",
+        "b50ee1fb-fe43-4ffb-8959-62438f4eb359",
+        "30b47130-072b-41cf-9e47-0b76425db6f5",
+        "05f07201-0c7f-4825-be08-35c4597822fa",
+        "b379a4d6-b0f9-4a71-a6bc-c9082493cc08",
+        "4ff9cdd9-6479-4df9-93e1-edfbfdca362a",
+        "626313f1-94b0-4f0a-9df3-20a36ef9221c",
+        "3cfd1337-a0d6-40fe-90f7-92ad827b2402",
+        "554371c5-2259-44f0-8dcb-0a3f4c5dba32"
+      ],
+      "formTypes": [
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseDocumentsReview.WarehouseDocumentsReviewView",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicWarehousePlacesTypes",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicClassesAvailability",
+        "Teta.Sumo.WMS.plgWMSItems.CrdStocksLevels.StocksLevelsView",
+        "Teta.Sumo.WMS.plgStructures.CrdStatesInPlaces.StatesInPlacesView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseDocumentsOfPlacement.WarehouseDocumentsOfPlacementView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseDocumentsOfHandOut.WarehouseDocumentsOfHandOutView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseDocumentsOfDislocation.WarehouseDocumentsOfDislocationView",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicTypesCoordinates",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicFieldsIssues",
+        "Teta.Sumo.Logistics.plgShipmentSpecification.CrdWMSDocumentsVeryfiaction.WMSDocumentsVeryfiactionView",
+        "Teta.Sumo.WMS.plgStructures.CrdAreaStructure.AreaStructureView",
+        "Teta.Sumo.WMS.plgStructures.CrdAddressesStructures.AddressesStructuresView",
+        "Teta.Sumo.WMS.plgWMSItems.CrdPlacesTypesItems.PlacesTypesItemsView",
+        "Teta.Sumo.WMS.plgWMSItems.CrdItemsPlacesTypes.ItemsPlacesTypesView",
+        "Teta.Sumo.WMS.plgWMSItems.CrdOptimalInventories.OptimalInventoriesView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseDocumentsTypes.WarehouseDocumentsTypesView",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicSectors",
+        "Teta.Sumo.WMS.plgStructures.CrdWarehouseAreas.WarehouseAreasView",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicTypesAreas",
+        "Teta.Sumo.WMS.plgWMSItems.CrdStrategies.StrategiesView",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicIncidents",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdInventorySheets.InventorySheetsView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseDocumentsOfDislocationReview.WarehouseDocumentsOfDislocationReviewView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseDocumentsLinesReview.WarehouseDocumentsLinesReviewView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseInventoryDocuments.WarehouseInventoryDocumentsView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdReleaseSpecification.ReleaseSpecificationView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdReleaseSpecificationRealizationStatuses.ReleaseSpecificationRealizationStatusesView",
+        "Teta.Sumo.WMS.plgStructures.CrdCarriers.CarriersView",
+        "Teta.Sumo.WMS.plgStructures.CrdAddressesStructuresOfWarehouses.AddressesStructuresOfWarehousesView",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicStrorageWarehouses",
+        "Teta.Sumo.WMS.plgWMSDictionaries.CrdWarehouseStructure.WarehouseStructureView",
+        "Teta.Sumo.Logistics.plgWarehouseDispositions.CrdWarehouseDispositionsHandOuts.WarehouseDispositionsHandOutsView",
+        "Teta.Sumo.Logistics.plgWarehouseDispositions.CrdWarehouseDispositionsPlacements.WarehouseDispositionsPlacementsView",
+        "Teta.Sumo.WMS.plgStructures.PackingTemplates.PackingTemplatesView",
+        "Teta.Sumo.WMS.plgStructures.CarriersStructure.CarriersStructureView",
+        "Teta.Sumo.WMS.plgStructures.CrdExludedPlaces.ExludedPlacesView",
+        "Teta.Sumo.WMS.plgWMSDictionaries.DicTypesCarriers",
+        "Teta.Sumo.WMS.plgWMSItems.CrdCarriersParameters.CarriersParametersView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdWarehouseDocumentsIncidents.WarehouseDocumentsIncidentsView",
+        "Teta.Sumo.WMS.plgWMSDocuments.CrdIncidentOccurrences.IncidentOccurencesView",
+        "Teta.Sumo.WMS.plgStructures.CrdPlaces.PlacesListView"
+      ],
+      "message": "Identical Help content hash across GUIDs (not auto-merged)"
+    },
+    {
+      "kind": "same_content_multiple_guids",
+      "guids": [
+        "cfcbfef6-4f77-4edc-9fe2-0ff44283dad9",
+        "4d55f9fc-2b4d-46db-9762-19abf0baff40"
+      ],
+      "formTypes": [
+        "Teta.Sumo.Production.plgProductionTools.CrdProductionToolsList.ProductionToolsListView",
+        "Teta.Sumo.Production.plgProductionTools.CrdProductionToolsInUse.ProductionToolsInUseView"
+      ],
+      "message": "Identical Help content hash across GUIDs (not auto-merged)"
+    },
+    {
+      "kind": "same_content_multiple_guids",
+      "guids": [
+        "8efe6f9e-d77f-4546-b0be-87afaf7c80fe",
+        "785a4fd4-a61c-404c-86b2-6c3cff903dd3"
+      ],
+      "formTypes": [
+        "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit112009",
+        "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit112009"
+      ],
+      "message": "Identical Help content hash across GUIDs (not auto-merged)"
+    },
+    {
+      "kind": "same_content_multiple_guids",
+      "guids": [
+        "189e4fd4-e821-48a3-88ec-d1a97c2ba4be",
+        "9d2f1612-c9cc-4603-8f6d-a7b3c9875c38"
+      ],
+      "formTypes": [
+        "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit8ar2010",
+        "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit8ar2010"
+      ],
+      "message": "Identical Help content hash across GUIDs (not auto-merged)"
+    },
+    {
+      "kind": "same_content_multiple_guids",
+      "guids": [
+        "fbd0a3b9-b566-4953-abb8-767571e1f92c",
+        "e018b69f-2460-44f3-9cb4-fe0bcaf68ea3"
+      ],
+      "formTypes": [
+        "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit8c2009",
+        "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit8c2009"
+      ],
+      "message": "Identical Help content hash across GUIDs (not auto-merged)"
+    },
+    {
+      "kind": "same_content_multiple_guids",
+      "guids": [
+        "d3fdff40-da99-42bb-a741-45d037458839",
+        "d3751d12-1a5e-4efc-bfc3-e5f3a30036c3",
+        "867a1ea8-732f-40a7-9056-b81f2b1fb427",
+        "23e31e71-d50d-4d1e-b6aa-761dc8d70df5",
+        "3c6465a0-e61e-4753-aa79-a4c1b2f4b402"
+      ],
+      "formTypes": [
+        "Teta.Sumo.CRM.plgOpportunities.CrdOpportunityConsumptions.OpportunityConsuptionsView",
+        "Teta.Sumo.CRM.plgOpportunities.CrdOpportunityConsumptionsList.OpportunityConsumptionsListView",
+        "Teta.Sumo.CRM.plgOpportunities.CrdOpportunityCosts.OpportunityCostsView",
+        "Teta.Sumo.CRM.plgOpportunities.CrdOpportunityTaskCosts.OpportunityTaskCostsView",
+        "Teta.Sumo.CRM.plgOpportunities.CrdResourceDemands.ResourceDemandsView"
+      ],
+      "message": "Identical Help content hash across GUIDs (not auto-merged)"
+    }
+  ],
+  "references": {
+    "A_lookup_typStanowiska": {
+      "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+      "guid": "8efdd60e-ac8b-4501-947a-4cb89ccdb082",
+      "helpStatus": "help_found",
+      "helpField": {
+        "label": "Typ stanowiska",
+        "control": "lcboTypStanowiska",
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "ZSTP_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA"
+        },
+        "oracleMapping": {
+          "targetObjects": [
+            "NT_KP_KOS_KARTA_OPISU_STAN",
+            "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
+            "Teta.Sumo.Personel.bosSKOS.MTG.KartaOpisuStanowiskaNaglowekMTG"
+          ],
+          "lookupObjects": [
+            "NT_KP_SLO_TYPY_STANOWISK",
+            "NT_KP_SLO_TYPY_STANOWISK_DAC"
+          ]
+        },
+        "matchStatus": "matched_by_control_name"
+      },
+      "stage2bLookup": {
+        "kind": "lookupSplit",
+        "control": "lcboTypStanowiska",
+        "formType": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "targetBinding": {
+          "datasetTable": "KartaOpisuStanowiska",
+          "dataMember": "ZSTP_ID"
+        },
+        "lookupBinding": {
+          "datasetTable": "TypyStanowisk",
+          "valueMember": "ID",
+          "displayMember": "NAZWA",
+          "lookupClass": null,
+          "pluginAssembly": null
+        },
+        "confidence": "confirmed_from_il",
+        "evidence": [
+          "lcboTypStanowiska.Column = new Teta.Sumo.Common.LateBinding.DesignModeColumn(...)",
+          "lcboTypStanowiska.Table = new Teta.Sumo.Common.LateBinding.DesignModeTable(...)",
+          "lcboTypStanowiska.DictionaryColumnForDisplay = new Teta.Sumo.Common.LateBinding.DesignModeColumn(...)",
+          "lcboTypStanowiska.DictionaryColumnID = new Teta.Sumo.Common.LateBinding.DesignModeColumn(...)",
+          "lcboTypStanowiska.DictionaryTable = new Teta.Sumo.Common.LateBinding.DesignModeTable(...)",
+          "alternatives=ZSTP_ID,NAZWA,KartaOpisuStanowiska,TypyStanowisk,ID"
+        ]
+      }
+    },
+    "B_DicRodzajeKoncesji": {
+      "formType": "Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
+      "guid": "670ab806-2885-4f00-94cf-e86a5f545c85",
+      "helpStatus": "help_found",
+      "overview": "W słowniku Logistyka | Sprzedaż | Rodzaje koncesji definiujemy \r\n rodzaje koncesji wykorzystywane w systemie. Definicja składa się z kodu \r\n i nazwy koncesji oraz oznaczenia, czy jest ona obecnie wykorzystywana. Z \r\n tego słownika korzysta ",
+      "fields": [
+        {
+          "helpLabel": "Kod",
+          "control": "dgcKod",
+          "targetBinding": {
+            "datasetTable": "RodzajeKoncesji",
+            "dataMember": "KOD"
+          },
+          "matchStatus": "matched_by_caption"
+        },
+        {
+          "helpLabel": "Nazwa",
+          "control": "dgcNazwa",
+          "targetBinding": {
+            "datasetTable": "RodzajeKoncesji",
+            "dataMember": "NAZWA"
+          },
+          "matchStatus": "matched_by_caption"
+        },
+        {
+          "helpLabel": "Aktualna",
+          "control": "dgcAktualna",
+          "targetBinding": {
+            "datasetTable": "RodzajeKoncesji",
+            "dataMember": "UP_TO_DATE"
+          },
+          "matchStatus": "matched_by_control_name"
+        }
+      ],
+      "oracleChains": []
+    },
+    "C_ListyZamkniete": {
+      "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+      "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+      "helpStatus": "help_found",
+      "zamknijMiesiac": {
+        "helpLabel": "Zamknięcie miesiąca",
+        "control": "tbbZamknijMiesiac",
+        "parameterName": "KP_UPR_KART_LIST_ZAMKNIJ_MIES",
+        "targetBinding": null,
+        "helpKind": "actionHelp",
+        "matchStatus": "matched_by_control_name"
+      },
+      "dataFieldsSample": [
+        {
+          "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+          "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+          "helpLabel": "Kod",
+          "helpDescription": "kod składnika płacowego.",
+          "helpKind": "fieldHelp",
+          "section": "Zakładka Składniki listy",
+          "control": "dgcSklpKod",
+          "controlKind": "grid_column",
+          "matchStatus": "probable_same_container",
+          "score": 0.55,
+          "targetBinding": {
+            "datasetTable": "SkladnikiObliczZamknPrac",
+            "dataMember": "SKLP_KOD"
+          },
+          "lookupBinding": null,
+          "parameterName": null,
+          "oracleMapping": null,
+          "evidence": [
+            "pattern=bold_dash_inside",
+            "section=Zakładka Składniki listy",
+            "weak_name_token_overlap=0.50",
+            "extraction=bold_dash_inside",
+            "confidence=confirmed_structural"
+          ]
+        },
+        {
+          "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+          "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+          "helpLabel": "Typ",
+          "helpDescription": "typ składnika płacowego.",
+          "helpKind": "fieldHelp",
+          "section": "Zakładka Składniki listy",
+          "control": "dgcTypListy",
+          "controlKind": "grid_column",
+          "matchStatus": "probable_same_container",
+          "score": 0.55,
+          "targetBinding": {
+            "datasetTable": "SkladnikiObliczZamknPrac",
+            "dataMember": "TYP_LISTY"
+          },
+          "lookupBinding": null,
+          "parameterName": null,
+          "oracleMapping": null,
+          "evidence": [
+            "pattern=bold_dash_inside",
+            "section=Zakładka Składniki listy",
+            "weak_name_token_overlap=0.50",
+            "extraction=bold_dash_inside",
+            "confidence=confirmed_structural"
+          ]
+        },
+        {
+          "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+          "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+          "helpLabel": "Wartość waluty",
+          "helpDescription": "wartość \r\n składnika w walucie, jeżeli został wdrożony komponent",
+          "helpKind": "fieldHelp",
+          "section": "Zakładka Składniki listy",
+          "control": "dgcWartoscWaluty",
+          "controlKind": "grid_column",
+          "matchStatus": "matched_by_control_name",
+          "score": 0.95,
+          "targetBinding": {
+            "datasetTable": "SkladnikiObliczZamknPrac",
+            "dataMember": "WARTOSC_WALUTA"
+          },
+          "lookupBinding": null,
+          "parameterName": null,
+          "oracleMapping": null,
+          "evidence": [
+            "pattern=bold_dash_inside",
+            "section=Zakładka Składniki listy",
+            "exact_name_tokens=wartosc,waluty",
+            "extraction=bold_dash_inside",
+            "confidence=confirmed_structural"
+          ]
+        },
+        {
+          "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+          "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+          "helpLabel": "Dotyczy miesiąca",
+          "helpDescription": "określa miesiąc, którego \r\n dotyczy dany składnik. Domyślnie w procesie \r\n obliczania listy płac system przyjmuje datę obliczania \r\n listy.",
+          "helpKind": "fieldHelp",
+          "section": "Zakładka Składniki listy",
+          "control": "dgcDotyczyMiesiaca",
+          "controlKind": "grid_column",
+          "matchStatus": "matched_by_control_name",
+          "score": 0.95,
+          "targetBinding": {
+            "datasetTable": "SkladnikiObliczZamknPrac",
+            "dataMember": "DOTYCZY_MIESIACA"
+          },
+          "lookupBinding": null,
+          "parameterName": null,
+          "oracleMapping": null,
+          "evidence": [
+            "pattern=bold_dash_inside",
+            "section=Zakładka Składniki listy",
+            "exact_name_tokens=dotyczy,miesiaca",
+            "extraction=bold_dash_inside",
+            "confidence=confirmed_structural"
+          ]
+        },
+        {
+          "guid": "7b4f2b80-4853-409d-8dc7-06cd10c8925b",
+          "formType": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+          "helpLabel": "Typ listy",
+          "helpDescription": "typ listy, która została obliczona:",
+          "helpKind": "fieldHelp",
+          "section": "Zakładka Składniki listy",
+          "control": "dgcTypListy",
+          "controlKind": "grid_column",
+          "matchStatus": "matched_by_control_name",
+          "score": 0.95,
+          "targetBinding": {
+            "datasetTable": "SkladnikiObliczZamknPrac",
+            "dataMember": "TYP_LISTY"
+          },
+          "lookupBinding": null,
+          "parameterName": null,
+          "oracleMapping": null,
+          "evidence": [
+            "pattern=bold_dash_inside",
+            "section=Zakładka Składniki listy",
+            "exact_name_tokens=typ,listy",
+            "extraction=bold_dash_inside",
+            "confidence=confirmed_structural"
+          ]
+        }
+      ]
+    },
+    "D_missingHelp": {
+      "formType": "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit40",
+      "guid": "02e54042-6570-421e-9212-af1ee889f7e3",
+      "helpStatus": "help_file_missing",
+      "classVerificationStatus": "verified_exact",
+      "note": "Technical graph preserved; help does not lower confidence"
+    }
+  },
+  "fullDumpPath": ".local/AIA_HELP_SEMANTIC_MAPPING_STAGE2C.full.ndjson",
+  "note": "Etapy 1/2A/2B niezmienione. Help opcjonalny. Bez SqlJoin/SQL/Qdrant."
+}

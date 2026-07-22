@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-22** (Etap 2B — bos/gateway/Oracle mapping)
+> Ostatnia aktualizacja: **2026-07-22** (Etap 2C — Help → control → 2A/2B)
 
 ---
 
@@ -198,6 +198,16 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Domknięcie diagnostyczne:** `type_not_found` **4** / `class_name_missing` **128** / `dll_unavailable` **398** / `not_checked` **0**; DLL missing: null 128, physical 21, WebConstellation unsupported 377; 1× `matched_unique_simple_name` + `namespaceMismatch`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 - **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
+
+### 2026-07-22 — Etap 2C Help semantic mapping ✅
+
+- Help opcjonalny: `{clientDirectory}/Help/{GUID}.html` (GUID z PA). Statusy `help_*` **nie obniżają** registry/class/binding/Oracle confidence.
+- Encoding: ISO-8859-2 / Windows-1250 / UTF-8(+BOM); parser strukturalny (bold dash, tabela Pole|Opis, dl, overview dictionary, akcje).
+- Match deterministyczny (bez LLM): label → control → fakty 2A + 2B; target vs lookup rozdzielone.
+- CLI: `pnpm --filter @teta/api run diagnose:stage2c` → `docs/AIA_HELP_SEMANTIC_MAPPING_STAGE2C.md` (+ JSON; NDJSON `.local/`).
+- Referencje OK: Typ stanowiska→`lcboTypStanowiska`→ZSTP_ID / TypyStanowisk; DicRodzajeKoncesji Kod/Nazwa/Aktualna→NT_LG_SLO_RODZAJE_KONCESJI; Zamknięcie miesiąca→`tbbZamknijMiesiac`+`parameterName` (nie kolumna danych); missing Help zachowuje graf techniczny.
+- **Etap 2C zamknięty.** Nie startować: SqlJoin, generator SQL, Qdrant, zmiany agenta czatu — bez prośby.
+- Kod: `teta-stage2c-*.ts`; testy `teta-stage2c.spec.ts`.
 
 ### 2026-07-22 — Etap 2B bos DLL / gateway / Oracle ✅
 
