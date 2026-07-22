@@ -33,9 +33,20 @@ internal static class Program
                 return 0;
             }
 
+            if (args.Contains("--batch-stage2a-stdin", StringComparer.OrdinalIgnoreCase))
+            {
+                var input = Console.In.ReadToEnd();
+                var requests = JsonSerializer.Deserialize<List<Stage2aRequest>>(input, JsonOpts) ?? [];
+                var results = requests.Select(ReadStage2a).ToList();
+                Console.Out.Write(JsonSerializer.Serialize(results, JsonOpts));
+                return 0;
+            }
+
             string? dll = null;
             var matches = new List<string>();
             var noTypeIndex = false;
+            var stage2a = false;
+            string? pluginsRoot = null;
             for (var i = 0; i < args.Length; i++)
             {
                 if (args[i] is "--dll" && i + 1 < args.Length) dll = args[++i];
@@ -44,13 +55,29 @@ internal static class Program
                     matches.AddRange(args[++i].Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
                 }
                 else if (args[i] is "--no-type-index") noTypeIndex = true;
+                else if (args[i] is "--stage2a") stage2a = true;
+                else if (args[i] is "--plugins-root" && i + 1 < args.Length) pluginsRoot = args[++i];
             }
 
             if (string.IsNullOrWhiteSpace(dll))
             {
                 Console.Error.WriteLine("Usage: TetaDllMetadataReader --dll <path> [--match FQN1;FQN2] [--no-type-index]");
+                Console.Error.WriteLine("   or: TetaDllMetadataReader --dll <path> --stage2a --match FQN [--plugins-root dir]");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stdin < requests.json");
+                Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stage2a-stdin < requests.json");
                 return 2;
+            }
+
+            if (stage2a)
+            {
+                var stageResult = ReadStage2a(new Stage2aRequest
+                {
+                    DllPath = dll,
+                    Match = matches,
+                    PluginsRoot = pluginsRoot,
+                });
+                Console.Out.Write(JsonSerializer.Serialize(stageResult, JsonOpts));
+                return stageResult.Ok ? 0 : 1;
             }
 
             var result = ReadDll(new DllRequest { DllPath = dll, Match = matches, NoTypeIndex = noTypeIndex });
@@ -629,6 +656,84 @@ internal static class Program
         return false;
     }
 
+    private static Stage2aResult ReadStage2a(Stage2aRequest request)
+    {
+        var path = request.DllPath?.Trim() ?? "";
+        var result = new Stage2aResult { DllPath = path };
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            result.Ok = false;
+            result.Error = "dll_missing";
+            return result;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(path);
+            using var pe = new PEReader(stream, PEStreamOptions.PrefetchEntireImage);
+            if (!pe.HasMetadata)
+            {
+                result.Ok = false;
+                result.Error = "no_cli_metadata";
+                return result;
+            }
+
+            var mr = pe.GetMetadataReader();
+            var typeIndex = BuildTypeIndex(mr, new AttrProvider(mr));
+            var matchSet = (request.Match ?? [])
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Select(m => m.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            result.Forms = [];
+            foreach (var wanted in matchSet)
+            {
+                var match = MatchType(typeIndex, wanted);
+                if (match.Type == null)
+                {
+                    result.Forms.Add(new FormTechnicalBinding
+                    {
+                        FormType = wanted,
+                        ResolvedDllPath = path,
+                        Assembly = Path.GetFileName(path),
+                        UnresolvedEvidence =
+                        [
+                            new UnresolvedEvidence
+                            {
+                                Kind = "type_not_matched",
+                                Message = $"classVerification={match.Status}",
+                                DeclaringType = wanted,
+                            },
+                        ],
+                    });
+                    continue;
+                }
+
+                var form = IlBindingAnalyzer.AnalyzeType(
+                    pe,
+                    mr,
+                    match.Type.Handle,
+                    match.Type.FullName,
+                    request.PluginsRoot);
+                form.FormType = match.Type.FullName;
+                form.ResolvedDllPath = path;
+                form.Assembly = Path.GetFileName(path);
+                result.Forms.Add(form);
+            }
+
+            result.Ok = true;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            result.Ok = false;
+            result.Error = "assembly_unreadable";
+            result.ErrorDetail = ex.Message;
+            return result;
+        }
+    }
+
     // ---- models ----
 
     private sealed class DllRequest
@@ -636,6 +741,22 @@ internal static class Program
         public string? DllPath { get; set; }
         public List<string>? Match { get; set; }
         public bool? NoTypeIndex { get; set; }
+    }
+
+    private sealed class Stage2aRequest
+    {
+        public string? DllPath { get; set; }
+        public List<string>? Match { get; set; }
+        public string? PluginsRoot { get; set; }
+    }
+
+    private sealed class Stage2aResult
+    {
+        public string DllPath { get; set; } = "";
+        public bool Ok { get; set; }
+        public string? Error { get; set; }
+        public string? ErrorDetail { get; set; }
+        public List<FormTechnicalBinding>? Forms { get; set; }
     }
 
     private sealed class DllResult

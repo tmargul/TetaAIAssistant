@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-22** (Etap 1 domknięty — diagnostyka statusów)
+> Ostatnia aktualizacja: **2026-07-22** (Etap 2A.1 — semantic normalization; Etap 2A zamknięty)
 
 ---
 
@@ -198,6 +198,24 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Domknięcie diagnostyczne:** `type_not_found` **4** / `class_name_missing` **128** / `dll_unavailable` **398** / `not_checked` **0**; DLL missing: null 128, physical 21, WebConstellation unsupported 377; 1× `matched_unique_simple_name` + `namespaceMismatch`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 - **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
+
+### 2026-07-22 — Etap 2A.1 semantic normalization ✅ (Etap 2A zamknięty)
+
+- Domknięcie jakościowe przed 2B: rozdział `dataMember` / `datasetTable` / `format` / `parameterName` (bez Format w dataMember); `ParameterName` → `propertyBindings` + `control_parameter` / `control_permission_parameter`.
+- Kategorie pól: `uiControls` / `dataObjects` / `businessObjectFields` / `constants` / `technicalFields` / `syntheticTargets`; `controlCount` deprecated.
+- `set_Item` → `dataOperations.indexer_assignment` (bez kontrolki `Item`); DF bez auto `datasource_DF` / `relatedDf` bez dowodu IL.
+- Live: **2794** form; **98379** uiControls; **0** bindingsWithMultipleDataMembers; **4616** format; **1474** parameterName; **2256** indexer ops; **17** datasource_DF / **3825** form_DF.
+- Referencje OK: ListyZamknieteWidok (format `d` + KP_UPR parameterName; WalutyDF tylko form_DF), SkladnikiNarastajaco (`ROK_NUMER`+`F0`), ActUsuwanie (dataOps + kategorie m_DataSet/m_BO/FIRMY_*).
+- Artefakty: `docs/AIA_FORM_TECHNICAL_BINDINGS_STAGE2A.md` / `.json` (sekcja Stage 2A.1); testy `teta-stage2a-bindings.spec.ts`.
+- **Etap 2A definitywnie zamknięty.** Nie startować: bos-DLL deep, Oracle map, Help, SqlJoin, Qdrant / 2B bez prośby.
+
+### 2026-07-22 — Etap 2A IL technical bindings ✅
+
+- Reader: `TetaDllMetadataReader --stage2a` — dekoder IL + stack reconstruction (setters, DesignModeColumn/Table, BO/DF ctors); **bez** wykonywania kodu; Etap 1 nietknięty.
+- Live audit (pre-2A.1): **2794** formularzy; ~**2474** z control binding; ~**70k** confirmed bindings; **2234** BO / **1472** DF / **303** bos DLL.
+- Referencje OK: DicRodzajeKoncesji, StanowiskoWStrukturzeOrgWidok, ActUsuwanieWynikowObliczen (BO/Parametry confirmed).
+- CLI: `pnpm --filter @teta/api run diagnose:stage2a` → `docs/AIA_FORM_TECHNICAL_BINDINGS_STAGE2A.md` (+ slim JSON; NDJSON w `.local/`).
+- **Następstwo:** 2A.1 semantic normalization (powyżej) — Etap 2A zamknięty.
 
 ### 2026-07-21 — Etap 1 rejestr formularzy PA_WTYCZKI ✅ (kod)
 

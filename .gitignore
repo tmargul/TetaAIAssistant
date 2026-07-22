@@ -29,3 +29,5 @@ tools/**/obj/
 
 # Full PA_WTYCZKI diagnose dump (~100MB+) — keep summary JSON in docs/, full under .local/
 docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.full.json
+docs/AIA_FORM_TECHNICAL_BINDINGS_STAGE2A.full.json
+docs/AIA_FORM_TECHNICAL_BINDINGS_STAGE2A.full.ndjson
