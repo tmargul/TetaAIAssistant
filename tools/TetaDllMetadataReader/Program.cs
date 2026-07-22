@@ -42,11 +42,23 @@ internal static class Program
                 return 0;
             }
 
+            if (args.Contains("--batch-stage2b-stdin", StringComparer.OrdinalIgnoreCase))
+            {
+                var input = Console.In.ReadToEnd();
+                var batch = JsonSerializer.Deserialize<Stage2bBatchRequest>(input, JsonOpts)
+                    ?? new Stage2bBatchRequest();
+                var batchResult = ReadStage2bBatch(batch);
+                Console.Out.Write(JsonSerializer.Serialize(batchResult, JsonOpts));
+                return batchResult.Ok ? 0 : 1;
+            }
+
             string? dll = null;
             var matches = new List<string>();
             var noTypeIndex = false;
             var stage2a = false;
+            var stage2b = false;
             string? pluginsRoot = null;
+            var searchRoots = new List<string>();
             for (var i = 0; i < args.Length; i++)
             {
                 if (args[i] is "--dll" && i + 1 < args.Length) dll = args[++i];
@@ -56,15 +68,39 @@ internal static class Program
                 }
                 else if (args[i] is "--no-type-index") noTypeIndex = true;
                 else if (args[i] is "--stage2a") stage2a = true;
+                else if (args[i] is "--stage2b") stage2b = true;
                 else if (args[i] is "--plugins-root" && i + 1 < args.Length) pluginsRoot = args[++i];
+                else if (args[i] is "--search-root" && i + 1 < args.Length) searchRoots.Add(args[++i]);
+            }
+
+            if (stage2b)
+            {
+                if (string.IsNullOrWhiteSpace(dll) && matches.Count == 0 && searchRoots.Count == 0)
+                {
+                    Console.Error.WriteLine("Usage: TetaDllMetadataReader --stage2b --dll <bos.dll> --match FQN1;FQN2");
+                    Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stage2b-stdin < request.json");
+                    return 2;
+                }
+
+                var stageResult = ReadStage2b(new Stage2bRequest
+                {
+                    DllPath = dll,
+                    Match = matches,
+                    SearchRoots = searchRoots,
+                    AnalyzeRelatedGateways = true,
+                });
+                Console.Out.Write(JsonSerializer.Serialize(stageResult, JsonOpts));
+                return stageResult.Ok ? 0 : 1;
             }
 
             if (string.IsNullOrWhiteSpace(dll))
             {
                 Console.Error.WriteLine("Usage: TetaDllMetadataReader --dll <path> [--match FQN1;FQN2] [--no-type-index]");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --dll <path> --stage2a --match FQN [--plugins-root dir]");
+                Console.Error.WriteLine("   or: TetaDllMetadataReader --dll <path> --stage2b --match FQN");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stdin < requests.json");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stage2a-stdin < requests.json");
+                Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stage2b-stdin < request.json");
                 return 2;
             }
 
@@ -732,6 +768,300 @@ internal static class Program
             result.ErrorDetail = ex.Message;
             return result;
         }
+    }
+
+    private static Stage2bResult ReadStage2b(Stage2bRequest request)
+    {
+        var path = request.DllPath?.Trim() ?? "";
+        var result = new Stage2bResult
+        {
+            DllPath = path,
+            AssemblyName = string.IsNullOrWhiteSpace(path) ? request.AssemblyName : Path.GetFileName(path),
+            Types = [],
+        };
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            result.Ok = false;
+            result.Error = "dll_missing";
+            result.Resolution = new BosAssemblyResolution
+            {
+                AssemblyName = result.AssemblyName,
+                ResolutionStatus = "physical_file_missing",
+            };
+            return result;
+        }
+
+        try
+        {
+            var resolution = BosDllResolver.Resolve(
+                Path.GetFileName(path),
+                request.SearchRoots ?? [Path.GetDirectoryName(path) ?? ""]);
+            if (resolution.ResolutionStatus is "resolved" or "duplicate_same_hash" or null
+                || resolution.ResolvedPath == null)
+            {
+                resolution.ResolvedPath = path;
+                resolution.ResolutionStatus ??= "resolved";
+                resolution.AssemblyName = Path.GetFileName(path);
+            }
+            result.Resolution = resolution;
+
+            using var stream = File.OpenRead(path);
+            using var pe = new PEReader(stream, PEStreamOptions.PrefetchEntireImage);
+            if (!pe.HasMetadata)
+            {
+                result.Ok = false;
+                result.Error = "no_cli_metadata";
+                return result;
+            }
+
+            var mr = pe.GetMetadataReader();
+            var typeIndex = BuildTypeHandleIndex(mr);
+            var matchSet = (request.Match ?? [])
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Select(m => m.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            var analyzed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var wanted in matchSet)
+            {
+                AnalyzeStage2bType(pe, mr, typeIndex, wanted, path, result, analyzed, request.AnalyzeRelatedGateways);
+            }
+
+            result.Ok = true;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            result.Ok = false;
+            result.Error = "assembly_unreadable";
+            result.ErrorDetail = ex.Message;
+            return result;
+        }
+    }
+
+    private static Stage2bBatchResult ReadStage2bBatch(Stage2bBatchRequest batch)
+    {
+        var result = new Stage2bBatchResult { Ok = true };
+        var roots = batch.SearchRoots ?? [];
+        var assemblies = batch.Assemblies ?? [];
+        if (assemblies.Count == 0)
+        {
+            result.Ok = false;
+            result.Error = "no_assemblies";
+            return result;
+        }
+
+        foreach (var asmReq in assemblies)
+        {
+            var asmName = BosDllResolver.NormalizeAssemblyName(asmReq.AssemblyName ?? "");
+            var resolution = BosDllResolver.Resolve(asmName, roots);
+            resolution.ReferencedByForms = asmReq.ReferencedByForms ?? [];
+            resolution.ReferencedTypes = asmReq.Types ?? [];
+            result.Assemblies.Add(resolution);
+
+            if (resolution.ResolutionStatus is not ("resolved" or "duplicate_same_hash")
+                || string.IsNullOrWhiteSpace(resolution.ResolvedPath))
+            {
+                foreach (var t in asmReq.Types ?? [])
+                {
+                    result.Types.Add(new BosTypeAnalysis
+                    {
+                        FullName = t,
+                        AssemblyName = asmName,
+                        TypeResolutionStatus = resolution.ResolutionStatus ?? "physical_file_missing",
+                        TechnicalRole = "unknown",
+                        ReferencedByForms = asmReq.ReferencedByForms,
+                    });
+                }
+                continue;
+            }
+
+            var single = ReadStage2b(new Stage2bRequest
+            {
+                DllPath = resolution.ResolvedPath,
+                Match = asmReq.Types ?? [],
+                SearchRoots = roots,
+                AssemblyName = asmName,
+                AnalyzeRelatedGateways = true,
+            });
+
+            if (!single.Ok)
+            {
+                result.Ok = false;
+                result.Error ??= single.Error;
+            }
+
+            foreach (var t in single.Types ?? [])
+            {
+                t.ReferencedByForms = asmReq.ReferencedByForms;
+                result.Types.Add(t);
+                foreach (var gw in t.Gateways ?? [])
+                {
+                    result.Gateways.Add(gw);
+                    if (!string.IsNullOrWhiteSpace(t.FullName) && !string.IsNullOrWhiteSpace(gw.GatewayType))
+                    {
+                        result.Relations.Add(new RelationEdge2b
+                        {
+                            RelationType = t.TechnicalRole is "DF" ? "DF_gateway" : t.TechnicalRole is "BO" ? "BO_gateway" : "gateway_self",
+                            From = t.FullName,
+                            To = gw.GatewayType,
+                            Confidence = gw.Confidence,
+                            Evidence = gw.Evidence?.Select(e => e.Assignment ?? "").ToList(),
+                        });
+                    }
+                    if (!string.IsNullOrWhiteSpace(gw.DatasetTable))
+                    {
+                        result.Relations.Add(new RelationEdge2b
+                        {
+                            RelationType = "gateway_dataset_table",
+                            From = gw.GatewayType,
+                            To = gw.DatasetTable,
+                            Confidence = gw.Confidence,
+                        });
+                    }
+                    if (!string.IsNullOrWhiteSpace(gw.ViewName))
+                    {
+                        result.Relations.Add(new RelationEdge2b
+                        {
+                            RelationType = "gateway_view",
+                            From = gw.GatewayType,
+                            To = gw.ViewName,
+                            Confidence = gw.Confidence,
+                        });
+                    }
+                    if (!string.IsNullOrWhiteSpace(gw.BaseTableName))
+                    {
+                        result.Relations.Add(new RelationEdge2b
+                        {
+                            RelationType = "gateway_base_table",
+                            From = gw.GatewayType,
+                            To = gw.BaseTableName,
+                            Confidence = gw.Confidence,
+                        });
+                    }
+                    if (!string.IsNullOrWhiteSpace(gw.PackageName))
+                    {
+                        result.Relations.Add(new RelationEdge2b
+                        {
+                            RelationType = "gateway_package",
+                            From = gw.GatewayType,
+                            To = gw.PackageName,
+                            Confidence = gw.Confidence,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Deduplicate gateways
+        result.Gateways = result.Gateways
+            .GroupBy(g => g.GatewayType ?? "", StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
+
+        return result;
+    }
+
+    private static void AnalyzeStage2bType(
+        PEReader pe,
+        MetadataReader mr,
+        Dictionary<string, TypeDefinitionHandle> typeIndex,
+        string wanted,
+        string path,
+        Stage2bResult result,
+        HashSet<string> analyzed,
+        bool analyzeRelated)
+    {
+        if (!analyzed.Add(wanted)) return;
+
+        TypeDefinitionHandle handle;
+        string fullName;
+        if (typeIndex.TryGetValue(wanted, out handle))
+        {
+            fullName = wanted;
+        }
+        else
+        {
+            // try simple name
+            var simple = wanted.Contains('.') ? wanted.Split('.').Last() : wanted;
+            var hit = typeIndex.FirstOrDefault(kv =>
+                kv.Key.EndsWith("." + simple, StringComparison.OrdinalIgnoreCase)
+                || kv.Key.Equals(simple, StringComparison.OrdinalIgnoreCase));
+            if (hit.Key == null)
+            {
+                result.Types!.Add(new BosTypeAnalysis
+                {
+                    FullName = wanted,
+                    AssemblyName = Path.GetFileName(path),
+                    ResolvedDllPath = path,
+                    TypeResolutionStatus = "type_not_found",
+                    TechnicalRole = "unknown",
+                });
+                return;
+            }
+            handle = hit.Value;
+            fullName = hit.Key;
+        }
+
+        var analysis = BosGatewayAnalyzer.AnalyzeType(
+            pe, mr, handle, fullName, Path.GetFileName(path), path, typeIndex);
+        result.Types!.Add(analysis);
+
+        if (!analyzeRelated) return;
+        foreach (var related in analysis.RelatedGatewayTypes ?? [])
+        {
+            if (analyzed.Contains(related)) continue;
+            if (!typeIndex.ContainsKey(related)
+                && !typeIndex.Keys.Any(k => k.EndsWith("." + related.Split('.').Last(), StringComparison.OrdinalIgnoreCase)))
+                continue;
+            AnalyzeStage2bType(pe, mr, typeIndex, related, path, result, analyzed, analyzeRelated: false);
+        }
+
+        // After related gateways analyzed, attach gateway descriptors onto DF/BO
+        if (analysis.TechnicalRole is "DF" or "BO")
+        {
+            foreach (var relatedName in analysis.RelatedGatewayTypes ?? [])
+            {
+                var relatedAnalysis = result.Types!.FirstOrDefault(t =>
+                    string.Equals(t.FullName, relatedName, StringComparison.OrdinalIgnoreCase)
+                    || (t.FullName?.EndsWith("." + relatedName.Split('.').Last(), StringComparison.OrdinalIgnoreCase) ?? false));
+                if (relatedAnalysis?.Gateways == null) continue;
+                foreach (var gw in relatedAnalysis.Gateways)
+                {
+                    if (analysis.Gateways!.All(g => !string.Equals(g.GatewayType, gw.GatewayType, StringComparison.OrdinalIgnoreCase)))
+                        analysis.Gateways.Add(gw);
+                    if (!string.IsNullOrWhiteSpace(gw.DatasetTable)
+                        && analysis.DatasetTables!.All(d => !string.Equals(d.Name, gw.DatasetTable, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        analysis.DatasetTables.Add(new DatasetTableFact
+                        {
+                            Name = gw.DatasetTable,
+                            Source = "related_gateway",
+                            DeclaringType = relatedAnalysis.FullName,
+                            Confidence = gw.Confidence,
+                            Evidence = gw.Evidence,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    private static Dictionary<string, TypeDefinitionHandle> BuildTypeHandleIndex(MetadataReader mr)
+    {
+        var index = new Dictionary<string, TypeDefinitionHandle>(StringComparer.OrdinalIgnoreCase);
+        foreach (var th in mr.TypeDefinitions)
+        {
+            var td = mr.GetTypeDefinition(th);
+            var ns = mr.GetString(td.Namespace);
+            var name = mr.GetString(td.Name);
+            if (string.IsNullOrEmpty(name) || name.StartsWith('<')) continue;
+            var full = string.IsNullOrEmpty(ns) ? name : ns + "." + name;
+            index[full] = th;
+        }
+        return index;
     }
 
     // ---- models ----

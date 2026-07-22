@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-22** (Etap 2A.1 — semantic normalization; Etap 2A zamknięty)
+> Ostatnia aktualizacja: **2026-07-22** (Etap 2B — bos/gateway/Oracle mapping)
 
 ---
 
@@ -198,6 +198,15 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Domknięcie diagnostyczne:** `type_not_found` **4** / `class_name_missing` **128** / `dll_unavailable` **398** / `not_checked` **0**; DLL missing: null 128, physical 21, WebConstellation unsupported 377; 1× `matched_unique_simple_name` + `namespaceMismatch`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 - **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
+
+### 2026-07-22 — Etap 2B bos DLL / gateway / Oracle ✅
+
+- Wejście: BO/DF + bos z Stage 2A (nie pełny skan). C#: `BosDllResolver` + `BosGatewayAnalyzer` (IL ctory/settery/gettery TG/MTG, late-binding).
+- Live: **304** bos resolved; **3237** gateway; **2065** views / **2211** packages; Oracle confirmed **5571** / missing-in-db **502** (fakt DLL zachowany).
+- Łańcuchy: formDatasource→gateway **37770**; formColumn→oracle **15418**; lookup split (lcboTypStanowiska: target `KartaOpisuStanowiska.ZSTP_ID` / lookup `TypyStanowisk.ID`+`NAZWA`).
+- Referencje: RodzajeKoncesjiDF→TG/MTG `RodzajeKoncesji` / `NT_LG_SLO_RODZAJE_KONCESJI` / `…_DAC` + Oracle OK; ActUsuwanie BO late-bind `FirmyUzytkownikaTG` (bosSOrganizacja) — stąd brak w IL pluginu.
+- CLI: `pnpm --filter @teta/api run diagnose:stage2b` → `docs/AIA_BOS_ORACLE_MAPPING_STAGE2B.md` (+ JSON; NDJSON w `.local/`).
+- **Nie ruszane:** Help, SqlJoin, generator SQL, Qdrant.
 
 ### 2026-07-22 — Etap 2A.1 semantic normalization ✅ (Etap 2A zamknięty)
 
