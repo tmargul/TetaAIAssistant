@@ -15,6 +15,11 @@ import {
   type DotnetClassVerificationStatus,
   type DotnetDllMetadataResult,
 } from './teta-dotnet-metadata.reader';
+import {
+  applyNamespaceMismatch,
+  buildTypeNotFoundDiagnostics,
+  type ClassVerificationDiagnostics,
+} from './teta-class-verification-diagnostics';
 
 export type BuildFormRegistryOptions = {
   rows: PaWtyczkiRow[];
@@ -27,6 +32,14 @@ export type BuildFormRegistryOptions = {
   metadataByDllPath?: Map<string, DotnetDllMetadataResult>;
 };
 
+function mapReaderVerificationStatus(
+  status: string | null | undefined,
+): DotnetClassVerificationStatus {
+  if (!status) return 'type_not_found';
+  if (status === 'not_found') return 'type_not_found';
+  return status as DotnetClassVerificationStatus;
+}
+
 export function buildFormRegistryEntries(
   options: BuildFormRegistryOptions,
 ): TetaPluginRegistryEntry[] {
@@ -34,7 +47,7 @@ export function buildFormRegistryEntries(
 
   const resolvedRows = options.rows.map((row) => {
     const dll = resolveAssemblyDll({
-      assembly: row.assembly ?? '',
+      assembly: row.assembly,
       pluginsRoot: options.pluginsRoot,
       scannedPlugins: options.scannedPlugins,
     });
@@ -94,13 +107,81 @@ export function buildFormRegistryEntries(
     }
   }
 
-  return resolvedRows.map(({ row, dll }) =>
+  const entries = resolvedRows.map(({ row, dll }) =>
     buildFormRegistryEntryFromResolved(row, {
       dll,
       helpDirectory,
       metadataByDll,
     }),
   );
+
+  // Second pass: load compact TypeDef index only for type_not_found DLLs (diagnostic).
+  if (!options.skipDotnetMetadata) {
+    enrichTypeNotFoundDiagnostics(entries, metadataByDll, Boolean(options.metadataByDllPath));
+  }
+
+  return entries;
+}
+
+function enrichTypeNotFoundDiagnostics(
+  entries: TetaPluginRegistryEntry[],
+  metadataByDll: Map<string, DotnetDllMetadataResult>,
+  trustProvidedMetadata: boolean,
+): void {
+  const needIndex = new Map<string, string>();
+  for (const entry of entries) {
+    if (entry.classVerificationStatus !== 'type_not_found') continue;
+    if (!entry.resolvedDllPath) continue;
+    const key = path.resolve(entry.resolvedDllPath).toLowerCase();
+    const meta = metadataByDll.get(key);
+    if (meta?.types?.length) continue;
+    needIndex.set(key, entry.resolvedDllPath);
+  }
+
+  if (needIndex.size > 0 && !trustProvidedMetadata) {
+    try {
+      const requests = [...needIndex.values()].map((dllPath) => ({
+        dllPath,
+        match: [] as string[],
+        noTypeIndex: false,
+      }));
+      const chunkSize = 10;
+      for (let i = 0; i < requests.length; i += chunkSize) {
+        const results = readDotnetDllMetadataBatch(requests.slice(i, i + chunkSize));
+        for (const result of results) {
+          const key = path.resolve(result.dllPath).toLowerCase();
+          const prev = metadataByDll.get(key);
+          metadataByDll.set(key, {
+            ...(prev ?? result),
+            ...result,
+            matchedTypes: prev?.matchedTypes ?? result.matchedTypes,
+            types: result.types ?? prev?.types,
+          });
+        }
+      }
+    } catch {
+      // Keep entries without nearest-match diagnostics.
+    }
+  }
+
+  for (const entry of entries) {
+    if (entry.classVerificationStatus !== 'type_not_found' || !entry.className) continue;
+    if (!entry.resolvedDllPath) continue;
+    if (entry.classVerificationDiagnostics?.nearestMatches?.length) continue;
+    const key = path.resolve(entry.resolvedDllPath).toLowerCase();
+    const meta = metadataByDll.get(key);
+    const types = meta?.types ?? [];
+    entry.classVerificationDiagnostics = buildTypeNotFoundDiagnostics({
+      registryClassName: entry.className,
+      assembly: entry.assembly,
+      resolvedDllPath: entry.resolvedDllPath,
+      dllTypeCount: entry.dllTypeCount ?? meta?.typeCount ?? null,
+      types,
+    });
+    entry.evidence.push(
+      `typeNotFoundReason:${entry.classVerificationDiagnostics.reasonCode}`,
+    );
+  }
 }
 
 export function buildFormRegistryEntry(
@@ -137,21 +218,30 @@ function buildFormRegistryEntryFromResolved(
   const formIdentity = buildFormIdentity(guidInfo.normalized, row.className);
   const dll = options.dll;
   evidence.push(`dll:${dll.status}`);
+  if (dll.status === 'missing' && dll.missingReason) {
+    evidence.push(`dllMissingReason:${dll.missingReason}`);
+  }
 
   let classVerificationStatus: DotnetClassVerificationStatus = 'not_checked';
   let matchedType: TetaPluginRegistryEntry['matchedType'] = null;
   let dllResources: TetaPluginRegistryEntry['dllResources'] = null;
   let dllTypeCount: number | null = null;
   let dllXmlDocPath: string | null = null;
+  let classVerificationDiagnostics: ClassVerificationDiagnostics | null = null;
 
-  if (!row.className?.trim()) {
-    classVerificationStatus = 'not_found';
+  const className = row.className?.trim() || null;
+
+  if (!className) {
+    classVerificationStatus = 'class_name_missing';
+    evidence.push('classVerification:class_name_missing');
   } else if (dll.status !== 'resolved' || !dll.resolvedDllPath) {
-    classVerificationStatus = 'not_checked';
+    classVerificationStatus = 'dll_unavailable';
+    evidence.push('classVerification:dll_unavailable');
   } else {
     const meta = options.metadataByDll.get(path.resolve(dll.resolvedDllPath).toLowerCase());
     if (!meta) {
       classVerificationStatus = 'not_checked';
+      evidence.push('classVerification:not_checked');
     } else if (!meta.ok) {
       classVerificationStatus = 'assembly_unreadable';
       evidence.push(`metadata:${meta.error ?? 'error'}`);
@@ -159,10 +249,47 @@ function buildFormRegistryEntryFromResolved(
       dllTypeCount = meta.typeCount;
       dllResources = meta.resources ?? null;
       dllXmlDocPath = meta.xmlDocPath ?? null;
-      const matched = findMatchedType(meta, row.className);
-      matchedType = matched;
-      classVerificationStatus = (matched?.classVerificationStatus ??
-        'not_found') as DotnetClassVerificationStatus;
+      const matched = findMatchedType(meta, className);
+      let status = mapReaderVerificationStatus(
+        matched?.classVerificationStatus as string | undefined,
+      );
+      if (!matched) {
+        status = 'type_not_found';
+      }
+
+      if (status === 'matched_unique_simple_name' && matched) {
+        matchedType = applyNamespaceMismatch(matched, className);
+        if (matchedType.namespaceMismatch) {
+          evidence.push('namespaceMismatch:true');
+        }
+      } else if (
+        status === 'verified_exact' ||
+        status === 'verified_normalized' ||
+        status === 'verified_case_insensitive' ||
+        status === 'ambiguous_simple_name'
+      ) {
+        matchedType = matched;
+      } else if (status === 'type_not_found') {
+        matchedType = matched
+          ? { ...matched, classVerificationStatus: 'type_not_found' }
+          : {
+              requestedClassName: className,
+              classVerificationStatus: 'type_not_found',
+            };
+        if (meta.types?.length) {
+          classVerificationDiagnostics = buildTypeNotFoundDiagnostics({
+            registryClassName: className,
+            assembly: row.assembly?.trim() || null,
+            resolvedDllPath: dll.resolvedDllPath,
+            dllTypeCount,
+            types: meta.types,
+          });
+        }
+      } else {
+        matchedType = matched;
+      }
+
+      classVerificationStatus = status;
       evidence.push(`classVerification:${classVerificationStatus}`);
     }
   }
@@ -202,7 +329,9 @@ function buildFormRegistryEntryFromResolved(
 
   const classStatus: TetaPluginRegistryEntry['classStatus'] = verifiedOk
     ? 'found'
-    : classVerificationStatus === 'not_checked'
+    : classVerificationStatus === 'not_checked' ||
+        classVerificationStatus === 'dll_unavailable' ||
+        classVerificationStatus === 'class_name_missing'
       ? 'unverified'
       : 'missing';
 
@@ -210,7 +339,7 @@ function buildFormRegistryEntryFromResolved(
     registryId: String(row.id),
     guid: guidInfo.normalized,
     assembly: row.assembly?.trim() || null,
-    className: row.className?.trim() || null,
+    className,
     simpleClassName: simpleClassName(row.className),
     parameters: row.parameters?.trim() || null,
     pluginName: row.pluginName?.trim() || null,
@@ -225,10 +354,10 @@ function buildFormRegistryEntryFromResolved(
     helpSize,
     registryStatus: 'confirmed',
     dllStatus: dll.status,
-    classDeclarationStatus: row.className?.trim()
-      ? 'confirmed_by_registry'
-      : 'missing_in_registry',
+    dllMissingReason: dll.status === 'missing' ? dll.missingReason ?? null : null,
+    classDeclarationStatus: className ? 'confirmed_by_registry' : 'missing_in_registry',
     classVerificationStatus,
+    classVerificationDiagnostics,
     helpStatus,
     matchedType,
     dllResources,
@@ -271,13 +400,19 @@ export type FormRegistrySummary = {
   dllResolved: number;
   dllMissing: number;
   dllConflicting: number;
+  dllMissingByReason: Record<string, number>;
   registryConfirmed: number;
   classDeclarationConfirmed: number;
   verifiedExact: number;
   verifiedNormalized: number;
   verifiedCaseInsensitive: number;
   matchedUniqueSimpleName: number;
+  namespaceMismatchSimpleName: number;
   ambiguousSimpleName: number;
+  typeNotFound: number;
+  classNameMissing: number;
+  dllUnavailable: number;
+  /** @deprecated use typeNotFound */
   classNotFound: number;
   assemblyUnreadable: number;
   classNotChecked: number;
@@ -306,13 +441,25 @@ export function summarizeFormRegistry(entries: TetaPluginRegistryEntry[]): FormR
     dllResolved: 0,
     dllMissing: 0,
     dllConflicting: 0,
+    dllMissingByReason: {
+      assembly_null: 0,
+      assembly_empty: 0,
+      physical_file_missing: 0,
+      unsupported_assembly_reference: 0,
+      unresolved_name: 0,
+      other: 0,
+    },
     registryConfirmed: 0,
     classDeclarationConfirmed: 0,
     verifiedExact: 0,
     verifiedNormalized: 0,
     verifiedCaseInsensitive: 0,
     matchedUniqueSimpleName: 0,
+    namespaceMismatchSimpleName: 0,
     ambiguousSimpleName: 0,
+    typeNotFound: 0,
+    classNameMissing: 0,
+    dllUnavailable: 0,
     classNotFound: 0,
     assemblyUnreadable: 0,
     classNotChecked: 0,
@@ -339,7 +486,11 @@ export function summarizeFormRegistry(entries: TetaPluginRegistryEntry[]): FormR
       entry.classDeclarationStatus === 'confirmed_by_registry' ? 1 : 0;
 
     if (entry.dllStatus === 'resolved') summary.dllResolved += 1;
-    if (entry.dllStatus === 'missing') summary.dllMissing += 1;
+    if (entry.dllStatus === 'missing') {
+      summary.dllMissing += 1;
+      const reason = entry.dllMissingReason ?? 'other';
+      summary.dllMissingByReason[reason] = (summary.dllMissingByReason[reason] ?? 0) + 1;
+    }
     if (entry.dllStatus === 'conflicting') summary.dllConflicting += 1;
 
     switch (entry.classVerificationStatus) {
@@ -357,14 +508,25 @@ export function summarizeFormRegistry(entries: TetaPluginRegistryEntry[]): FormR
         break;
       case 'matched_unique_simple_name':
         summary.matchedUniqueSimpleName += 1;
+        if (entry.matchedType?.namespaceMismatch) {
+          summary.namespaceMismatchSimpleName += 1;
+        }
         break;
       case 'ambiguous_simple_name':
         summary.ambiguousSimpleName += 1;
         summary.classMissing += 1;
         break;
+      case 'type_not_found':
       case 'not_found':
+        summary.typeNotFound += 1;
         summary.classNotFound += 1;
         summary.classMissing += 1;
+        break;
+      case 'class_name_missing':
+        summary.classNameMissing += 1;
+        break;
+      case 'dll_unavailable':
+        summary.dllUnavailable += 1;
         break;
       case 'assembly_unreadable':
         summary.assemblyUnreadable += 1;

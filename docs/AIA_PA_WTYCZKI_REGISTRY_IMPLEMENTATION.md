@@ -1,72 +1,26 @@
 # AIA PA_WTYCZKI registry — Etap 1
 
-Wygenerowano: **2026-07-22T15:00:43.162Z** (read-only CLI `diagnose:pa-wtyczki`)
+## Domknięcie diagnostyczne (2026-07-22)
 
-## Przed / po (TypeDef)
+Rozbito dawne `not_found` (132) i `not_checked` (398) bez zmiany ekstrakcji TypeDef / verified_exact.
 
-| Metryka | Przed (string FQN w DLL) | Po (TypeDef metadata) |
-|---------|--------------------------|------------------------|
-| Rekordy PA_WTYCZKI | 3561 | 3561 |
-| registryStatus=confirmed | (brak / mylone z confidence) | **3561** |
-| DLL resolved | 3035 | 3035 |
-| Help found | 1773 | 1773 |
-| classVerification verified_exact | **0** | **3030** |
-| assembly_unreadable | — | 0 |
-| Typy TypeDef (suma unikalnych DLL) | — | **11800** |
-| PluginAttribute / PluginGroup na matched | — | 2928 / 970 |
-| Interesting members / IL candidates | — | 533 / 3889 |
+| Status | Przed (zbiorczo) | Po |
+|--------|------------------|-----|
+| verified_exact | 3030 | **3030** |
+| matched_unique_simple_name | 1 | **1** (namespaceMismatch=true) |
+| type_not_found | (w not_found) | **4** |
+| class_name_missing | (w not_found) | **128** |
+| dll_unavailable | (w not_checked) | **398** |
+| not_checked | 398 | **0** |
+| assembly_unreadable | 0 | **0** |
 
-## Błędne wcześniejsze podejście
-
-Szukanie pełnego FQN (`Namespace.Type`) jako **jednego** UTF-16/ASCII stringa w pliku DLL.
-W metadanych .NET namespace i nazwa typu są w **osobnych** polach TypeDef — FQN zwykle nie występuje jako jeden ciąg.
-
-Przykład: `Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen` + `ActUsuwanieWynikowObliczen`
-→ po złożeniu dokładnie `…UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen` → `verified_exact`.
-
-## Bezpieczny odczyt TypeDef
-
-Narzędzie: `tools/TetaDllMetadataReader` (C# / **System.Reflection.Metadata** + PEReader).
-
-- **Nie** ładuje assembly do wykonania (brak static ctor / `Assembly.Load` / reflection runtime).
-- Czyta tabele CLI: TypeDef, Field, Property, CustomAttribute, ManifestResource, IL (`ldstr`).
-- Opcjonalnie XML documentation obok DLL (`plgX.xml`).
-
-## Statusy (rozdzielone)
-
-| Pole | Znaczenie |
-|------|-----------|
-| `registryStatus=confirmed` | rekord z PA_WTYCZKI (kanoniczny) |
-| `classDeclarationStatus=confirmed_by_registry` | NAZWA_KLASY zadeklarowana w PA |
-| `dllStatus` | resolved / missing / conflicting |
-| `classVerificationStatus` | wynik TypeDef (exact / normalized / …) |
-| `helpStatus` | found / missing — **nie obniża** registryStatus |
-| `confidence` | **deprecated** (stare pole zbiorcze) |
-
-## Co jest twardym dowodem vs candidate
-
-| Dane | Ranga |
-|------|--------|
-| PA_WTYCZKI (GUID, ASSEMBLY, NAZWA_KLASY) | **twardy rejestr** |
-| TypeDef match (`verified_*`) | **twarda weryfikacja deklaracji typu w DLL** |
-| Custom attributes Plugin / PluginGroup | **twardy fakt metadanych** |
-| baseType / interfaces (nawet unresolved_ref) | fakt referencji |
-| Help/{GUID}.html istnieje | fakt pliku |
-| pola/właściwości o nazwach Perspektywa/PakietDAC/… | **candidate** do dalszych etapów |
-| `ldstr` IL (NT_*, *_DAC, …) | **candidate evidence**, nie binding |
-| XML documentation | wzbogacenie, jeśli plik istnieje |
-
-## Odczyt atrybutów / dziedziczenia / members / resources / IL
-
-- **Attributes:** wszystkie custom attributes typu; szczególnie Plugin / PluginGroup (constructor + named args).
-- **Dziedziczenie:** bezpośredni `baseType` + `baseTypeResolution` (`resolved` \| `unresolved_ref`).
-- **Members:** fields (z literalami), properties (get/set); flag `isInterestingName`.
-- **Resources:** ManifestResource (`.resources`, `.ico`, nazwy Widok/Form).
-- **IL:** `ldstr` z metod dopasowanego typu (limit 200/typ); `isInteresting` dla wzorców Oracle/DataSet/…
-
-Nie rozpoczęto: parsowanie treści Help, binding kontrolka→Oracle, SqlJoin, SQL, Qdrant.
+DLL missing 526 → `assembly_null` 128 / `physical_file_missing` 21 / `unsupported_assembly_reference` 377 (WebConstellation).
 
 ---
+
+Wygenerowano: **2026-07-22T15:52:16.150Z** (read-only)
+
+## Konfiguracja
 
 | Pole | Wartość |
 |------|---------|
@@ -78,21 +32,29 @@ Nie rozpoczęto: parsowanie treści Help, binding kontrolka→Oracle, SqlJoin, S
 | Metadata reader | `tools/TetaDllMetadataReader` (System.Reflection.Metadata, bez wykonywania kodu) |
 | Oracle / odczyt | OK |
 
-## Podsumowanie (po TypeDef)
+## Podsumowanie (Etap 1 — statusy rozdzielone)
 
 | Metryka | Wartość |
 |---------|---------|
 | Rekordy PA_WTYCZKI / registryStatus=confirmed | **3561** / **3561** |
 | DLL resolved / missing / conflicting | **3035** / 526 / 0 |
+| DLL missing: assembly_null | 128 |
+| DLL missing: assembly_empty | 0 |
+| DLL missing: physical_file_missing | 21 |
+| DLL missing: unsupported_assembly_reference | 377 |
+| DLL missing: unresolved_name | 0 |
+| DLL missing: other | 0 |
 | classDeclarationStatus=confirmed_by_registry | **3433** |
 | verified_exact | **3030** |
 | verified_normalized | **0** |
 | verified_case_insensitive | **0** |
-| matched_unique_simple_name | 1 |
+| matched_unique_simple_name (namespaceMismatch) | 1 (**1**) |
 | ambiguous_simple_name | 0 |
-| not_found | 132 |
+| type_not_found | **4** |
+| class_name_missing | **128** |
+| dll_unavailable | **398** |
 | assembly_unreadable | 0 |
-| not_checked | 398 |
+| not_checked | 0 |
 | Help found / missing | **1773** / 1788 |
 | Typy TypeDef łącznie (unikalne DLL) | **11800** (avg ~37.3/DLL) |
 | Matched z PluginAttribute / PluginGroup | 2928 / 970 |
@@ -100,6 +62,13 @@ Nie rozpoczęto: parsowanie treści Help, binding kontrolka→Oracle, SqlJoin, S
 | Interesting members / IL strings | 533 / 3889 |
 | Zeskanowane DLL w Plugins | 425 |
 | confidence(deprecated)=confirmed | 1767 |
+
+## Domknięcie diagnostyczne statusów
+
+- `class_name_missing` — puste `NAZWA_KLASY` (nie jest błędem wyszukiwania typu)
+- `dll_unavailable` — klasy nie sprawdzono, bo DLL nie resolved
+- `type_not_found` — DLL OK, metadata OK, typ nie dopasowany
+- `matched_unique_simple_name` + `namespaceMismatch` — nie podnosić do verified_exact
 
 ## Przykładowe łańcuchy (5)
 
@@ -187,17 +156,22 @@ Nie rozpoczęto: parsowanie treści Help, binding kontrolka→Oracle, SqlJoin, S
 _brak_
 
 ### matched_unique_simple_name
-- ID=2489 CLASS=Teta.Sumo.Logistics.plgKontrahenciSprzedaz.CrdHistoriaPrzedstawicieli.HistoriaPrzedstawicieliWidok DLL=plgKontrahenciSprzedazKln.dll ns=Teta.Sumo.Logistics.plgKontrahenciSprzedazKln.CrdHistoriaPrzedstawicieli name=HistoriaPrzedstawicieliWidok
+- ID=2489 CLASS=Teta.Sumo.Logistics.plgKontrahenciSprzedaz.CrdHistoriaPrzedstawicieli.HistoriaPrzedstawicieliWidok matched=Teta.Sumo.Logistics.plgKontrahenciSprzedazKln.CrdHistoriaPrzedstawicieli.HistoriaPrzedstawicieliWidok namespaceMismatch=true requestedNs=Teta.Sumo.Logistics.plgKontrahenciSprzedaz.CrdHistoriaPrzedstawicieli matchedNs=Teta.Sumo.Logistics.plgKontrahenciSprzedazKln.CrdHistoriaPrzedstawicieli
 
 ### ambiguous_simple_name
 _brak_
 
-### not_found
+### type_not_found
+- ID=1656 CLASS=Teta.Sumo.Sales.plgSalesReports.Lists.PrmZestawienieVATOperacjiSprzedaży DLL=plgSalesReports.dll reason=type_not_found_namespace simpleHits=1 diff=namespace nearest=Teta.Sumo.Sales.plgSalesReports.Lists.PrmZestawienieVATOperacjiSprzedaży | Teta.Sumo.Sales.plgSalesReports.Lists.PrmZestawienieFakturSprzedazy | Teta.Sumo.Sales.plgSalesReports.Lists.PrmZestawienieMarzySprzedazy
+- ID=2001 CLASS=Teta.Sumo.Logistics.plgLogistykaParametryRap.Zestawienia.PrmZestawienieMarzySprzedazy DLL=plgLogistykaParametryRap.dll reason=type_not_found simpleHits=0 diff=- nearest=Teta.Sumo.Logistics.plgLogistykaParametryRap.Zestawienia.PrmZestawienieDokPZbezFZ | Teta.Sumo.Logistics.plgLogistykaParametryRap.Zestawienia.PrmZestawienieRoznicFZiPZ | Teta.Sumo.Logistics.plgLogistykaParametryRap.Zestawienia.PrmZestawienieFakturZakupu
+- ID=2333 CLASS=Teta.Sumo.Production.plgProductionDocuments.CrdProductionDocumentDefects.ProductionDocumentDefectsView DLL=plgProductionDocuments.dll reason=type_not_found simpleHits=0 diff=- nearest=Teta.Sumo.Production.plgProductionDocuments.CrdProductionDocumentTimes.ProductionDocumentTimesView | Teta.Sumo.Production.plgProductionDocuments.CrdProductionDocumentProducts.ProductionDocumentProductsView | Teta.Sumo.Production.plgProductionDocuments.CrdProductionDocuments.ProductionDocumentsView
+- ID=3140 CLASS=Teta.Sumo.Personel.plgPersonelParametryRap.Zestawienia.PrmTabelarycznaListaPlacMod DLL=plgPersonelParametryRap.dll reason=type_not_found_typo simpleHits=0 diff=typo nearest=Teta.Sumo.Personel.plgPersonelParametryRap.Zestawienia.PrmTabelarycznaListaPlac | Teta.Sumo.Personel.plgPersonelParametryRap.Zestawienia.PrmUniwersalnaListaPlac | Teta.Sumo.Personel.plgPersonelParametryRap.PrmUniwersalnaListaPlacEnum
+
+### class_name_missing
 - ID=798 CLASS=null DLL= ns=- name=-
 - ID=1773 CLASS=null DLL= ns=- name=-
 - ID=1832 CLASS=null DLL= ns=- name=-
 - ID=1836 CLASS=null DLL= ns=- name=-
-- ID=1656 CLASS=Teta.Sumo.Sales.plgSalesReports.Lists.PrmZestawienieVATOperacjiSprzedaży DLL=plgSalesReports.dll ns=- name=-
 - ID=2010 CLASS=null DLL= ns=- name=-
 - ID=2011 CLASS=null DLL= ns=- name=-
 - ID=2067 CLASS=null DLL= ns=- name=-
@@ -205,7 +179,6 @@ _brak_
 - ID=2176 CLASS=null DLL= ns=- name=-
 - ID=2178 CLASS=null DLL= ns=- name=-
 - ID=1997 CLASS=null DLL= ns=- name=-
-- ID=2001 CLASS=Teta.Sumo.Logistics.plgLogistykaParametryRap.Zestawienia.PrmZestawienieMarzySprzedazy DLL=plgLogistykaParametryRap.dll ns=- name=-
 - ID=2006 CLASS=null DLL= ns=- name=-
 - ID=1923 CLASS=null DLL= ns=- name=-
 - ID=2267 CLASS=null DLL= ns=- name=-
@@ -213,6 +186,30 @@ _brak_
 - ID=2080 CLASS=null DLL= ns=- name=-
 - ID=1835 CLASS=null DLL= ns=- name=-
 - ID=2039 CLASS=null DLL= ns=- name=-
+- ID=2040 CLASS=null DLL= ns=- name=-
+- ID=2072 CLASS=null DLL= ns=- name=-
+
+### dll_unavailable
+- ID=2086 CLASS=Teta.Sumo.Common.Designer.FrmDesignerableForms DLL= ns=- name=-
+- ID=2598 CLASS=Teta.Sumo.Common.Designer.BusinessObjects.FrmBusinessObjects DLL= ns=- name=-
+- ID=2645 CLASS=Teta.Sumo.Common.Designer.ActDesignerModeUsageReport DLL= ns=- name=-
+- ID=2825 CLASS=Teta.Sumo.Common.Reports.TestReports.ActCleanReportDatabase DLL= ns=- name=-
+- ID=3166 CLASS=Teta.Sumo.Common.PlugIns.CustomMultiMasterForm DLL= ns=- name=-
+- ID=3172 CLASS=Teta.Sumo.Common.SMS.ActSMSSending DLL= ns=- name=-
+- ID=3261 CLASS=Teta.WebConstellation.Personnel.plgRCP.EmployeeBalance.EmployeeBalanceDetailsView DLL= ns=- name=-
+- ID=3262 CLASS=Teta.WebConstellation.Personnel.plgRCP.EmployeeEntryExitHistory.EmployeeEntryExitHistoryDetailsView DLL= ns=- name=-
+- ID=3263 CLASS=Teta.WebConstellation.Personnel.plgRCP.TimeOffInLieuRequests.TimeOffInLieuRequestsDetailsView DLL= ns=- name=-
+- ID=3264 CLASS=Teta.WebConstellation.Personnel.plgRCP.TimeOffInLieuRequestsList.TimeOffInLieuRequestsListListView DLL= ns=- name=-
+- ID=3265 CLASS=Teta.WebConstellation.Personnel.plgRCP.OvertimeRequests.OvertimeRequestsDetailsView DLL= ns=- name=-
+- ID=3266 CLASS=Teta.WebConstellation.Personnel.plgRCP.OvertimeRequestsList.OvertimeRequestsListListView DLL= ns=- name=-
+- ID=3267 CLASS=Teta.WebConstellation.Personnel.plgRCP.LeaveRequests.LeaveRequestsDetailsView DLL= ns=- name=-
+- ID=3268 CLASS=Teta.WebConstellation.Personnel.plgRCP.EmployeeBalance.EmployeeBalanceDetailsView DLL= ns=- name=-
+- ID=3269 CLASS=Teta.WebConstellation.Personnel.plgRCP.LeaveRequestsList.LeaveRequestsListListView DLL= ns=- name=-
+- ID=3270 CLASS=Teta.WebConstellation.Personnel.plgRCP.OvertimeRequestsList.OvertimeRequestsListListView DLL= ns=- name=-
+- ID=3271 CLASS=Teta.WebConstellation.Personnel.plgRCP.TimeOffInLieuRequestsList.TimeOffInLieuRequestsListListView DLL= ns=- name=-
+- ID=3272 CLASS=Teta.WebConstellation.Personnel.plgRCP.EmployeeEntryExitHistory.EmployeeEntryExitHistoryDetailsView DLL= ns=- name=-
+- ID=3273 CLASS=Teta.WebConstellation.Personnel.plgRCP.PlanningModels.PlanningModelsDetailsView DLL= ns=- name=-
+- ID=3274 CLASS=Teta.WebConstellation.Personnel.plgRCP.EmployeeWorkPreferences.EmployeeWorkPreferencesDetailsView DLL= ns=- name=-
 
 ### PluginAttribute
 - Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen args=["Workers.ico"]
@@ -307,8 +304,9 @@ _brak_
 - Błędne podejście v1: szukanie pełnego FQN jako jednego stringa w DLL
 - Poprawne: TypeDef (`namespace` + `name`) przez System.Reflection.Metadata — bez wykonywania kodu
 - Statusy rozdzielone: `registryStatus`, `dllStatus`, `classDeclarationStatus`, `classVerificationStatus`, `helpStatus`
+- Domknięcie diagnostyczne: `type_not_found` / `class_name_missing` / `dll_unavailable` + `dllMissingReason`
 - Help nie obniża statusu rejestru PA_WTYCZKI
 - `confidence` jest deprecated (pole zbiorcze)
 
-JSON (summary + przykłady): `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.json`  
-Pełny dump (gitignored, ~160 MB): `.local/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.full.json`
+JSON (summary + przykłady): `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.json`
+Pełny dump wszystkich wpisów (gitignored): `.local/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.full.json`

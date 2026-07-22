@@ -154,15 +154,23 @@ function formatChain(entry: TetaPluginRegistryEntry): string {
     `- ID=${entry.registryId}`,
     `  GUID=${entry.guid}`,
     `  ASSEMBLY=${entry.assembly}`,
-    `  DLL=${entry.resolvedDllPath} [${entry.dllStatus}]`,
+    `  DLL=${entry.resolvedDllPath} [${entry.dllStatus}${entry.dllMissingReason ? `/${entry.dllMissingReason}` : ''}]`,
     `  CLASS=${entry.className}`,
     `  registryStatus=${entry.registryStatus}`,
     `  classDeclarationStatus=${entry.classDeclarationStatus}`,
     `  classVerificationStatus=${entry.classVerificationStatus}`,
     `  matched=${entry.matchedType?.namespace ?? '-'} / ${entry.matchedType?.name ?? '-'}`,
+    entry.matchedType?.namespaceMismatch
+      ? `  namespaceMismatch=true requestedNs=${entry.matchedType.requestedNamespace} matchedNs=${entry.matchedType.matchedNamespace}`
+      : null,
+    entry.classVerificationDiagnostics
+      ? `  typeNotFoundDiag reason=${entry.classVerificationDiagnostics.reasonCode} simpleHits=${entry.classVerificationDiagnostics.simpleNameOccurrence} nearest=${(entry.classVerificationDiagnostics.nearestMatches ?? []).slice(0, 3).join(' | ')}`
+      : null,
     `  HELP=${entry.helpPath} exists=${entry.helpExists} [${entry.helpStatus}]`,
     `  formIdentity=${entry.formIdentity}`,
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function takeExamples(
@@ -226,7 +234,9 @@ async function main() {
   const normalized = takeExamples(entries, 'verified_normalized');
   const simple = takeExamples(entries, 'matched_unique_simple_name');
   const ambiguous = takeExamples(entries, 'ambiguous_simple_name');
-  const notFound = takeExamples(entries, 'not_found');
+  const typeNotFound = takeExamples(entries, 'type_not_found');
+  const classNameMissing = takeExamples(entries, 'class_name_missing');
+  const dllUnavailable = takeExamples(entries, 'dll_unavailable');
   const sampleChains = (exact.length >= 5 ? exact : entries).slice(0, 5).map(formatChain);
 
   const pluginAttrExamples = entries
@@ -277,19 +287,27 @@ async function main() {
     `| Metadata reader | \`tools/TetaDllMetadataReader\` (System.Reflection.Metadata, bez wykonywania kodu) |`,
     oracleError ? `| Oracle / odczyt | **BŁĄD:** ${oracleError.replace(/\|/g, '/')} |` : `| Oracle / odczyt | OK |`,
     '',
-    '## Podsumowanie (po TypeDef)',
+    '## Podsumowanie (Etap 1 — statusy rozdzielone)',
     '',
     `| Metryka | Wartość |`,
     `|---------|---------|`,
     `| Rekordy PA_WTYCZKI / registryStatus=confirmed | **${summary.rowCount}** / **${summary.registryConfirmed}** |`,
     `| DLL resolved / missing / conflicting | **${summary.dllResolved}** / ${summary.dllMissing} / ${summary.dllConflicting} |`,
+    `| DLL missing: assembly_null | ${summary.dllMissingByReason.assembly_null ?? 0} |`,
+    `| DLL missing: assembly_empty | ${summary.dllMissingByReason.assembly_empty ?? 0} |`,
+    `| DLL missing: physical_file_missing | ${summary.dllMissingByReason.physical_file_missing ?? 0} |`,
+    `| DLL missing: unsupported_assembly_reference | ${summary.dllMissingByReason.unsupported_assembly_reference ?? 0} |`,
+    `| DLL missing: unresolved_name | ${summary.dllMissingByReason.unresolved_name ?? 0} |`,
+    `| DLL missing: other | ${summary.dllMissingByReason.other ?? 0} |`,
     `| classDeclarationStatus=confirmed_by_registry | **${summary.classDeclarationConfirmed}** |`,
     `| verified_exact | **${summary.verifiedExact}** |`,
     `| verified_normalized | **${summary.verifiedNormalized}** |`,
     `| verified_case_insensitive | **${summary.verifiedCaseInsensitive}** |`,
-    `| matched_unique_simple_name | ${summary.matchedUniqueSimpleName} |`,
+    `| matched_unique_simple_name (namespaceMismatch) | ${summary.matchedUniqueSimpleName} (**${summary.namespaceMismatchSimpleName}**) |`,
     `| ambiguous_simple_name | ${summary.ambiguousSimpleName} |`,
-    `| not_found | ${summary.classNotFound} |`,
+    `| type_not_found | **${summary.typeNotFound}** |`,
+    `| class_name_missing | **${summary.classNameMissing}** |`,
+    `| dll_unavailable | **${summary.dllUnavailable}** |`,
     `| assembly_unreadable | ${summary.assemblyUnreadable} |`,
     `| not_checked | ${summary.classNotChecked} |`,
     `| Help found / missing | **${summary.helpFound}** / ${summary.helpMissing} |`,
@@ -299,6 +317,13 @@ async function main() {
     `| Interesting members / IL strings | ${summary.interestingMembers} / ${summary.interestingIlStrings} |`,
     `| Zeskanowane DLL w Plugins | ${plugins.length} |`,
     `| confidence(deprecated)=confirmed | ${summary.confirmed} |`,
+    '',
+    '## Domknięcie diagnostyczne statusów',
+    '',
+    '- `class_name_missing` — puste `NAZWA_KLASY` (nie jest błędem wyszukiwania typu)',
+    '- `dll_unavailable` — klasy nie sprawdzono, bo DLL nie resolved',
+    '- `type_not_found` — DLL OK, metadata OK, typ nie dopasowany',
+    '- `matched_unique_simple_name` + `namespaceMismatch` — nie podnosić do verified_exact',
     '',
     '## Przykładowe łańcuchy (5)',
     '',
@@ -313,13 +338,40 @@ async function main() {
     formatExamples(normalized),
     '',
     '### matched_unique_simple_name',
-    formatExamples(simple),
+    simple.length === 0
+      ? '_brak_'
+      : simple
+          .map(
+            (e) =>
+              `- ID=${e.registryId} CLASS=${e.className} matched=${e.matchedType?.fullName ?? '-'} ` +
+              `namespaceMismatch=${e.matchedType?.namespaceMismatch === true} ` +
+              `requestedNs=${e.matchedType?.requestedNamespace ?? '-'} matchedNs=${e.matchedType?.matchedNamespace ?? '-'}`,
+          )
+          .join('\n'),
     '',
     '### ambiguous_simple_name',
     formatExamples(ambiguous),
     '',
-    '### not_found',
-    formatExamples(notFound),
+    '### type_not_found',
+    typeNotFound.length === 0
+      ? '_brak_'
+      : typeNotFound
+          .map((e) => {
+            const d = e.classVerificationDiagnostics;
+            return (
+              `- ID=${e.registryId} CLASS=${e.className} DLL=${path.basename(e.resolvedDllPath ?? '')} ` +
+              `reason=${d?.reasonCode ?? '-'} simpleHits=${d?.simpleNameOccurrence ?? '-'} ` +
+              `diff=${(d?.potentialDifference ?? []).join(',') || '-'} ` +
+              `nearest=${(d?.nearestMatches ?? []).slice(0, 3).join(' | ') || '-'}`
+            );
+          })
+          .join('\n'),
+    '',
+    '### class_name_missing',
+    formatExamples(classNameMissing),
+    '',
+    '### dll_unavailable',
+    formatExamples(dllUnavailable),
     '',
     '### PluginAttribute',
     pluginAttrExamples.length === 0
@@ -357,6 +409,7 @@ async function main() {
     '- Błędne podejście v1: szukanie pełnego FQN jako jednego stringa w DLL',
     '- Poprawne: TypeDef (`namespace` + `name`) przez System.Reflection.Metadata — bez wykonywania kodu',
     '- Statusy rozdzielone: `registryStatus`, `dllStatus`, `classDeclarationStatus`, `classVerificationStatus`, `helpStatus`',
+    '- Domknięcie diagnostyczne: `type_not_found` / `class_name_missing` / `dll_unavailable` + `dllMissingReason`',
     '- Help nie obniża statusu rejestru PA_WTYCZKI',
     '- `confidence` jest deprecated (pole zbiorcze)',
     '',
@@ -393,7 +446,9 @@ async function main() {
           verified_normalized: normalized,
           matched_unique_simple_name: simple,
           ambiguous_simple_name: ambiguous,
-          not_found: notFound,
+          type_not_found: typeNotFound,
+          class_name_missing: classNameMissing,
+          dll_unavailable: dllUnavailable,
           pluginAttribute: pluginAttrExamples,
           pluginGroupAttribute: pluginGroupExamples,
           sampleChains,

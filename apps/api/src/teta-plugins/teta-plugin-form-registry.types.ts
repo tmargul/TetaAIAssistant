@@ -3,6 +3,8 @@ import type {
   DotnetMatchedType,
   DotnetResourceInfo,
 } from './teta-dotnet-metadata.reader';
+import type { ClassVerificationDiagnostics } from './teta-class-verification-diagnostics';
+import type { TetaDllMissingReason } from './teta-plugin-dll-resolver';
 
 export type TetaPluginDllStatus = 'resolved' | 'missing' | 'conflicting';
 /** @deprecated use classVerificationStatus */
@@ -54,9 +56,11 @@ export type TetaPluginRegistryEntry = {
   /** PA_WTYCZKI is canonical — always confirmed when row exists. */
   registryStatus: TetaRegistryStatus;
   dllStatus: TetaPluginDllStatus;
+  dllMissingReason?: TetaDllMissingReason | null;
   /** Class is declared by PA_WTYCZKI regardless of DLL verification. */
   classDeclarationStatus: TetaClassDeclarationStatus;
   classVerificationStatus: DotnetClassVerificationStatus;
+  classVerificationDiagnostics?: ClassVerificationDiagnostics | null;
   helpStatus: TetaPluginHelpStatus;
 
   matchedType?: DotnetMatchedType | null;

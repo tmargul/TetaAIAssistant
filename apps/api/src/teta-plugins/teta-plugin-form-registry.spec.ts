@@ -166,7 +166,7 @@ describe('DLL assembly resolver', () => {
     expect(result.resolvedDllPath).toContain('plgSolo.dll');
   });
 
-  it('marks missing DLL', () => {
+  it('marks missing DLL with physical_file_missing', () => {
     const result = resolveAssemblyDll({
       assembly: 'plgMissing.dll',
       pluginsRoot,
@@ -174,6 +174,24 @@ describe('DLL assembly resolver', () => {
     });
     expect(result.status).toBe('missing');
     expect(result.resolvedDllPath).toBeNull();
+    expect(result.missingReason).toBe('physical_file_missing');
+  });
+
+  it('classifies null / WebConstellation missing reasons', () => {
+    expect(
+      resolveAssemblyDll({
+        assembly: null,
+        pluginsRoot,
+        scannedPlugins: scanned,
+      }).missingReason,
+    ).toBe('assembly_null');
+    expect(
+      resolveAssemblyDll({
+        assembly: 'Teta.WebConstellation.Personnel.plgRCP.dll',
+        pluginsRoot,
+        scannedPlugins: scanned,
+      }).missingReason,
+    ).toBe('unsupported_assembly_reference');
   });
 
   it('marks conflicting basename without picking first', () => {
@@ -329,7 +347,7 @@ describe('PA_WTYCZKI registry builder + metadata statuses', () => {
     expect(entries[1].helpStatus).toBe('missing');
   });
 
-  it('marks not_found without lowering registryStatus', () => {
+  it('marks type_not_found without lowering registryStatus', () => {
     const rows: PaWtyczkiRow[] = [
       {
         id: 3,
@@ -352,7 +370,21 @@ describe('PA_WTYCZKI registry builder + metadata statuses', () => {
         {
           dllPath,
           ok: true,
-          typeCount: 1,
+          typeCount: 2,
+          types: [
+            {
+              namespace: 'Teta.HR',
+              name: 'AlphaWidok',
+              fullName: 'Teta.HR.AlphaWidok',
+              normalizedFullName: 'Teta.HR.AlphaWidok',
+            },
+            {
+              namespace: 'Teta.HR',
+              name: 'MissingWidokX',
+              fullName: 'Teta.HR.MissingWidokX',
+              normalizedFullName: 'Teta.HR.MissingWidokX',
+            },
+          ],
           matchedTypes: [
             {
               requestedClassName: 'Teta.HR.MissingWidok',
@@ -371,7 +403,108 @@ describe('PA_WTYCZKI registry builder + metadata statuses', () => {
     });
     expect(entry.registryStatus).toBe('confirmed');
     expect(entry.classDeclarationStatus).toBe('confirmed_by_registry');
-    expect(entry.classVerificationStatus).toBe('not_found');
+    expect(entry.classVerificationStatus).toBe('type_not_found');
+    expect(entry.classVerificationDiagnostics?.simpleNameOccurrence).toBe(0);
+    expect(entry.classVerificationDiagnostics?.nearestMatches?.[0]).toContain('MissingWidok');
+  });
+
+  it('splits class_name_missing and dll_unavailable', () => {
+    const rows: PaWtyczkiRow[] = [
+      {
+        id: 10,
+        guid: guidA,
+        assembly: null,
+        className: null,
+        parameters: null,
+        pluginName: null,
+        pluginType: null,
+        description: null,
+        webPlugin: null,
+        routePath: null,
+        apiPath: null,
+      },
+      {
+        id: 11,
+        guid: guidB,
+        assembly: 'plgGone.dll',
+        className: 'Teta.HR.SomeWidok',
+        parameters: null,
+        pluginName: null,
+        pluginType: null,
+        description: null,
+        webPlugin: null,
+        routePath: null,
+        apiPath: null,
+      },
+    ];
+    const entries = buildFormRegistryEntries({
+      rows,
+      clientDirectory: root,
+      pluginsRoot,
+      scannedPlugins: scanned,
+      skipDotnetMetadata: true,
+    });
+    expect(entries[0].classVerificationStatus).toBe('class_name_missing');
+    expect(entries[0].dllMissingReason).toBe('assembly_null');
+    expect(entries[1].classVerificationStatus).toBe('dll_unavailable');
+    expect(entries[1].dllMissingReason).toBe('physical_file_missing');
+    expect(entries[0].registryStatus).toBe('confirmed');
+    expect(entries[1].registryStatus).toBe('confirmed');
+  });
+
+  it('keeps matched_unique_simple_name with namespaceMismatch flag', () => {
+    const requested =
+      'Teta.Sumo.Logistics.plgKontrahenciSprzedaz.CrdHistoriaPrzedstawicieli.HistoriaPrzedstawicieliWidok';
+    const matchedNs =
+      'Teta.Sumo.Logistics.plgKontrahenciSprzedazKln.CrdHistoriaPrzedstawicieli';
+    const rows: PaWtyczkiRow[] = [
+      {
+        id: 12,
+        guid: guidA,
+        assembly: 'HR/plgMulti.dll',
+        className: requested,
+        parameters: null,
+        pluginName: null,
+        pluginType: null,
+        description: null,
+        webPlugin: null,
+        routePath: null,
+        apiPath: null,
+      },
+    ];
+    const dllPath = path.resolve(pluginsRoot, 'HR', 'plgMulti.dll');
+    const metadataByDllPath = new Map<string, DotnetDllMetadataResult>([
+      [
+        dllPath.toLowerCase(),
+        {
+          dllPath,
+          ok: true,
+          typeCount: 1,
+          matchedTypes: [
+            {
+              requestedClassName: requested,
+              classVerificationStatus: 'matched_unique_simple_name',
+              namespace: matchedNs,
+              name: 'HistoriaPrzedstawicieliWidok',
+              fullName: `${matchedNs}.HistoriaPrzedstawicieliWidok`,
+            },
+          ],
+        },
+      ],
+    ]);
+    const [entry] = buildFormRegistryEntries({
+      rows,
+      clientDirectory: root,
+      pluginsRoot,
+      scannedPlugins: scanned,
+      metadataByDllPath,
+    });
+    expect(entry.classVerificationStatus).toBe('matched_unique_simple_name');
+    expect(entry.matchedType?.namespaceMismatch).toBe(true);
+    expect(entry.matchedType?.requestedNamespace).toBe(
+      'Teta.Sumo.Logistics.plgKontrahenciSprzedaz.CrdHistoriaPrzedstawicieli',
+    );
+    expect(entry.matchedType?.matchedNamespace).toBe(matchedNs);
   });
 });
 

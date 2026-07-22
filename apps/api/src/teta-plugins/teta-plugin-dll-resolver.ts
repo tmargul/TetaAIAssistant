@@ -4,6 +4,15 @@ import type { ScannedPluginDll } from './teta-plugin-scan.util';
 
 export type TetaDllResolveStatus = 'resolved' | 'missing' | 'conflicting';
 
+/** Why ASSEMBLY did not resolve to a physical Plugins DLL. */
+export type TetaDllMissingReason =
+  | 'assembly_null'
+  | 'assembly_empty'
+  | 'physical_file_missing'
+  | 'unsupported_assembly_reference'
+  | 'unresolved_name'
+  | 'other';
+
 export type TetaDllResolveResult = {
   assemblyRaw: string;
   /** Normalized relative path under Plugins (with `.dll`, no leading `Plugins\`). */
@@ -12,7 +21,33 @@ export type TetaDllResolveResult = {
   status: TetaDllResolveStatus;
   resolvedDllPath: string | null;
   candidates: string[];
+  /** Set when status === 'missing'. */
+  missingReason?: TetaDllMissingReason | null;
 };
+
+export function classifyDllMissingReason(
+  assembly: string | null | undefined,
+): TetaDllMissingReason {
+  if (assembly === null || assembly === undefined) return 'assembly_null';
+  if (!assembly.trim()) return 'assembly_empty';
+  const trimmed = assembly.trim();
+  // Web / UI5 constellation assemblies are not expected under desktop Plugins.
+  if (
+    /^Teta\.WebConstellation\./i.test(trimmed) ||
+    /\.ui5[A-Za-z0-9]*\.dll$/i.test(trimmed) ||
+    /\.ui5[A-Za-z0-9]*$/i.test(trimmed)
+  ) {
+    return 'unsupported_assembly_reference';
+  }
+  const { basename } = normalizeAssemblyRelativePath(trimmed);
+  if (basename && basename.toLowerCase().endsWith('.dll')) {
+    return 'physical_file_missing';
+  }
+  if (trimmed.includes('.') && !basename.toLowerCase().endsWith('.dll')) {
+    return 'unresolved_name';
+  }
+  return 'other';
+}
 
 /** Normalize ASSEMBLY path: `/`→`\`, ensure `.dll`, strip leading `Plugins\`. */
 export function normalizeAssemblyRelativePath(assembly: string): {
@@ -45,11 +80,24 @@ export function normalizeAssemblyRelativePath(assembly: string): {
  * Exact relative path first; then unique basename. Never picks arbitrarily among multiples.
  */
 export function resolveAssemblyDll(options: {
-  assembly: string;
+  assembly: string | null | undefined;
   pluginsRoot: string;
   scannedPlugins: ScannedPluginDll[];
 }): TetaDllResolveResult {
   const assemblyRaw = options.assembly ?? '';
+  const missingReason = classifyDllMissingReason(options.assembly);
+  if (missingReason === 'assembly_null' || missingReason === 'assembly_empty') {
+    return {
+      assemblyRaw,
+      assemblyRelative: '',
+      basename: '',
+      status: 'missing',
+      resolvedDllPath: null,
+      candidates: [],
+      missingReason,
+    };
+  }
+
   const { relative, basename } = normalizeAssemblyRelativePath(assemblyRaw);
 
   if (!relative || !basename) {
@@ -60,6 +108,7 @@ export function resolveAssemblyDll(options: {
       status: 'missing',
       resolvedDllPath: null,
       candidates: [],
+      missingReason: classifyDllMissingReason(options.assembly),
     };
   }
 
@@ -100,6 +149,7 @@ export function resolveAssemblyDll(options: {
       status: 'missing',
       resolvedDllPath: null,
       candidates: [],
+      missingReason: classifyDllMissingReason(options.assembly),
     };
   }
 

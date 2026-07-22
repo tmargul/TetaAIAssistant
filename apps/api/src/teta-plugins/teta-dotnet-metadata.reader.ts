@@ -8,9 +8,22 @@ export type DotnetClassVerificationStatus =
   | 'verified_case_insensitive'
   | 'matched_unique_simple_name'
   | 'ambiguous_simple_name'
-  | 'not_found'
+  | 'type_not_found'
+  | 'class_name_missing'
+  | 'dll_unavailable'
   | 'not_checked'
-  | 'assembly_unreadable';
+  | 'assembly_unreadable'
+  /** @deprecated prefer type_not_found / class_name_missing / dll_unavailable */
+  | 'not_found';
+
+export type DotnetCompactType = {
+  namespace?: string | null;
+  name?: string | null;
+  fullName?: string | null;
+  normalizedFullName?: string | null;
+  declaringType?: string | null;
+  baseType?: string | null;
+};
 
 export type DotnetAttributeInfo = {
   attributeType: string;
@@ -57,6 +70,10 @@ export type DotnetMatchedType = {
   ilStringCandidates?: DotnetIlStringCandidate[] | null;
   xmlDocumentation?: string | null;
   hasXmlDocumentation?: boolean;
+  /** Set for matched_unique_simple_name when registry namespace ≠ TypeDef namespace. */
+  namespaceMismatch?: boolean;
+  requestedNamespace?: string | null;
+  matchedNamespace?: string | null;
 };
 
 export type DotnetResourceInfo = {
@@ -72,6 +89,7 @@ export type DotnetDllMetadataResult = {
   errorDetail?: string | null;
   typeCount: number;
   matchedTypes?: DotnetMatchedType[] | null;
+  types?: DotnetCompactType[] | null;
   resources?: DotnetResourceInfo[] | null;
   xmlDocPath?: string | null;
   xmlDocMemberCount?: number;

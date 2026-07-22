@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-22** (Etap 1 TypeDef metadata)
+> Ostatnia aktualizacja: **2026-07-22** (Etap 1 domknięty — diagnostyka statusów)
 
 ---
 
@@ -195,7 +195,9 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Live: **3030** `verified_exact` (było 0); registryStatus=confirmed dla **3561** PA; Help 1773.
 - Referencja: `plgListaPlac` → `…UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen` = verified_exact (ns+name).
 - Statusy rozdzielone; `confidence` deprecated. Help nie obniża rejestru.
+- **Domknięcie diagnostyczne:** `type_not_found` **4** / `class_name_missing` **128** / `dll_unavailable` **398** / `not_checked` **0**; DLL missing: null 128, physical 21, WebConstellation unsupported 377; 1× `matched_unique_simple_name` + `namespaceMismatch`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
+- **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
 
 ### 2026-07-21 — Etap 1 rejestr formularzy PA_WTYCZKI ✅ (kod)
 
