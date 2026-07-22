@@ -32,6 +32,7 @@ import {
 } from './teta-plugin-metadata.builder';
 
 import type { TetaPluginMetadataBundle, TetaPluginDescriptorMeta } from './teta-plugin-metadata.types';
+import type { TetaPluginRegistryEntry } from './teta-plugin-form-registry.types';
 
 import { TetaPluginBoCatalog } from './teta-plugin-bo-catalog';
 
@@ -48,13 +49,14 @@ import {
 
 import { resolveTetaServerLayout } from './teta-server-layout.util';
 
-import { inferPluginDescriptorsFromDll } from './teta-plugin-descriptor.infer';
-
 import {
-  filterPluginsByAssembly,
   readPluginsXml,
   resolvePluginsXmlPath,
 } from './teta-plugin-xml.reader';
+
+import { resolvePluginDescriptorsMerged } from './teta-plugin-descriptor-resolve';
+
+import { TetaPluginFormRegistryService } from './teta-plugin-form-registry.service';
 
 import {
   discoverOracleObjectsFromBoDlls,
@@ -111,6 +113,8 @@ export class TetaPluginImportService {
     private readonly helpEnrichment: TetaHelpEnrichmentService,
 
     private readonly appObjectRegistry: TetaAppObjectRegistryService,
+
+    private readonly formRegistry: TetaPluginFormRegistryService,
 
   ) {}
 
@@ -415,17 +419,25 @@ export class TetaPluginImportService {
 
     const locator = new TetaPluginSourceLocator({ roots: sourceRoots });
 
+    const registryEntriesForDll = await this.formRegistry.getEntriesForDll(
+      options.clientDirectory,
+      options.pluginRecord.dllPath,
+    );
+
     const descriptors = this.resolvePluginDescriptors({
-
       clientDirectory: options.clientDirectory,
-
       dllPath: options.pluginRecord.dllPath,
-
       dllName: options.pluginRecord.dllName,
-
       locator,
-
+      registryEntriesForDll,
     });
+
+    if (registryEntriesForDll.length > 0) {
+      this.logger.log(
+        `PA_WTYCZKI: ${registryEntriesForDll.length} formularzy dla ${options.pluginRecord.dllName} ` +
+          `(confirmed=${registryEntriesForDll.filter((e) => e.confidence === 'confirmed').length}).`,
+      );
+    }
 
 
 
@@ -483,6 +495,7 @@ export class TetaPluginImportService {
       extractionMode: boCatalog ? 'server-deployment' : 'source-scan',
       serverDirectory: serverLayout?.serverDirectory ?? options.serverDirectory,
       relatedBusinessObjectDlls,
+      formRegistryEntries: registryEntriesForDll,
       forms,
     };
 
@@ -580,70 +593,47 @@ export class TetaPluginImportService {
 
 
   private resolvePluginDescriptors(options: {
-
     clientDirectory: string;
-
     dllPath: string;
-
     dllName: string;
-
     locator: TetaPluginSourceLocator;
-
+    registryEntriesForDll: TetaPluginRegistryEntry[];
   }): TetaPluginDescriptorMeta[] {
-
     const pluginsXmlPath = resolvePluginsXmlPath(options.clientDirectory);
+    let xmlPlugins: TetaPluginDescriptorMeta[] | null = null;
 
     if (existsSync(pluginsXmlPath)) {
-
-      const fromXml = filterPluginsByAssembly(
-
-        readPluginsXml(pluginsXmlPath),
-
-        options.dllName,
-
-      );
-
-      if (fromXml.length > 0) {
-
-        return fromXml;
-
+      try {
+        xmlPlugins = readPluginsXml(pluginsXmlPath);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Nie udało się odczytać plugins.xml (${pluginsXmlPath}): ${message}`);
       }
-
-      this.logger.warn(
-
-        `Brak wpisu w plugins.xml dla ${options.dllName} — inferencja metadanych z DLL i źródeł.`,
-
-      );
-
     } else {
-
       this.logger.log(
-
-        `Brak plugins.xml — metadane wtyczki ${options.dllName} z DLL, katalogu serwera i opcjonalnych źródeł .cs.`,
-
+        `Brak plugins.xml — opcjonalne; źródłem kanonicznym jest PA_WTYCZKI (${options.dllName}).`,
       );
-
     }
 
-    return inferPluginDescriptorsFromDll({
-
+    const descriptors = resolvePluginDescriptorsMerged({
       dllPath: options.dllPath,
-
       dllName: options.dllName,
-
+      registryEntriesForDll: options.registryEntriesForDll,
+      xmlPlugins,
       locator: options.locator,
-
     });
 
+    if (options.registryEntriesForDll.length === 0) {
+      this.logger.warn(
+        `Brak wpisu PA_WTYCZKI dla ${options.dllName} — deskryptory z plugins.xml / inferencji DLL.`,
+      );
+    }
+
+    return descriptors;
   }
-
-
 
   resolveSourcePrefixForDll(relativePath: string): string {
-
     return pluginRagSourcePrefix(relativePath);
-
   }
-
 }
 

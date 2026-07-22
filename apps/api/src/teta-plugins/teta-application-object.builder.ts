@@ -6,6 +6,11 @@ import type {
   TetaFormHelpSnapshot,
 } from './teta-application-object.types';
 import type { TetaPluginFormMetadata, TetaPluginMetadataBundle } from './teta-plugin-metadata.types';
+import {
+  buildFieldIdentity,
+  buildFormIdentity,
+  normalizePluginGuid,
+} from './teta-plugin-guid.util';
 
 function formDisplayName(form: TetaPluginFormMetadata, dllName: string): string {
   return form.Plugin.Languages?.[0]?.Name ?? form.Plugin.ClassName ?? dllName;
@@ -55,14 +60,30 @@ function findBestMapping(
   return bestScore >= 0.6 ? best : null;
 }
 
-function buildObjectId(
-  dllName: string,
-  formName: string,
-  fieldLabel: string | null,
-): string {
-  const dll = dllName.replace(/\.dll$/i, '');
-  const form = normalizeLabel(formName).replace(/\s+/g, '_');
-  const field = fieldLabel ? normalizeLabel(fieldLabel).replace(/\s+/g, '_') : 'form';
+/**
+ * Stable id: guid:className[:control] when GUID+class known;
+ * legacy fallback dll:form:field for inferred forms without GUID.
+ */
+function buildObjectId(options: {
+  dllName: string;
+  formName: string;
+  fieldLabel: string | null;
+  guid: string | null;
+  className: string | null | undefined;
+}): string {
+  if (options.fieldLabel) {
+    const fieldId = buildFieldIdentity(options.guid, options.className, options.fieldLabel);
+    if (fieldId) return fieldId;
+  } else {
+    const formId = buildFormIdentity(options.guid, options.className);
+    if (formId) return formId;
+  }
+
+  const dll = options.dllName.replace(/\.dll$/i, '');
+  const form = normalizeLabel(options.formName).replace(/\s+/g, '_');
+  const field = options.fieldLabel
+    ? normalizeLabel(options.fieldLabel).replace(/\s+/g, '_')
+    : 'form';
   return `${dll}:${form}:${field}`;
 }
 
@@ -73,12 +94,19 @@ export function buildApplicationObjectsForForm(input: {
   columnMappings: TetaPluginColumnMapping[];
 }): TetaApplicationObject[] {
   const formName = formDisplayName(input.form, input.bundle.dllName);
-  const guid = input.form.Plugin.Guid?.replace(/[{}]/g, '').trim() ?? null;
+  const guid = normalizePluginGuid(input.form.Plugin.Guid).normalized;
+  const className = input.form.Plugin.ClassName;
   const objects: TetaApplicationObject[] = [];
 
   if (input.help) {
     objects.push({
-      objectId: buildObjectId(input.bundle.dllName, formName, null),
+      objectId: buildObjectId({
+        dllName: input.bundle.dllName,
+        formName,
+        fieldLabel: null,
+        guid,
+        className,
+      }),
       dllName: input.bundle.dllName,
       formGuid: guid,
       formName,
@@ -100,7 +128,13 @@ export function buildApplicationObjectsForForm(input: {
     for (const field of input.help.fields) {
       const mapping = findBestMapping(field.label, input.columnMappings, formName);
       objects.push({
-        objectId: buildObjectId(input.bundle.dllName, formName, field.label),
+        objectId: buildObjectId({
+          dllName: input.bundle.dllName,
+          formName,
+          fieldLabel: field.label,
+          guid,
+          className,
+        }),
         dllName: input.bundle.dllName,
         formGuid: guid,
         formName,
@@ -133,7 +167,13 @@ export function buildApplicationObjectsForForm(input: {
     if (mapping.formName && normalizeLabel(mapping.formName) !== normalizeLabel(formName)) {
       continue;
     }
-    const objectId = buildObjectId(input.bundle.dllName, formName, mapping.label);
+    const objectId = buildObjectId({
+      dllName: input.bundle.dllName,
+      formName,
+      fieldLabel: mapping.label,
+      guid,
+      className,
+    });
     if (objects.some((item) => item.objectId === objectId)) {
       continue;
     }
@@ -169,7 +209,7 @@ export function buildApplicationObjectsForBundle(
   const objects: TetaApplicationObject[] = [];
 
   for (const form of bundle.forms) {
-    const guidKey = form.Plugin.Guid?.replace(/[{}]/g, '').trim().toLowerCase() ?? '';
+    const guidKey = normalizePluginGuid(form.Plugin.Guid).normalized ?? '';
     const help = guidKey ? helpByFormGuid.get(guidKey) ?? null : null;
     const formMappings = mappings.filter(
       (mapping) =>

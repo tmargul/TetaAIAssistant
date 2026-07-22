@@ -25,6 +25,8 @@ import { TetaPluginBulkImportService } from '../teta-plugins/teta-plugin-bulk-im
 import { TetaPluginImportService } from '../teta-plugins/teta-plugin-import.service';
 import { TetaPluginsService } from '../teta-plugins/teta-plugins.service';
 import { TetaPluginOracleColumnsService } from '../teta-plugins/teta-plugin-oracle-columns.service';
+import { TetaPaWtyczkiService } from '../teta-plugins/teta-pa-wtyczki.service';
+import { TetaPluginFormRegistryService } from '../teta-plugins/teta-plugin-form-registry.service';
 import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module';
 import { VendorTetaPluginsController } from '../teta-plugins/vendor-teta-plugins.controller';
 
@@ -55,6 +57,8 @@ import { VendorTetaPluginsController } from '../teta-plugins/vendor-teta-plugins
     TetaPluginImportService,
     TetaPluginBulkImportService,
     TetaPluginOracleColumnsService,
+    TetaPaWtyczkiService,
+    TetaPluginFormRegistryService,
   ],
   exports: [GlobalRagIngestService, GlobalRagExportService],
 })

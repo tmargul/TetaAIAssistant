@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-21** (plan naprawy ekstrakcji wiedzy)
+> Ostatnia aktualizacja: **2026-07-22** (skrypty sieci VM / Default Switch)
 
 ---
 
@@ -11,10 +11,10 @@
 |---------|---------|
 | Dev | `pnpm dev` — API `:3000`, web `:5173` |
 | VM Oracle | `WIN-PDDJCBNU8LI` (Hyper-V **Default Switch**) |
-| IP VM | **`172.22.240.145`** — **statyczne** (maska `/20`, brama `172.22.240.1`); Default Switch okresowo zmienia zakres — stary `172.26.228.145` / `172.20.23.182` nie używać |
-| Port / SID | `1521` / **`TETAHR`** |
-| Firewall VM | Reguła TCP 1521 z podsieci hosta (obecnie `172.22.240.0/20`) |
-| Teta na VM (share) | `\\172.22.240.145\teta` — wymaga `net use` z `WIN-PDDJCBNU8LI\Administrator` (mapowany dysk na hoście, np. `T:` lub `X:`) |
+| IP VM | **`172.27.16.145`** — statyczne `/20`, brama `172.27.16.1` (Default Switch; skrypty w `scripts/teta-vm-network/`). Stare IP nie używać: `172.22.240.145`, `172.26.228.145`, `172.20.23.182` |
+| Port / SID | `1521` / **`TETAHR`** — **OK 2026-07-22** (PA_WTYCZKI: 3561 rekordów) |
+| Firewall VM | Reguła TCP 1521 z podsieci hosta (`Set-TetaVmNetwork.ps1`) |
+| Teta na VM (share) | `\\172.27.16.145\teta` — mapuj `A:` przez `Connect-TetaHost.ps1` (**2026-07-22:** Oracle OK, share trzeba ponowić jeśli `net use` puste) |
 | Ustawienia ścieżek | **Ustawienia → Aplikacja Teta** — `clientDirectory` + `serverDirectory` (zmapowany dysk lub UNC); zapis w SQLite ✅ działa |
 | Tryb Oracle w `.env` | `TETA_ORACLE_MODE=real` (na dev; fake tylko do symulacji) |
 | `oracledb` | Wersja 7.x, domyślnie **Thin** — Instant Client nie jest wymagany na start |
@@ -189,6 +189,17 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Etapy: diagnostyka GUID → reconcile XML → help → kolumny widoków → SqlJoin → binding confidence → dedupe → re-import ze stabilnymi chunk id.
 - SQL generator / prompty / Qdrant retrieval — poza zakresem do czasu czystych faktów.
 
+### 2026-07-21 — Etap 1 rejestr formularzy PA_WTYCZKI ✅ (kod)
+
+- Źródło kanoniczne: Oracle **`PA_WTYCZKI`** (nie plugins.xml).
+- Łańcuch: GUID → ASSEMBLY → DLL → NAZWA_KLASY → `Help/{GUID}.html`.
+- Merge deskryptorów: PA > DLL meta > XML > infer; infer tylko bez wpisu PA.
+- `confidence=confirmed` tylko przy pełnym łańcuchu + istniejącym helpie.
+- Form identity: `guid:className` / pole `guid:className:control`.
+- CLI: `pnpm --filter @teta/api run diagnose:pa-wtyczki` → `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md`.
+- **Live 2026-07-21 wieczór:** VM `172.22.240.145` timeout (NJS-510), `A:` *Brak dostępu* — metryki live = 0; unit 16 OK. Po `net use` + VM ponowić diagnose + integration spec.
+- **Nie ruszane:** bindingi kolumn, SqlJoin, Qdrant retrieval, generator SQL.
+
 ### 2026-07-21 — Etap 0 diagnostyki plugins.xml ✅
 
 - **Root cause A:** brak `plugins.xml` pod `{clientDirectory}/Plugins/plugins.xml`.
@@ -196,7 +207,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Skutek: 425/425 DLL → infer; 0 GUID → help nie mapowany mimo **2064** plików `Help/*.html`.
 - Artefakty: `docs/AIA_PLUGIN_XML_DIAGNOSTIC.md` + `.json`; CLI `pnpm --filter @teta/api run diagnose:plugins-xml`.
 - Kod read-only: `teta-plugin-xml-diagnostic.ts`, `teta-plugin-assembly-match.util.ts` (+ testy); **bez** zmian importu / SQLite write / Qdrant.
-- **Odblokowanie Etapu 1:** przywrócić `plugins.xml` do `Plugins/`, ponowić diagnostykę.
+- **Następstwo:** Etap 1 przeszedł na kanoniczne **PA_WTYCZKI** (plugins.xml opcjonalny).
 
 ### 2026-07-20 — skan wtyczek = 0 DLL
 

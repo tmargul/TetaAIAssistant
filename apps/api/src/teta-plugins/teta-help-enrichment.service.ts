@@ -5,7 +5,11 @@ import {
 } from './teta-application-object.builder';
 import type { TetaApplicationObject, TetaFormHelpSnapshot } from './teta-application-object.types';
 import { readTetaHelpHtmlFile } from './teta-help-html.parser';
-import { helpHtmlPath, normalizeHelpGuid, resolveHelpDirectory } from './teta-help-path.util';
+import {
+  normalizeHelpGuid,
+  resolveHelpDirectory,
+  resolveHelpHtmlPath,
+} from './teta-help-path.util';
 import type { TetaPluginFormMetadata, TetaPluginMetadataBundle } from './teta-plugin-metadata.types';
 import { TetaAppObjectRegistryService } from './teta-app-object-registry.service';
 
@@ -32,9 +36,15 @@ export class TetaHelpEnrichmentService {
       const guid = normalizeHelpGuid(form.Plugin.Guid);
       if (!guid) continue;
 
-      const snapshot = readTetaHelpHtmlFile(helpHtmlPath(helpDirectory, guid), guid);
-      if (!snapshot) {
+      const htmlPath = resolveHelpHtmlPath(helpDirectory, guid);
+      if (!htmlPath) {
         this.logger.debug(`Brak pliku helpu dla GUID ${guid} (${form.Plugin.ClassName ?? 'form'})`);
+        continue;
+      }
+
+      const snapshot = readTetaHelpHtmlFile(htmlPath, guid);
+      if (!snapshot) {
+        this.logger.debug(`Nie udało się przeczytać helpu dla GUID ${guid}`);
         continue;
       }
 
@@ -62,6 +72,8 @@ export class TetaHelpEnrichmentService {
     if (!guid) return null;
     const helpDirectory = resolveHelpDirectory(clientDirectory);
     if (!existsSync(helpDirectory)) return null;
-    return readTetaHelpHtmlFile(helpHtmlPath(helpDirectory, guid), guid);
+    const htmlPath = resolveHelpHtmlPath(helpDirectory, guid);
+    if (!htmlPath) return null;
+    return readTetaHelpHtmlFile(htmlPath, guid);
   }
 }

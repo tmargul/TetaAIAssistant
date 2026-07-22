@@ -27,7 +27,8 @@
     "rag:global:import": "ts-node -r tsconfig-paths/register src/scripts/rag-import-cli.ts import",
     "rag:validate-chunks": "ts-node -r tsconfig-paths/register src/scripts/rag-validate-chunks-cli.ts validate",
     "rag:video:ingest": "ts-node -r tsconfig-paths/register src/scripts/rag-video-cli.ts ingest",
-    "diagnose:plugins-xml": "ts-node -r tsconfig-paths/register src/scripts/diagnose-plugins-xml.ts"
+    "diagnose:plugins-xml": "ts-node -r tsconfig-paths/register src/scripts/diagnose-plugins-xml.ts",
+    "diagnose:pa-wtyczki": "ts-node -r tsconfig-paths/register src/scripts/diagnose-pa-wtyczki-registry.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

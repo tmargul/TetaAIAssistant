@@ -85,6 +85,7 @@ import type { TetaPluginOracleDiscovery } from './teta-plugin-oracle-discovery';
 import type { TetaPluginColumnMapping } from './teta-plugin-column-mapping';
 import type { TetaPluginComputedIntent } from './teta-plugin-computed-intent.types';
 import type { TetaApplicationObject, TetaFormHelpSnapshot } from './teta-application-object.types';
+import type { TetaPluginRegistryEntry } from './teta-plugin-form-registry.types';
 
 export type TetaPluginMetadataBundle = {
   dllName: string;
@@ -99,5 +100,7 @@ export type TetaPluginMetadataBundle = {
   computedIntents?: TetaPluginComputedIntent[];
   helpDirectory?: string | null;
   applicationObjects?: TetaApplicationObject[];
+  /** Entries from PA_WTYCZKI resolved for this DLL (Stage 1 registry). */
+  formRegistryEntries?: TetaPluginRegistryEntry[];
   forms: TetaPluginFormMetadata[];
 };
