@@ -195,7 +195,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Live: **3030** `verified_exact` (było 0); registryStatus=confirmed dla **3561** PA; Help 1773.
 - Referencja: `plgListaPlac` → `…UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen` = verified_exact (ns+name).
 - Statusy rozdzielone; `confidence` deprecated. Help nie obniża rejestru.
-- Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ JSON).
+- Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 
 ### 2026-07-21 — Etap 1 rejestr formularzy PA_WTYCZKI ✅ (kod)
 
