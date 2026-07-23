@@ -32,7 +32,8 @@
     "diagnose:stage2a": "ts-node -r tsconfig-paths/register src/scripts/diagnose-stage2a-bindings.ts",
     "diagnose:stage2b": "ts-node -r tsconfig-paths/register src/scripts/diagnose-stage2b-bindings.ts",
     "diagnose:stage2c": "ts-node -r tsconfig-paths/register src/scripts/diagnose-stage2c-help.ts",
-    "diagnose:stage2d": "ts-node -r tsconfig-paths/register src/scripts/diagnose-stage2d-joins.ts"
+    "diagnose:stage2d": "ts-node -r tsconfig-paths/register src/scripts/diagnose-stage2d-joins.ts",
+    "diagnose:stage2e": "ts-node -r tsconfig-paths/register src/scripts/diagnose-stage2e-graph.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

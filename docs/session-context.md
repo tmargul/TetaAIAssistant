@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-23** (Etap 2D.1 — semantic normalization; Etap 2D zamknięty)
+> Ostatnia aktualizacja: **2026-07-23** (Etap 2E — Canonical Knowledge Graph)
 
 ---
 
@@ -198,6 +198,16 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Domknięcie diagnostyczne:** `type_not_found` **4** / `class_name_missing` **128** / `dll_unavailable` **398** / `not_checked` **0**; DLL missing: null 128, physical 21, WebConstellation unsupported 377; 1× `matched_unique_simple_name` + `namespaceMismatch`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 - **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
+
+### 2026-07-23 — Etap 2E Canonical Knowledge Graph + Oracle enrichment ✅
+
+- Scalenie 1–2D w jeden graf `nodes[]`/`edges[]` ze stabilnymi ID (`teta-aia-canonical-id-v1`), provenance, target/lookup split (`DISPLAYS_FROM`).
+- Oracle read-only: ALL_OBJECTS / ALL_TAB_COLUMNS / ALL_CONSTRAINTS / ALL_DEPENDENCIES / ALL_PROCEDURES / ALL_ARGUMENTS; missing-in-db zachowuje fakt DLL.
+- Live (--strict): ~836k nodes / ~888k edges; **0** broken edges / **0** duplicate IDs; refs A–F OK; Oracle confirmed ~19.9k / missing **898**.
+- CLI: `pnpm --filter @teta/api run diagnose:stage2e` (`--no-oracle`, `--strict`, `--limit`).
+- Artefakty: `docs/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.md` / `.json`; NDJSON `.local/…STAGE2E.full.ndjson`.
+- Kod: `teta-stage2e.*.ts`; testy `teta-stage2e.spec.ts` (≥15).
+- **Etap 2E zamknięty.** Nie startować generatora SQL / Qdrant / agenta bez prośby.
 
 ### 2026-07-23 — Etap 2D.1 semantic normalization ✅ (Etap 2D definitywnie zamknięty)
 
