@@ -171,7 +171,11 @@ function buildA(nodes: Stage2eNode[], edges: Stage2eEdge[], audit: Stage2e1Audit
       ? edgesFrom(edges, lookup.id, 'MAPS_TO_DATASET_COLUMN').find((e) => e.to === lookupValueDc.id)?.id
       : undefined,
     lookup && lookupDisplayDc
-      ? edgesFrom(edges, lookup.id).find((e) => e.to === lookupDisplayDc.id && (e.type === 'DISPLAYS_FROM' || e.type === 'MAPS_TO_DATASET_COLUMN'))?.id
+      ? edgesFrom(edges, lookup.id, 'DISPLAYS_FROM').find(
+          (e) => e.to === lookupDisplayDc.id && !e.to.startsWith('oracle-column:'),
+        )?.id ||
+        edgesFrom(edges, lookup.id, 'MAPS_TO_DATASET_COLUMN').find((e) => e.to === lookupDisplayDc.id)
+          ?.id
       : undefined,
     lookupValueDc && lookupValueOra
       ? edgesFrom(edges, lookupValueDc.id, 'RESOLVES_TO_ORACLE_COLUMN').find((e) => e.to === lookupValueOra.id)?.id
@@ -180,6 +184,12 @@ function buildA(nodes: Stage2eNode[], edges: Stage2eEdge[], audit: Stage2e1Audit
       ? edgesFrom(edges, lookupDisplayDc.id, 'RESOLVES_TO_ORACLE_COLUMN').find((e) => e.to === lookupDisplayOra.id)?.id
       : undefined,
   ].filter(Boolean) as string[];
+
+  const hasStaleDisplay =
+    !!lookup &&
+    edgesFrom(edges, lookup.id, 'DISPLAYS_FROM').some(
+      (e) => e.to.startsWith('oracle-column:') || nodeById(nodes, e.to)?.type === 'oracle_column',
+    );
 
   const structuralOk = !!(
     form &&
@@ -203,7 +213,9 @@ function buildA(nodes: Stage2eNode[], edges: Stage2eEdge[], audit: Stage2e1Audit
     /NT_KP_KOS_KARTA_OPISU_STAN/i.test(String(targetOra.attributes.objectName ?? '')) &&
     /NT_KP_SLO_TYPY_STANOWISK/i.test(String(lookupValueOra.attributes.objectName ?? '')) &&
     /NT_KP_SLO_TYPY_STANOWISK/i.test(String(lookupDisplayOra.attributes.objectName ?? '')) &&
-    !/TypyStanowisk\.(ID|NAZWA)/i.test(targetOra.name + lookupValueOra.name + lookupDisplayOra.name)
+    !/TypyStanowisk\.(ID|NAZWA)/i.test(targetOra.name + lookupValueOra.name + lookupDisplayOra.name) &&
+    !hasStaleDisplay &&
+    !edgeIds.some((id) => id.includes('oracle-column:UNKNOWN:TYPYSTANOWISK'))
   );
 
   const typed = validateTyped(
@@ -258,10 +270,43 @@ function buildB(nodes: Stage2eNode[], edges: Stage2eEdge[], audit: Stage2e1Audit
     if (!/RODZAJE_KONCESJI/.test(name)) continue;
     if (n.attributes.invalidOracleCandidateClass) continue;
     if (isInvalidDomainOracle(n)) continue;
+    const owner = String(n.attributes.owner ?? '').toUpperCase();
+    const status = String(n.attributes.oracleValidationStatus ?? '');
+    // Never surface UNKNOWN+confirmed
+    if (owner === 'UNKNOWN' && (/^confirmed/i.test(status) || status === 'confirmed_from_all_objects')) {
+      continue;
+    }
+    // _DAC must not appear as confirmed VIEW without real-owner ALL_OBJECTS VIEW
+    if (
+      /_DAC$/i.test(name) &&
+      /VIEW/i.test(String(n.attributes.objectType)) &&
+      (owner === 'UNKNOWN' || !/^confirmed/i.test(status))
+    ) {
+      continue;
+    }
+    // Prefer real-owner records over UNKNOWN stubs for the same identity
     const key = String(
       n.attributes.canonicalOracleIdentity ??
         `${n.attributes.owner}.${n.attributes.objectType}.${name}`,
     ).toUpperCase();
+    const nameTypeKey = `${name}|${String(n.attributes.objectType).toUpperCase()}`;
+    const existingByNameType = [...oracleSeen.values()].find((x) => {
+      const xn = String(x.attributes.objectName ?? x.name).toUpperCase();
+      const xt = String(x.attributes.objectType).toUpperCase();
+      return `${xn}|${xt}` === nameTypeKey;
+    });
+    if (existingByNameType) {
+      const exOwner = String(existingByNameType.attributes.owner ?? '').toUpperCase();
+      if (exOwner !== 'UNKNOWN' && owner === 'UNKNOWN') continue;
+      if (exOwner === 'UNKNOWN' && owner !== 'UNKNOWN') {
+        oracleSeen.delete(
+          String(
+            existingByNameType.attributes.canonicalOracleIdentity ??
+              `${existingByNameType.attributes.owner}.${existingByNameType.attributes.objectType}.${String(existingByNameType.attributes.objectName).toUpperCase()}`,
+          ).toUpperCase(),
+        );
+      }
+    }
     if (!oracleSeen.has(key)) oracleSeen.set(key, n);
   }
   const oracleObjects = [...oracleSeen.values()].map((n) => ({

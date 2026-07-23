@@ -402,6 +402,138 @@ describe('Stage 2E.1 normalize', () => {
     expect(n.semanticNormalization?.originalNodeType).toBe('oracle_object');
   });
 
+  it('15. DISPLAYS_FROM targets dataset_column, not oracle_column', () => {
+    const lb = Stage2eIds.lookupBinding('F', 'c', 'TypyStanowisk', 'ID', 'NAZWA');
+    const ds = Stage2eIds.dataset('a.dll', 'Teta.X.DF.TypyStanowiskDF', 'TypyStanowisk');
+    const main = Stage2eIds.mainSource('Teta.X.DF.TypyStanowiskDF', 'NT_KP_SLO_TYPY_STANOWISK', 'ZSTP');
+    const oraId = Stage2eIds.oracleColumn('TETA_ADMIN', 'NT_KP_SLO_TYPY_STANOWISK', 'NAZWA');
+    const stubOra = Stage2eIds.oracleColumn('UNKNOWN', 'TYPYSTANOWISK', 'NAZWA');
+    const staleDisplay = `edge:DISPLAYS_FROM:${lb}:${stubOra}`;
+    const g = miniGraph(
+      [
+        node({
+          id: lb,
+          type: 'lookup_binding',
+          name: 'TypyStanowisk',
+          attributes: { datasetTable: 'TypyStanowisk', valueMember: 'ID', displayMember: 'NAZWA' },
+        }),
+        node({ id: ds, type: 'dataset', name: 'TypyStanowisk', attributes: { datasetTable: 'TypyStanowisk' } }),
+        node({
+          id: main,
+          type: 'main_source',
+          name: 'NT_KP_SLO_TYPY_STANOWISK',
+          attributes: { objectName: 'NT_KP_SLO_TYPY_STANOWISK' },
+        }),
+        node({
+          id: oraId,
+          type: 'oracle_column',
+          name: 'NAZWA',
+          attributes: {
+            owner: 'TETA_ADMIN',
+            objectName: 'NT_KP_SLO_TYPY_STANOWISK',
+            columnName: 'NAZWA',
+            oracleValidationStatus: 'confirmed',
+          },
+        }),
+        node({
+          id: stubOra,
+          type: 'oracle_column',
+          name: 'NAZWA',
+          attributes: {
+            owner: 'UNKNOWN',
+            objectName: 'TypyStanowisk',
+            columnName: 'NAZWA',
+            oracleValidationStatus: 'not_checked',
+          },
+        }),
+      ],
+      [
+        edge({ id: 'e-reads', type: 'READS_FROM', from: ds, to: main }),
+        edge({ id: staleDisplay, type: 'DISPLAYS_FROM', from: lb, to: stubOra }),
+      ],
+    );
+    const { graph, audit } = normalizeStage2e1(g);
+    expect(audit.directLookupDisplayToOracleColumns).toBe(0);
+    const displays = graph.edges.filter((e) => e.type === 'DISPLAYS_FROM' && e.from === lb);
+    expect(displays.length).toBeGreaterThanOrEqual(1);
+    for (const e of displays) {
+      expect(e.to.startsWith('dataset-column:')).toBe(true);
+      expect(e.id.includes('oracle-column:')).toBe(false);
+      expect(graph.nodes.find((n) => n.id === e.to)?.type).toBe('dataset_column');
+    }
+    expect(graph.edges.some((e) => e.id === staleDisplay)).toBe(false);
+  });
+
+  it('16. UNKNOWN owner cannot remain confirmed; _DAC VIEW remaps to PACKAGE', () => {
+    const unkView = Stage2eIds.oracleObject('UNKNOWN', 'VIEW', 'NT_LG_SLO_RODZAJE_KONCESJI_DAC');
+    const pkg = Stage2eIds.oraclePackage('TETA_ADMIN', 'NT_LG_SLO_RODZAJE_KONCESJI_DAC');
+    const g = miniGraph([
+      node({
+        id: unkView,
+        type: 'oracle_object',
+        name: 'NT_LG_SLO_RODZAJE_KONCESJI_DAC',
+        attributes: {
+          owner: 'UNKNOWN',
+          objectType: 'VIEW',
+          objectName: 'NT_LG_SLO_RODZAJE_KONCESJI_DAC',
+          oracleValidationStatus: 'confirmed',
+        },
+      }),
+      node({
+        id: pkg,
+        type: 'oracle_package',
+        name: 'NT_LG_SLO_RODZAJE_KONCESJI_DAC',
+        attributes: {
+          owner: 'TETA_ADMIN',
+          objectType: 'PACKAGE',
+          objectName: 'NT_LG_SLO_RODZAJE_KONCESJI_DAC',
+          oracleValidationStatus: 'confirmed',
+        },
+      }),
+    ]);
+    const { graph, audit } = normalizeStage2e1(g);
+    expect(audit.confirmedOracleObjectsWithUnknownOwner).toBe(0);
+    expect(graph.nodes.some((n) => n.id === unkView)).toBe(false);
+    expect(graph.nodes.some((n) => n.id === pkg && n.type === 'oracle_package')).toBe(true);
+  });
+
+  it('17. orphan integrity is rebuilt after normalization (no stale .NET oracle ids)', () => {
+    const badId = Stage2eIds.oracleObject(
+      'UNKNOWN',
+      'VIEW',
+      'TETA.SUMO.PERSONEL.BOSLISTAPLAC.TG.PITPAYROLLLINKSTG',
+    );
+    const g = miniGraph([
+      node({
+        id: badId,
+        type: 'oracle_object',
+        name: 'TETA.SUMO.PERSONEL.BOSLISTAPLAC.TG.PITPAYROLLLINKSTG',
+        attributes: {
+          owner: 'UNKNOWN',
+          objectType: 'VIEW',
+          objectName: 'TETA.SUMO.PERSONEL.BOSLISTAPLAC.TG.PITPAYROLLLINKSTG',
+          oracleValidationStatus: 'missing_in_current_db',
+        },
+      }),
+    ]);
+    g.audit = {
+      integrity: {
+        brokenEdges: [],
+        duplicateCanonicalIds: [],
+        orphanNodes: [badId, 'oracle-object:UNKNOWN:VIEW:GONE'],
+      },
+    };
+    const { graph, audit } = normalizeStage2e1(g);
+    expect(audit.dotnetNamesTypedAsOracleObjects).toBe(0);
+    expect(
+      graph.nodes.some((n) => n.type === 'oracle_object' && isDotNetTypeName(String(n.attributes.objectName))),
+    ).toBe(false);
+    const orphans = (graph.audit as { integrity?: { orphanNodes?: string[] } }).integrity?.orphanNodes ?? [];
+    expect(orphans.every((id) => graph.nodes.some((n) => n.id === id))).toBe(true);
+    expect(orphans).not.toContain('oracle-object:UNKNOWN:VIEW:GONE');
+    expect(audit.staleOrphanReferences).toBe(0);
+  });
+
   it('domain assignment basics', () => {
     expect(domainForNodeType('oracle_object')).toBe('oracle');
     expect(domainForNodeType('dataset_column')).toBe('dataset');

@@ -30,6 +30,16 @@ export type Stage2e1Audit = {
   referenceChainsInvalidDomain: number;
   brokenEdges: number;
   duplicateCanonicalIds: number;
+  /** Patch 2E.1 quality: DISPLAYS_FROM must not target oracle_column */
+  directLookupDisplayToOracleColumns: number;
+  /** Final nodes[] still typed as oracle_object with .NET name */
+  dotnetNamesTypedAsOracleObjects: number;
+  /** owner=UNKNOWN with confirmed* status */
+  confirmedOracleObjectsWithUnknownOwner: number;
+  /** integrity.orphanNodes entries that are not current nodes */
+  staleOrphanReferences: number;
+  /** Refs listing UNKNOWN+confirmed oracle */
+  referenceChainsContainingUnknownConfirmedOracle: number;
   examples: {
     invalidOracleCandidatesDotnet: string[];
     invalidOracleCandidatesDatasetColumn: string[];
@@ -37,6 +47,9 @@ export type Stage2e1Audit = {
     domainEdgeViolations: string[];
     unexpectedOrphans: string[];
     invalidDomainOrphans: string[];
+    directLookupDisplayToOracleColumns: string[];
+    dotnetNamesTypedAsOracleObjects: string[];
+    confirmedOracleObjectsWithUnknownOwner: string[];
   };
 };
 
@@ -71,6 +84,11 @@ export function emptyStage2e1Audit(): Stage2e1Audit {
     referenceChainsInvalidDomain: 0,
     brokenEdges: 0,
     duplicateCanonicalIds: 0,
+    directLookupDisplayToOracleColumns: 0,
+    dotnetNamesTypedAsOracleObjects: 0,
+    confirmedOracleObjectsWithUnknownOwner: 0,
+    staleOrphanReferences: 0,
+    referenceChainsContainingUnknownConfirmedOracle: 0,
     examples: {
       invalidOracleCandidatesDotnet: [],
       invalidOracleCandidatesDatasetColumn: [],
@@ -78,6 +96,9 @@ export function emptyStage2e1Audit(): Stage2e1Audit {
       domainEdgeViolations: [],
       unexpectedOrphans: [],
       invalidDomainOrphans: [],
+      directLookupDisplayToOracleColumns: [],
+      dotnetNamesTypedAsOracleObjects: [],
+      confirmedOracleObjectsWithUnknownOwner: [],
     },
   };
 }

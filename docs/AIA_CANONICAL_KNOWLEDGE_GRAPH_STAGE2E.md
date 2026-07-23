@@ -1,5 +1,5 @@
 # AIA Canonical Knowledge Graph — Stage 2E
-Wygenerowano: **2026-07-23T13:12:24.590Z**
+Wygenerowano: **2026-07-23T18:36:52.130Z**
 identityVersion: `teta-aia-canonical-id-v1`
 Oracle enrichment: **ON**
 ## Zakres
@@ -9,7 +9,7 @@ Oracle enrichment: **ON**
 ## Audyt (Stage 2E)
 | Metryka | Wartość |
 |---------|---------|
-| nodes total | **869492** |
+| nodes total | **864320** |
 | edges total | **992993** |
 | forms / controls / help fields | **3561** / **98810** / **26658** |
 | target / lookup bindings | **53195** / **834** |
@@ -25,11 +25,16 @@ Oracle enrichment: **ON**
 | Metryka | Wartość |
 |---------|---------|
 | invalidOracleCandidates (dotnet / datasetCol / other) | **0** (**0** / **0** / **0**) |
-| datasetColumnsCreated / resolvedToOracle / unresolved | **0** / **13171** / **12398** |
+| datasetColumnsCreated / resolvedToOracle / unresolved | **0** / **0** / **12406** |
 | domainEdgeViolations | **0** |
 | oracleIdentityCollisions | **0** |
 | synonymsResolved / unresolved | **0** / **4640** |
 | referenceChainsWithTypedIds / invalidDomain | **6** / **0** |
+| directLookupDisplayToOracleColumns | **0** |
+| dotnetNamesTypedAsOracleObjects | **0** |
+| confirmedOracleObjectsWithUnknownOwner | **0** |
+| staleOrphanReferences | **0** |
+| referenceChainsContainingUnknownConfirmedOracle | **0** |
 
 ### Nodes by domain
 
@@ -37,7 +42,7 @@ Oracle enrichment: **ON**
 {
   "application": 167940,
   "dotnet": 12368,
-  "oracle": 555612,
+  "oracle": 550440,
   "help": 28429,
   "dataset": 105143
 }
@@ -75,8 +80,8 @@ _brak_
   "data_factory": 1494,
   "dotnet_type": 4844,
   "gateway": 3238,
-  "oracle_object": 15281,
-  "oracle_package": 4790,
+  "oracle_object": 12318,
+  "oracle_package": 2581,
   "lookup_binding": 834,
   "help_document": 1771,
   "help_field": 26658,
@@ -111,7 +116,6 @@ _brak_
   "HAS_HELP": 1771,
   "DESCRIBES": 26658,
   "LABEL_FOR": 8333,
-  "DISPLAYS_FROM": 834,
   "MAPS_TO_DATASET_COLUMN": 54994,
   "PRODUCES_DATASET": 8390,
   "READS_FROM": 5684,
@@ -130,7 +134,8 @@ _brak_
   "HAS_ARGUMENT": 342930,
   "HAS_FUNCTION": 15984,
   "RESOLVES_TO_ORACLE_COLUMN": 26100,
-  "HAS_DATASET_COLUMN": 27296
+  "HAS_DATASET_COLUMN": 27296,
+  "DISPLAYS_FROM": 834
 }
 ```
 ## Referencje A–F (typed)
@@ -169,7 +174,7 @@ _brak_
       "edge:MAPS_TO_DATASET_COLUMN:binding-target:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:KartaOpisuStanowiska:ZSTP_ID:dataset-column:KartaOpisuStanowiska:ZSTP_ID",
       "edge:RESOLVES_TO_ORACLE_COLUMN:dataset-column:KartaOpisuStanowiska:ZSTP_ID:oracle-column:TETA_ADMIN:NT_KP_KOS_KARTA_OPISU_STAN:ZSTP_ID",
       "edge:MAPS_TO_DATASET_COLUMN:binding-lookup:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:TypyStanowisk:ID:NAZWA:dataset-column:TypyStanowisk:ID:f32b67c7e263",
-      "edge:DISPLAYS_FROM:binding-lookup:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:TypyStanowisk:ID:NAZWA:oracle-column:UNKNOWN:TYPYSTANOWISK:NAZWA",
+      "edge:DISPLAYS_FROM:binding-lookup:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:TypyStanowisk:ID:NAZWA:dataset-column:TypyStanowisk:NAZWA",
       "edge:RESOLVES_TO_ORACLE_COLUMN:dataset-column:TypyStanowisk:ID:oracle-column:TETA_ADMIN:NT_KP_SLO_TYPY_STANOWISK:ID",
       "edge:RESOLVES_TO_ORACLE_COLUMN:dataset-column:TypyStanowisk:NAZWA:oracle-column:TETA_ADMIN:NT_KP_SLO_TYPY_STANOWISK:NAZWA"
     ],
@@ -184,27 +189,6 @@ _brak_
       "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcAktualna"
     ],
     "oracleObjects": [
-      {
-        "nodeId": "oracle-object:UNKNOWN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
-        "owner": "UNKNOWN",
-        "objectType": "VIEW",
-        "objectName": "NT_LG_SLO_RODZAJE_KONCESJI",
-        "validationStatus": "confirmed"
-      },
-      {
-        "nodeId": "oracle-package:UNKNOWN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-        "owner": "UNKNOWN",
-        "objectType": "PACKAGE",
-        "objectName": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-        "validationStatus": "confirmed"
-      },
-      {
-        "nodeId": "oracle-object:UNKNOWN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-        "owner": "UNKNOWN",
-        "objectType": "VIEW",
-        "objectName": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-        "validationStatus": "confirmed"
-      },
       {
         "nodeId": "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
         "owner": "TETA_ADMIN",
@@ -253,9 +237,6 @@ _brak_
       "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcKod",
       "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcNazwa",
       "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcAktualna",
-      "oracle-object:UNKNOWN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
-      "oracle-package:UNKNOWN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-      "oracle-object:UNKNOWN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
       "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
       "oracle-object:TETA_ADMIN_P:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
       "oracle-package:TETA_ADMIN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",

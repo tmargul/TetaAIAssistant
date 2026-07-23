@@ -61,7 +61,7 @@ export const allowedEdgeDomainMatrix: Record<string, DomainPair[]> = {
   HAS_CONTROL: ['application->application'],
   BINDS_TARGET: ['application->application'],
   BINDS_LOOKUP: ['application->application'],
-  DISPLAYS_FROM: ['application->dataset', 'application->oracle'],
+  DISPLAYS_FROM: ['application->dataset'],
   USES_DATASOURCE: ['application->application'],
   USES_BO: ['application->dotnet'],
   USES_DF: ['application->dotnet'],

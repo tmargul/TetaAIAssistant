@@ -571,23 +571,35 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
           });
         }
       }
-      // DISPLAYS_FROM should point at dataset_column
-      for (const e of edgesByFrom.get(n.id) ?? []) {
-        if (e.type === 'DISPLAYS_FROM') {
-          e.to = displayDc;
-          e.sourceStage = [...new Set([...(e.sourceStage ?? []), '2E.1'])];
+      // DISPLAYS_FROM must target dataset_column with a correct edge id (no stale oracle in id)
+      for (const e of [...(edgesByFrom.get(n.id) ?? [])]) {
+        if (e.type !== 'DISPLAYS_FROM') continue;
+        const to = nodes.get(e.to);
+        const needsRewrite =
+          e.to !== displayDc ||
+          to?.type === 'oracle_column' ||
+          e.id.includes('oracle-column:') ||
+          e.id !== edgeId('DISPLAYS_FROM', n.id, displayDc);
+        if (needsRewrite) {
+          edges.delete(e.id);
+          edgesByFrom.set(
+            n.id,
+            (edgesByFrom.get(n.id) ?? []).filter((x) => x.id !== e.id),
+          );
         }
+      }
+      for (const e of edgesByFrom.get(n.id) ?? []) {
         if (e.type === 'MAPS_TO_ORACLE_COLUMN') {
           const to = nodes.get(e.to);
-          if (to?.type === 'dataset_column' || isOracleColumnStub(to!)) {
+          if (to?.type === 'dataset_column' || (to && isOracleColumnStub(to))) {
             e.type = 'MAPS_TO_DATASET_COLUMN';
             e.to = to?.type === 'dataset_column' ? e.to : displayDc;
           }
         }
       }
       const displayEdge = edgeId('DISPLAYS_FROM', n.id, displayDc);
-      if (!(edgesByFrom.get(n.id) ?? []).some((e) => e.type === 'DISPLAYS_FROM')) {
-        edges.set(displayEdge, {
+      if (!(edgesByFrom.get(n.id) ?? []).some((e) => e.type === 'DISPLAYS_FROM' && e.to === displayDc)) {
+        const edge: Stage2eEdge = {
           id: displayEdge,
           type: 'DISPLAYS_FROM',
           from: n.id,
@@ -598,9 +610,10 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
           evidence: [],
           attributes: {},
           identityVersion: STAGE2E_IDENTITY_VERSION,
-        });
+        };
+        edges.set(displayEdge, edge);
         const bl = edgesByFrom.get(n.id) ?? [];
-        bl.push(edges.get(displayEdge)!);
+        bl.push(edge);
         edgesByFrom.set(n.id, bl);
       }
 
@@ -676,6 +689,106 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
       } else {
         audit.synonymsUnresolved += 1;
       }
+    }
+  }
+
+  // --- Pass 3b: demote UNKNOWN+confirmed; remap to real-owner twins when present ---
+  const realOracleByKey = new Map<string, string>(); // OBJECTNAME|OBJECTTYPE -> nodeId
+  const realOracleByName = new Map<string, string[]>(); // OBJECTNAME -> nodeIds with real owner
+  for (const n of nodes.values()) {
+    if (n.type !== 'oracle_object' && n.type !== 'oracle_package') continue;
+    const owner = String(n.attributes.owner ?? '').toUpperCase();
+    if (!owner || owner === 'UNKNOWN') continue;
+    const oname = String(n.attributes.objectName ?? n.name).toUpperCase();
+    const otype = String(n.attributes.objectType ?? (n.type === 'oracle_package' ? 'PACKAGE' : 'VIEW')).toUpperCase();
+    const key = `${oname}|${otype}`;
+    const prev = realOracleByKey.get(key);
+    if (!prev || n.attributes.oracleValidationStatus === 'confirmed') {
+      realOracleByKey.set(key, n.id);
+    }
+    const list = realOracleByName.get(oname) ?? [];
+    list.push(n.id);
+    realOracleByName.set(oname, list);
+  }
+
+  const unknownRemap = new Map<string, string>();
+  for (const n of [...nodes.values()]) {
+    if (n.type !== 'oracle_object' && n.type !== 'oracle_package') continue;
+    const owner = String(n.attributes.owner ?? '').toUpperCase();
+    if (owner !== 'UNKNOWN') continue;
+    const oname = String(n.attributes.objectName ?? n.name);
+    const onameU = oname.toUpperCase();
+    const otype = String(
+      n.attributes.objectType ?? (n.type === 'oracle_package' ? 'PACKAGE' : 'VIEW'),
+    ).toUpperCase();
+    const status = String(n.attributes.oracleValidationStatus ?? '');
+
+    // Prefer remap to independently confirmed real-owner record
+    let targetId =
+      realOracleByKey.get(`${onameU}|${otype}`) ??
+      (/_DAC$/i.test(onameU)
+        ? realOracleByKey.get(`${onameU}|PACKAGE`) ||
+          (realOracleByName.get(onameU) ?? []).find((id) => {
+            const t = nodes.get(id);
+            return t && String(t.attributes.objectType).toUpperCase() === 'PACKAGE';
+          })
+        : undefined);
+
+    if (targetId && targetId !== n.id) {
+      unknownRemap.set(n.id, targetId);
+      n.semanticNormalization = {
+        ...(n.semanticNormalization ?? {}),
+        originalNodeType: n.type,
+        normalizedNodeType: nodes.get(targetId)?.type ?? n.type,
+        reason: 'remapped_unknown_owner_to_confirmed_all_objects_identity',
+        sourceStage: '2E.1',
+      };
+      if (!n.sourceStage.includes('2E.1')) n.sourceStage.push('2E.1');
+      // Keep stub only as unresolved_owner provenance carrier if still referenced after remap delete
+      n.attributes.oracleValidationStatus = 'unresolved_owner';
+      n.attributes.previousOracleValidationStatus = status || null;
+      continue;
+    }
+
+    if (/^confirmed/i.test(status) || status === 'confirmed_from_all_objects') {
+      const demoted =
+        status === 'missing_in_current_db'
+          ? 'missing_in_current_db'
+          : n.attributes.technicalFactPreserved || (n.sourceStage ?? []).some((s) => s === '2B' || s === '2D')
+            ? 'preserved_from_dll'
+            : 'unresolved_owner';
+      n.attributes.previousOracleValidationStatus = status;
+      n.attributes.oracleValidationStatus = demoted;
+      n.semanticNormalization = {
+        ...(n.semanticNormalization ?? {}),
+        originalNodeType: n.type,
+        normalizedNodeType: n.type,
+        reason: 'unknown_owner_cannot_be_confirmed',
+        sourceStage: '2E.1',
+      };
+      if (!n.sourceStage.includes('2E.1')) n.sourceStage.push('2E.1');
+      // _DAC as VIEW without real-owner ALL_OBJECTS VIEW record
+      if (/_DAC$/i.test(onameU) && otype === 'VIEW') {
+        n.attributes.objectTypeClaimDemoted = true;
+        n.attributes.oracleValidationStatus = 'preserved_from_dll';
+      }
+    }
+  }
+
+  for (const e of edges.values()) {
+    if (unknownRemap.has(e.from)) e.from = unknownRemap.get(e.from)!;
+    if (unknownRemap.has(e.to)) e.to = unknownRemap.get(e.to)!;
+  }
+  for (const [oldId, newId] of unknownRemap) {
+    if (oldId !== newId) nodes.delete(oldId);
+  }
+
+  // Global sweep: no DISPLAYS_FROM → oracle_column
+  for (const e of [...edges.values()]) {
+    if (e.type !== 'DISPLAYS_FROM') continue;
+    const to = nodes.get(e.to);
+    if (to?.type === 'oracle_column' || e.to.startsWith('oracle-column:')) {
+      edges.delete(e.id);
     }
   }
 
@@ -819,17 +932,32 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
     }
   }
 
-  // Soften: remaining invalid oracle_object (.NET) counts as invalid domain orphan
-  for (const n of nodes.values()) {
-    if (
-      (n.type === 'oracle_object' || n.type === 'oracle_package') &&
-      isDotNetTypeName(String(n.attributes.objectName ?? n.name)) &&
-      !isConfirmedOracleFact(n.attributes)
-    ) {
-      n.orphanStatus = 'invalid_domain_node';
-      audit.invalidDomainOrphans += 1;
-      pushEx(audit.examples.invalidDomainOrphans, n.id);
+  // Force-retype any remaining .NET names still typed as oracle_* (should be rare)
+  for (const n of [...nodes.values()]) {
+    if (n.type !== 'oracle_object' && n.type !== 'oracle_package') continue;
+    const objectName = String(n.attributes.objectName ?? n.name ?? '');
+    if (!isDotNetTypeName(objectName) && !isDotNetTypeName(n.name) && !isDotNetTypeName(n.canonicalName)) {
+      continue;
     }
+    if (isConfirmedOracleFact(n.attributes) && String(n.attributes.owner ?? '').toUpperCase() !== 'UNKNOWN') {
+      // Independently confirmed ALL_OBJECTS physical object that happens to match a pattern — keep
+      continue;
+    }
+    const originalType = n.type;
+    n.type = 'dotnet_type';
+    n.domain = 'dotnet';
+    n.semanticNormalization = {
+      originalNodeType: originalType,
+      normalizedNodeType: 'dotnet_type',
+      reason: 'final_sweep_dotnet_name_cannot_remain_oracle_object',
+      sourceStage: '2E.1',
+      invalidOracleCandidateClass: 'invalid_oracle_candidate_dotnet_type',
+    };
+    n.attributes.invalidOracleCandidateClass = 'invalid_oracle_candidate_dotnet_type';
+    n.attributes.technicalFactPreserved = true;
+    if (!n.sourceStage.includes('2E.1')) n.sourceStage.push('2E.1');
+    audit.invalidOracleCandidates += 1;
+    audit.invalidOracleCandidatesDotnet += 1;
   }
 
   // --- Pass 7: conflicts metrics + integrity ---
@@ -854,10 +982,60 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
     if (!nodes.has(e.from) || !nodes.has(e.to)) audit.brokenEdges += 1;
   }
 
+  // --- Pass 8: final quality metrics (scan final nodes/edges only) ---
+  const finalOrphanIds: string[] = [];
+  for (const n of nodes.values()) {
+    if (n.orphanStatus) finalOrphanIds.push(n.id);
+
+    if (n.type === 'oracle_object' || n.type === 'oracle_package') {
+      const objectName = String(n.attributes.objectName ?? n.name ?? '');
+      if (
+        isDotNetTypeName(objectName) &&
+        !(
+          isConfirmedOracleFact(n.attributes) &&
+          String(n.attributes.owner ?? '').toUpperCase() !== 'UNKNOWN'
+        )
+      ) {
+        audit.dotnetNamesTypedAsOracleObjects += 1;
+        pushEx(audit.examples.dotnetNamesTypedAsOracleObjects, n.id);
+      }
+      const owner = String(n.attributes.owner ?? '').toUpperCase();
+      const status = String(n.attributes.oracleValidationStatus ?? '');
+      if (
+        owner === 'UNKNOWN' &&
+        (/^confirmed/i.test(status) || status === 'confirmed_from_all_objects')
+      ) {
+        audit.confirmedOracleObjectsWithUnknownOwner += 1;
+        pushEx(audit.examples.confirmedOracleObjectsWithUnknownOwner, n.id);
+      }
+    }
+  }
+  for (const e of edges.values()) {
+    if (e.type !== 'DISPLAYS_FROM') continue;
+    const to = nodes.get(e.to);
+    if (to?.type === 'oracle_column' || String(e.to).startsWith('oracle-column:')) {
+      audit.directLookupDisplayToOracleColumns += 1;
+      pushEx(audit.examples.directLookupDisplayToOracleColumns, e.id);
+    }
+  }
+
+  // Rebuild integrity.orphanNodes from final classification (never reuse pre-2E.1 list)
+  const rebuiltIntegrity = {
+    brokenEdges: edgeListBroken(edges, nodes),
+    duplicateCanonicalIds: [] as string[],
+    orphanNodes: finalOrphanIds,
+  };
+  audit.staleOrphanReferences = rebuiltIntegrity.orphanNodes.filter((id) => !nodes.has(id)).length;
+
   const nodeList = [...nodes.values()];
   const edgeList = [...edges.values()];
 
   const referenceChains = buildTypedReferenceChains(nodeList, edgeList, audit);
+
+  audit.referenceChainsContainingUnknownConfirmedOracle = countUnknownConfirmedInRefs(
+    referenceChains,
+    nodes,
+  );
 
   const summary = {
     ...graph.summary,
@@ -880,6 +1058,12 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
     datasetColumnsCreated: audit.datasetColumnsCreated,
     datasetColumnsResolvedToOracle: audit.datasetColumnsResolvedToOracle,
     oracleIdentityCollisions: audit.oracleIdentityCollisions,
+    directLookupDisplayToOracleColumns: audit.directLookupDisplayToOracleColumns,
+    dotnetNamesTypedAsOracleObjects: audit.dotnetNamesTypedAsOracleObjects,
+    confirmedOracleObjectsWithUnknownOwner: audit.confirmedOracleObjectsWithUnknownOwner,
+    staleOrphanReferences: audit.staleOrphanReferences,
+    referenceChainsContainingUnknownConfirmedOracle:
+      audit.referenceChainsContainingUnknownConfirmedOracle,
     stage2e1: true,
   };
 
@@ -898,6 +1082,7 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
     audit: {
       ...graph.audit,
       stage2e1: audit,
+      integrity: rebuiltIntegrity,
       nodesByType: countBy(nodeList, (n) => n.type),
       edgesByType: countBy(edgeList, (e) => e.type),
       nodesByDomain: audit.nodesByDomain,
@@ -914,6 +1099,57 @@ function countBy<T>(items: T[], key: (x: T) => string): Record<string, number> {
     out[k] = (out[k] ?? 0) + 1;
   }
   return out;
+}
+
+function edgeListBroken(
+  edges: Map<string, Stage2eEdge>,
+  nodes: Map<string, Stage2eNode>,
+): string[] {
+  const broken: string[] = [];
+  for (const e of edges.values()) {
+    if (!nodes.has(e.from) || !nodes.has(e.to)) broken.push(e.id);
+  }
+  return broken;
+}
+
+function countUnknownConfirmedInRefs(
+  refs: Record<string, unknown>,
+  nodes: Map<string, Stage2eNode>,
+): number {
+  let count = 0;
+  const visit = (v: unknown) => {
+    if (v == null) return;
+    if (typeof v === 'string') {
+      const n = nodes.get(v);
+      if (!n) return;
+      const status = String(n.attributes.oracleValidationStatus ?? '');
+      if (
+        (n.type === 'oracle_object' || n.type === 'oracle_package') &&
+        String(n.attributes.owner ?? '').toUpperCase() === 'UNKNOWN' &&
+        (/^confirmed/i.test(status) || status === 'confirmed_from_all_objects')
+      ) {
+        count += 1;
+      }
+      return;
+    }
+    if (Array.isArray(v)) {
+      for (const x of v) visit(x);
+      return;
+    }
+    if (typeof v === 'object') {
+      const o = v as Record<string, unknown>;
+      if (
+        String(o.owner ?? '').toUpperCase() === 'UNKNOWN' &&
+        (/^confirmed/i.test(String(o.validationStatus ?? '')) ||
+          /^confirmed/i.test(String(o.oracleValidationStatus ?? '')))
+      ) {
+        count += 1;
+      }
+      for (const x of Object.values(o)) visit(x);
+    }
+  };
+  visit(refs);
+  return count;
 }
 
 export function assertStage2e1StrictSemantic(
@@ -940,6 +1176,34 @@ export function assertStage2e1StrictSemantic(
   if (audit.referenceChainsInvalidDomain > 0) {
     errors.push(`referenceChainsInvalidDomain=${audit.referenceChainsInvalidDomain}`);
   }
+  if (audit.directLookupDisplayToOracleColumns > 0) {
+    errors.push(
+      `directLookupDisplayToOracleColumns=${audit.directLookupDisplayToOracleColumns}`,
+    );
+  }
+  if (audit.dotnetNamesTypedAsOracleObjects > 0) {
+    errors.push(`dotnetNamesTypedAsOracleObjects=${audit.dotnetNamesTypedAsOracleObjects}`);
+  }
+  if (audit.confirmedOracleObjectsWithUnknownOwner > 0) {
+    errors.push(
+      `confirmedOracleObjectsWithUnknownOwner=${audit.confirmedOracleObjectsWithUnknownOwner}`,
+    );
+  }
+  if (audit.staleOrphanReferences > 0) {
+    errors.push(`staleOrphanReferences=${audit.staleOrphanReferences}`);
+  }
+  if (audit.referenceChainsContainingUnknownConfirmedOracle > 0) {
+    errors.push(
+      `referenceChainsContainingUnknownConfirmedOracle=${audit.referenceChainsContainingUnknownConfirmedOracle}`,
+    );
+  }
+  const integrityOrphans =
+    ((graph.audit as { integrity?: { orphanNodes?: string[] } })?.integrity?.orphanNodes) ?? [];
+  for (const id of integrityOrphans) {
+    if (!graph.nodes.some((n) => n.id === id)) {
+      errors.push(`stale integrity.orphanNodes entry: ${id}`);
+    }
+  }
   const refs = graph.referenceChains as Record<string, { ok?: boolean }>;
   for (const key of [
     'A_TypStanowiska',
@@ -951,32 +1215,11 @@ export function assertStage2e1StrictSemantic(
   ]) {
     if (!refs[key]?.ok) errors.push(`reference ${key} failed typed validation`);
   }
-  // Malformed conflicts
   for (const c of graph.conflicts) {
     if (!c.subjectId) errors.push('conflict missing subjectId');
     if (!Array.isArray(c.alternatives)) errors.push(`conflict ${c.subjectId} missing alternatives`);
     if (!c.resolutionStatus || c.resolutionStatus === 'unknown') {
       errors.push(`conflict ${c.subjectId} unknown resolutionStatus`);
-    }
-    // subjectId may be synthetic — only fail if set and missing from nodes when not a conflict-only id
-    if (
-      c.subjectId &&
-      !c.subjectId.startsWith('oracle-object:MULTI') &&
-      !graph.nodes.some((n) => n.id === c.subjectId) &&
-      c.conflictType !== 'oracle_owner_conflict' &&
-      c.conflictType !== 'stage_fact_conflict'
-    ) {
-      // soft: many 2D join conflicts reference join nodes that exist
-      if (!graph.nodes.some((n) => n.id === c.subjectId)) {
-        // only count if truly missing
-        const exists = graph.nodes.some((n) => n.id === c.subjectId);
-        if (!exists && c.conflictType === 'join_definition_conflict') {
-          /* join subject should exist */
-          if (!graph.nodes.some((n) => n.id === c.subjectId)) {
-            errors.push(`conflict subject missing: ${c.subjectId}`);
-          }
-        }
-      }
     }
   }
   return [...new Set(errors)];
