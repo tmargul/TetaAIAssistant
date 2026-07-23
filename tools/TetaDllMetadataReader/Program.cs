@@ -52,11 +52,22 @@ internal static class Program
                 return batchResult.Ok ? 0 : 1;
             }
 
+            if (args.Contains("--batch-stage2d-stdin", StringComparer.OrdinalIgnoreCase))
+            {
+                var input = Console.In.ReadToEnd();
+                var batch = JsonSerializer.Deserialize<Stage2dBatchRequest>(input, JsonOpts)
+                    ?? new Stage2dBatchRequest();
+                var batchResult = ReadStage2dBatch(batch);
+                Console.Out.Write(JsonSerializer.Serialize(batchResult, JsonOpts));
+                return batchResult.Ok ? 0 : 1;
+            }
+
             string? dll = null;
             var matches = new List<string>();
             var noTypeIndex = false;
             var stage2a = false;
             var stage2b = false;
+            var stage2d = false;
             string? pluginsRoot = null;
             var searchRoots = new List<string>();
             for (var i = 0; i < args.Length; i++)
@@ -69,8 +80,29 @@ internal static class Program
                 else if (args[i] is "--no-type-index") noTypeIndex = true;
                 else if (args[i] is "--stage2a") stage2a = true;
                 else if (args[i] is "--stage2b") stage2b = true;
+                else if (args[i] is "--stage2d") stage2d = true;
                 else if (args[i] is "--plugins-root" && i + 1 < args.Length) pluginsRoot = args[++i];
                 else if (args[i] is "--search-root" && i + 1 < args.Length) searchRoots.Add(args[++i]);
+            }
+
+            if (stage2d)
+            {
+                if (string.IsNullOrWhiteSpace(dll) && matches.Count == 0 && searchRoots.Count == 0)
+                {
+                    Console.Error.WriteLine("Usage: TetaDllMetadataReader --stage2d --dll <bos.dll> --match FQN1;FQN2");
+                    Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stage2d-stdin < request.json");
+                    return 2;
+                }
+
+                var stageResult = ReadStage2d(new Stage2dRequest
+                {
+                    DllPath = dll,
+                    Match = matches,
+                    SearchRoots = searchRoots,
+                    AnalyzeRelatedGateways = true,
+                });
+                Console.Out.Write(JsonSerializer.Serialize(stageResult, JsonOpts));
+                return stageResult.Ok ? 0 : 1;
             }
 
             if (stage2b)
@@ -98,9 +130,11 @@ internal static class Program
                 Console.Error.WriteLine("Usage: TetaDllMetadataReader --dll <path> [--match FQN1;FQN2] [--no-type-index]");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --dll <path> --stage2a --match FQN [--plugins-root dir]");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --dll <path> --stage2b --match FQN");
+                Console.Error.WriteLine("   or: TetaDllMetadataReader --dll <path> --stage2d --match FQN");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stdin < requests.json");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stage2a-stdin < requests.json");
                 Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stage2b-stdin < request.json");
+                Console.Error.WriteLine("   or: TetaDllMetadataReader --batch-stage2d-stdin < request.json");
                 return 2;
             }
 
@@ -962,6 +996,195 @@ internal static class Program
             .ToList();
 
         return result;
+    }
+
+    private static Stage2dResult ReadStage2d(Stage2dRequest request)
+    {
+        var path = request.DllPath?.Trim() ?? "";
+        var result = new Stage2dResult
+        {
+            DllPath = path,
+            AssemblyName = string.IsNullOrWhiteSpace(path) ? request.AssemblyName : Path.GetFileName(path),
+            Datasets = [],
+        };
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            result.Ok = false;
+            result.Error = "dll_missing";
+            result.Resolution = new BosAssemblyResolution
+            {
+                AssemblyName = result.AssemblyName,
+                ResolutionStatus = "physical_file_missing",
+            };
+            return result;
+        }
+
+        try
+        {
+            var resolution = BosDllResolver.Resolve(
+                Path.GetFileName(path),
+                request.SearchRoots ?? [Path.GetDirectoryName(path) ?? ""]);
+            resolution.ResolvedPath ??= path;
+            resolution.ResolutionStatus ??= "resolved";
+            resolution.AssemblyName = Path.GetFileName(path);
+            result.Resolution = resolution;
+
+            using var stream = File.OpenRead(path);
+            using var pe = new PEReader(stream, PEStreamOptions.PrefetchEntireImage);
+            if (!pe.HasMetadata)
+            {
+                result.Ok = false;
+                result.Error = "no_cli_metadata";
+                return result;
+            }
+
+            var mr = pe.GetMetadataReader();
+            var typeIndex = BuildTypeHandleIndex(mr);
+            var matchSet = (request.Match ?? [])
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Select(m => m.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+
+            var analyzed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var wanted in matchSet)
+            {
+                AnalyzeStage2dType(pe, mr, typeIndex, wanted, path, result, analyzed, request.AnalyzeRelatedGateways);
+            }
+
+            result.Ok = true;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            result.Ok = false;
+            result.Error = "assembly_unreadable";
+            result.ErrorDetail = ex.Message;
+            return result;
+        }
+    }
+
+    private static Stage2dBatchResult ReadStage2dBatch(Stage2dBatchRequest batch)
+    {
+        var result = new Stage2dBatchResult { Ok = true };
+        var roots = batch.SearchRoots ?? [];
+        var assemblies = batch.Assemblies ?? [];
+        if (assemblies.Count == 0)
+        {
+            result.Ok = false;
+            result.Error = "no_assemblies";
+            return result;
+        }
+
+        foreach (var asmReq in assemblies)
+        {
+            var asmName = BosDllResolver.NormalizeAssemblyName(asmReq.AssemblyName ?? "");
+            var resolution = BosDllResolver.Resolve(asmName, roots);
+            resolution.ReferencedByForms = asmReq.ReferencedByForms ?? [];
+            resolution.ReferencedTypes = asmReq.Types ?? [];
+            result.Assemblies.Add(resolution);
+
+            if (resolution.ResolutionStatus is not ("resolved" or "duplicate_same_hash")
+                || string.IsNullOrWhiteSpace(resolution.ResolvedPath))
+            {
+                continue;
+            }
+
+            var single = ReadStage2d(new Stage2dRequest
+            {
+                DllPath = resolution.ResolvedPath,
+                Match = asmReq.Types ?? [],
+                SearchRoots = roots,
+                AssemblyName = asmName,
+                AnalyzeRelatedGateways = true,
+            });
+
+            if (!single.Ok)
+            {
+                result.Ok = false;
+                result.Error ??= single.Error;
+            }
+
+            foreach (var ds in single.Datasets ?? [])
+            {
+                result.Datasets.Add(ds);
+            }
+        }
+
+        result.Datasets = result.Datasets
+            .GroupBy(d => d.DeclaringType ?? "", StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .ToList();
+
+        return result;
+    }
+
+    private static void AnalyzeStage2dType(
+        PEReader pe,
+        MetadataReader mr,
+        Dictionary<string, TypeDefinitionHandle> typeIndex,
+        string wanted,
+        string path,
+        Stage2dResult result,
+        HashSet<string> analyzed,
+        bool analyzeRelated)
+    {
+        if (string.IsNullOrWhiteSpace(wanted) || analyzed.Contains(wanted)) return;
+        analyzed.Add(wanted);
+
+        if (!typeIndex.TryGetValue(wanted, out var handle)
+            && !typeIndex.TryGetValue(wanted.Split(',').First().Trim(), out handle))
+        {
+            // try simple name match
+            var simple = wanted.Split('.').Last();
+            handle = typeIndex
+                .Where(kv => kv.Key.EndsWith("." + simple, StringComparison.OrdinalIgnoreCase))
+                .Select(kv => kv.Value)
+                .FirstOrDefault();
+            if (handle.IsNil)
+            {
+                result.Datasets!.Add(new Stage2dDatasetModel
+                {
+                    DeclaringType = wanted,
+                    AssemblyName = Path.GetFileName(path),
+                    ResolvedDllPath = path,
+                    Confidence = "manual_required",
+                    Evidence =
+                    [
+                        new EvidenceItem { Assignment = $"type not found in assembly: {wanted}" },
+                    ],
+                    Joins = [],
+                    ProjectedColumns = [],
+                    DatasetColumns = [],
+                });
+                return;
+            }
+        }
+
+        var fullName = typeIndex.First(kv => kv.Value.Equals(handle)).Key;
+        var model = Stage2dJoinAnalyzer.AnalyzeType(
+            pe, mr, handle, fullName, Path.GetFileName(path), path);
+        result.Datasets!.Add(model);
+
+        if (!analyzeRelated) return;
+
+        // Follow related TG/MTG from Stage 2B-style discovery via bos analysis
+        var bos = BosGatewayAnalyzer.AnalyzeType(pe, mr, handle, fullName, Path.GetFileName(path), path, typeIndex);
+        foreach (var related in bos.RelatedGatewayTypes ?? [])
+        {
+            var simple = related.Split('.').Last();
+            if (!(simple.EndsWith("TG", StringComparison.OrdinalIgnoreCase)
+                  || simple.EndsWith("MTG", StringComparison.OrdinalIgnoreCase)
+                  || simple.EndsWith("BO", StringComparison.OrdinalIgnoreCase)
+                  || simple.EndsWith("DF", StringComparison.OrdinalIgnoreCase)))
+                continue;
+            if (related.StartsWith("Teta.Sumo.BusinessObjects.", StringComparison.OrdinalIgnoreCase)
+                || related.StartsWith("Teta.Sumo.BusinessInterfaces.", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (!analyzed.Contains(related))
+                AnalyzeStage2dType(pe, mr, typeIndex, related, path, result, analyzed, analyzeRelated: false);
+        }
     }
 
     private static void AnalyzeStage2bType(

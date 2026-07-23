@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-22** (Etap 2C — Help → control → 2A/2B)
+> Ostatnia aktualizacja: **2026-07-23** (Etap 2D.1 — semantic normalization; Etap 2D zamknięty)
 
 ---
 
@@ -199,6 +199,23 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 - **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
 
+### 2026-07-23 — Etap 2D.1 semantic normalization ✅ (Etap 2D definitywnie zamknięty)
+
+- Warstwa post-IL (bez zmiany dekodera IL / 1 / 2A / 2B / 2C): `teta-stage2d-normalize.ts` + Stage 2B NDJSON tylko odczyt.
+- Naprawy: `datasetTable` (nie kolumny typu `SKLP_ID`); `mainSource` z 2B/join; `conditionStatus` (nie `manual_required` dla `AddJoin(...,null)`); merge join evidence; `declared/inherited/effectiveJoins`; `rawAlias`/`normalizedAlias`; projected bez udawania `LIPL.TYTUL` jako DataSet name; deps calculated.
+- Live: **1577** datasetTable misclass fixed; **5489** confirmed datasetTable; **5663** confirmed mainSource; **174** duplicate joins merged; **1734** inherited joins; **108** projected bez explicit alias; **1131** calculated deps.
+- Referencje A–D OK (NarastajacoBO, ObliczZamknPracTG, ListyBaseBO/LUMO1, null-condition status).
+- Artefakty: `docs/AIA_SQLJOIN_STAGE2D.md` / `.json` (sekcja Stage 2D.1); NDJSON `.local/`; CLI bez zmian `diagnose:stage2d`.
+- **Etap 2D zamknięty definitywnie.** Nie startować generatora SQL / Qdrant / agenta bez prośby.
+
+### 2026-07-23 — Etap 2D SqlJoin reconstruction ✅
+
+- IL-only model grafowy joinów: `AddJoin` / `JoinDefinition` / `AddColumn`(+join overload) → joinedObject, alias, joinType, condition rozbita, projected/dataset columns.
+- Seed: te same bos/BO/DF co Stage 2B (z dumpa 2A). **Bez** SQL, Oracle, Help, Qdrant, LLM.
+- CLI: `pnpm --filter @teta/api run diagnose:stage2d` → `docs/AIA_SQLJOIN_STAGE2D.md` (+ JSON; NDJSON `.local/`).
+- C#: `Stage2dJoinAnalyzer.cs` (nie zmienia 2A/2B/2C). Testy: `teta-stage2d.spec.ts`.
+- Domknięty jakościowo przez **2D.1** (ten sam dzień).
+
 ### 2026-07-22 — Etap 2C Help semantic mapping ✅
 
 - Help opcjonalny: `{clientDirectory}/Help/{GUID}.html` (GUID z PA). Statusy `help_*` **nie obniżają** registry/class/binding/Oracle confidence.
@@ -206,7 +223,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Match deterministyczny (bez LLM): label → control → fakty 2A + 2B; target vs lookup rozdzielone.
 - CLI: `pnpm --filter @teta/api run diagnose:stage2c` → `docs/AIA_HELP_SEMANTIC_MAPPING_STAGE2C.md` (+ JSON; NDJSON `.local/`).
 - Referencje OK: Typ stanowiska→`lcboTypStanowiska`→ZSTP_ID / TypyStanowisk; DicRodzajeKoncesji Kod/Nazwa/Aktualna→NT_LG_SLO_RODZAJE_KONCESJI; Zamknięcie miesiąca→`tbbZamknijMiesiac`+`parameterName` (nie kolumna danych); missing Help zachowuje graf techniczny.
-- **Etap 2C zamknięty.** Nie startować: SqlJoin, generator SQL, Qdrant, zmiany agenta czatu — bez prośby.
+- **Etap 2C zamknięty.** Następny: Etap 2D SqlJoin (zrobiony 2026-07-23). Nie startować generatora SQL / Qdrant bez prośby.
 - Kod: `teta-stage2c-*.ts`; testy `teta-stage2c.spec.ts`.
 
 ### 2026-07-22 — Etap 2B bos DLL / gateway / Oracle ✅
