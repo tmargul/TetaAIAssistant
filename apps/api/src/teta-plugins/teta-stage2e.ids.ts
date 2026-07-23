@@ -174,6 +174,10 @@ export const Stage2eIds = {
     return `oracle-argument:${normalizeOracleName(owner || 'UNKNOWN')}:${normalizeOracleName(packageName)}:${normalizeOracleName(subprogram)}:${position}:${normalizeOracleName(argumentName || 'RETURN')}`;
   },
 
+  datasetColumn(datasetTable: string, columnName: string): string {
+    return `dataset-column:${collapseWs(datasetTable)}:${collapseWs(columnName)}`;
+  },
+
   oracleDependency(
     owner: string,
     name: string,

@@ -26,6 +26,7 @@ export type Stage2eNodeType =
   | 'data_factory'
   | 'gateway'
   | 'dataset'
+  | 'dataset_column'
   | 'main_source'
   | 'join'
   | 'projected_column'
@@ -38,6 +39,14 @@ export type Stage2eNodeType =
   | 'oracle_argument'
   | 'oracle_dependency'
   | 'oracle_constraint';
+
+export type Stage2eDomain =
+  | 'application'
+  | 'dotnet'
+  | 'dataset'
+  | 'oracle'
+  | 'help'
+  | 'canonical-graph-technical';
 
 export type Stage2eEdgeType =
   | 'REGISTERED_AS'
@@ -61,6 +70,10 @@ export type Stage2eEdgeType =
   | 'DERIVED_FROM'
   | 'MAPS_TO_ORACLE_OBJECT'
   | 'MAPS_TO_ORACLE_COLUMN'
+  | 'MAPS_TO_DATASET_COLUMN'
+  | 'HAS_DATASET_COLUMN'
+  | 'RESOLVES_TO_ORACLE_COLUMN'
+  | 'RESOLVES_SYNONYM_TO'
   | 'USES_PACKAGE'
   | 'CALLS_FUNCTION'
   | 'CALLS_PROCEDURE'
@@ -101,6 +114,7 @@ export type Stage2eProvenance = {
 export type Stage2eNode = {
   id: string;
   type: Stage2eNodeType | string;
+  domain?: Stage2eDomain | string;
   name: string;
   canonicalName: string;
   sourceStage: string[];
@@ -110,6 +124,14 @@ export type Stage2eNode = {
   provenance?: Stage2eProvenance[];
   attributes: Record<string, unknown>;
   identityVersion: string;
+  orphanStatus?: string | null;
+  semanticNormalization?: {
+    originalNodeType?: string;
+    normalizedNodeType?: string;
+    reason?: string;
+    sourceStage?: string;
+    invalidOracleCandidateClass?: string;
+  } | null;
 };
 
 export type Stage2eEdge = {

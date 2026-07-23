@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-23** (Etap 2E — Canonical Knowledge Graph)
+> Ostatnia aktualizacja: **2026-07-23** (Etap 2E.1 — Canonical Graph Semantic Integrity)
 
 ---
 
@@ -199,6 +199,16 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 - **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
 
+### 2026-07-23 — Etap 2E.1 Canonical Graph Semantic Integrity ✅
+
+- Post-processing **tylko** na wyniku 2E (bez zmiany ekstraktorów 1–2E): domeny, walidacja `oracle_object`, `dataset_column`, Oracle identity owner+type+name, typed refs A–F, orphan classification, conflict metrics.
+- CLI: `pnpm --filter @teta/api run diagnose:stage2e -- --from-existing --strict-semantic` (**EXIT 0**).
+- Ref A: target `NT_KP_KOS_KARTA_OPISU_STAN.ZSTP_ID` + lookup `NT_KP_SLO_TYPY_STANOWISK.ID/NAZWA` (typed IDs; bez .NET / `TypyStanowisk.*` jako Oracle).
+- Ref D: `tbbZamknijMiesiac` + `parameterName=KP_UPR_KART_LIST_ZAMKNIJ_MIES` (merge action:/control: twin).
+- Metryki: unexpectedOrphans/invalidDomainOrphans/domainEdgeViolations/brokenEdges/duplicateCanonicalIds = **0**.
+- Kod: `teta-stage2e1.*.ts`; testy `teta-stage2e1.spec.ts` (14). Artefakty: te same `docs/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.*` + NDJSON (sekcja Stage 2E.1).
+- **Etap 2E.1 zamknięty.** Nie startować generatora SQL / Qdrant / agenta / embeddingów bez prośby.
+
 ### 2026-07-23 — Etap 2E Canonical Knowledge Graph + Oracle enrichment ✅
 
 - Scalenie 1–2D w jeden graf `nodes[]`/`edges[]` ze stabilnymi ID (`teta-aia-canonical-id-v1`), provenance, target/lookup split (`DISPLAYS_FROM`).
@@ -207,7 +217,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - CLI: `pnpm --filter @teta/api run diagnose:stage2e` (`--no-oracle`, `--strict`, `--limit`).
 - Artefakty: `docs/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.md` / `.json`; NDJSON `.local/…STAGE2E.full.ndjson`.
 - Kod: `teta-stage2e.*.ts`; testy `teta-stage2e.spec.ts` (≥15).
-- **Etap 2E zamknięty.** Nie startować generatora SQL / Qdrant / agenta bez prośby.
+- **Etap 2E zamknięty.** Domknięty jakościowo przez **2E.1** (ten sam dzień). Nie startować generatora SQL / Qdrant / agenta bez prośby.
 
 ### 2026-07-23 — Etap 2D.1 semantic normalization ✅ (Etap 2D definitywnie zamknięty)
 

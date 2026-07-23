@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generatedAt": "2026-07-23T10:14:44.465Z",
+    "generatedAt": "2026-07-23T13:12:24.590Z",
     "identityVersion": "teta-aia-canonical-id-v1",
     "stages": [
       "1",
@@ -8,18 +8,19 @@
       "2B",
       "2C",
       "2D",
-      "2E"
+      "2E",
+      "2E.1"
     ],
     "oracleEnabled": true,
     "limit": null
   },
   "summary": {
-    "nodesTotal": 836241,
-    "edgesTotal": 888292,
+    "nodesTotal": 869492,
+    "edgesTotal": 992993,
     "conflicts": 5432,
     "brokenEdges": 0,
     "duplicateCanonicalIds": 0,
-    "orphanNodes": 11154,
+    "orphanNodes": 11308,
     "formsRepresented": 3561,
     "controlsRepresented": 98810,
     "helpFieldsRepresented": 26658,
@@ -50,7 +51,20 @@
     "oracleEnrichedObjects": 10659,
     "oracleEnrichedColumns": 137614,
     "oracleDependenciesFetched": 11136,
-    "oracleFksFetched": 3232
+    "oracleFksFetched": 3232,
+    "conflictsTotal": 5432,
+    "expectedOrphans": 11308,
+    "unexpectedOrphans": 0,
+    "invalidDomainOrphans": 0,
+    "unresolvedEdges": 0,
+    "unresolvedConflicts": 5432,
+    "resolvedConflicts": 0,
+    "domainEdgeViolations": 0,
+    "invalidOracleCandidates": 0,
+    "datasetColumnsCreated": 0,
+    "datasetColumnsResolvedToOracle": 13171,
+    "oracleIdentityCollisions": 0,
+    "stage2e1": true
   },
   "conflicts": [
     {
@@ -1215,1173 +1229,231 @@
   "referenceChains": {
     "A_TypStanowiska": {
       "ok": true,
-      "form": "Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
-      "helpField": "Typ stanowiska",
-      "control": "lcboTypStanowiska",
-      "targetBindings": [
-        "KartaOpisuStanowiska.ZSTP_ID"
+      "formNodeId": "form:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+      "controlNodeId": "control:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska",
+      "helpFieldNodeId": "help-field:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:linked:d36236:typ stanowiska",
+      "targetBindingNodeId": "binding-target:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:KartaOpisuStanowiska:ZSTP_ID",
+      "lookupBindingNodeId": "binding-lookup:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:TypyStanowisk:ID:NAZWA",
+      "targetDatasetColumnId": "dataset-column:KartaOpisuStanowiska:ZSTP_ID",
+      "lookupValueDatasetColumnId": "dataset-column:TypyStanowisk:ID",
+      "lookupDisplayDatasetColumnId": "dataset-column:TypyStanowisk:NAZWA",
+      "targetOracleColumnId": "oracle-column:TETA_ADMIN:NT_KP_KOS_KARTA_OPISU_STAN:ZSTP_ID",
+      "lookupValueOracleColumnId": "oracle-column:TETA_ADMIN:NT_KP_SLO_TYPY_STANOWISK:ID",
+      "lookupDisplayOracleColumnId": "oracle-column:TETA_ADMIN:NT_KP_SLO_TYPY_STANOWISK:NAZWA",
+      "nodeIds": [
+        "form:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+        "help-field:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:linked:d36236:typ stanowiska",
+        "control:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska",
+        "binding-target:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:KartaOpisuStanowiska:ZSTP_ID",
+        "binding-lookup:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:TypyStanowisk:ID:NAZWA",
+        "dataset-column:KartaOpisuStanowiska:ZSTP_ID",
+        "dataset-column:TypyStanowisk:ID",
+        "dataset-column:TypyStanowisk:NAZWA",
+        "oracle-column:TETA_ADMIN:NT_KP_KOS_KARTA_OPISU_STAN:ZSTP_ID",
+        "oracle-column:TETA_ADMIN:NT_KP_SLO_TYPY_STANOWISK:ID",
+        "oracle-column:TETA_ADMIN:NT_KP_SLO_TYPY_STANOWISK:NAZWA"
       ],
-      "lookupBindings": [
-        {
-          "name": "TypyStanowisk.ID/NAZWA",
-          "valueMember": "ID",
-          "displayMember": "NAZWA",
-          "displaysFrom": [
-            "TypyStanowisk.NAZWA"
-          ]
-        }
+      "edgeIds": [
+        "edge:DESCRIBES:help-field:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:linked:d36236:typ stanowiska:control:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska",
+        "edge:BINDS_TARGET:control:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:binding-target:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:KartaOpisuStanowiska:ZSTP_ID",
+        "edge:BINDS_LOOKUP:control:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:binding-lookup:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:TypyStanowisk:ID:NAZWA",
+        "edge:MAPS_TO_DATASET_COLUMN:binding-target:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:KartaOpisuStanowiska:ZSTP_ID:dataset-column:KartaOpisuStanowiska:ZSTP_ID",
+        "edge:RESOLVES_TO_ORACLE_COLUMN:dataset-column:KartaOpisuStanowiska:ZSTP_ID:oracle-column:TETA_ADMIN:NT_KP_KOS_KARTA_OPISU_STAN:ZSTP_ID",
+        "edge:MAPS_TO_DATASET_COLUMN:binding-lookup:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:TypyStanowisk:ID:NAZWA:dataset-column:TypyStanowisk:ID:f32b67c7e263",
+        "edge:DISPLAYS_FROM:binding-lookup:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok:lcboTypStanowiska:TypyStanowisk:ID:NAZWA:oracle-column:UNKNOWN:TYPYSTANOWISK:NAZWA",
+        "edge:RESOLVES_TO_ORACLE_COLUMN:dataset-column:TypyStanowisk:ID:oracle-column:TETA_ADMIN:NT_KP_SLO_TYPY_STANOWISK:ID",
+        "edge:RESOLVES_TO_ORACLE_COLUMN:dataset-column:TypyStanowisk:NAZWA:oracle-column:TETA_ADMIN:NT_KP_SLO_TYPY_STANOWISK:NAZWA"
       ],
-      "oracleObjects": [
-        "NT_KP_KOS_KARTA_OPISU_STAN",
-        "NT_KP_KOS_KARTA_OPISU_STAN_DAC",
-        "TETA.SUMO.PERSONEL.BOSSKOS.MTG.KARTAOPISUSTANOWISKANAGLOWEKMTG",
-        "TypyStanowisk.NAZWA",
-        "TypyStanowisk.ID"
-      ]
+      "validation": []
     },
     "B_DicRodzajeKoncesji": {
       "ok": true,
-      "form": "Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
-      "controls": [
-        {
-          "control": "dgcKod",
-          "targets": [
-            "RodzajeKoncesji.KOD"
-          ],
-          "present": true
-        },
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "RodzajeKoncesji.NAZWA"
-          ],
-          "present": true
-        },
-        {
-          "control": "dgcAktualna",
-          "targets": [
-            "RodzajeKoncesji.UP_TO_DATE"
-          ],
-          "present": true
-        }
-      ],
-      "gateways": [
-        "Teta.Sumo.Sales.bosSalesDictionaries.TG.RodzajeKoncesjiTG",
-        "Teta.Sumo.Sales.bosSalesDictionaries.MTG.RodzajeKoncesjiMTG"
+      "formNodeId": "form:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
+      "controlNodeIds": [
+        "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcKod",
+        "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcNazwa",
+        "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcAktualna"
       ],
       "oracleObjects": [
         {
-          "name": "NT_LG_SLO_RODZAJE_KONCESJI",
-          "status": "confirmed",
-          "type": "VIEW"
+          "nodeId": "oracle-object:UNKNOWN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+          "owner": "UNKNOWN",
+          "objectType": "VIEW",
+          "objectName": "NT_LG_SLO_RODZAJE_KONCESJI",
+          "validationStatus": "confirmed"
         },
         {
-          "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-          "status": "confirmed",
-          "type": "PACKAGE"
+          "nodeId": "oracle-package:UNKNOWN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "owner": "UNKNOWN",
+          "objectType": "PACKAGE",
+          "objectName": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "validationStatus": "confirmed"
         },
         {
-          "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-          "status": "confirmed",
-          "type": "VIEW"
+          "nodeId": "oracle-object:UNKNOWN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "owner": "UNKNOWN",
+          "objectType": "VIEW",
+          "objectName": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "validationStatus": "confirmed"
         },
         {
-          "name": "NT_LG_SLO_RODZAJE_KONCESJI",
-          "status": "confirmed",
-          "type": "VIEW"
+          "nodeId": "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+          "owner": "TETA_ADMIN",
+          "objectType": "VIEW",
+          "objectName": "NT_LG_SLO_RODZAJE_KONCESJI",
+          "validationStatus": "confirmed"
         },
         {
-          "name": "NT_LG_SLO_RODZAJE_KONCESJI",
-          "status": "confirmed",
-          "type": "VIEW"
+          "nodeId": "oracle-object:TETA_ADMIN_P:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+          "owner": "TETA_ADMIN_P",
+          "objectType": "VIEW",
+          "objectName": "NT_LG_SLO_RODZAJE_KONCESJI",
+          "validationStatus": "confirmed"
         },
         {
-          "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-          "status": "confirmed",
-          "type": "PACKAGE"
+          "nodeId": "oracle-package:TETA_ADMIN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "owner": "TETA_ADMIN",
+          "objectType": "PACKAGE",
+          "objectName": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "validationStatus": "confirmed"
         },
         {
-          "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
-          "status": "confirmed",
-          "type": "SYNONYM"
+          "nodeId": "oracle-object:TETA_ADMIN_P:SYNONYM:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "owner": "TETA_ADMIN_P",
+          "objectType": "SYNONYM",
+          "objectName": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "validationStatus": "confirmed"
         },
         {
-          "name": "LG_KNC_RODZAJE_KONCESJI",
-          "status": "confirmed",
-          "type": "TABLE"
+          "nodeId": "oracle-object:TETA_ADMIN:TABLE:LG_KNC_RODZAJE_KONCESJI",
+          "owner": "TETA_ADMIN",
+          "objectType": "TABLE",
+          "objectName": "LG_KNC_RODZAJE_KONCESJI",
+          "validationStatus": "confirmed"
         },
         {
-          "name": "LG_KNC_RODZAJE_KONCESJI",
-          "status": "confirmed",
-          "type": "SYNONYM"
+          "nodeId": "oracle-object:TETA_ADMIN_P:SYNONYM:LG_KNC_RODZAJE_KONCESJI",
+          "owner": "TETA_ADMIN_P",
+          "objectType": "SYNONYM",
+          "objectName": "LG_KNC_RODZAJE_KONCESJI",
+          "validationStatus": "confirmed"
         }
-      ]
+      ],
+      "nodeIds": [
+        "form:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
+        "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcKod",
+        "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcNazwa",
+        "control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcAktualna",
+        "oracle-object:UNKNOWN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+        "oracle-package:UNKNOWN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+        "oracle-object:UNKNOWN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+        "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+        "oracle-object:TETA_ADMIN_P:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+        "oracle-package:TETA_ADMIN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+        "oracle-object:TETA_ADMIN_P:SYNONYM:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+        "oracle-object:TETA_ADMIN:TABLE:LG_KNC_RODZAJE_KONCESJI",
+        "oracle-object:TETA_ADMIN_P:SYNONYM:LG_KNC_RODZAJE_KONCESJI"
+      ],
+      "edgeIds": [
+        "edge:HAS_CONTROL:form:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcKod",
+        "edge:BINDS_TARGET:control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcKod:binding-target:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcKod:RodzajeKoncesji:KOD",
+        "edge:HAS_CONTROL:form:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcNazwa",
+        "edge:BINDS_TARGET:control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcNazwa:binding-target:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcNazwa:RodzajeKoncesji:NAZWA",
+        "edge:HAS_CONTROL:form:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcAktualna",
+        "edge:BINDS_TARGET:control:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcAktualna:binding-target:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji:dgcAktualna:RodzajeKoncesji:UP_TO_DATE"
+      ],
+      "validation": []
     },
     "C_SkladnikiNarastajacoBO": {
       "ok": true,
-      "datasetTable": "SkladnikiNarastajaco",
-      "mainSource": {
-        "objectName": "NT_KP_PLC_SKLADNIKI_NARAST",
-        "alias": "LSNA",
-        "canonical": "NT_KP_PLC_SKLADNIKI_NARAST AS LSNA"
-      },
-      "joinAliases": [
-        "SSNA",
-        "SKLP",
-        "LIST",
-        "PIDO",
-        "PITM",
-        "JEOR"
+      "datasetNodeId": "dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco",
+      "mainSourceNodeId": "main-source:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:NT_KP_PLC_SKLADNIKI_NARAST:LSNA",
+      "joinNodeIds": [
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SSNA:NT_KP_SLO_SKLADNIKI_NARAST:af217022af30",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SKLP:NT_KP_SLO_SKLADNIKI_PLAC:630f61de7a62",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:LIST:NT_KP_SLO_LISTY_PLAC:4544a9bffecb",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:PIDO:KP_PLC_PIT_CORE_DATA:3120212dade9",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:PITM:KP_SLO_PIT_TEMPLATES:e9b71613ef08",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:JEOR:TETA_JEDN_ORG:c74a61e48593"
       ],
-      "jeorCondition": {
-        "leftAlias": "JEOR",
-        "leftColumn": "ID",
-        "operator": "=",
-        "rightAlias": "PIDO",
-        "rightColumn": "JEOR_ID",
-        "confidence": "confirmed_from_literal"
-      },
-      "jeorNazwa": "JEOR_NAZWA",
-      "calculated": {
-        "packages": [
-          "KP_LISP_SQL"
-        ],
-        "functions": [
-          "Get_Status_For_Pit11"
-        ]
-      },
-      "form": "Teta.Sumo.Personel.plgListaPlac.CrdSkladnikiNarastajaco.SkladnikiNarastajacoWidok"
+      "jeorJoinNodeId": "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:JEOR:TETA_JEDN_ORG:c74a61e48593",
+      "calculatedColumnNodeId": "calculated:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:e80815c1a6e6",
+      "packageNodeId": "oracle-package:UNKNOWN:KP_LISP_SQL",
+      "functionNodeId": "oracle-function:UNKNOWN:KP_LISP_SQL:GET_STATUS_FOR_PIT11:0",
+      "nodeIds": [
+        "dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco",
+        "main-source:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:NT_KP_PLC_SKLADNIKI_NARAST:LSNA",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SSNA:NT_KP_SLO_SKLADNIKI_NARAST:af217022af30",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SKLP:NT_KP_SLO_SKLADNIKI_PLAC:630f61de7a62",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:LIST:NT_KP_SLO_LISTY_PLAC:4544a9bffecb",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:PIDO:KP_PLC_PIT_CORE_DATA:3120212dade9",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:PITM:KP_SLO_PIT_TEMPLATES:e9b71613ef08",
+        "join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:JEOR:TETA_JEDN_ORG:c74a61e48593",
+        "calculated:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:e80815c1a6e6",
+        "oracle-package:UNKNOWN:KP_LISP_SQL",
+        "oracle-function:UNKNOWN:KP_LISP_SQL:GET_STATUS_FOR_PIT11:0"
+      ],
+      "edgeIds": [
+        "edge:READS_FROM:dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco:main-source:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:NT_KP_PLC_SKLADNIKI_NARAST:LSNA",
+        "edge:JOINS_TO:dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco:join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SSNA:NT_KP_SLO_SKLADNIKI_NARAST:af217022af30",
+        "edge:JOINS_TO:dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco:join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SKLP:NT_KP_SLO_SKLADNIKI_PLAC:630f61de7a62",
+        "edge:JOINS_TO:dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco:join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:LIST:NT_KP_SLO_LISTY_PLAC:4544a9bffecb",
+        "edge:JOINS_TO:dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco:join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:PIDO:KP_PLC_PIT_CORE_DATA:3120212dade9",
+        "edge:JOINS_TO:dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco:join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:PITM:KP_SLO_PIT_TEMPLATES:e9b71613ef08",
+        "edge:JOINS_TO:dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco:join:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:JEOR:TETA_JEDN_ORG:c74a61e48593",
+        "edge:USES_PACKAGE:calculated:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:e80815c1a6e6:oracle-package:UNKNOWN:KP_LISP_SQL",
+        "edge:CALLS_FUNCTION:calculated:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:e80815c1a6e6:oracle-function:UNKNOWN:KP_LISP_SQL:GET_STATUS_FOR_PIT11:0"
+      ],
+      "validation": []
     },
     "D_ListyZamkniete": {
       "ok": true,
-      "form": "Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
-      "control": "tbbZamknijMiesiac",
+      "formNodeId": "form:7b4f2b80-4853-409d-8dc7-06cd10c8925b:Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+      "controlNodeId": "action:7b4f2b80-4853-409d-8dc7-06cd10c8925b:Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok:tbbZamknijMiesiac",
       "parameterName": "KP_UPR_KART_LIST_ZAMKNIJ_MIES",
       "falselyBoundAsOracleColumn": false,
-      "isAction": true
+      "nodeIds": [
+        "form:7b4f2b80-4853-409d-8dc7-06cd10c8925b:Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok",
+        "action:7b4f2b80-4853-409d-8dc7-06cd10c8925b:Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok:tbbZamknijMiesiac"
+      ],
+      "edgeIds": [
+        "edge:HAS_CONTROL:form:7b4f2b80-4853-409d-8dc7-06cd10c8925b:Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok:action:7b4f2b80-4853-409d-8dc7-06cd10c8925b:Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok:tbbZamknijMiesiac"
+      ],
+      "validation": []
     },
     "E_MissingHelp": {
       "ok": true,
       "missingHelpForms": 1662,
-      "sampleForm": "Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit40",
+      "sampleFormNodeId": "form:02e54042-6570-421e-9212-af1ee889f7e3:Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit40",
       "sampleControlCount": 21,
-      "confidenceNotLowered": true
+      "hasHelpDocument": false,
+      "confidenceNotLowered": true,
+      "nodeIds": [
+        "form:02e54042-6570-421e-9212-af1ee889f7e3:Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit40"
+      ],
+      "edgeIds": [],
+      "validation": []
     },
     "F_MissingInDb": {
       "ok": true,
-      "missingCount": 898,
+      "missingCount": 162,
       "sample": {
-        "id": "oracle-object:UNKNOWN:VIEW:DUMMY",
-        "name": "DUMMY",
-        "sourceStage": [
-          "2B",
-          "2D"
-        ],
+        "nodeId": "oracle-object:UNKNOWN:VIEW:DUMMY",
+        "owner": "UNKNOWN",
+        "objectType": "VIEW",
+        "objectName": "DUMMY",
         "oracleValidationStatus": "missing_in_current_db",
-        "technicalFactPreserved": true
-      }
+        "technicalFactPreserved": true,
+        "canonicalOracleIdentity": "UNKNOWN.VIEW.DUMMY"
+      },
+      "nodeIds": [
+        "oracle-object:UNKNOWN:VIEW:DUMMY"
+      ],
+      "edgeIds": [],
+      "validation": []
     }
   },
-  "formEvidenceChains": [
-    {
-      "form": "Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
-      "guid": "3b253949-d7f8-4094-acfd-713027eacbfb",
-      "controls": []
-    },
-    {
-      "form": "Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
-      "guid": "670ab806-2885-4f00-94cf-e86a5f545c85",
-      "controls": [
-        {
-          "control": "dgcKod",
-          "targets": [
-            "RodzajeKoncesji.KOD"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "RodzajeKoncesji.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcAktualna",
-          "targets": [
-            "RodzajeKoncesji.UP_TO_DATE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "gucKod",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "DataGrid",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "GridLayout",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgKOS.CrdStanowiskoWStrukturzeOrg.StanowiskoWStrukturzeOrgWidok",
-      "guid": "469e7730-e558-4631-a897-dfba526dda36",
-      "controls": [
-        {
-          "control": "ldtpDataDo",
-          "targets": [
-            "JednostkiOrganizacyjne.DATA_DO"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "ldtpDataOd",
-          "targets": [
-            "JednostkiOrganizacyjne.DATA_OD"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "treStruktura",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "ldtpZadanaData",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdStanowiska",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "ldtpZaleznoscDataOd",
-          "targets": [
-            "StrukturaJednostek.DATA_OD"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "ldtpZaleznoscDataDo",
-          "targets": [
-            "StrukturaJednostek.DATA_DO"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "lovFirmy",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grpJednostkaOrganizacyjna",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "ltxtSymbol",
-          "targets": [
-            "JednostkiOrganizacyjne.SYMBOL"
-          ],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicZrodlaOcen",
-      "guid": "c660b15e-8865-4a65-8692-d8e7df503ff0",
-      "controls": [
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "ZrodlaOcen.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcTyp",
-          "targets": [
-            "ZrodlaOcen.TYP"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcKoncowa",
-          "targets": [
-            "ZrodlaOcen.KONCOWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "gucZrodlaOcenKod",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "gucZrodlaOcenNazwa",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcKod",
-          "targets": [
-            "ZrodlaOcen.KOD"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "DataGrid",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "GridLayout",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicZadaniaStanowiska",
-      "guid": "18afa59e-c034-4831-9198-cf919653354a",
-      "controls": [
-        {
-          "control": "gucZadaniaStanowiska",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "ZadaniaStanowiska.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "DataGrid",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "GridLayout",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicInformacjeDodatkowe",
-      "guid": "036d0794-9f71-4fcb-90c6-106d517dee9f",
-      "controls": [
-        {
-          "control": "gucInformacjeDodatkoweNazwa",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "InformacjeDodatkowe.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "DataGrid",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "GridLayout",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicWspolpraca",
-      "guid": "0aa96958-d542-4cdd-bd67-13ec9a554d13",
-      "controls": [
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "1.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcRodzaj",
-          "targets": [
-            "1.RODZAJ"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcUpToDate",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "gucRodzajNazwa",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "DataGrid",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "GridLayout",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicWyposazenie",
-      "guid": "58c31964-fd36-486c-9f62-635e88d98f02",
-      "controls": [
-        {
-          "control": "dgcKod",
-          "targets": [
-            "Wyposazenie.KOD"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "Wyposazenie.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcUpToDate",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "gucWyposazenieKod",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "DataGrid",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "GridLayout",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Logistics.plgKontrahenci.CrdOsobyKontaktowe.OsobyKontaktoweWidok",
-      "guid": "c12353a1-f617-4073-a803-cbe6df59a113",
-      "controls": [
-        {
-          "control": "m_Kontroler",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "m_TxtEmbeded",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdOsobyKontaktowe",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcNumer",
-          "targets": [
-            "ContactsClientAddresses.NUMER"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcImieOsobyKontaktowej",
-          "targets": [
-            "ContactsClientAddresses.IMIE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwiskoOsobyKontaktowej",
-          "targets": [
-            "ContactsClientAddresses.NAZWISKO"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcAktywna",
-          "targets": [
-            "ContactsClientAddresses.COKK_AKTYWNA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcPosition",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcDepartment",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcEmail",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
-      "guid": "5f0901c2-54f9-407f-ad5c-39214142ca26",
-      "controls": [
-        {
-          "control": "m_Kontroler",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "m_DataPopWyciagu",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "m_TxtNrKontaPartnera",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "m_AccountSymbol",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdOperacjeWb",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdUzgodnienia",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcWbwoNr",
-          "targets": [
-            "WyciagiOperacje.NR"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcWbwoData",
-          "targets": [
-            "WyciagiOperacje.DATA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcWbwoPrzychody",
-          "targets": [
-            "WyciagiOperacje.CREDIT_IN_ACCOUNT_CURRENCY"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcWbwoRozchody",
-          "targets": [
-            "WyciagiOperacje.DEBIT_IN_ACCOUNT_CURRENCY"
-          ],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicOkresyWypowiedzen",
-      "guid": "0232fd3e-a695-d6b7-e040-2f64070a60a8",
-      "controls": [
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "OkresyWypowiedzen.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcIloscM",
-          "targets": [
-            "OkresyWypowiedzen.ILOSC_M"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcIloscD",
-          "targets": [
-            "OkresyWypowiedzen.ILOSC_D"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcIloscMS",
-          "targets": [
-            "OkresyWypowiedzen.ILOSC_M_S"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcIloscDS",
-          "targets": [
-            "OkresyWypowiedzen.ILOSC_D_S"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcSkrocony",
-          "targets": [
-            "OkresyWypowiedzen.OKRES_SKROCONY"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "gucOkresyWypowiedzenNazwa",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcNoticePeriodType",
-          "targets": [
-            "OkresyWypowiedzen.TYP_OKRESU"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcUpToDate",
-          "targets": [
-            "OkresyWypowiedzen.UP_TO_DATE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcNoticePeriodLength",
-          "targets": [
-            "OkresyWypowiedzen.DLUGOSC_OKRESU"
-          ],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeOdpraw",
-      "guid": "0232fd3e-a698-d6b7-e040-2f64070a60a8",
-      "controls": [
-        {
-          "control": "dgcKod",
-          "targets": [
-            "RodzajeOdpraw.KOD"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "RodzajeOdpraw.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "gucRodzajeOdprawKod",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcAllowanceDetailTypes",
-          "targets": [
-            "RodzajeOdpraw.ALLOWANCE_DETAIL_TYPE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcUpToDate",
-          "targets": [
-            "RodzajeOdpraw.UP_TO_DATE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcPracticeName",
-          "targets": [
-            "Staze.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dglPractice",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcEmploymentCertificate",
-          "targets": [
-            "RodzajeOdpraw.EMPLOYMENT_CERTIFICATE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcTypy",
-          "targets": [
-            "RodzajeOdpraw.TYP"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "Row",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Logistics.plgZapotrzebowaniaZakupu.CrdKartotekaZapotrzebowan.KartotekaZapotrzebowanWidok",
-      "guid": "970d89b3-e004-4c0e-aeeb-71ec48b42659",
-      "controls": [
-        {
-          "control": "m_Kontroler",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdZapotrzebowania",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcDataWystawienia",
-          "targets": [
-            "Zapotrzebowania.DATA_WYSTAWIENIA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcDataPobrania",
-          "targets": [
-            "Zapotrzebowania.DATA_OTRZYMANIA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcZaakceptowane",
-          "targets": [
-            "Zapotrzebowania.ZAAKCEPTOWANY"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcZatwierdzone",
-          "targets": [
-            "Zapotrzebowania.ZATWIERDZONY"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcAnulowane",
-          "targets": [
-            "Zapotrzebowania.ANULOWANY"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcSymbolJednostki",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwaJednostki",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcMagazyn",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdTaxConstants.TaxConstantsView",
-      "guid": "3a3da61b-9b00-45ac-bbdd-8e6e47183633",
-      "controls": [
-        {
-          "control": "m_Controller",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdTaxConstants",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdTaxConstantsRelief",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcReliefType",
-          "targets": [
-            "TaxConstantsRelief.RELIEF_TYPE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcPrevValues",
-          "targets": [
-            "TaxConstantsRelief.PREV_VALUES"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcNominator",
-          "targets": [
-            "TaxConstantsRelief.NOMINATOR"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcDenominator",
-          "targets": [
-            "TaxConstantsRelief.DENOMINATOR"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcMonthValue",
-          "targets": [
-            "TaxConstantsRelief.MONTH_VALUE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcReliefComment",
-          "targets": [
-            "TaxConstantsRelief.RELIEF_COMMENT"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcAvailableUC",
-          "targets": [
-            "TaxConstantsRelief.AVAILABLE_UC"
-          ],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdKartyPracy.KartyPracyWidok",
-      "guid": "9ece0517-799a-4f1e-8a64-6dc9ed8ed7d8",
-      "controls": [
-        {
-          "control": "m_OknoPodpowiadaniaSkladnikow",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "m_AktualnePole",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "ltxtWzor",
-          "targets": [
-            "DefinicjeKartPracy.WZOR"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "ltxtWyrIf1",
-          "targets": [
-            "DefinicjeKartPracy.WYR_IF_1"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "ltxtWyrZwr1",
-          "targets": [
-            "DefinicjeKartPracy.WYR_ZWR_1"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "ltxtWyrZwr2",
-          "targets": [
-            "DefinicjeKartPracy.WYR_ZWR_2"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "grpDefinicjeWzorow",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdKartyPracy",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "rdoWieksze",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "rdoWiekszeRowne",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdRodzajeNieobecnosci.RodzajeNieobecnosciWidok",
-      "guid": "fe709ead-e074-a947-e030-2f64070aa2db",
-      "controls": [
-        {
-          "control": "m_Kontroler",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grdRodzajeNieobecnosci",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grpSzczegoly",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "grpPodstawa",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "chkWGodz",
-          "targets": [
-            "RodzajeNieobecnosci.W_GODZINACH"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "chkInwal",
-          "targets": [
-            "RodzajeNieobecnosci.INWALIDZKA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "chkZasilek",
-          "targets": [
-            "RodzajeNieobecnosci.ZASILEK"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "chkNieskladkowy",
-          "targets": [
-            "RodzajeNieobecnosci.OKRES_NIESKLADKOWY"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "chk50",
-          "targets": [
-            "RodzajeNieobecnosci.ZNACZNIK_50"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "chk3",
-          "targets": [
-            "RodzajeNieobecnosci.PREMIA_3"
-          ],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicZawody",
-      "guid": "0351c001-d443-3c79-e040-2f64070aa833",
-      "controls": [
-        {
-          "control": "dgcKodGUS",
-          "targets": [
-            "KodyZawodow.KOD"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "KodyZawodow.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcUpToDate",
-          "targets": [
-            "Zawody.UP_TO_DATE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "gtlKodyZawodow",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "gucZawodyNazwa",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "DataGrid",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "GridLayout",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.DicOdpowiedzialnoscRzeczowa",
-      "guid": "03f27c93-07ec-60b0-e040-2f64070a0603",
-      "controls": [
-        {
-          "control": "gucOdpowiedzialnoscRzeczowaNazwa",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcUpToDate",
-          "targets": [
-            "OdpowiedzialnoscRzeczowa.UP_TO_DATE"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcNazwa",
-          "targets": [
-            "OdpowiedzialnoscRzeczowa.NAZWA"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "DataGrid",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "GridLayout",
-          "targets": [],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgPersonelSlowniki.CrdSkladnikiPlacowe.SkladnikiPlacoweWidok",
-      "guid": "453fbf2e-a44a-403a-80f1-1e682a3fb2c3",
-      "controls": [
-        {
-          "control": "rdoGreater",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "rdoGreaterEqual",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "rdoEqual",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "rdoNone",
-          "targets": [],
-          "lookups": []
-        },
-        {
-          "control": "dgcCode",
-          "targets": [
-            "DefinicjeSkladnikiPlacowe.KOD"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcTitle",
-          "targets": [
-            "DefinicjeSkladnikiPlacowe.TYTUL"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcType",
-          "targets": [
-            "DefinicjeSkladnikiPlacowe.TYP"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcRounding",
-          "targets": [
-            "DefinicjeSkladnikiPlacowe.ZAOKR"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "rgpRelation",
-          "targets": [
-            "DefinicjeSkladnikiPlacowe.REL_DLA_IF"
-          ],
-          "lookups": []
-        },
-        {
-          "control": "dgcSuggestion",
-          "targets": [
-            "DefinicjeSkladnikiPlacowe.SPOD_TITLE"
-          ],
-          "lookups": []
-        }
-      ]
-    },
-    {
-      "form": "Teta.Sumo.Personel.plgUrlopy.PrzeliczaniePodstaw.ActPrzeliczaniePodstaw",
-      "guid": "f6cdbc27-b0dc-4d2d-a41d-173e9cb6844c",
-      "controls": []
-    }
-  ],
+  "formEvidenceChains": [],
   "audit": {
     "nodesByType": {
       "plugin_registry_entry": 3561,
@@ -2393,9 +1465,9 @@
       "ui_control": 93570,
       "target_binding": 53195,
       "data_factory": 1494,
-      "dotnet_type": 4827,
+      "dotnet_type": 4844,
       "gateway": 3238,
-      "oracle_object": 16019,
+      "oracle_object": 15281,
       "oracle_package": 4790,
       "lookup_binding": 834,
       "help_document": 1771,
@@ -2409,7 +1481,8 @@
       "oracle_function": 16212,
       "oracle_dependency": 11136,
       "oracle_procedure": 29399,
-      "oracle_argument": 340715
+      "oracle_argument": 340715,
+      "dataset_column": 33972
     },
     "edgesByType": {
       "REGISTERED_AS": 3561,
@@ -2419,16 +1492,16 @@
       "HAS_CONTROL": 98748,
       "BINDS_TARGET": 53195,
       "USES_DF": 3825,
-      "INHERITS_FROM": 7919,
+      "INHERITS_FROM": 7925,
       "RESOLVES_TO_GATEWAY": 7114,
-      "MAPS_TO_ORACLE_OBJECT": 28225,
+      "MAPS_TO_ORACLE_OBJECT": 23958,
       "USES_PACKAGE": 3196,
       "BINDS_LOOKUP": 834,
       "HAS_HELP": 1771,
       "DESCRIBES": 26658,
       "LABEL_FOR": 8333,
-      "DISPLAYS_FROM": 131,
-      "MAPS_TO_ORACLE_COLUMN": 131,
+      "DISPLAYS_FROM": 834,
+      "MAPS_TO_DATASET_COLUMN": 54994,
       "PRODUCES_DATASET": 8390,
       "READS_FROM": 5684,
       "JOINS_TO": 7086,
@@ -2444,7 +1517,9 @@
       "DEPENDS_ON": 11136,
       "HAS_PROCEDURE": 29399,
       "HAS_ARGUMENT": 342930,
-      "HAS_FUNCTION": 15984
+      "HAS_FUNCTION": 15984,
+      "RESOLVES_TO_ORACLE_COLUMN": 26100,
+      "HAS_DATASET_COLUMN": 27296
     },
     "coveragePerStage": {
       "stage1": 3561,
@@ -13625,7 +12700,145 @@
       "stage2d": "docs/AIA_SQLJOIN_STAGE2D.json",
       "stage2dFull": ".local/AIA_SQLJOIN_STAGE2D.full.ndjson"
     },
-    "identityVersion": "teta-aia-canonical-id-v1"
+    "identityVersion": "teta-aia-canonical-id-v1",
+    "stage2e1": {
+      "domainCounts": {
+        "plugin_registry_entry": 3561,
+        "application_form": 3561,
+        "assembly": 362,
+        "business_object": 2430,
+        "data_source": 7979,
+        "action_control": 5240,
+        "ui_control": 93570,
+        "target_binding": 53195,
+        "data_factory": 1494,
+        "dotnet_type": 4844,
+        "gateway": 3238,
+        "oracle_object": 15281,
+        "oracle_package": 4790,
+        "lookup_binding": 834,
+        "help_document": 1771,
+        "help_field": 26658,
+        "oracle_column": 138079,
+        "dataset": 8390,
+        "main_source": 5684,
+        "join": 7086,
+        "projected_column": 48731,
+        "calculated_column": 1280,
+        "oracle_function": 16212,
+        "oracle_dependency": 11136,
+        "oracle_procedure": 29399,
+        "oracle_argument": 340715,
+        "dataset_column": 33972
+      },
+      "nodesByDomain": {
+        "application": 167940,
+        "dotnet": 12368,
+        "oracle": 555612,
+        "help": 28429,
+        "dataset": 105143
+      },
+      "edgesByDomainPair": {
+        "REGISTERED_AS|application->application": 3561,
+        "IMPLEMENTED_BY|application->dotnet": 3433,
+        "USES_BO|application->dotnet": 2800,
+        "USES_DATASOURCE|application->application": 7979,
+        "HAS_CONTROL|application->application": 98748,
+        "BINDS_TARGET|application->application": 53195,
+        "USES_DF|application->dotnet": 3825,
+        "INHERITS_FROM|dotnet->dotnet": 7925,
+        "RESOLVES_TO_GATEWAY|dotnet->dotnet": 7114,
+        "MAPS_TO_ORACLE_OBJECT|dotnet->oracle": 3209,
+        "USES_PACKAGE|dotnet->oracle": 2859,
+        "BINDS_LOOKUP|application->application": 834,
+        "HAS_HELP|application->help": 1771,
+        "DESCRIBES|help->help": 18325,
+        "DESCRIBES|help->application": 8333,
+        "LABEL_FOR|help->application": 8333,
+        "MAPS_TO_ORACLE_OBJECT|application->oracle": 8012,
+        "DISPLAYS_FROM|application->dataset": 834,
+        "MAPS_TO_DATASET_COLUMN|application->dataset": 54994,
+        "PRODUCES_DATASET|dotnet->dataset": 8390,
+        "READS_FROM|dataset->dataset": 5684,
+        "MAPS_TO_ORACLE_OBJECT|dataset->oracle": 12737,
+        "JOINS_TO|dataset->dataset": 7086,
+        "PROJECTS|dataset->dataset": 48051,
+        "DERIVED_FROM|dataset->dataset": 2633,
+        "USES_PACKAGE|dataset->oracle": 337,
+        "CALLS_FUNCTION|dataset->oracle": 348,
+        "VALIDATED_BY_ORACLE|oracle->oracle": 12343,
+        "VALIDATED_BY_ORACLE|dotnet->oracle": 4,
+        "HAS_COLUMN|oracle->oracle": 137614,
+        "PRIMARY_KEY_OF|oracle->oracle": 1112,
+        "UNIQUE_KEY_OF|oracle->oracle": 1681,
+        "FOREIGN_KEY_TO|oracle->oracle": 3220,
+        "REFERENCES|oracle->oracle": 2824,
+        "DEPENDS_ON|oracle->oracle": 11136,
+        "HAS_PROCEDURE|oracle->oracle": 29399,
+        "HAS_ARGUMENT|oracle->oracle": 342930,
+        "HAS_FUNCTION|oracle->oracle": 15984,
+        "RESOLVES_TO_ORACLE_COLUMN|dataset->oracle": 26100,
+        "HAS_DATASET_COLUMN|dataset->dataset": 27296
+      },
+      "invalidOracleCandidates": 0,
+      "invalidOracleCandidatesDotnet": 0,
+      "invalidOracleCandidatesDatasetColumn": 0,
+      "invalidOracleCandidatesOther": 0,
+      "datasetColumnsCreated": 0,
+      "datasetColumnsResolvedToOracle": 13171,
+      "datasetColumnsUnresolved": 12398,
+      "oracleObjectsByOwner": {
+        "UNKNOWN": 6211,
+        "TETA_ADMIN": 6968,
+        "TETA_ADMIN_P": 6825,
+        "SYS": 28,
+        "PUBLIC": 13,
+        "TETA_ADMIN_AUDIT": 2,
+        "WZOR15_AUDIT": 2,
+        "APIO": 1,
+        "HRM": 21
+      },
+      "oracleObjectsByType": {
+        "VIEW": 7557,
+        "PACKAGE": 4790,
+        "TABLE": 3078,
+        "SYNONYM": 4640,
+        "TYPE": 5,
+        "FUNCTION": 1
+      },
+      "oracleIdentityCollisions": 0,
+      "synonymsResolved": 0,
+      "synonymsUnresolved": 4640,
+      "orphanNodesTotal": 11308,
+      "expectedOrphans": 11308,
+      "unexpectedOrphans": 0,
+      "invalidDomainOrphans": 0,
+      "unresolvedNodes": 0,
+      "unresolvedEdges": 0,
+      "unresolvedConflicts": 5432,
+      "resolvedConflicts": 0,
+      "conflictsTotal": 5432,
+      "domainEdgeViolations": 0,
+      "referenceChainsWithTypedIds": 6,
+      "referenceChainsInvalidDomain": 0,
+      "brokenEdges": 0,
+      "duplicateCanonicalIds": 0,
+      "examples": {
+        "invalidOracleCandidatesDotnet": [],
+        "invalidOracleCandidatesDatasetColumn": [],
+        "datasetColumnsCreated": [],
+        "domainEdgeViolations": [],
+        "unexpectedOrphans": [],
+        "invalidDomainOrphans": []
+      }
+    },
+    "nodesByDomain": {
+      "application": 167940,
+      "dotnet": 12368,
+      "oracle": 555612,
+      "help": 28429,
+      "dataset": 105143
+    }
   },
   "nodesSample": [
     {
@@ -13659,7 +12872,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\3b253949-d7f8-4094-acfd-713027eacbfb.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgListaPlac.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:3b253949-d7f8-4094-acfd-713027eacbfb:Teta.Sumo.Personel.plgListaPlac.UsuwanieWynikowObliczen.ActUsuwanieWynikowObliczen",
@@ -13691,7 +12906,9 @@
         "assembly": "plgListaPlac.dll",
         "registryId": "452"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "assembly:plgListaPlac.dll",
@@ -13706,7 +12923,9 @@
       "evidence": [],
       "provenance": [],
       "attributes": {},
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "dotnet",
+      "orphanStatus": null
     },
     {
       "id": "plugin:670ab806-2885-4f00-94cf-e86a5f545c85",
@@ -13739,7 +12958,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\670ab806-2885-4f00-94cf-e86a5f545c85.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Sales\\plgSalesDictionaries.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
@@ -13771,7 +12992,9 @@
         "assembly": "plgSalesDictionaries.dll",
         "registryId": "1009"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "assembly:plgSalesDictionaries.dll",
@@ -13786,7 +13009,9 @@
       "evidence": [],
       "provenance": [],
       "attributes": {},
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "dotnet",
+      "orphanStatus": null
     },
     {
       "id": "plugin:469e7730-e558-4631-a897-dfba526dda36",
@@ -13819,7 +13044,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\469e7730-e558-4631-a897-dfba526dda36.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgKOS.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:469e7730-e558-4631-a897-dfba526dda36:Teta.Sumo.Personel.plgKOS.CrdStanowiskoWStrukturzeOrg.StanowiskoWStrukturzeOrgWidok",
@@ -13851,7 +13078,9 @@
         "assembly": "plgKOS.dll",
         "registryId": "732"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "assembly:plgKOS.dll",
@@ -13866,7 +13095,9 @@
       "evidence": [],
       "provenance": [],
       "attributes": {},
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "dotnet",
+      "orphanStatus": null
     },
     {
       "id": "plugin:c660b15e-8865-4a65-8692-d8e7df503ff0",
@@ -13899,7 +13130,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\c660b15e-8865-4a65-8692-d8e7df503ff0.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgPersonelSlowniki.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:c660b15e-8865-4a65-8692-d8e7df503ff0:Teta.Sumo.Personel.plgPersonelSlowniki.DicZrodlaOcen",
@@ -13931,7 +13164,9 @@
         "assembly": "plgPersonelSlowniki.dll",
         "registryId": "735"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "assembly:plgPersonelSlowniki.dll",
@@ -13946,7 +13181,9 @@
       "evidence": [],
       "provenance": [],
       "attributes": {},
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "dotnet",
+      "orphanStatus": null
     },
     {
       "id": "plugin:18afa59e-c034-4831-9198-cf919653354a",
@@ -13979,7 +13216,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\18afa59e-c034-4831-9198-cf919653354a.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgPersonelSlowniki.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:18afa59e-c034-4831-9198-cf919653354a:Teta.Sumo.Personel.plgPersonelSlowniki.DicZadaniaStanowiska",
@@ -14011,7 +13250,9 @@
         "assembly": "plgPersonelSlowniki.dll",
         "registryId": "737"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "plugin:036d0794-9f71-4fcb-90c6-106d517dee9f",
@@ -14044,7 +13285,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\036d0794-9f71-4fcb-90c6-106d517dee9f.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgPersonelSlowniki.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:036d0794-9f71-4fcb-90c6-106d517dee9f:Teta.Sumo.Personel.plgPersonelSlowniki.DicInformacjeDodatkowe",
@@ -14076,7 +13319,9 @@
         "assembly": "plgPersonelSlowniki.dll",
         "registryId": "738"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "plugin:0aa96958-d542-4cdd-bd67-13ec9a554d13",
@@ -14109,7 +13354,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\0aa96958-d542-4cdd-bd67-13ec9a554d13.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgPersonelSlowniki.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:0aa96958-d542-4cdd-bd67-13ec9a554d13:Teta.Sumo.Personel.plgPersonelSlowniki.DicWspolpraca",
@@ -14141,7 +13388,9 @@
         "assembly": "plgPersonelSlowniki.dll",
         "registryId": "739"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "plugin:58c31964-fd36-486c-9f62-635e88d98f02",
@@ -14174,7 +13423,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\58c31964-fd36-486c-9f62-635e88d98f02.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgPersonelSlowniki.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:58c31964-fd36-486c-9f62-635e88d98f02:Teta.Sumo.Personel.plgPersonelSlowniki.DicWyposazenie",
@@ -14206,7 +13457,9 @@
         "assembly": "plgPersonelSlowniki.dll",
         "registryId": "740"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "plugin:c12353a1-f617-4073-a803-cbe6df59a113",
@@ -14239,7 +13492,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\c12353a1-f617-4073-a803-cbe6df59a113.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Logistics\\plgKontrahenci.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:c12353a1-f617-4073-a803-cbe6df59a113:Teta.Sumo.Logistics.plgKontrahenci.CrdOsobyKontaktowe.OsobyKontaktoweWidok",
@@ -14271,7 +13526,9 @@
         "assembly": "plgKontrahenci.dll",
         "registryId": "1010"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "assembly:plgKontrahenci.dll",
@@ -14286,7 +13543,9 @@
       "evidence": [],
       "provenance": [],
       "attributes": {},
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "dotnet",
+      "orphanStatus": null
     },
     {
       "id": "plugin:5f0901c2-54f9-407f-ad5c-39214142ca26",
@@ -14319,7 +13578,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\5f0901c2-54f9-407f-ad5c-39214142ca26.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\SOP\\plgWyciagiBankowe.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:5f0901c2-54f9-407f-ad5c-39214142ca26:Teta.Sumo.SOP.plgWyciagiBankowe.CrdWyciagiBankoweSzczegoly.WyciagiBankoweSzczegolyWidok",
@@ -14351,7 +13612,9 @@
         "assembly": "plgWyciagiBankowe.dll",
         "registryId": "827"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "assembly:plgWyciagiBankowe.dll",
@@ -14366,7 +13629,9 @@
       "evidence": [],
       "provenance": [],
       "attributes": {},
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "dotnet",
+      "orphanStatus": null
     },
     {
       "id": "plugin:0232fd3e-a695-d6b7-e040-2f64070a60a8",
@@ -14399,7 +13664,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\0232fd3e-a695-d6b7-e040-2f64070a60a8.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgPersonelSlowniki.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:0232fd3e-a695-d6b7-e040-2f64070a60a8:Teta.Sumo.Personel.plgPersonelSlowniki.DicOkresyWypowiedzen",
@@ -14431,7 +13698,9 @@
         "assembly": "plgPersonelSlowniki.dll",
         "registryId": "459"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "plugin:0232fd3e-a698-d6b7-e040-2f64070a60a8",
@@ -14464,7 +13733,9 @@
         "helpPath": "A:\\TETA Aplikacja klienta - 33.5\\Help\\0232fd3e-a698-d6b7-e040-2f64070a60a8.html",
         "resolvedDllPath": "A:\\TETA Aplikacja klienta - 33.5\\Plugins\\Personnel\\plgPersonelSlowniki.dll"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     },
     {
       "id": "form:0232fd3e-a698-d6b7-e040-2f64070a60a8:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeOdpraw",
@@ -14496,7 +13767,9 @@
         "assembly": "plgPersonelSlowniki.dll",
         "registryId": "460"
       },
-      "identityVersion": "teta-aia-canonical-id-v1"
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "domain": "application",
+      "orphanStatus": null
     }
   ],
   "edgesSample": [
@@ -14952,5 +14225,5 @@
     }
   ],
   "fullDumpPath": ".local/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson",
-  "note": "Etapy 1–2D niezmienione. Stage 2E = canonical graph + Oracle enrichment. Bez SQL/Qdrant/agenta."
+  "note": "Etapy 1–2E ekstraktory niezmienione. Stage 2E.1 = semantic integrity post-processing. Bez SQL/Qdrant/agenta."
 }

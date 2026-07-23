@@ -1,11 +1,12 @@
 /**
- * Stage 2E: Canonical Knowledge Graph + Oracle dependency enrichment.
+ * Stage 2E (+ 2E.1): Canonical Knowledge Graph + semantic integrity normalization.
  *
  *   pnpm --filter @teta/api run diagnose:stage2e
- *   pnpm --filter @teta/api run diagnose:stage2e -- --no-oracle
- *   pnpm --filter @teta/api run diagnose:stage2e -- --strict --limit 200
+ *   pnpm --filter @teta/api run diagnose:stage2e -- --from-existing --strict-semantic
+ *   pnpm --filter @teta/api run diagnose:stage2e -- --no-oracle --strict
  *
- * Does not modify Etap 1–2D. No SQL generation / Qdrant / chat agent.
+ * --from-existing: load .local Stage 2E NDJSON and apply only 2E.1 (no re-extract).
+ * Does not modify Etap 1–2E extractors. No SQL generation / Qdrant / chat agent.
  */
 import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import * as path from 'path';
@@ -13,6 +14,12 @@ import Database from 'better-sqlite3';
 import { decryptSecret } from '../oracle/oracle-crypto';
 import { assertStage2eStrict, buildStage2eGraph } from '../teta-plugins/teta-stage2e.analyze';
 import type { Stage2eGraph } from '../teta-plugins/teta-stage2e.types';
+import { loadStage2eGraphFromNdjson } from '../teta-plugins/teta-stage2e1.load';
+import {
+  assertStage2e1StrictSemantic,
+  normalizeStage2e1,
+} from '../teta-plugins/teta-stage2e1.normalize';
+import type { Stage2e1Audit } from '../teta-plugins/teta-stage2e1.audit';
 
 function loadDotEnv(envPath: string): void {
   if (!existsSync(envPath)) return;
@@ -81,12 +88,18 @@ function parseArgs(argv: string[]) {
   const out = {
     noOracle: false,
     strict: false,
+    strictSemantic: false,
+    fromExisting: false,
     limit: null as number | null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--no-oracle') out.noOracle = true;
     else if (a === '--strict') out.strict = true;
+    else if (a === '--strict-semantic') {
+      out.strictSemantic = true;
+      out.strict = true;
+    } else if (a === '--from-existing') out.fromExisting = true;
     else if (a === '--limit') {
       out.limit = Number(argv[++i]);
       if (!Number.isFinite(out.limit) || out.limit < 1) out.limit = null;
@@ -95,24 +108,25 @@ function parseArgs(argv: string[]) {
   return out;
 }
 
-function writeMarkdown(graph: Stage2eGraph): string {
+function writeMarkdown(graph: Stage2eGraph, stage2e1?: Stage2e1Audit | null): string {
   const s = graph.summary;
   const refs = graph.referenceChains;
+  const a21 = stage2e1;
   const lines = [
     '# AIA Canonical Knowledge Graph — Stage 2E',
     '',
     `Wygenerowano: **${graph.metadata.generatedAt}**`,
     `identityVersion: \`${graph.metadata.identityVersion}\``,
-    `Oracle enrichment: **${graph.metadata.oracleEnabled ? 'ON' : 'OFF (--no-oracle / unavailable)'}**`,
+    `Oracle enrichment: **${graph.metadata.oracleEnabled ? 'ON' : 'OFF / from-existing'}**`,
     graph.metadata.limit != null ? `Limit forms: **${graph.metadata.limit}**` : '',
     '',
     '## Zakres',
     '',
-    '- Etapy **1 / 2A / 2B / 2C / 2D** bez zmian logiki i faktów — tylko odczyt artefaktów.',
-    '- Kanoniczny graf: `nodes[]` + `edges[]` + provenance + Oracle metadata enrichment.',
+    '- Etapy **1 / 2A / 2B / 2C / 2D / 2E** bez zmian ekstraktorów — Stage 2E.1 to post-processing.',
+    '- Kanoniczny graf: `nodes[]` + `edges[]` + provenance + domeny + semantic integrity.',
     '- **Bez** generatora SQL, Qdrant, embeddingów, zmian agenta czatu.',
     '',
-    '## Audyt',
+    '## Audyt (Stage 2E)',
     '',
     '| Metryka | Wartość |',
     '|---------|---------|',
@@ -125,8 +139,43 @@ function writeMarkdown(graph: Stage2eGraph): string {
     `| Oracle confirmed / missing | **${s.oracleObjectsConfirmed}** / **${s.oracleObjectsMissing}** |`,
     `| Oracle columns / packages / procs / funcs / args | **${s.oracleColumns}** / **${s.packages}** / **${s.procedures}** / **${s.functions}** / **${s.arguments}** |`,
     `| FK / DEPENDS_ON | **${s.foreignKeys}** / **${s.dependencyEdges}** |`,
-    `| conflicts / unresolved / orphans | **${s.conflicts}** / **${s.unresolvedNodes}** / **${s.orphanNodes}** |`,
+    `| conflicts / unresolvedNodes / unresolvedConflicts | **${s.conflictsTotal ?? s.conflicts}** / **${s.unresolvedNodes}** / **${s.unresolvedConflicts}** |`,
+    `| orphan total / expected / unexpected / invalidDomain | **${s.orphanNodes}** / **${s.expectedOrphans}** / **${s.unexpectedOrphans}** / **${s.invalidDomainOrphans}** |`,
     `| broken edges / duplicate IDs | **${s.brokenEdges}** / **${s.duplicateCanonicalIds}** |`,
+    '',
+    '## Stage 2E.1 — semantic integrity normalization',
+    '',
+    a21
+      ? [
+          '| Metryka | Wartość |',
+          '|---------|---------|',
+          `| invalidOracleCandidates (dotnet / datasetCol / other) | **${a21.invalidOracleCandidates}** (**${a21.invalidOracleCandidatesDotnet}** / **${a21.invalidOracleCandidatesDatasetColumn}** / **${a21.invalidOracleCandidatesOther}**) |`,
+          `| datasetColumnsCreated / resolvedToOracle / unresolved | **${a21.datasetColumnsCreated}** / **${a21.datasetColumnsResolvedToOracle}** / **${a21.datasetColumnsUnresolved}** |`,
+          `| domainEdgeViolations | **${a21.domainEdgeViolations}** |`,
+          `| oracleIdentityCollisions | **${a21.oracleIdentityCollisions}** |`,
+          `| synonymsResolved / unresolved | **${a21.synonymsResolved}** / **${a21.synonymsUnresolved}** |`,
+          `| referenceChainsWithTypedIds / invalidDomain | **${a21.referenceChainsWithTypedIds}** / **${a21.referenceChainsInvalidDomain}** |`,
+          '',
+          '### Nodes by domain',
+          '',
+          '```json',
+          JSON.stringify(a21.nodesByDomain, null, 2),
+          '```',
+          '',
+          '### Examples — invalidOracleCandidatesDotnet (20)',
+          '',
+          ...(a21.examples.invalidOracleCandidatesDotnet.length
+            ? a21.examples.invalidOracleCandidatesDotnet.map((x) => `- ${x}`)
+            : ['_brak_']),
+          '',
+          '### Examples — invalidOracleCandidatesDatasetColumn (20)',
+          '',
+          ...(a21.examples.invalidOracleCandidatesDatasetColumn.length
+            ? a21.examples.invalidOracleCandidatesDatasetColumn.map((x) => `- ${x}`)
+            : ['_brak_']),
+          '',
+        ].join('\n')
+      : '_Stage 2E.1 not applied_',
     '',
     '### Coverage per stage',
     '',
@@ -146,7 +195,7 @@ function writeMarkdown(graph: Stage2eGraph): string {
     JSON.stringify((graph.audit as { edgesByType?: unknown }).edgesByType ?? {}, null, 2),
     '```',
     '',
-    '## Referencje A–F',
+    '## Referencje A–F (typed)',
     '',
     '```json',
     JSON.stringify(refs, null, 2),
@@ -154,7 +203,7 @@ function writeMarkdown(graph: Stage2eGraph): string {
     '',
     'JSON: `docs/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.json`',
     'Pełny dump: `.local/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson`',
-    'CLI: `pnpm --filter @teta/api run diagnose:stage2e`',
+    'CLI: `pnpm --filter @teta/api run diagnose:stage2e -- --from-existing --strict-semantic`',
     '',
   ].filter(Boolean);
   return lines.join('\n');
@@ -167,29 +216,43 @@ async function main() {
   const repoRoot = path.resolve(process.cwd(), '../..');
   const outDir = path.join(repoRoot, 'docs');
   const localDir = path.join(repoRoot, '.local');
+  const ndjsonPath = path.join(localDir, 'AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson');
 
-  let oracle = null as ReturnType<typeof readOracleConfig>;
-  if (!args.noOracle) {
-    try {
-      oracle = readOracleConfig(dbPath);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(`Oracle config: ${(e as Error).message} — continuing with --no-oracle behavior`);
-      oracle = null;
+  let graph: Stage2eGraph;
+
+  if (args.fromExisting) {
+    // eslint-disable-next-line no-console
+    console.error(`Stage2E.1: loading existing graph from ${ndjsonPath}…`);
+    graph = await loadStage2eGraphFromNdjson(ndjsonPath);
+  } else {
+    let oracle = null as ReturnType<typeof readOracleConfig>;
+    if (!args.noOracle) {
+      try {
+        oracle = readOracleConfig(dbPath);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Oracle config: ${(e as Error).message} — continuing with --no-oracle behavior`,
+        );
+        oracle = null;
+      }
     }
+    // eslint-disable-next-line no-console
+    console.error(
+      `Stage2E: building graph (oracle=${oracle && !args.noOracle ? 'on' : 'off'}, limit=${args.limit ?? 'none'})…`,
+    );
+    graph = await buildStage2eGraph({
+      repoRoot,
+      limit: args.limit,
+      oracle: args.noOracle ? null : oracle,
+      oracleEnabled: !args.noOracle && !!oracle,
+    });
   }
 
   // eslint-disable-next-line no-console
-  console.error(
-    `Stage2E: building graph (oracle=${oracle && !args.noOracle ? 'on' : 'off'}, limit=${args.limit ?? 'none'})…`,
-  );
-
-  const graph = await buildStage2eGraph({
-    repoRoot,
-    limit: args.limit,
-    oracle: args.noOracle ? null : oracle,
-    oracleEnabled: !args.noOracle && !!oracle,
-  });
+  console.error('Stage2E.1: semantic integrity normalization…');
+  const { graph: normalized, audit: stage2e1 } = normalizeStage2e1(graph);
+  graph = normalized;
 
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
   if (!existsSync(localDir)) mkdirSync(localDir, { recursive: true });
@@ -202,12 +265,13 @@ async function main() {
     formEvidenceChains: (graph.formEvidenceChains ?? []).slice(0, 20),
     audit: {
       ...graph.audit,
-      integrity: (graph.audit as { integrity?: unknown }).integrity,
+      stage2e1,
     },
     nodesSample: graph.nodes.slice(0, 30),
     edgesSample: graph.edges.slice(0, 30),
     fullDumpPath: '.local/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson',
-    note: 'Etapy 1–2D niezmienione. Stage 2E = canonical graph + Oracle enrichment. Bez SQL/Qdrant/agenta.',
+    note:
+      'Etapy 1–2E ekstraktory niezmienione. Stage 2E.1 = semantic integrity post-processing. Bez SQL/Qdrant/agenta.',
   };
 
   writeFileSync(
@@ -215,10 +279,9 @@ async function main() {
     `${JSON.stringify(slim, null, 2)}\n`,
     'utf8',
   );
-  const md = writeMarkdown(graph);
+  const md = writeMarkdown(graph, stage2e1);
   writeFileSync(path.join(outDir, 'AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.md'), md, 'utf8');
 
-  const ndjsonPath = path.join(localDir, 'AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson');
   const ws = createWriteStream(ndjsonPath, { encoding: 'utf8' });
   ws.write(
     `${JSON.stringify({ kind: 'audit', metadata: graph.metadata, summary: graph.summary, audit: graph.audit })}\n`,
@@ -240,7 +303,14 @@ async function main() {
   // eslint-disable-next-line no-console
   console.log(md);
 
-  if (args.strict) {
+  if (args.strictSemantic) {
+    const errors = assertStage2e1StrictSemantic(graph, stage2e1);
+    if (errors.length) {
+      // eslint-disable-next-line no-console
+      console.error('STRICT-SEMANTIC failures:\n' + errors.map((e) => `- ${e}`).join('\n'));
+      process.exit(2);
+    }
+  } else if (args.strict) {
     const errors = assertStage2eStrict(graph);
     if (errors.length) {
       // eslint-disable-next-line no-console
