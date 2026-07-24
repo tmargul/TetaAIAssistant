@@ -1,0 +1,161 @@
+{
+  "version": "teta-aia-evidence-templates-v1",
+  "templates": {
+    "explain_payroll_component": [
+      {
+        "evidenceType": "employee_identity",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred",
+        "missingWhenNoEntity": ["employeeNumber", "employeeId", "employeeName"]
+      },
+      {
+        "evidenceType": "payroll_identity",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred",
+        "missingWhenNoEntity": ["payrollNumber", "payrollType"]
+      },
+      {
+        "evidenceType": "payroll_period",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred",
+        "missingWhenNoEntity": ["payrollPeriod", "dateRange", "relativeDateRange"]
+      },
+      {
+        "evidenceType": "calculated_component_result",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred"
+      },
+      {
+        "evidenceType": "payroll_component_definition",
+        "required": true,
+        "graphQuery": { "op": "resolveNode", "nodeType": "oracle_object", "nameFromEntity": "componentCode" },
+        "runtimeSourceRequired": false,
+        "defaultStatus": "missing"
+      },
+      {
+        "evidenceType": "effective_component_definition",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred"
+      },
+      {
+        "evidenceType": "formula_or_algorithm",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": false,
+        "defaultStatus": "unavailable",
+        "missingReason": "full_execution_trace_not_in_canonical_graph"
+      },
+      {
+        "evidenceType": "component_dependencies",
+        "required": true,
+        "graphQuery": { "op": "structural_dependency_hint" },
+        "runtimeSourceRequired": false,
+        "defaultStatus": "deferred",
+        "notes": "structural_dependency_is_not_execution_proof"
+      },
+      {
+        "evidenceType": "called_packages_and_functions",
+        "required": true,
+        "graphQuery": { "op": "structural_dependency_hint" },
+        "runtimeSourceRequired": false,
+        "defaultStatus": "deferred",
+        "notes": "structural_dependency_is_not_execution_proof"
+      },
+      {
+        "evidenceType": "runtime_input_values",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred"
+      },
+      {
+        "evidenceType": "employee_insurance_context",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred"
+      },
+      {
+        "evidenceType": "effective_dates",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred"
+      },
+      {
+        "evidenceType": "calculation_trace_availability",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "unavailable",
+        "missingReason": "runtime_calculation_trace_not_available_in_stage3b"
+      }
+    ],
+    "validate_import_file": [
+      { "evidenceType": "file_metadata", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "file_columns", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "target_tables", "required": true, "graphQuery": { "op": "resolveOracleTablesFromEntities" }, "runtimeSourceRequired": false, "defaultStatus": "missing" },
+      { "evidenceType": "target_columns", "required": true, "graphQuery": { "op": "resolveOracleColumnsFromTables" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "datatype_rules", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "length_and_precision_rules", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "not_null_rules", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "primary_keys", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "unique_constraints", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "foreign_keys", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "check_constraints", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "required_dictionary_values", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "triggers", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "validation_packages", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "business_rules", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "temporal_overlap_rules", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
+      { "evidenceType": "import_order", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "rollback_validation_capability", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "unavailable", "missingReason": "rollback_validation_not_in_stage3b" }
+    ],
+    "build_employee_report": [
+      { "evidenceType": "report_subject", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "missing", "missingWhenNoEntity": ["reportSubject"] },
+      { "evidenceType": "employee_source", "required": true, "graphQuery": { "op": "resolveNode", "nameHint": "PRACOWNICY" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "business_event_source", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "requested_columns", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "filter_columns", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "date_semantics", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "joins", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "dictionary_display_columns", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "employee_scope", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "authorization_scope", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "output_format", "required": true, "graphQuery": null, "runtimeSourceRequired": false, "defaultStatus": "deferred" }
+    ],
+    "explain_application_field": [
+      { "evidenceType": "form", "required": true, "graphQuery": { "op": "resolveForm" }, "runtimeSourceRequired": false, "defaultStatus": "missing" },
+      { "evidenceType": "help_document", "required": false, "graphQuery": { "op": "resolveForm" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "help_field", "required": true, "graphQuery": { "op": "resolveField" }, "runtimeSourceRequired": false, "defaultStatus": "missing" },
+      { "evidenceType": "control", "required": true, "graphQuery": { "op": "resolveField" }, "runtimeSourceRequired": false, "defaultStatus": "missing" },
+      { "evidenceType": "target_binding", "required": false, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "lookup_binding", "required": false, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "dataset_columns", "required": false, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "oracle_columns", "required": false, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "action_parameter", "required": false, "graphQuery": { "op": "resolveField" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "provenance", "required": true, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" }
+    ],
+    "trace_application_to_oracle": [
+      { "evidenceType": "application_object", "required": true, "graphQuery": { "op": "resolveForm" }, "runtimeSourceRequired": false, "defaultStatus": "missing" },
+      { "evidenceType": "control_or_field", "required": true, "graphQuery": { "op": "resolveField" }, "runtimeSourceRequired": false, "defaultStatus": "missing" },
+      { "evidenceType": "target_path", "required": true, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "lookup_value_path", "required": false, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "lookup_display_path", "required": false, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "dataset_path", "required": false, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "oracle_object", "required": true, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "provenance", "required": true, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" },
+      { "evidenceType": "conflicts", "required": true, "graphQuery": { "op": "traceFieldToOracle" }, "runtimeSourceRequired": false, "defaultStatus": "deferred" }
+    ]
+  }
+}

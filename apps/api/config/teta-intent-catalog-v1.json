@@ -1,0 +1,94 @@
+{
+  "version": "teta-aia-planner-config-v1",
+  "contractVersion": "teta-aia-evidence-plan-v1",
+  "intents": [
+    {
+      "type": "explain_payroll_component",
+      "minScore": 4,
+      "requiredEntityTypes": ["componentCode"],
+      "clarificationEntityOrder": [
+        "employeeNumber",
+        "employeeId",
+        "payrollPeriod",
+        "payrollNumber",
+        "payrollType",
+        "componentCode"
+      ],
+      "signals": [
+        { "id": "dlaczego_skladnik", "pattern": "dlaczego\\s+sk[łl]adnik", "weight": 4 },
+        { "id": "z_czego_skladnik", "pattern": "z\\s+czego\\s+(si[eę]\\s+)?policzy[łl]", "weight": 4 },
+        { "id": "podstawa_skladnika", "pattern": "podstaw[ay]\\s+sk[łl]adnik", "weight": 4 },
+        { "id": "nie_naliczony", "pattern": "sk[łl]adnik.{0,40}nie\\s+(zosta[łl]\\s+)?naliczon", "weight": 4 },
+        { "id": "skladnik_policzyt", "pattern": "sk[łl]adnik\\s+\\d{3,5}.{0,60}policzy", "weight": 3 },
+        { "id": "wyniosl_skladnik", "pattern": "sk[łl]adnik\\s+\\d{3,5}.{0,40}wyn[ií][oó]s[łl]", "weight": 3 },
+        { "id": "naliczenie_skladnik", "pattern": "naliczen.{0,30}sk[łl]adnik", "weight": 3 }
+      ]
+    },
+    {
+      "type": "validate_import_file",
+      "minScore": 4,
+      "requiredEntityTypes": ["fileName"],
+      "clarificationEntityOrder": ["fileName", "targetTable"],
+      "signals": [
+        { "id": "sprawdz_plik", "pattern": "sprawd[zź].{0,40}plik", "weight": 3 },
+        { "id": "przed_importem", "pattern": "przed\\s+importem", "weight": 3 },
+        { "id": "xlsx_import", "pattern": "xlsx|xls\\b", "weight": 2 },
+        { "id": "przejdzie_import", "pattern": "przejdzie\\s+import|przejd[aą]\\s+import", "weight": 3 },
+        { "id": "constrainty", "pattern": "constraint|constrainty|ograniczen", "weight": 2 },
+        { "id": "import_do_tabel", "pattern": "importu?\\s+do\\s+[A-Z_]{3,}", "weight": 3 },
+        { "id": "dane_potrzebne_import", "pattern": "dane\\s+potrzebne\\s+do\\s+importu", "weight": 4 }
+      ]
+    },
+    {
+      "type": "build_employee_report",
+      "minScore": 4,
+      "requiredEntityTypes": ["reportSubject"],
+      "clarificationEntityOrder": ["reportSubject", "relativeDateRange", "dateRange"],
+      "signals": [
+        { "id": "raport_pracownikow", "pattern": "raport\\s+pracownik", "weight": 4 },
+        { "id": "zrob_raport", "pattern": "zr[oó]b\\s+raport", "weight": 3 },
+        { "id": "lista_pracownikow_warunek", "pattern": "lista\\s+pracownik.{0,40}(bez|z\\s+|kt[oó]rym)", "weight": 3 },
+        { "id": "pokaz_pracownikow", "pattern": "poka[zż]\\s+pracownik", "weight": 3 },
+        { "id": "koncza_sie_badan", "pattern": "ko[nń]cz[aą]\\s+si[eę]\\s+badan", "weight": 4 },
+        { "id": "wygasajace_umowy", "pattern": "wygasaj[aą]cych\\s+um[oó]w|wygasaj[aą]ce\\s+umowy", "weight": 4 },
+        { "id": "badan_bhp", "pattern": "badan.{0,20}bhp|bhp.{0,20}badan", "weight": 3 }
+      ]
+    },
+    {
+      "type": "explain_application_field",
+      "minScore": 4,
+      "requiredEntityTypes": ["fieldLabel"],
+      "clarificationEntityOrder": ["formName", "formGuid", "fieldLabel"],
+      "signals": [
+        { "id": "do_czego_sluzy_pole", "pattern": "do\\s+czego\\s+s[łl]u[zż]y\\s+pole", "weight": 5 },
+        { "id": "co_oznacza_pole", "pattern": "co\\s+oznacza\\s+(pole|typ\\s+listy|warto[sś][cć])", "weight": 4 },
+        { "id": "co_pokazuje_formularz", "pattern": "co\\s+pokazuje\\s+formularz", "weight": 4 },
+        { "id": "znaczenie_pola", "pattern": "znaczenie\\s+pola|opis\\s+pola", "weight": 3 }
+      ]
+    },
+    {
+      "type": "trace_application_to_oracle",
+      "minScore": 4,
+      "requiredEntityTypes": [],
+      "clarificationEntityOrder": ["formName", "fieldLabel", "oracleObjectName"],
+      "signals": [
+        { "id": "gdzie_w_bazie", "pattern": "gdzie\\s+w\\s+bazie", "weight": 4 },
+        { "id": "jaka_tabela_odpowiada", "pattern": "jaka\\s+tabela\\s+odpowiada", "weight": 4 },
+        { "id": "z_jakiego_widoku", "pattern": "z\\s+jakiego\\s+widoku", "weight": 4 },
+        { "id": "zapisuje_sie_pole", "pattern": "zapisuje\\s+si[eę]\\s+pole|zapisuje\\s+si[eę]\\s+warto[sś][cć]", "weight": 3 },
+        { "id": "mapowanie_oracle", "pattern": "mapowanie.{0,20}oracle|oracle.{0,20}mapowanie", "weight": 3 }
+      ]
+    },
+    {
+      "type": "unsupported",
+      "minScore": 5,
+      "requiredEntityTypes": [],
+      "clarificationEntityOrder": [],
+      "signals": [
+        { "id": "wyslij_przelew", "pattern": "wy[sś]lij\\s+przelew|zrob\\s+przelew|wykonaj\\s+przelew", "weight": 5 },
+        { "id": "zapisz_do_oracle", "pattern": "zapisz\\s+do\\s+(bazy|oracle)|update\\s+pracownika|usu[nń]\\s+pracownika", "weight": 5 },
+        { "id": "zmien_dane", "pattern": "zmie[nń]\\s+dane\\s+pracownika\\s+w\\s+bazie", "weight": 5 }
+      ]
+    }
+  ]
+}

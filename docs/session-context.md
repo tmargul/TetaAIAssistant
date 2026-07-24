@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-24** (Etap 3A — Canonical Graph Access Layer)
+> Ostatnia aktualizacja: **2026-07-24** (Etap 3B — Intent & Evidence Planning Layer)
 
 ---
 
@@ -137,6 +137,17 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 ## Notatki sesji
 
+### 2026-07-24 — Etap 3B Intent & Evidence Planning Layer ✅
+
+- Moduł `apps/api/src/teta-planner/` + CLI `planner:stage3b` (`plan|catalog|audit --strict`).
+- Kontrakt `teta-aia-evidence-plan-v1`; configi v1: intent catalog, evidence templates, language PL.
+- Intencje: payroll / import XLSX / raport / help field / trace→Oracle / unsupported / unknown.
+- Klient Stage 3A (bez NDJSON, bez auto-resolve ambiguous); runtime evidence = `deferred`.
+- `executionPolicy`: SQL/file/Oracle write = false; guessedEntities/autoResolved = 0.
+- Audit `--strict` EXIT 0; refs A–G OK; testy `teta-stage3b.spec.ts` (30).
+- Artefakty: `docs/AIA_INTENT_EVIDENCE_PLANNER_STAGE3B.md` / `.json` (`.local` audit gitignored).
+- **Bez** Stage 3C / SQL gen / Qdrant / embeddingów / LLM / agenta. Nie commitować bez prośby.
+
 ### 2026-07-20 — IP VM Oracle (Default Switch)
 
 - Host `vEthernet (Default Switch)`: **`172.22.240.1/20`** (wcześniej `172.26.224.0/20`).
@@ -207,7 +218,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Ambiguous nie auto-resolved; konflikty propagowane; target/lookup split; UNKNOWN ≠ confirmed.
 - Audit `--strict` EXIT 0; refs A–F OK; testy `teta-stage3a.spec.ts` (21).
 - Artefakty: `docs/AIA_CANONICAL_GRAPH_ACCESS_STAGE3A.md` / `.json` (`.local` gitignored).
-- **Bez** SQL gen / Qdrant / embeddingów / LLM / agenta / Stage 3B.
+- **Bez** SQL gen / Qdrant / embeddingów / LLM / agenta (Stage 3B osobno).
 
 ### 2026-07-24 — Etap 2E.1 patch metryk dataset_column ✅
 

@@ -1,0 +1,67 @@
+{
+  "version": "teta-aia-planner-language-pl-v1",
+  "clarificationQuestions": {
+    "employeeNumber": "Którego pracownika dotyczy pytanie?",
+    "employeeId": "Podaj identyfikator pracownika (ID).",
+    "employeeName": "Podaj imię i nazwisko pracownika.",
+    "componentCode": "Którego składnika płacowego dotyczy pytanie?",
+    "payrollPeriod": "Której listy płac lub którego okresu dotyczy naliczenie?",
+    "payrollNumber": "Podaj numer listy płac.",
+    "payrollType": "Podaj typ listy płac (np. UC).",
+    "formName": "Na którym formularzu znajduje się to pole?",
+    "formGuid": "Podaj GUID formularza.",
+    "fieldLabel": "O jakie pole chodzi (etykieta)?",
+    "fileName": "Jaki plik ma zostać sprawdzony?",
+    "targetTable": "Do jakich tabel docelowych ma trafić import?",
+    "reportSubject": "Jaki temat raportu jest potrzebny?",
+    "oracleObjectName": "Jakiego obiektu Oracle dotyczy pytanie?",
+    "dateRange": "Podaj zakres dat.",
+    "relativeDateRange": "Podaj okres (np. ten miesiąc)."
+  },
+  "monthNames": {
+    "styczen": 1,
+    "styczeń": 1,
+    "luty": 2,
+    "marzec": 3,
+    "kwiecien": 4,
+    "kwiecień": 4,
+    "maj": 5,
+    "czerwiec": 6,
+    "lipiec": 7,
+    "sierpien": 8,
+    "sierpień": 8,
+    "wrzesien": 9,
+    "wrzesień": 9,
+    "pazdziernik": 10,
+    "październik": 10,
+    "listopad": 11,
+    "grudzien": 12,
+    "grudzień": 12
+  },
+  "reportSubjects": [
+    {
+      "id": "occupational_health_examinations",
+      "patterns": [
+        "badan.{0,30}bhp",
+        "bhp.{0,30}badan",
+        "badaniami\\s+bhp",
+        "badan\\s+bhp",
+        "medycyn.{0,20}pracy"
+      ]
+    },
+    {
+      "id": "expiring_contracts",
+      "patterns": ["wygasaj[aą]cych\\s+um[oó]w", "wygasaj[aą]ce\\s+umowy", "ko[nń]cz[aą]cych\\s+si[eę]\\s+um[oó]w"]
+    },
+    {
+      "id": "employees_without_position",
+      "patterns": ["pracownik.{0,40}bez\\s+stanowisk"]
+    }
+  ],
+  "relativeDateExpressions": [
+    { "expression": "current_month", "patterns": ["w\\s+tym\\s+miesi[aą]cu", "bie[zż][aą]cym\\s+miesi[aą]cu", "aktualnym\\s+miesi[aą]cu"] },
+    { "expression": "previous_month", "patterns": ["w\\s+poprzednim\\s+miesi[aą]cu", "w\\s+zesz[łl]ym\\s+miesi[aą]cu"] },
+    { "expression": "today", "patterns": ["\\bdzisiaj\\b", "\\bdzi[sś]\\b"] }
+  ],
+  "genericTokensForbiddenAlone": ["lista", "wartosc", "wartość", "pracownik", "pole", "formularz", "nazwa"]
+}

@@ -1,0 +1,766 @@
+# AIA Intent & Evidence Planner — Stage 3B
+
+Wygenerowano: **2026-07-24T16:30:50.634Z**
+contractVersion: `teta-aia-evidence-plan-v1`
+plannerConfigVersion: `teta-aia-planner-config-v1`
+
+## Architektura
+
+- Moduł: `apps/api/src/teta-planner/`
+- Konfiguracje: `apps/api/config/teta-*-v1.json`
+- Klient Stage 3A: `CanonicalGraphResolverService` (bez NDJSON, bez własnego rankingu)
+- **Bez** SQL gen / SQL exec / XLSX / Qdrant / embeddingów / LLM / agenta / Oracle write
+
+## Kontrakt
+
+- Request: `TetaPlanningRequest`
+- Plan: `TetaEvidencePlan` (`teta-aia-evidence-plan-v1`)
+- Statusy: ready | needs_clarification | ambiguous | unsupported | invalid
+
+## Katalog intencji
+
+- explain_payroll_component
+- validate_import_file
+- build_employee_report
+- explain_application_field
+- trace_application_to_oracle
+- unsupported / unknown
+
+## Audit metrics
+
+| Metryka | Wartość |
+|---------|---------|
+| questionsTested | **7** |
+| intentsResolved / unknown / unsupported | **6** / **0** / **1** |
+| ready / needs_clarification / ambiguous / invalid | **2** / **1** / **3** / **0** |
+| entitiesExtracted | **16** |
+| graphQueries / resolved / ambiguous | **6** / **0** / **7** |
+| deferredEvidence | **58** |
+| guessedEntities / autoResolvedAmbiguities | **0** / **0** |
+| SQL gen/exec / filesRead / oracleWrites | **0** / **0** / **0** / **0** |
+| avg / max planning ms | **270** / **1299** |
+| graphSourceHash | `2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3` |
+| strictErrors | **0** |
+
+## Referencje A–G
+
+```json
+{
+  "A": {
+    "planningStatus": "ready",
+    "intent": "explain_payroll_component",
+    "confidence": "exact",
+    "entities": [
+      {
+        "type": "componentCode",
+        "rawValue": "4300",
+        "normalizedValue": "4300",
+        "source": "question"
+      },
+      {
+        "type": "componentValue",
+        "rawValue": "5200",
+        "normalizedValue": "5200",
+        "source": "question"
+      },
+      {
+        "type": "payrollType",
+        "rawValue": "UC",
+        "normalizedValue": "UC",
+        "source": "question"
+      },
+      {
+        "type": "employeeNumber",
+        "rawValue": "00034",
+        "normalizedValue": "00034",
+        "source": "question"
+      },
+      {
+        "type": "payrollPeriod",
+        "rawValue": "luty 2026",
+        "normalizedValue": "2026-02",
+        "source": "question"
+      }
+    ],
+    "missingEntities": [],
+    "ambiguities": [],
+    "clarificationQuestions": [],
+    "evidenceStatuses": [
+      {
+        "evidenceType": "employee_identity",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "payroll_identity",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "payroll_period",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "calculated_component_result",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "payroll_component_definition",
+        "status": "missing",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "effective_component_definition",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "formula_or_algorithm",
+        "status": "unavailable",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "component_dependencies",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "called_packages_and_functions",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "runtime_input_values",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "employee_insurance_context",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "effective_dates",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "calculation_trace_availability",
+        "status": "unavailable",
+        "runtimeSourceRequired": true
+      }
+    ],
+    "executionPolicy": {
+      "sqlGenerationAllowed": false,
+      "sqlExecutionAllowed": false,
+      "fileReadAllowed": false,
+      "oracleWriteAllowed": false,
+      "reason": "Stage 3B planning only"
+    },
+    "graphNodes": 0,
+    "graphEdges": 0,
+    "graphConflicts": 0,
+    "durationMs": 9
+  },
+  "B": {
+    "planningStatus": "needs_clarification",
+    "intent": "explain_payroll_component",
+    "confidence": "exact",
+    "entities": [
+      {
+        "type": "componentCode",
+        "rawValue": "4300",
+        "normalizedValue": "4300",
+        "source": "question"
+      }
+    ],
+    "missingEntities": [
+      {
+        "type": "employee",
+        "reason": "employee_identity_not_provided",
+        "requiredForIntent": true
+      },
+      {
+        "type": "payroll_context",
+        "reason": "payroll_period_or_list_not_provided",
+        "requiredForIntent": true
+      }
+    ],
+    "ambiguities": [],
+    "clarificationQuestions": [
+      {
+        "entityType": "employeeNumber",
+        "question": "Którego pracownika dotyczy pytanie?"
+      },
+      {
+        "entityType": "payrollPeriod",
+        "question": "Której listy płac lub którego okresu dotyczy naliczenie?"
+      }
+    ],
+    "evidenceStatuses": [
+      {
+        "evidenceType": "employee_identity",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "payroll_identity",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "payroll_period",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "calculated_component_result",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "payroll_component_definition",
+        "status": "missing",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "effective_component_definition",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "formula_or_algorithm",
+        "status": "unavailable",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "component_dependencies",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "called_packages_and_functions",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "runtime_input_values",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "employee_insurance_context",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "effective_dates",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "calculation_trace_availability",
+        "status": "unavailable",
+        "runtimeSourceRequired": true
+      }
+    ],
+    "executionPolicy": {
+      "sqlGenerationAllowed": false,
+      "sqlExecutionAllowed": false,
+      "fileReadAllowed": false,
+      "oracleWriteAllowed": false,
+      "reason": "Stage 3B planning only"
+    },
+    "graphNodes": 0,
+    "graphEdges": 0,
+    "graphConflicts": 0,
+    "durationMs": 1
+  },
+  "C": {
+    "planningStatus": "ambiguous",
+    "intent": "validate_import_file",
+    "confidence": "exact",
+    "entities": [
+      {
+        "type": "fileName",
+        "rawValue": "import.xlsx",
+        "normalizedValue": "import.xlsx",
+        "source": "question"
+      },
+      {
+        "type": "fileType",
+        "rawValue": "xlsx",
+        "normalizedValue": "xlsx",
+        "source": "question"
+      },
+      {
+        "type": "targetTable",
+        "rawValue": "T_PRAC",
+        "normalizedValue": "T_PRAC",
+        "source": "question"
+      },
+      {
+        "type": "targetTable",
+        "rawValue": "L_STANOWISKA",
+        "normalizedValue": "L_STANOWISKA",
+        "source": "question"
+      },
+      {
+        "type": "targetTable",
+        "rawValue": "L_STAWKI",
+        "normalizedValue": "L_STAWKI",
+        "source": "question"
+      }
+    ],
+    "missingEntities": [],
+    "ambiguities": [
+      {
+        "kind": "ambiguous",
+        "subject": "targetTable:L_STANOWISKA"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "targetTable:L_STAWKI"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "targetTable:T_PRAC"
+      }
+    ],
+    "clarificationQuestions": [],
+    "evidenceStatuses": [
+      {
+        "evidenceType": "file_metadata",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "file_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "target_tables",
+        "status": "ambiguous",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "target_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "datatype_rules",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "length_and_precision_rules",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "not_null_rules",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "primary_keys",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "unique_constraints",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "foreign_keys",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "check_constraints",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "required_dictionary_values",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "triggers",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "validation_packages",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "business_rules",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "temporal_overlap_rules",
+        "status": "deferred",
+        "runtimeSourceRequired": true
+      },
+      {
+        "evidenceType": "import_order",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "rollback_validation_capability",
+        "status": "unavailable",
+        "runtimeSourceRequired": false
+      }
+    ],
+    "executionPolicy": {
+      "sqlGenerationAllowed": false,
+      "sqlExecutionAllowed": false,
+      "fileReadAllowed": false,
+      "oracleWriteAllowed": false,
+      "reason": "Stage 3B planning only"
+    },
+    "graphNodes": 8,
+    "graphEdges": 0,
+    "graphConflicts": 0,
+    "durationMs": 35
+  },
+  "D": {
+    "planningStatus": "ready",
+    "intent": "build_employee_report",
+    "confidence": "exact",
+    "entities": [
+      {
+        "type": "reportSubject",
+        "rawValue": "badania BHP",
+        "normalizedValue": "occupational_health_examinations",
+        "source": "question"
+      },
+      {
+        "type": "relativeDateRange",
+        "rawValue": "w tym miesiącu",
+        "normalizedValue": "current_month",
+        "source": "question"
+      }
+    ],
+    "missingEntities": [],
+    "ambiguities": [],
+    "clarificationQuestions": [],
+    "evidenceStatuses": [
+      {
+        "evidenceType": "report_subject",
+        "status": "resolved",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "employee_source",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "business_event_source",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "requested_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "filter_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "date_semantics",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "joins",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "dictionary_display_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "employee_scope",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "authorization_scope",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "output_format",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      }
+    ],
+    "executionPolicy": {
+      "sqlGenerationAllowed": false,
+      "sqlExecutionAllowed": false,
+      "fileReadAllowed": false,
+      "oracleWriteAllowed": false,
+      "reason": "Stage 3B planning only"
+    },
+    "graphNodes": 0,
+    "graphEdges": 0,
+    "graphConflicts": 0,
+    "durationMs": 1
+  },
+  "E": {
+    "planningStatus": "ambiguous",
+    "intent": "explain_application_field",
+    "confidence": "contextual",
+    "entities": [
+      {
+        "type": "fieldLabel",
+        "rawValue": "Wartość",
+        "normalizedValue": "wartosc",
+        "source": "question"
+      },
+      {
+        "type": "formName",
+        "rawValue": "Lista obliczona",
+        "normalizedValue": "lista obliczona",
+        "source": "question"
+      }
+    ],
+    "missingEntities": [],
+    "ambiguities": [
+      {
+        "kind": "ambiguous",
+        "subject": "action_parameter"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "control"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "field"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "help_field"
+      }
+    ],
+    "clarificationQuestions": [],
+    "evidenceStatuses": [
+      {
+        "evidenceType": "form",
+        "status": "missing",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "help_document",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "help_field",
+        "status": "ambiguous",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "control",
+        "status": "ambiguous",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "target_binding",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "lookup_binding",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "dataset_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "oracle_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "action_parameter",
+        "status": "ambiguous",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "provenance",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      }
+    ],
+    "executionPolicy": {
+      "sqlGenerationAllowed": false,
+      "sqlExecutionAllowed": false,
+      "fileReadAllowed": false,
+      "oracleWriteAllowed": false,
+      "reason": "Stage 3B planning only"
+    },
+    "graphNodes": 14,
+    "graphEdges": 0,
+    "graphConflicts": 0,
+    "durationMs": 546
+  },
+  "F": {
+    "planningStatus": "ambiguous",
+    "intent": "explain_application_field",
+    "confidence": "contextual",
+    "entities": [
+      {
+        "type": "fieldLabel",
+        "rawValue": "Nazwa",
+        "normalizedValue": "nazwa",
+        "source": "question"
+      }
+    ],
+    "missingEntities": [],
+    "ambiguities": [
+      {
+        "kind": "ambiguous",
+        "subject": "action_parameter"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "control"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "field"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "fieldLabel"
+      },
+      {
+        "kind": "ambiguous",
+        "subject": "help_field"
+      }
+    ],
+    "clarificationQuestions": [],
+    "evidenceStatuses": [
+      {
+        "evidenceType": "form",
+        "status": "missing",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "help_document",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "help_field",
+        "status": "ambiguous",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "control",
+        "status": "ambiguous",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "target_binding",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "lookup_binding",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "dataset_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "oracle_columns",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "action_parameter",
+        "status": "ambiguous",
+        "runtimeSourceRequired": false
+      },
+      {
+        "evidenceType": "provenance",
+        "status": "deferred",
+        "runtimeSourceRequired": false
+      }
+    ],
+    "executionPolicy": {
+      "sqlGenerationAllowed": false,
+      "sqlExecutionAllowed": false,
+      "fileReadAllowed": false,
+      "oracleWriteAllowed": false,
+      "reason": "Stage 3B planning only"
+    },
+    "graphNodes": 14,
+    "graphEdges": 0,
+    "graphConflicts": 0,
+    "durationMs": 1299
+  },
+  "G": {
+    "planningStatus": "unsupported",
+    "intent": "unsupported",
+    "confidence": "contextual",
+    "entities": [],
+    "missingEntities": [],
+    "ambiguities": [],
+    "clarificationQuestions": [],
+    "evidenceStatuses": [],
+    "executionPolicy": {
+      "sqlGenerationAllowed": false,
+      "sqlExecutionAllowed": false,
+      "fileReadAllowed": false,
+      "oracleWriteAllowed": false,
+      "reason": "Stage 3B planning only"
+    },
+    "graphNodes": 0,
+    "graphEdges": 0,
+    "graphConflicts": 0,
+    "durationMs": 0
+  }
+}
+```
+
+## Przykłady statusów
+
+- **ready** — kompletne encje + plan dowodów (np. ref A / D / C przy pełnych danych)
+- **needs_clarification** — brak pracownika/okresu (ref B)
+- **ambiguous** — pole bez formularza (ref F)
+- **unsupported** — zapis/przelew (ref G)
+
+## CLI
+
+```bash
+pnpm --filter @teta/api run planner:stage3b -- plan --question "..."
+pnpm --filter @teta/api run planner:stage3b -- catalog
+pnpm --filter @teta/api run planner:stage3b -- audit --strict
+```
