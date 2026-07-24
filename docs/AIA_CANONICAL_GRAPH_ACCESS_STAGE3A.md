@@ -1,0 +1,532 @@
+# AIA Canonical Graph Access — Stage 3A
+
+Wygenerowano: **2026-07-24T12:32:03.645Z**
+indexSchemaVersion: `teta-aia-graph-index-v1`
+identityVersion: `teta-aia-canonical-id-v1`
+
+## Architektura
+
+- Źródło: `.local/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson` (streaming)
+- Indeks: `.local/AIA_CANONICAL_GRAPH_STAGE3A.sqlite` (gitignored)
+- Usługi: `CanonicalGraphIndexService` (build) + `CanonicalGraphResolverService` (queries)
+- Bez SQL generatora, Qdrant, embeddingów, LLM, zmian agenta
+
+## Build metrics
+
+```json
+{
+  "reusedExistingIndex": true
+}
+```
+
+## Query / audit metrics
+
+| Metryka | Wartość |
+|---------|---------|
+| nodes / edges / names | **864320** / **992993** / **2521663** |
+| conflicts / refs | **5432** / **6** |
+| missing edge src/tgt | **0** / **0** |
+| queries resolved/ambiguous/unresolved/conflicting | **10** / **2** / **1** / **0** |
+| avg / max query ms | **133** / **946** |
+| build / open ms | **null** / **2** |
+
+## Referencje A–F
+
+```json
+{
+  "A_TypStanowiska": {
+    "status": "resolved",
+    "selectedNodeId": null,
+    "candidates": 3,
+    "nodes": 11,
+    "edges": 20,
+    "paths": 4,
+    "warnings": [],
+    "truncated": false
+  },
+  "B_DicRodzajeKoncesji": {
+    "form": {
+      "status": "resolved",
+      "selectedNodeId": "form:670ab806-2885-4f00-94cf-e86a5f545c85:Teta.Sumo.Sales.plgSalesDictionaries.DicRodzajeKoncesji",
+      "candidates": 1,
+      "nodes": 1,
+      "edges": 0,
+      "paths": 0,
+      "warnings": [],
+      "truncated": false
+    },
+    "oracle": {
+      "status": "resolved",
+      "results": [
+        {
+          "status": "resolved",
+          "query": {
+            "op": "resolveNode",
+            "owner": "TETA_ADMIN",
+            "objectType": "VIEW",
+            "name": "NT_LG_SLO_RODZAJE_KONCESJI"
+          },
+          "selectedNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+          "candidates": [
+            {
+              "nodeId": "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+              "scoreRank": 3,
+              "matchKind": "exact_oracle_identity",
+              "confidence": "confirmed",
+              "domain": "oracle",
+              "type": "oracle_object",
+              "canonicalName": "TETA_ADMIN.NT_LG_SLO_RODZAJE_KONCESJI",
+              "name": "NT_LG_SLO_RODZAJE_KONCESJI"
+            }
+          ],
+          "nodes": [
+            {
+              "id": "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+              "type": "oracle_object",
+              "domain": "oracle",
+              "name": "NT_LG_SLO_RODZAJE_KONCESJI",
+              "canonicalName": "TETA_ADMIN.NT_LG_SLO_RODZAJE_KONCESJI",
+              "owner": "TETA_ADMIN",
+              "objectType": "VIEW",
+              "confidence": "confirmed",
+              "sourceStages": [
+                "2E"
+              ],
+              "attributes": {
+                "owner": "TETA_ADMIN",
+                "objectType": "VIEW",
+                "objectName": "NT_LG_SLO_RODZAJE_KONCESJI",
+                "status": "VALID",
+                "oracleValidationStatus": "confirmed",
+                "canonicalOracleIdentity": "TETA_ADMIN.VIEW.NT_LG_SLO_RODZAJE_KONCESJI"
+              },
+              "evidence": [
+                {
+                  "kind": "oracle_metadata",
+                  "view": "ALL_OBJECTS",
+                  "owner": "TETA_ADMIN",
+                  "name": "NT_LG_SLO_RODZAJE_KONCESJI"
+                }
+              ],
+              "semanticNormalization": null
+            }
+          ],
+          "edges": [],
+          "paths": [],
+          "conflicts": [],
+          "warnings": [],
+          "provenance": [
+            {
+              "nodeId": "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+              "evidence": {
+                "kind": "oracle_metadata",
+                "view": "ALL_OBJECTS",
+                "owner": "TETA_ADMIN",
+                "name": "NT_LG_SLO_RODZAJE_KONCESJI"
+              }
+            }
+          ],
+          "audit": {
+            "candidateCount": 1,
+            "durationMs": 83
+          },
+          "truncated": false,
+          "continuation": null
+        },
+        {
+          "status": "resolved",
+          "query": {
+            "op": "resolveNode",
+            "owner": "TETA_ADMIN_P",
+            "objectType": "VIEW",
+            "name": "NT_LG_SLO_RODZAJE_KONCESJI"
+          },
+          "selectedNodeId": "oracle-object:TETA_ADMIN_P:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+          "candidates": [
+            {
+              "nodeId": "oracle-object:TETA_ADMIN_P:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+              "scoreRank": 3,
+              "matchKind": "exact_oracle_identity",
+              "confidence": "confirmed",
+              "domain": "oracle",
+              "type": "oracle_object",
+              "canonicalName": "TETA_ADMIN_P.NT_LG_SLO_RODZAJE_KONCESJI",
+              "name": "NT_LG_SLO_RODZAJE_KONCESJI"
+            }
+          ],
+          "nodes": [
+            {
+              "id": "oracle-object:TETA_ADMIN_P:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+              "type": "oracle_object",
+              "domain": "oracle",
+              "name": "NT_LG_SLO_RODZAJE_KONCESJI",
+              "canonicalName": "TETA_ADMIN_P.NT_LG_SLO_RODZAJE_KONCESJI",
+              "owner": "TETA_ADMIN_P",
+              "objectType": "VIEW",
+              "confidence": "confirmed",
+              "sourceStages": [
+                "2E"
+              ],
+              "attributes": {
+                "owner": "TETA_ADMIN_P",
+                "objectType": "VIEW",
+                "objectName": "NT_LG_SLO_RODZAJE_KONCESJI",
+                "status": "VALID",
+                "oracleValidationStatus": "confirmed",
+                "canonicalOracleIdentity": "TETA_ADMIN_P.VIEW.NT_LG_SLO_RODZAJE_KONCESJI"
+              },
+              "evidence": [
+                {
+                  "kind": "oracle_metadata",
+                  "view": "ALL_OBJECTS",
+                  "owner": "TETA_ADMIN_P",
+                  "name": "NT_LG_SLO_RODZAJE_KONCESJI"
+                }
+              ],
+              "semanticNormalization": null
+            }
+          ],
+          "edges": [],
+          "paths": [],
+          "conflicts": [],
+          "warnings": [],
+          "provenance": [
+            {
+              "nodeId": "oracle-object:TETA_ADMIN_P:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+              "evidence": {
+                "kind": "oracle_metadata",
+                "view": "ALL_OBJECTS",
+                "owner": "TETA_ADMIN_P",
+                "name": "NT_LG_SLO_RODZAJE_KONCESJI"
+              }
+            }
+          ],
+          "audit": {
+            "candidateCount": 1,
+            "durationMs": 30
+          },
+          "truncated": false,
+          "continuation": null
+        },
+        {
+          "status": "resolved",
+          "query": {
+            "op": "resolveNode",
+            "owner": "TETA_ADMIN",
+            "objectType": "PACKAGE",
+            "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+          },
+          "selectedNodeId": "oracle-package:TETA_ADMIN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "candidates": [
+            {
+              "nodeId": "oracle-package:TETA_ADMIN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "scoreRank": 3,
+              "matchKind": "exact_oracle_identity",
+              "confidence": "confirmed",
+              "domain": "oracle",
+              "type": "oracle_package",
+              "canonicalName": "TETA_ADMIN.NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+            }
+          ],
+          "nodes": [
+            {
+              "id": "oracle-package:TETA_ADMIN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "type": "oracle_package",
+              "domain": "oracle",
+              "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "canonicalName": "TETA_ADMIN.NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "owner": "TETA_ADMIN",
+              "objectType": "PACKAGE",
+              "confidence": "confirmed",
+              "sourceStages": [
+                "2E"
+              ],
+              "attributes": {
+                "owner": "TETA_ADMIN",
+                "objectType": "PACKAGE",
+                "objectName": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+                "status": "VALID",
+                "oracleValidationStatus": "confirmed",
+                "canonicalOracleIdentity": "TETA_ADMIN.PACKAGE.NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+              },
+              "evidence": [
+                {
+                  "kind": "oracle_metadata",
+                  "view": "ALL_OBJECTS",
+                  "owner": "TETA_ADMIN",
+                  "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+                }
+              ],
+              "semanticNormalization": null
+            }
+          ],
+          "edges": [],
+          "paths": [],
+          "conflicts": [],
+          "warnings": [],
+          "provenance": [
+            {
+              "nodeId": "oracle-package:TETA_ADMIN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "evidence": {
+                "kind": "oracle_metadata",
+                "view": "ALL_OBJECTS",
+                "owner": "TETA_ADMIN",
+                "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+              }
+            }
+          ],
+          "audit": {
+            "candidateCount": 1,
+            "durationMs": 77
+          },
+          "truncated": false,
+          "continuation": null
+        },
+        {
+          "status": "resolved",
+          "query": {
+            "op": "resolveNode",
+            "owner": "TETA_ADMIN_P",
+            "objectType": "SYNONYM",
+            "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+          },
+          "selectedNodeId": "oracle-object:TETA_ADMIN_P:SYNONYM:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+          "candidates": [
+            {
+              "nodeId": "oracle-object:TETA_ADMIN_P:SYNONYM:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "scoreRank": 3,
+              "matchKind": "exact_oracle_identity",
+              "confidence": "confirmed",
+              "domain": "oracle",
+              "type": "oracle_object",
+              "canonicalName": "TETA_ADMIN_P.NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+            }
+          ],
+          "nodes": [
+            {
+              "id": "oracle-object:TETA_ADMIN_P:SYNONYM:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "type": "oracle_object",
+              "domain": "oracle",
+              "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "canonicalName": "TETA_ADMIN_P.NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "owner": "TETA_ADMIN_P",
+              "objectType": "SYNONYM",
+              "confidence": "confirmed",
+              "sourceStages": [
+                "2E"
+              ],
+              "attributes": {
+                "owner": "TETA_ADMIN_P",
+                "objectType": "SYNONYM",
+                "objectName": "NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+                "status": "VALID",
+                "oracleValidationStatus": "confirmed",
+                "canonicalOracleIdentity": "TETA_ADMIN_P.SYNONYM.NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+              },
+              "evidence": [
+                {
+                  "kind": "oracle_metadata",
+                  "view": "ALL_OBJECTS",
+                  "owner": "TETA_ADMIN_P",
+                  "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+                }
+              ],
+              "semanticNormalization": null
+            }
+          ],
+          "edges": [],
+          "paths": [],
+          "conflicts": [],
+          "warnings": [],
+          "provenance": [
+            {
+              "nodeId": "oracle-object:TETA_ADMIN_P:SYNONYM:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+              "evidence": {
+                "kind": "oracle_metadata",
+                "view": "ALL_OBJECTS",
+                "owner": "TETA_ADMIN_P",
+                "name": "NT_LG_SLO_RODZAJE_KONCESJI_DAC"
+              }
+            }
+          ],
+          "audit": {
+            "candidateCount": 1,
+            "durationMs": 70
+          },
+          "truncated": false,
+          "continuation": null
+        },
+        {
+          "status": "resolved",
+          "query": {
+            "op": "resolveNode",
+            "owner": "TETA_ADMIN",
+            "objectType": "TABLE",
+            "name": "LG_KNC_RODZAJE_KONCESJI"
+          },
+          "selectedNodeId": "oracle-object:TETA_ADMIN:TABLE:LG_KNC_RODZAJE_KONCESJI",
+          "candidates": [
+            {
+              "nodeId": "oracle-object:TETA_ADMIN:TABLE:LG_KNC_RODZAJE_KONCESJI",
+              "scoreRank": 3,
+              "matchKind": "exact_oracle_identity",
+              "confidence": "confirmed",
+              "domain": "oracle",
+              "type": "oracle_object",
+              "canonicalName": "TETA_ADMIN.LG_KNC_RODZAJE_KONCESJI",
+              "name": "LG_KNC_RODZAJE_KONCESJI"
+            }
+          ],
+          "nodes": [
+            {
+              "id": "oracle-object:TETA_ADMIN:TABLE:LG_KNC_RODZAJE_KONCESJI",
+              "type": "oracle_object",
+              "domain": "oracle",
+              "name": "LG_KNC_RODZAJE_KONCESJI",
+              "canonicalName": "TETA_ADMIN.LG_KNC_RODZAJE_KONCESJI",
+              "owner": "TETA_ADMIN",
+              "objectType": "TABLE",
+              "confidence": "confirmed",
+              "sourceStages": [
+                "2E"
+              ],
+              "attributes": {
+                "owner": "TETA_ADMIN",
+                "objectType": "TABLE",
+                "objectName": "LG_KNC_RODZAJE_KONCESJI",
+                "oracleValidationStatus": "confirmed",
+                "canonicalOracleIdentity": "TETA_ADMIN.TABLE.LG_KNC_RODZAJE_KONCESJI"
+              },
+              "evidence": [],
+              "semanticNormalization": null
+            }
+          ],
+          "edges": [],
+          "paths": [],
+          "conflicts": [],
+          "warnings": [],
+          "provenance": [],
+          "audit": {
+            "candidateCount": 1,
+            "durationMs": 59
+          },
+          "truncated": false,
+          "continuation": null
+        }
+      ],
+      "distinctIds": [
+        "oracle-object:TETA_ADMIN:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+        "oracle-object:TETA_ADMIN_P:VIEW:NT_LG_SLO_RODZAJE_KONCESJI",
+        "oracle-package:TETA_ADMIN:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+        "oracle-object:TETA_ADMIN_P:SYNONYM:NT_LG_SLO_RODZAJE_KONCESJI_DAC",
+        "oracle-object:TETA_ADMIN:TABLE:LG_KNC_RODZAJE_KONCESJI"
+      ]
+    }
+  },
+  "C_SkladnikiNarastajacoBO": {
+    "status": "resolved",
+    "selectedNodeId": "dataset:bosListaPlac.dll:Teta.Sumo.Personel.bosListaPlac.BO.SkladnikiNarastajacoBO:SkladnikiNarastajaco",
+    "candidates": 1,
+    "nodes": 27,
+    "edges": 26,
+    "paths": 0,
+    "warnings": [],
+    "truncated": false
+  },
+  "D_ListyZamkniete": {
+    "status": "resolved",
+    "selectedNodeId": "action:7b4f2b80-4853-409d-8dc7-06cd10c8925b:Teta.Sumo.Personel.plgListaPlac.CrdListyZamkniete.ListyZamknieteWidok:tbbZamknijMiesiac",
+    "candidates": 1,
+    "nodes": 2,
+    "edges": 0,
+    "paths": 1,
+    "warnings": [
+      "no_oracle_column_by_design"
+    ],
+    "truncated": false
+  },
+  "E_MissingHelp": {
+    "status": "resolved",
+    "selectedNodeId": "form:02e54042-6570-421e-9212-af1ee889f7e3:Teta.Sumo.Personel.plgPersonelParametryRap.Pity.PrmPit40",
+    "candidates": 1,
+    "nodes": 22,
+    "edges": 21,
+    "paths": 0,
+    "warnings": [],
+    "truncated": false
+  },
+  "F_MissingInDb": {
+    "status": "resolved",
+    "selectedNodeId": "oracle-object:UNKNOWN:VIEW:DUMMY",
+    "candidates": 1,
+    "nodes": 4,
+    "edges": 3,
+    "paths": 0,
+    "warnings": [
+      "unknown_owner",
+      "missing_in_current_db",
+      "technical_fact_preserved"
+    ],
+    "truncated": false
+  }
+}
+```
+
+## Smoke queries
+
+```json
+{
+  "NT_KP_KDR_STANOWISKA": {
+    "status": "resolved",
+    "selectedNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_STANOWISKA",
+    "candidates": 1,
+    "nodes": 95,
+    "edges": 94,
+    "paths": 0,
+    "warnings": [],
+    "truncated": false
+  },
+  "SSTN_ID": {
+    "status": "ambiguous",
+    "selectedNodeId": null,
+    "candidates": 19,
+    "nodes": 19,
+    "edges": 0,
+    "paths": 0,
+    "warnings": [],
+    "truncated": false
+  },
+  "Nazwa_without_form": {
+    "status": "ambiguous",
+    "selectedNodeId": null,
+    "candidates": 40,
+    "nodes": 14,
+    "edges": 0,
+    "paths": 0,
+    "warnings": [],
+    "truncated": false
+  },
+  "ABC_NOT_EXISTING_OBJECT": {
+    "status": "unresolved",
+    "selectedNodeId": null,
+    "candidates": 0,
+    "nodes": 0,
+    "edges": 0,
+    "paths": 0,
+    "warnings": [],
+    "truncated": false
+  },
+  "exactIdDeterministic": {
+    "id": "form:8efdd60e-ac8b-4501-947a-4cb89ccdb082:Teta.Sumo.Personel.plgKOS.CrdDanePodstawoweKOS.DanePodstawoweKOSWidok",
+    "same": true
+  }
+}
+```
+
+## Strict errors
+
+_brak_
+
+CLI: `pnpm --filter @teta/api run graph:stage3a -- audit --strict`

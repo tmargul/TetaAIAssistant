@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-24** (Etap 2E.1 patch metryk dataset_column)
+> Ostatnia aktualizacja: **2026-07-24** (Etap 3A — Canonical Graph Access Layer)
 
 ---
 
@@ -198,6 +198,16 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Domknięcie diagnostyczne:** `type_not_found` **4** / `class_name_missing` **128** / `dll_unavailable` **398** / `not_checked` **0**; DLL missing: null 128, physical 21, WebConstellation unsupported 377; 1× `matched_unique_simple_name` + `namespaceMismatch`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 - **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
+
+### 2026-07-24 — Etap 3A Canonical Graph Access Layer ✅
+
+- Streaming indeks SQLite z `.local/AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson` → `.local/AIA_CANONICAL_GRAPH_STAGE3A.sqlite` (`teta-aia-graph-index-v1`).
+- Build ~217s: **864320** nodes / **992993** edges / **2.5M** names / **5432** conflicts; integrity 0 missing endpoints.
+- `CanonicalGraphIndexService` + `CanonicalGraphResolverService`; CLI `graph:stage3a` (`build|status|resolve|trace-*|audit --strict`).
+- Ambiguous nie auto-resolved; konflikty propagowane; target/lookup split; UNKNOWN ≠ confirmed.
+- Audit `--strict` EXIT 0; refs A–F OK; testy `teta-stage3a.spec.ts` (21).
+- Artefakty: `docs/AIA_CANONICAL_GRAPH_ACCESS_STAGE3A.md` / `.json` (`.local` gitignored).
+- **Bez** SQL gen / Qdrant / embeddingów / LLM / agenta / Stage 3B.
 
 ### 2026-07-24 — Etap 2E.1 patch metryk dataset_column ✅
 
