@@ -1,5 +1,5 @@
 # AIA Canonical Knowledge Graph — Stage 2E
-Wygenerowano: **2026-07-23T18:36:52.130Z**
+Wygenerowano: **2026-07-24T06:25:13.125Z**
 identityVersion: `teta-aia-canonical-id-v1`
 Oracle enrichment: **ON**
 ## Zakres
@@ -25,7 +25,7 @@ Oracle enrichment: **ON**
 | Metryka | Wartość |
 |---------|---------|
 | invalidOracleCandidates (dotnet / datasetCol / other) | **0** (**0** / **0** / **0**) |
-| datasetColumnsCreated / resolvedToOracle / unresolved | **0** / **0** / **12406** |
+| datasetColumnsCreated / resolvedToOracle / unresolved | **0** / **26086** / **7886** |
 | domainEdgeViolations | **0** |
 | oracleIdentityCollisions | **0** |
 | synonymsResolved / unresolved | **0** / **4640** |

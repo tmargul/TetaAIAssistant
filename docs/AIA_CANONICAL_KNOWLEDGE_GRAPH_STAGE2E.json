@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generatedAt": "2026-07-23T18:36:52.130Z",
+    "generatedAt": "2026-07-24T06:25:13.125Z",
     "identityVersion": "teta-aia-canonical-id-v1",
     "stages": [
       "1",
@@ -62,14 +62,15 @@
     "domainEdgeViolations": 0,
     "invalidOracleCandidates": 0,
     "datasetColumnsCreated": 0,
-    "datasetColumnsResolvedToOracle": 0,
+    "datasetColumnsResolvedToOracle": 26086,
     "oracleIdentityCollisions": 0,
     "stage2e1": true,
     "directLookupDisplayToOracleColumns": 0,
     "dotnetNamesTypedAsOracleObjects": 0,
     "confirmedOracleObjectsWithUnknownOwner": 0,
     "staleOrphanReferences": 0,
-    "referenceChainsContainingUnknownConfirmedOracle": 0
+    "referenceChainsContainingUnknownConfirmedOracle": 0,
+    "datasetColumnsUnresolved": 7886
   },
   "conflicts": [
     {
@@ -12920,8 +12921,8 @@
       "invalidOracleCandidatesDatasetColumn": 0,
       "invalidOracleCandidatesOther": 0,
       "datasetColumnsCreated": 0,
-      "datasetColumnsResolvedToOracle": 0,
-      "datasetColumnsUnresolved": 12406,
+      "datasetColumnsResolvedToOracle": 26086,
+      "datasetColumnsUnresolved": 7886,
       "oracleObjectsByOwner": {
         "UNKNOWN": 1039,
         "TETA_ADMIN": 6968,

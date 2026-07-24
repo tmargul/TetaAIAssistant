@@ -207,7 +207,6 @@ function linkDatasetColumnToOracle(
 
   const oraCol = findOracleColumn(oracleColByName, columnName, preferredObjectNames);
   if (!oraCol) {
-    audit.datasetColumnsUnresolved += 1;
     return;
   }
   const eRes = edgeId('RESOLVES_TO_ORACLE_COLUMN', dcId, oraCol.id);
@@ -228,7 +227,6 @@ function linkDatasetColumnToOracle(
     const bl = edgesByFrom.get(dcId) ?? [];
     bl.push(edge);
     edgesByFrom.set(dcId, bl);
-    audit.datasetColumnsResolvedToOracle += 1;
   }
 }
 
@@ -1019,6 +1017,11 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
     }
   }
 
+  // Final recount: unique dataset_column resolved/unresolved (not incremental edge creates)
+  const dcResolution = recountDatasetColumnResolution(nodes, edges);
+  audit.datasetColumnsResolvedToOracle = dcResolution.resolved;
+  audit.datasetColumnsUnresolved = dcResolution.unresolved;
+
   // Rebuild integrity.orphanNodes from final classification (never reuse pre-2E.1 list)
   const rebuiltIntegrity = {
     brokenEdges: edgeListBroken(edges, nodes),
@@ -1057,6 +1060,7 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
     invalidOracleCandidates: audit.invalidOracleCandidates,
     datasetColumnsCreated: audit.datasetColumnsCreated,
     datasetColumnsResolvedToOracle: audit.datasetColumnsResolvedToOracle,
+    datasetColumnsUnresolved: audit.datasetColumnsUnresolved,
     oracleIdentityCollisions: audit.oracleIdentityCollisions,
     directLookupDisplayToOracleColumns: audit.directLookupDisplayToOracleColumns,
     dotnetNamesTypedAsOracleObjects: audit.dotnetNamesTypedAsOracleObjects,
@@ -1090,6 +1094,44 @@ export function normalizeStage2e1(graph: Stage2eGraph): {
   };
 
   return { graph: out, audit };
+}
+
+function recountDatasetColumnResolution(
+  nodes: Map<string, Stage2eNode> | Stage2eNode[],
+  edges: Map<string, Stage2eEdge> | Stage2eEdge[],
+): { resolved: number; unresolved: number; total: number; brokenResolveEdges: number } {
+  const nodeMap =
+    nodes instanceof Map ? nodes : new Map(nodes.map((n) => [n.id, n]));
+  const edgeList = edges instanceof Map ? [...edges.values()] : edges;
+  const resolvedIds = new Set<string>();
+  let brokenResolveEdges = 0;
+  for (const e of edgeList) {
+    if (e.type !== 'RESOLVES_TO_ORACLE_COLUMN') continue;
+    const from = nodeMap.get(e.from);
+    const to = nodeMap.get(e.to);
+    if (!from || from.type !== 'dataset_column') {
+      brokenResolveEdges += 1;
+      continue;
+    }
+    if (!to || to.type !== 'oracle_column') {
+      brokenResolveEdges += 1;
+      continue;
+    }
+    resolvedIds.add(from.id);
+  }
+  let total = 0;
+  let unresolved = 0;
+  for (const n of nodeMap.values()) {
+    if (n.type !== 'dataset_column') continue;
+    total += 1;
+    if (!resolvedIds.has(n.id)) unresolved += 1;
+  }
+  return {
+    resolved: resolvedIds.size,
+    unresolved,
+    total,
+    brokenResolveEdges,
+  };
 }
 
 function countBy<T>(items: T[], key: (x: T) => string): Record<string, number> {
@@ -1197,6 +1239,42 @@ export function assertStage2e1StrictSemantic(
       `referenceChainsContainingUnknownConfirmedOracle=${audit.referenceChainsContainingUnknownConfirmedOracle}`,
     );
   }
+
+  // Dataset column resolution metrics must match final graph
+  const dc = recountDatasetColumnResolution(graph.nodes, graph.edges);
+  if (audit.datasetColumnsResolvedToOracle <= 0) {
+    errors.push(`datasetColumnsResolvedToOracle=${audit.datasetColumnsResolvedToOracle} (expected > 0)`);
+  }
+  if (audit.datasetColumnsResolvedToOracle !== dc.resolved) {
+    errors.push(
+      `datasetColumnsResolvedToOracle audit=${audit.datasetColumnsResolvedToOracle} != finalGraph=${dc.resolved}`,
+    );
+  }
+  if (audit.datasetColumnsUnresolved !== dc.unresolved) {
+    errors.push(
+      `datasetColumnsUnresolved audit=${audit.datasetColumnsUnresolved} != finalGraph=${dc.unresolved}`,
+    );
+  }
+  if (dc.resolved + dc.unresolved !== dc.total) {
+    errors.push(
+      `datasetColumns resolved+unresolved=${dc.resolved + dc.unresolved} != total=${dc.total}`,
+    );
+  }
+  if (dc.brokenResolveEdges > 0) {
+    errors.push(`broken RESOLVES_TO_ORACLE_COLUMN endpoints=${dc.brokenResolveEdges}`);
+  }
+  const refA = graph.referenceChains?.A_TypStanowiska as
+    | { edgeIds?: string[]; ok?: boolean }
+    | undefined;
+  const refAResolveEdges = (refA?.edgeIds ?? []).filter((id) =>
+    id.includes('RESOLVES_TO_ORACLE_COLUMN'),
+  );
+  if (refAResolveEdges.length < 3) {
+    errors.push(
+      `reference A resolve edges=${refAResolveEdges.length} (expected 3: target + lookup ID + lookup NAZWA)`,
+    );
+  }
+
   const integrityOrphans =
     ((graph.audit as { integrity?: { orphanNodes?: string[] } })?.integrity?.orphanNodes) ?? [];
   for (const id of integrityOrphans) {

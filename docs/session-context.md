@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-23** (Etap 2E.1 patch jakościowy — pre-commit)
+> Ostatnia aktualizacja: **2026-07-24** (Etap 2E.1 patch metryk dataset_column)
 
 ---
 
@@ -198,6 +198,12 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Domknięcie diagnostyczne:** `type_not_found` **4** / `class_name_missing` **128** / `dll_unavailable` **398** / `not_checked` **0**; DLL missing: null 128, physical 21, WebConstellation unsupported 377; 1× `matched_unique_simple_name` + `namespaceMismatch`.
 - Raport: `docs/AIA_PA_WTYCZKI_REGISTRY_IMPLEMENTATION.md` (+ slim JSON w docs/; pełny dump w `.local/…full.json`, gitignored — GitHub limit 100 MB).
 - **Etap 1 domknięty** — nie startować Help HTML / bindingów / SqlJoin / Qdrant bez prośby.
+
+### 2026-07-24 — Etap 2E.1 patch metryk dataset_column ✅
+
+- `datasetColumnsResolvedToOracle` / `datasetColumnsUnresolved` = unikalne `dataset_column` w końcowym grafie (nie inkrement przy tworzeniu krawędzi).
+- `resolved + unresolved = |dataset_column|`; strict sprawdza spójność z nodes/edges + 3 resolve edges w Ref A.
+- Test 18; `--strict-semantic` EXIT 0.
 
 ### 2026-07-23 — Etap 2E.1 patch jakościowy (pre-commit) ✅
 

@@ -534,6 +534,76 @@ describe('Stage 2E.1 normalize', () => {
     expect(audit.staleOrphanReferences).toBe(0);
   });
 
+  it('18. datasetColumnsResolvedToOracle counts unique columns, not edges', () => {
+    const ora1 = Stage2eIds.oracleColumn('TETA_ADMIN', 'NT_FOO', 'A');
+    const ora2 = Stage2eIds.oracleColumn('TETA_ADMIN', 'NT_FOO', 'B');
+    const dc1 = Stage2eIds.datasetColumn('Ds', 'A');
+    const dc2 = Stage2eIds.datasetColumn('Ds', 'B');
+    const dc3 = Stage2eIds.datasetColumn('Ds', 'C');
+    const g = miniGraph(
+      [
+        node({
+          id: ora1,
+          type: 'oracle_column',
+          name: 'A',
+          attributes: {
+            owner: 'TETA_ADMIN',
+            objectName: 'NT_FOO',
+            columnName: 'A',
+            oracleValidationStatus: 'confirmed',
+          },
+        }),
+        node({
+          id: ora2,
+          type: 'oracle_column',
+          name: 'B',
+          attributes: {
+            owner: 'TETA_ADMIN',
+            objectName: 'NT_FOO',
+            columnName: 'B',
+            oracleValidationStatus: 'confirmed',
+          },
+        }),
+        node({
+          id: dc1,
+          type: 'dataset_column',
+          name: 'Ds.A',
+          attributes: { datasetTable: 'Ds', columnName: 'A' },
+        }),
+        node({
+          id: dc2,
+          type: 'dataset_column',
+          name: 'Ds.B',
+          attributes: { datasetTable: 'Ds', columnName: 'B' },
+        }),
+        node({
+          id: dc3,
+          type: 'dataset_column',
+          name: 'Ds.C',
+          attributes: { datasetTable: 'Ds', columnName: 'C' },
+        }),
+      ],
+      [
+        edge({
+          id: 'r1',
+          type: 'RESOLVES_TO_ORACLE_COLUMN',
+          from: dc1,
+          to: ora1,
+        }),
+        edge({
+          id: 'r2',
+          type: 'RESOLVES_TO_ORACLE_COLUMN',
+          from: dc2,
+          to: ora2,
+        }),
+      ],
+    );
+    const { audit } = normalizeStage2e1(g);
+    expect(audit.datasetColumnsResolvedToOracle).toBe(2);
+    expect(audit.datasetColumnsUnresolved).toBe(1);
+    expect(audit.datasetColumnsResolvedToOracle + audit.datasetColumnsUnresolved).toBe(3);
+  });
+
   it('domain assignment basics', () => {
     expect(domainForNodeType('oracle_object')).toBe('oracle');
     expect(domainForNodeType('dataset_column')).toBe('dataset');
