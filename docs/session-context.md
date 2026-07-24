@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-24** (Etap 3B — Intent & Evidence Planning Layer)
+> Ostatnia aktualizacja: **2026-07-24** (Etap 3B.1 — Graph-scoped evidence resolution)
 
 ---
 
@@ -136,6 +136,14 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-07-24 — Etap 3B.1 Graph-scoped evidence resolution ✅
+
+- Diagnoza `graphResolved=0`: `resolveForm(nameFragment)` nie trafiał w polską nazwę PA (jest na `plugin_registry_entry`); globalne `resolveField` mieszało help/control/action.
+- Fix: plugin→GUID→`resolveForm`; pole tylko ze `formNodeId`; bez formularza → `field_scope_missing` + clarification (bez global search).
+- `action_parameter=not_applicable` dla zwykłego pola; import: `businessTarget`+`canonicalCandidates`+`selectionRequiredBeforeExecution`.
+- BHP: `graphSearchTerms` z config → Stage 3A; runtime nadal deferred. `ready` ≠ SQL.
+- Te same artefakty `docs/AIA_INTENT_EVIDENCE_PLANNER_STAGE3B.*`. Bez Stage 3C / commit bez prośby.
 
 ### 2026-07-24 — Etap 3B Intent & Evidence Planning Layer ✅
 

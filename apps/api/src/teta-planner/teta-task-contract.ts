@@ -25,7 +25,12 @@ export function normalizePlanningRequest(input: TetaPlanningRequest): TetaPlanni
 /** Strip timing / generatedAt for deterministic JSON compare. */
 export function stripVolatilePlanFields(plan: TetaEvidencePlan): unknown {
   const { audit, ...rest } = plan;
-  const { plannerDurationMs: _d, generatedAt: _g, ...auditRest } = audit;
+  const {
+    plannerDurationMs: _d,
+    generatedAt: _g,
+    queryTimingMs: _t,
+    ...auditRest
+  } = audit;
   return {
     ...rest,
     contractVersion: STAGE3B_CONTRACT_VERSION,

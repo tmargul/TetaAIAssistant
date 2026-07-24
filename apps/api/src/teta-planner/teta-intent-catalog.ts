@@ -34,8 +34,9 @@ export type EvidenceTemplateItem = {
 export type PlannerLanguageConfig = {
   version: string;
   clarificationQuestions: Record<string, string>;
+  clarificationTemplates?: Record<string, string>;
   monthNames: Record<string, number>;
-  reportSubjects: Array<{ id: string; patterns: string[] }>;
+  reportSubjects: Array<{ id: string; patterns: string[]; graphSearchTerms?: string[] }>;
   relativeDateExpressions: Array<{ expression: string; patterns: string[] }>;
   genericTokensForbiddenAlone: string[];
 };

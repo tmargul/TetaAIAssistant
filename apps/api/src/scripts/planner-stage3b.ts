@@ -101,6 +101,27 @@ plannerConfigVersion: \`${report.plannerConfigVersion}\`
 - Plan: \`TetaEvidencePlan\` (\`${STAGE3B_CONTRACT_VERSION}\`)
 - Statusy: ready | needs_clarification | ambiguous | unsupported | invalid
 
+### Semantyka \`planningStatus\`
+
+- **ready** — komplet encji użytkownika; plan może przejść do kolejnego etapu zbierania dowodów. **Nie** oznacza zgody na generowanie/wykonanie SQL.
+- **needs_clarification** — użytkownik musi podać brakującą informację (np. formularz dla pola).
+- **ambiguous** — równorzędni kandydaci wymagają wyboru (z \`candidateIds\`).
+- **unsupported** / **invalid**
+
+## Stage 3B.1 — Graph-scoped evidence resolution
+
+### Diagnoza \`graphResolved=0\` (przed patchem)
+
+${JSON.stringify(report.diagnosis, null, 2)}
+
+### Zachowanie po patchu
+
+1. Formularz: GUID → albo \`plugin_registry_entry\` (polska nazwa PA) → GUID/className → \`resolveForm\`.
+2. Pole: tylko z \`formNodeId\` (\`scopedFieldQueries\`); bez formularza — \`field_scope_missing\` + pytanie, **bez** globalnego multi-type search.
+3. \`action_parameter=not_applicable\` dla zwykłego pola danych.
+4. Import: \`businessTarget\` + \`canonicalCandidates\` + \`selectionRequiredBeforeExecution\` (bez auto-owner).
+5. Raport BHP: \`graphSearchTerms\` z konfiguracji → zapytania Stage 3A; runtime nadal \`deferred\`.
+
 ## Katalog intencji
 
 - explain_payroll_component
@@ -118,7 +139,13 @@ plannerConfigVersion: \`${report.plannerConfigVersion}\`
 | intentsResolved / unknown / unsupported | **${report.intentsResolved}** / **${report.intentsUnknown}** / **${report.intentsUnsupported}** |
 | ready / needs_clarification / ambiguous / invalid | **${report.plansReady}** / **${report.plansNeedsClarification}** / **${report.plansAmbiguous}** / **${report.plansInvalid}** |
 | entitiesExtracted | **${report.entitiesExtracted}** |
-| graphQueries / resolved / ambiguous | **${report.graphQueriesExecuted}** / **${report.graphResolved}** / **${report.graphAmbiguous}** |
+| graphQueries / graphResolved / graphAmbiguous | **${report.graphQueriesExecuted}** / **${report.graphResolved}** / **${report.graphAmbiguous}** |
+| graphResolvedEvidence / ambiguousEvidence | **${report.graphResolvedEvidence}** / **${report.graphAmbiguousEvidence}** |
+| scopedFieldQueries / unscopedFieldQueries | **${report.scopedFieldQueries}** / **${report.unscopedFieldQueries}** |
+| resolvedForms / resolvedFormScopedFields | **${report.resolvedForms}** / **${report.resolvedFormScopedFields}** |
+| irrelevantGlobalAmbiguities | **${report.irrelevantGlobalAmbiguities}** |
+| evidenceNotApplicable | **${report.evidenceNotApplicable}** |
+| clarificationQuestionsForAmbiguities | **${report.clarificationQuestionsForAmbiguities}** |
 | deferredEvidence | **${report.deferredEvidence}** |
 | guessedEntities / autoResolvedAmbiguities | **${report.guessedEntities}** / **${report.autoResolvedAmbiguities}** |
 | SQL gen/exec / filesRead / oracleWrites | **${report.sqlGenerated}** / **${report.sqlExecuted}** / **${report.filesRead}** / **${report.oracleWrites}** |
@@ -134,9 +161,9 @@ ${JSON.stringify(report.referenceResults, null, 2)}
 
 ## Przykłady statusów
 
-- **ready** — kompletne encje + plan dowodów (np. ref A / D / C przy pełnych danych)
-- **needs_clarification** — brak pracownika/okresu (ref B)
-- **ambiguous** — pole bez formularza (ref F)
+- **ready** — kompletne encje + plan dowodów (ref A; ref E gdy form+pole jednoznaczne). Nie pozwala na SQL.
+- **needs_clarification** — brak pracownika/okresu (ref B) lub pole bez formularza (ref F).
+- **ambiguous** — równorzędni kandydaci formularza/pola; import może mieć \`selectionRequiredBeforeExecution\` bez blokady planu.
 - **unsupported** — zapis/przelew (ref G)
 
 ## CLI

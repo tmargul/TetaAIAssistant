@@ -83,7 +83,8 @@ export type EvidenceItemStatus =
   | 'ambiguous'
   | 'conflicting'
   | 'unavailable'
-  | 'deferred';
+  | 'deferred'
+  | 'not_applicable';
 
 export type AmbiguityKind = 'missing' | 'ambiguous' | 'conflicting' | 'unavailable' | 'deferred';
 
@@ -111,6 +112,9 @@ export type AmbiguityRecord = {
   message: string;
   candidateIds?: string[];
   conflictIds?: string[];
+  /** When false, recorded for later execution selection but does not block planningStatus=ready. */
+  blocksPlanning?: boolean;
+  selectionRequiredBeforeExecution?: boolean;
 };
 
 export type EvidenceRequirement = {
@@ -122,6 +126,9 @@ export type EvidenceRequirement = {
     selectedNodeId: string | null;
     candidates: unknown[];
     truncated?: boolean;
+    businessTarget?: string;
+    canonicalCandidates?: unknown[];
+    selectionRequiredBeforeExecution?: boolean;
   } | null;
   runtimeSourceRequired: boolean;
   status: EvidenceItemStatus;
@@ -167,6 +174,13 @@ export type TetaPlanningRequest = {
   };
 };
 
+export type PlannerQueryTiming = {
+  resolveFormMs: number;
+  resolveFieldMs: number;
+  resolveNodeMs: number;
+  otherMs: number;
+};
+
 export type TetaEvidencePlan = {
   contractVersion: typeof STAGE3B_CONTRACT_VERSION;
   planningStatus: PlanningStatus;
@@ -185,6 +199,7 @@ export type TetaEvidencePlan = {
   evidenceRequirements: EvidenceRequirement[];
   resolvedGraphEvidence: ResolvedGraphEvidence;
   clarificationQuestions: ClarificationQuestion[];
+  selectionRequiredBeforeExecution: boolean;
   executionPolicy: ExecutionPolicy;
   audit: {
     deterministic: true;
@@ -193,6 +208,14 @@ export type TetaEvidencePlan = {
     plannerDurationMs: number;
     generatedAt?: string;
     graphQueriesExecuted: number;
+    scopedFieldQueries: number;
+    unscopedFieldQueries: number;
+    resolvedForms: number;
+    resolvedFormScopedFields: number;
+    irrelevantGlobalAmbiguities: number;
+    clarificationQuestionsForAmbiguities: number;
+    evidenceNotApplicable: number;
+    queryTimingMs: PlannerQueryTiming;
     guessedEntities: number;
     autoResolvedAmbiguities: number;
     sqlGenerated: number;
@@ -221,6 +244,16 @@ export type Stage3bAuditReport = {
   graphAmbiguous: number;
   graphUnresolved: number;
   graphConflicting: number;
+  graphResolvedEvidence: number;
+  graphAmbiguousEvidence: number;
+  graphUnresolvedEvidence: number;
+  scopedFieldQueries: number;
+  unscopedFieldQueries: number;
+  irrelevantGlobalAmbiguities: number;
+  clarificationQuestionsForAmbiguities: number;
+  evidenceNotApplicable: number;
+  resolvedForms: number;
+  resolvedFormScopedFields: number;
   missingRequiredEvidence: number;
   deferredEvidence: number;
   guessedEntities: number;
@@ -232,6 +265,7 @@ export type Stage3bAuditReport = {
   averagePlanningTimeMs: number;
   maxPlanningTimeMs: number;
   referenceResults: Record<string, unknown>;
+  diagnosis: Record<string, unknown>;
   strictErrors: string[];
   deterministicCheckOk: boolean;
   generatedAt: string;

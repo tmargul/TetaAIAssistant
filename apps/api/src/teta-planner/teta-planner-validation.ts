@@ -1,5 +1,5 @@
 /**
- * Stage 3B — plan validation helpers.
+ * Stage 3B — plan validation + clarification helpers.
  */
 import type {
   AmbiguityRecord,
@@ -32,7 +32,6 @@ export function computeMissingEntities(
       });
     }
     if (!hasEntity(entities, ['payrollPeriod', 'payrollNumber', 'dateRange', 'relativeDateRange'])) {
-      // payroll type alone is not enough period context
       if (!hasEntity(entities, ['payrollType']) || !hasEntity(entities, ['payrollPeriod', 'payrollNumber'])) {
         missing.push({
           type: 'payroll_context',
@@ -73,7 +72,7 @@ export function computeMissingEntities(
 
   for (const req of intentDef.requiredEntityTypes) {
     if (!hasEntity(entities, [req])) {
-      if (!missing.some((m) => m.type === req || m.type === 'employee' && req.startsWith('employee'))) {
+      if (!missing.some((m) => m.type === req || (m.type === 'employee' && req.startsWith('employee')))) {
         missing.push({ type: req, reason: `required_entity_missing:${req}`, requiredForIntent: true });
       }
     }
@@ -82,35 +81,75 @@ export function computeMissingEntities(
   return missing;
 }
 
+function fillTemplate(template: string, vars: Record<string, string>): string {
+  let out = template;
+  for (const [k, v] of Object.entries(vars)) {
+    out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+  }
+  return out;
+}
+
 export function buildClarificationQuestions(
   missing: MissingEntity[],
+  ambiguities: AmbiguityRecord[],
   intentDef: IntentDef | undefined,
   configs: PlannerConfigs,
+  entities: PlannerEntity[],
 ): ClarificationQuestion[] {
   const order = intentDef?.clarificationEntityOrder ?? [];
   const questions: ClarificationQuestion[] = [];
   const seen = new Set<string>();
+  const templates = configs.language.clarificationTemplates ?? {};
 
-  const push = (entityType: string) => {
+  const push = (entityType: string, question: string) => {
     if (seen.has(entityType)) return;
-    const q = configs.language.clarificationQuestions[entityType];
-    if (!q) return;
+    if (!question.trim()) return;
     seen.add(entityType);
-    questions.push({ entityType, question: q });
+    questions.push({ entityType, question });
   };
 
-  // Map aggregate missing types to question keys
   for (const m of missing) {
     if (m.type === 'employee') {
-      push('employeeNumber');
+      push('employeeNumber', configs.language.clarificationQuestions.employeeNumber ?? '');
     } else if (m.type === 'payroll_context') {
-      push('payrollPeriod');
+      push('payrollPeriod', configs.language.clarificationQuestions.payrollPeriod ?? '');
     } else {
-      push(String(m.type));
+      push(String(m.type), configs.language.clarificationQuestions[String(m.type)] ?? '');
     }
   }
 
-  // Stable order by clarificationEntityOrder
+  for (const a of ambiguities) {
+    if (a.blocksPlanning === false) continue;
+    if (a.subject === 'field_scope_missing' || a.message === 'field_scope_missing') {
+      const label = entities.find((e) => e.type === 'fieldLabel')?.rawValue ?? 'pole';
+      const tpl =
+        templates.field_scope_missing ??
+        'Na którym formularzu znajduje się pole „{fieldLabel}”?';
+      push('field_scope_missing', fillTemplate(tpl, { fieldLabel: label }));
+    } else if (a.subject === 'form' || a.message === 'multiple_forms_match') {
+      const labels = (a.candidateIds ?? []).slice(0, 5).join(', ');
+      const tpl = templates.multiple_forms ?? 'Który formularz masz na myśli: {candidateLabels}?';
+      push('form_ambiguous', fillTemplate(tpl, { candidateLabels: labels || '(kandydaci)' }));
+    } else if (a.subject === 'field' || a.message === 'multiple_fields_match') {
+      const labels = (a.candidateIds ?? []).slice(0, 5).join(', ');
+      const tpl = templates.multiple_fields ?? 'Które pole masz na myśli: {candidateLabels}?';
+      push('field_ambiguous', fillTemplate(tpl, { candidateLabels: labels || '(kandydaci)' }));
+    }
+  }
+
+  // Field without form and no ambiguity yet — still ask
+  if (
+    hasEntity(entities, ['fieldLabel']) &&
+    !hasEntity(entities, ['formName', 'formGuid']) &&
+    !seen.has('field_scope_missing')
+  ) {
+    const label = entities.find((e) => e.type === 'fieldLabel')?.rawValue ?? 'pole';
+    const tpl =
+      templates.field_scope_missing ??
+      'Na którym formularzu znajduje się pole „{fieldLabel}”?';
+    push('field_scope_missing', fillTemplate(tpl, { fieldLabel: label }));
+  }
+
   questions.sort((a, b) => {
     const ia = order.indexOf(a.entityType as PlannerEntityType);
     const ib = order.indexOf(b.entityType as PlannerEntityType);
@@ -132,15 +171,19 @@ export function derivePlanningStatus(input: {
   if (input.intent === 'unsupported') return 'unsupported';
   if (input.intent === 'unknown') return 'invalid';
 
-  const hasConflicting = input.ambiguities.some((a) => a.kind === 'conflicting');
-  if (hasConflicting) return 'ambiguous';
+  const blocking = input.ambiguities.filter((a) => a.blocksPlanning !== false);
 
-  const hasAmbiguous = input.ambiguities.some((a) => a.kind === 'ambiguous');
-  if (hasAmbiguous) return 'ambiguous';
+  if (blocking.some((a) => a.kind === 'conflicting')) return 'ambiguous';
+
+  // field_scope_missing → needs_clarification (user must supply form)
+  if (blocking.some((a) => a.subject === 'field_scope_missing' || a.message === 'field_scope_missing')) {
+    return 'needs_clarification';
+  }
+
+  if (blocking.some((a) => a.kind === 'ambiguous')) return 'ambiguous';
 
   if (input.missing.some((m) => m.requiredForIntent)) return 'needs_clarification';
 
-  // Field without form → ambiguous handled via ambiguities
   return 'ready';
 }
 

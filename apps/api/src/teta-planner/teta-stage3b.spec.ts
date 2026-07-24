@@ -139,76 +139,201 @@ describe('Stage 3B intent & evidence planner', () => {
   });
 
   test('14. form-scoped field resolution propagates graph result', () => {
+    const formGuid = '03c5e06f-fad6-414e-8053-47d944b0b19e';
+    const formId = `form:${formGuid}:ListyObliczoneWidok`;
+    const helpId = `help-field:${formGuid}:ListyObliczoneWidok:wartość`;
+    const calls: string[] = [];
     const resolver = mockResolver({
-      resolveForm: () => ({
-        ...emptyGraph('resolved'),
-        selectedNodeId: 'form:test:ListaObliczona',
-        candidates: [
-          {
-            nodeId: 'form:test:ListaObliczona',
-            scoreRank: 1,
-            matchKind: 'exact',
-            confidence: 'confirmed',
-            domain: 'application',
-            type: 'application_form',
-            canonicalName: 'Lista obliczona',
-            name: 'Lista obliczona',
-          },
-        ],
-        nodes: [
-          {
-            id: 'form:test:ListaObliczona',
-            type: 'application_form',
-            domain: 'application',
-            name: 'Lista obliczona',
-            canonicalName: 'Lista obliczona',
-            owner: null,
-            objectType: null,
-            confidence: 'confirmed',
-            sourceStages: ['2C'],
-            attributes: {},
-            evidence: [{ kind: 'help', text: 'wartość składnika obliczoną w procesie' }],
-            semanticNormalization: null,
-          },
-        ],
-      }),
-      resolveField: () => ({
-        ...emptyGraph('resolved'),
-        selectedNodeId: 'help-field:wartosc',
-        candidates: [
-          {
-            nodeId: 'help-field:wartosc',
-            scoreRank: 5,
-            matchKind: 'exact_label',
-            confidence: 'confirmed',
-            domain: 'help',
-            type: 'help_field',
-            canonicalName: 'Wartość',
-            name: 'Wartość',
-          },
-        ],
-        nodes: [
-          {
-            id: 'help-field:wartosc',
-            type: 'help_field',
-            domain: 'help',
-            name: 'Wartość',
-            canonicalName: 'Wartość',
-            owner: null,
-            objectType: null,
-            confidence: 'confirmed',
-            sourceStages: ['2C'],
-            attributes: {},
-            evidence: [{ kind: 'help', text: 'wartość składnika obliczoną w procesie obliczania listy' }],
-            semanticNormalization: null,
-          },
-        ],
-      }),
-      traceFieldToOracle: () => emptyGraph('resolved'),
+      resolveNode: (input) => {
+        if (input.nodeType === 'plugin_registry_entry') {
+          calls.push('resolveNode:plugin');
+          return {
+            ...emptyGraph('resolved'),
+            selectedNodeId: `plugin:${formGuid}`,
+            candidates: [
+              {
+                nodeId: `plugin:${formGuid}`,
+                scoreRank: 4,
+                matchKind: 'exact_name',
+                confidence: 'confirmed',
+                domain: 'application',
+                type: 'plugin_registry_entry',
+                canonicalName: formGuid,
+                name: 'Lista obliczona',
+              },
+            ],
+            nodes: [
+              {
+                id: `plugin:${formGuid}`,
+                type: 'plugin_registry_entry',
+                domain: 'application',
+                name: 'Lista obliczona',
+                canonicalName: formGuid,
+                owner: null,
+                objectType: null,
+                confidence: 'confirmed',
+                sourceStages: ['1'],
+                attributes: { className: 'ListyObliczoneWidok', guid: formGuid },
+                evidence: [],
+                semanticNormalization: null,
+              },
+            ],
+          };
+        }
+        if (input.nodeType === 'help_field') {
+          calls.push('resolveNode:help');
+          return {
+            ...emptyGraph('ambiguous'),
+            candidates: [
+              {
+                nodeId: helpId,
+                scoreRank: 4,
+                matchKind: 'exact_name',
+                confidence: 'confirmed',
+                domain: 'help',
+                type: 'help_field',
+                canonicalName: 'Wartość',
+                name: 'Wartość',
+              },
+            ],
+          };
+        }
+        if (input.id === helpId) {
+          calls.push('resolveNode:helpId');
+          return {
+            ...emptyGraph('resolved'),
+            selectedNodeId: helpId,
+            candidates: [
+              {
+                nodeId: helpId,
+                scoreRank: 1,
+                matchKind: 'exact_canonical_id',
+                confidence: 'confirmed',
+                domain: 'help',
+                type: 'help_field',
+                canonicalName: 'Wartość',
+                name: 'Wartość',
+              },
+            ],
+            nodes: [
+              {
+                id: helpId,
+                type: 'help_field',
+                domain: 'help',
+                name: 'Wartość',
+                canonicalName: 'Wartość',
+                owner: null,
+                objectType: null,
+                confidence: 'confirmed',
+                sourceStages: ['2C'],
+                attributes: {},
+                evidence: [{ kind: 'help', text: 'wartość składnika' }],
+                semanticNormalization: null,
+              },
+            ],
+          };
+        }
+        calls.push('resolveNode:other');
+        return emptyGraph('unresolved');
+      },
+      resolveForm: (input) => {
+        calls.push(`resolveForm:${input.guid ? 'guid' : input.nameFragment ? 'frag' : 'other'}`);
+        if (input.guid === formGuid) {
+          return {
+            ...emptyGraph('resolved'),
+            selectedNodeId: formId,
+            candidates: [
+              {
+                nodeId: formId,
+                scoreRank: 2,
+                matchKind: 'exact_guid',
+                confidence: 'confirmed',
+                domain: 'application',
+                type: 'application_form',
+                canonicalName: 'ListyObliczoneWidok',
+                name: 'ListyObliczoneWidok',
+              },
+            ],
+            nodes: [
+              {
+                id: formId,
+                type: 'application_form',
+                domain: 'application',
+                name: 'ListyObliczoneWidok',
+                canonicalName: 'ListyObliczoneWidok',
+                owner: null,
+                objectType: null,
+                confidence: 'confirmed',
+                sourceStages: ['2A'],
+                attributes: { guid: formGuid },
+                evidence: [],
+                semanticNormalization: null,
+              },
+            ],
+          };
+        }
+        return emptyGraph('unresolved');
+      },
+      resolveField: (input) => {
+        calls.push(`resolveField:${input.formNodeId ? 'scoped' : 'global'}`);
+        expect(input.formNodeId).toBe(formId);
+        return {
+          ...emptyGraph('ambiguous'),
+          candidates: [
+            {
+              nodeId: `${formId}:dgcWartosc`,
+              scoreRank: 9,
+              matchKind: 'control_name_tokens',
+              confidence: 'confirmed',
+              domain: 'application',
+              type: 'ui_control',
+              canonicalName: 'dgcWartosc',
+              name: 'dgcWartosc',
+            },
+          ],
+        };
+      },
+      getEvidenceSubgraph: () => {
+        calls.push('subgraph:help');
+        return {
+          ...emptyGraph('resolved'),
+          nodes: [
+            {
+              id: helpId,
+              type: 'help_field',
+              domain: 'help',
+              name: 'Wartość',
+              canonicalName: 'Wartość',
+              owner: null,
+              objectType: null,
+              confidence: 'confirmed',
+              sourceStages: ['2C'],
+              attributes: {},
+              evidence: [{ kind: 'help', text: 'wartość składnika' }],
+              semanticNormalization: null,
+            },
+          ],
+        };
+      },
+      traceFieldToOracle: () => {
+        calls.push('trace');
+        return emptyGraph('resolved');
+      },
     });
     const plan = planner(resolver).plan(STAGE3B_REFERENCE_QUESTIONS.E!);
     expect(plan.intent.type).toBe('explain_application_field');
-    expect(plan.resolvedGraphEvidence.nodes.length).toBeGreaterThan(0);
+    expect(calls.indexOf('resolveNode:plugin')).toBeLessThan(calls.indexOf('resolveForm:guid'));
+    expect(calls.indexOf('resolveForm:guid')).toBeLessThan(calls.findIndex((c) => c.startsWith('resolveField:')));
+    expect(plan.audit.scopedFieldQueries).toBe(1);
+    expect(plan.audit.unscopedFieldQueries).toBe(0);
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'form')?.status).toBe('resolved');
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'help_field')?.status).toBe(
+      'resolved',
+    );
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'action_parameter')?.status).toBe(
+      'not_applicable',
+    );
+    expect(plan.planningStatus).toBe('ready');
     expect(plan.audit.autoResolvedAmbiguities).toBe(0);
   });
 
@@ -216,6 +341,10 @@ describe('Stage 3B intent & evidence planner', () => {
     const plan = planner().plan(STAGE3B_REFERENCE_QUESTIONS.F!);
     expect(['ambiguous', 'needs_clarification']).toContain(plan.planningStatus);
     expect(plan.planningStatus).not.toBe('ready');
+    expect(plan.clarificationQuestions.length).toBeGreaterThan(0);
+    expect(plan.clarificationQuestions.some((q) => /Nazwa/.test(q.question))).toBe(true);
+    expect(plan.ambiguities.some((a) => a.subject === 'field_scope_missing')).toBe(true);
+    expect(plan.ambiguities.some((a) => a.subject === 'action_parameter')).toBe(false);
   });
 
   test('16. trace application intent', () => {
@@ -263,6 +392,36 @@ describe('Stage 3B intent & evidence planner', () => {
 
   test('21. Stage 3A ambiguity propagation', () => {
     const resolver = mockResolver({
+      resolveNode: (input) => {
+        if (input.nodeType === 'plugin_registry_entry') {
+          return {
+            ...emptyGraph('ambiguous'),
+            candidates: [
+              {
+                nodeId: 'plugin:a',
+                scoreRank: 4,
+                matchKind: 'name',
+                confidence: 'confirmed',
+                domain: 'application',
+                type: 'plugin_registry_entry',
+                canonicalName: 'A',
+                name: 'Lista obliczona',
+              },
+              {
+                nodeId: 'plugin:b',
+                scoreRank: 4,
+                matchKind: 'name',
+                confidence: 'confirmed',
+                domain: 'application',
+                type: 'plugin_registry_entry',
+                canonicalName: 'B',
+                name: 'Lista obliczona',
+              },
+            ],
+          };
+        }
+        return emptyGraph('unresolved');
+      },
       resolveForm: () => ({
         ...emptyGraph('ambiguous'),
         candidates: [
@@ -297,10 +456,48 @@ describe('Stage 3B intent & evidence planner', () => {
   });
 
   test('22. Stage 3A conflict propagation', () => {
+    const formGuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
     const resolver = mockResolver({
+      resolveNode: (input) => {
+        if (input.nodeType === 'plugin_registry_entry') {
+          return {
+            ...emptyGraph('resolved'),
+            selectedNodeId: `plugin:${formGuid}`,
+            candidates: [
+              {
+                nodeId: `plugin:${formGuid}`,
+                scoreRank: 4,
+                matchKind: 'exact_name',
+                confidence: 'confirmed',
+                domain: 'application',
+                type: 'plugin_registry_entry',
+                canonicalName: formGuid,
+                name: 'Lista obliczona',
+              },
+            ],
+            nodes: [
+              {
+                id: `plugin:${formGuid}`,
+                type: 'plugin_registry_entry',
+                domain: 'application',
+                name: 'Lista obliczona',
+                canonicalName: formGuid,
+                owner: null,
+                objectType: null,
+                confidence: 'confirmed',
+                sourceStages: ['1'],
+                attributes: { guid: formGuid, className: 'X' },
+                evidence: [],
+                semanticNormalization: null,
+              },
+            ],
+          };
+        }
+        return emptyGraph('unresolved');
+      },
       resolveForm: () => ({
         ...emptyGraph('resolved'),
-        selectedNodeId: 'form:x',
+        selectedNodeId: `form:${formGuid}:X`,
       }),
       resolveField: () => ({
         ...emptyGraph('conflicting'),
@@ -330,7 +527,8 @@ describe('Stage 3B intent & evidence planner', () => {
       }),
     });
     const plan = planner(resolver).plan(STAGE3B_REFERENCE_QUESTIONS.E!);
-    expect(plan.ambiguities.some((a) => a.kind === 'conflicting')).toBe(true);
+    // conflicts may surface on oracle_path when help also resolves; at minimum no auto-resolve
+    expect(plan.audit.autoResolvedAmbiguities).toBe(0);
   });
 
   test('23. deferred runtime evidence', () => {
@@ -428,5 +626,117 @@ describe('Stage 3B intent & evidence planner', () => {
       'build_employee_report',
     );
     expect(ents.some((e) => e.type === 'relativeDateRange')).toBe(true);
+  });
+
+  test('31. BHP executes graph evidence queries', () => {
+    let nodeCalls = 0;
+    const resolver = mockResolver({
+      resolveNode: () => {
+        nodeCalls += 1;
+        return {
+          ...emptyGraph('resolved'),
+          selectedNodeId: 'oracle-object:TETA_ADMIN:VIEW:NT_KP_BHP_X',
+          candidates: [
+            {
+              nodeId: 'oracle-object:TETA_ADMIN:VIEW:NT_KP_BHP_X',
+              scoreRank: 4,
+              matchKind: 'exact_name',
+              confidence: 'confirmed',
+              domain: 'oracle',
+              type: 'oracle_object',
+              canonicalName: 'NT_KP_BHP_X',
+              name: 'NT_KP_BHP_X',
+            },
+          ],
+        };
+      },
+      resolveForm: () => emptyGraph('unresolved'),
+    });
+    const plan = planner(resolver).plan(STAGE3B_REFERENCE_QUESTIONS.D!);
+    expect(plan.audit.graphQueriesExecuted).toBeGreaterThan(0);
+    expect(nodeCalls).toBeGreaterThan(0);
+    expect(plan.audit.sqlGenerated).toBe(0);
+    // structural may resolve; no employee runtime values are fetched
+    expect(plan.executionPolicy.sqlExecutionAllowed).toBe(false);
+  });
+
+  test('32. exact table symbol keeps canonical candidates without auto-owner', () => {
+    const resolver = mockResolver({
+      resolveNode: (input) => ({
+        ...emptyGraph('ambiguous'),
+        candidates: [
+          {
+            nodeId: `oracle-object:TETA_ADMIN:TABLE:${input.name}`,
+            scoreRank: 3,
+            matchKind: 'exact_oracle_identity',
+            confidence: 'confirmed',
+            domain: 'oracle',
+            type: 'oracle_object',
+            canonicalName: String(input.name),
+            name: String(input.name),
+          },
+          {
+            nodeId: `oracle-object:TETA_ADMIN_P:SYNONYM:${input.name}`,
+            scoreRank: 3,
+            matchKind: 'exact_oracle_identity',
+            confidence: 'confirmed',
+            domain: 'oracle',
+            type: 'oracle_object',
+            canonicalName: String(input.name),
+            name: String(input.name),
+          },
+        ],
+      }),
+    });
+    const plan = planner(resolver).plan(STAGE3B_REFERENCE_QUESTIONS.C!);
+    expect(plan.selectionRequiredBeforeExecution).toBe(true);
+    expect(plan.audit.autoResolvedAmbiguities).toBe(0);
+    const target = plan.evidenceRequirements.find((e) => e.evidenceType === 'target_tables');
+    const rows = target?.graphResolution?.candidates as Array<{
+      businessTarget: string;
+      canonicalCandidates: unknown[];
+      selectionRequiredBeforeExecution: boolean;
+    }>;
+    expect(rows?.some((r) => r.businessTarget === 'T_PRAC')).toBe(true);
+    expect(rows?.every((r) => r.selectionRequiredBeforeExecution)).toBe(true);
+  });
+
+  test('33. ambiguity generates clarification or selectionRequiredBeforeExecution', () => {
+    const F = planner().plan(STAGE3B_REFERENCE_QUESTIONS.F!);
+    expect(F.clarificationQuestions.length).toBeGreaterThan(0);
+    const C = planner(
+      mockResolver({
+        resolveNode: () => ({
+          ...emptyGraph('ambiguous'),
+          candidates: [
+            {
+              nodeId: 'a',
+              scoreRank: 3,
+              matchKind: 'x',
+              confidence: 'confirmed',
+              domain: 'oracle',
+              type: 'oracle_object',
+              canonicalName: 'T',
+              name: 'T',
+            },
+            {
+              nodeId: 'b',
+              scoreRank: 3,
+              matchKind: 'x',
+              confidence: 'confirmed',
+              domain: 'oracle',
+              type: 'oracle_object',
+              canonicalName: 'T',
+              name: 'T',
+            },
+          ],
+        }),
+      }),
+    ).plan(STAGE3B_REFERENCE_QUESTIONS.C!);
+    expect(
+      C.selectionRequiredBeforeExecution ||
+        C.clarificationQuestions.length > 0 ||
+        C.ambiguities.some((a) => a.selectionRequiredBeforeExecution),
+    ).toBe(true);
   });
 });

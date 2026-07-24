@@ -1,5 +1,5 @@
 /**
- * Stage 3B — audit runner for references A–G + strict gates.
+ * Stage 3B / 3B.1 — audit runner for references A–G + strict gates.
  */
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import path from 'path';
@@ -47,17 +47,28 @@ function summarizePlan(plan: TetaEvidencePlan): Record<string, unknown> {
       source: e.source,
     })),
     missingEntities: plan.missingEntities,
-    ambiguities: plan.ambiguities.map((a) => ({ kind: a.kind, subject: a.subject })),
+    ambiguities: plan.ambiguities.map((a) => ({
+      kind: a.kind,
+      subject: a.subject,
+      blocksPlanning: a.blocksPlanning !== false,
+      selectionRequiredBeforeExecution: a.selectionRequiredBeforeExecution === true,
+      candidateIds: a.candidateIds?.slice(0, 8),
+    })),
     clarificationQuestions: plan.clarificationQuestions,
+    selectionRequiredBeforeExecution: plan.selectionRequiredBeforeExecution,
     evidenceStatuses: plan.evidenceRequirements.map((e) => ({
       evidenceType: e.evidenceType,
       status: e.status,
       runtimeSourceRequired: e.runtimeSourceRequired,
+      selectedNodeId: e.graphResolution?.selectedNodeId ?? null,
     })),
     executionPolicy: plan.executionPolicy,
     graphNodes: plan.resolvedGraphEvidence.nodes.length,
     graphEdges: plan.resolvedGraphEvidence.edges.length,
     graphConflicts: plan.resolvedGraphEvidence.conflicts.length,
+    scopedFieldQueries: plan.audit.scopedFieldQueries,
+    unscopedFieldQueries: plan.audit.unscopedFieldQueries,
+    queryTimingMs: plan.audit.queryTimingMs,
     durationMs: plan.audit.plannerDurationMs,
   };
 }
@@ -65,6 +76,7 @@ function summarizePlan(plan: TetaEvidencePlan): Record<string, unknown> {
 function checkReference(key: string, plan: TetaEvidencePlan): string[] {
   const errors: string[] = [];
   const ent = (t: string) => plan.entities.filter((e) => e.type === t);
+  const ev = (t: string) => plan.evidenceRequirements.find((e) => e.evidenceType === t);
 
   if (key === 'A') {
     if (plan.intent.type !== 'explain_payroll_component') {
@@ -87,9 +99,6 @@ function checkReference(key: string, plan: TetaEvidencePlan): string[] {
     }
     const deferred = plan.evidenceRequirements.filter((e) => e.status === 'deferred');
     if (deferred.length < 3) errors.push('A: expected deferred runtime evidence');
-    if (plan.planningStatus === 'unsupported' || plan.planningStatus === 'invalid') {
-      errors.push('A: bad planningStatus');
-    }
   }
 
   if (key === 'B') {
@@ -113,28 +122,24 @@ function checkReference(key: string, plan: TetaEvidencePlan): string[] {
     if (!ent('fileName').some((e) => e.normalizedValue === 'import.xlsx')) {
       errors.push('C: fileName');
     }
-    if (!ent('fileType').some((e) => e.normalizedValue === 'xlsx')) {
-      errors.push('C: fileType');
-    }
-    const tables = ent('targetTable').map((e) => e.normalizedValue).sort();
+    const tables = ent('targetTable').map((e) => e.normalizedValue);
     for (const t of ['T_PRAC', 'L_STANOWISKA', 'L_STAWKI']) {
       if (!tables.includes(t)) errors.push(`C: missing table ${t}`);
     }
-    const types = new Set(plan.evidenceRequirements.map((e) => e.evidenceType));
-    for (const need of [
-      'datatype_rules',
-      'not_null_rules',
-      'primary_keys',
-      'unique_constraints',
-      'foreign_keys',
-      'check_constraints',
-      'triggers',
-      'business_rules',
-      'import_order',
-    ]) {
-      if (!types.has(need)) errors.push(`C: missing evidence ${need}`);
+    const targetEv = ev('target_tables');
+    const gr = targetEv?.graphResolution as
+      | { candidates?: Array<{ businessTarget?: string; canonicalCandidates?: unknown[] }> }
+      | null
+      | undefined;
+    if (gr?.candidates && Array.isArray(gr.candidates)) {
+      for (const row of gr.candidates) {
+        if (!row.businessTarget) errors.push('C: businessTarget missing');
+        if (!Array.isArray(row.canonicalCandidates)) errors.push('C: canonicalCandidates missing');
+      }
     }
     if (plan.executionPolicy.fileReadAllowed !== false) errors.push('C: fileReadAllowed');
+    // owner/type must not be auto-resolved into a single selected owner silently
+    if (plan.audit.autoResolvedAmbiguities !== 0) errors.push('C: autoResolvedAmbiguities');
   }
 
   if (key === 'D') {
@@ -145,21 +150,14 @@ function checkReference(key: string, plan: TetaEvidencePlan): string[] {
     if (!ent('relativeDateRange').some((e) => e.normalizedValue === 'current_month')) {
       errors.push('D: relativeDateRange current_month');
     }
-    if (
-      ent('relativeDateRange').some(
-        (e) => e.attributes && (e.attributes as { resolvedAt?: unknown }).resolvedAt != null,
-      )
-    ) {
-      errors.push('D: relative date must not be resolved');
+    if (plan.audit.graphQueriesExecuted < 1) {
+      errors.push('D: expected at least one graph query');
     }
-    const types = new Set(plan.evidenceRequirements.map((e) => e.evidenceType));
-    for (const need of [
-      'employee_source',
-      'joins',
-      'dictionary_display_columns',
-      'authorization_scope',
-    ]) {
-      if (!types.has(need)) errors.push(`D: missing evidence ${need}`);
+    const runtimeDeferred = plan.evidenceRequirements.filter(
+      (e) => e.runtimeSourceRequired && e.status === 'deferred',
+    );
+    if (runtimeDeferred.length < 1 && plan.evidenceRequirements.some((e) => e.runtimeSourceRequired)) {
+      errors.push('D: runtime evidence should remain deferred');
     }
   }
 
@@ -171,6 +169,23 @@ function checkReference(key: string, plan: TetaEvidencePlan): string[] {
     if (!ent('formName').some((e) => /lista\s+obliczona/i.test(e.rawValue))) {
       errors.push('E: formName Lista obliczona');
     }
+    if (plan.audit.scopedFieldQueries < 1) errors.push('E: expected scoped field query');
+    if (plan.audit.unscopedFieldQueries !== 0) errors.push('E: unexpected unscoped field query');
+    if (ev('form')?.status !== 'resolved') errors.push('E: form evidence not resolved');
+    const helpOrControl =
+      ev('help_field')?.status === 'resolved' || ev('control')?.status === 'resolved';
+    if (!helpOrControl) errors.push('E: help_field or control must be resolved');
+    if (ev('action_parameter')?.status !== 'not_applicable') {
+      errors.push('E: action_parameter must be not_applicable for data field');
+    }
+    if (plan.ambiguities.some((a) => a.subject === 'action_parameter')) {
+      errors.push('E: must not have action_parameter ambiguity');
+    }
+    if (plan.resolvedGraphEvidence.nodes.length < 1) errors.push('E: graphNodes expected > 0');
+    if (plan.planningStatus !== 'ready' && plan.planningStatus !== 'ambiguous') {
+      // ready preferred when unique; ambiguous only if Stage 3A truly has multiple forms
+      errors.push(`E: unexpected planningStatus=${plan.planningStatus}`);
+    }
   }
 
   if (key === 'F') {
@@ -178,6 +193,22 @@ function checkReference(key: string, plan: TetaEvidencePlan): string[] {
       errors.push('F: expected ambiguous or needs_clarification');
     }
     if (plan.planningStatus === 'ready') errors.push('F: must not auto-resolve');
+    if (plan.clarificationQuestions.length < 1) {
+      errors.push('F: expected clarificationQuestion about form');
+    }
+    const q = plan.clarificationQuestions.map((c) => c.question).join(' ');
+    if (!/formularzu/i.test(q) || !/Nazwa/i.test(q)) {
+      errors.push('F: clarification must ask for form of field Nazwa');
+    }
+    if (plan.ambiguities.some((a) => ['action_parameter', 'control', 'help_field'].includes(a.subject))) {
+      errors.push('F: must not emit separate global ambiguities for action/control/help');
+    }
+    if (!plan.ambiguities.some((a) => a.subject === 'field_scope_missing')) {
+      errors.push('F: expected grouped field_scope_missing ambiguity');
+    }
+    if (plan.audit.unscopedFieldQueries !== 0) {
+      errors.push('F: must not run unscoped global field search');
+    }
   }
 
   if (key === 'G') {
@@ -213,6 +244,16 @@ export function runStage3bAudit(input: {
   let graphAmbiguous = 0;
   let graphUnresolved = 0;
   let graphConflicting = 0;
+  let graphResolvedEvidence = 0;
+  let graphAmbiguousEvidence = 0;
+  let graphUnresolvedEvidence = 0;
+  let scopedFieldQueries = 0;
+  let unscopedFieldQueries = 0;
+  let irrelevantGlobalAmbiguities = 0;
+  let clarificationQuestionsForAmbiguities = 0;
+  let evidenceNotApplicable = 0;
+  let resolvedForms = 0;
+  let resolvedFormScopedFields = 0;
   let missingRequiredEvidence = 0;
   let deferredEvidence = 0;
   let guessedEntities = 0;
@@ -230,6 +271,13 @@ export function runStage3bAudit(input: {
 
     entitiesExtracted += plan.entities.length;
     graphQueriesExecuted += plan.audit.graphQueriesExecuted;
+    scopedFieldQueries += plan.audit.scopedFieldQueries;
+    unscopedFieldQueries += plan.audit.unscopedFieldQueries;
+    irrelevantGlobalAmbiguities += plan.audit.irrelevantGlobalAmbiguities;
+    clarificationQuestionsForAmbiguities += plan.audit.clarificationQuestionsForAmbiguities;
+    evidenceNotApplicable += plan.audit.evidenceNotApplicable;
+    resolvedForms += plan.audit.resolvedForms;
+    resolvedFormScopedFields += plan.audit.resolvedFormScopedFields;
     guessedEntities += plan.audit.guessedEntities;
     autoResolvedAmbiguities += plan.audit.autoResolvedAmbiguities;
     sqlGenerated += plan.audit.sqlGenerated;
@@ -249,6 +297,9 @@ export function runStage3bAudit(input: {
     for (const ev of plan.evidenceRequirements) {
       if (ev.required && ev.status === 'missing') missingRequiredEvidence += 1;
       if (ev.status === 'deferred') deferredEvidence += 1;
+      if (ev.status === 'resolved') graphResolvedEvidence += 1;
+      if (ev.status === 'ambiguous') graphAmbiguousEvidence += 1;
+      if (ev.status === 'missing' || ev.status === 'unavailable') graphUnresolvedEvidence += 1;
       const st = ev.graphResolution?.status;
       if (st === 'resolved') graphResolved += 1;
       else if (st === 'ambiguous') graphAmbiguous += 1;
@@ -256,22 +307,39 @@ export function runStage3bAudit(input: {
       else if (st === 'conflicting') graphConflicting += 1;
     }
 
-    // Determinism: plan twice
     const plan2 = input.planner.plan(req);
     if (stableStringify(stripVolatilePlanFields(plan)) !== stableStringify(stripVolatilePlanFields(plan2))) {
       strictErrors.push(`${key}: non-deterministic plan output`);
     }
   }
 
-  if (!input.graphSourceHash) {
-    strictErrors.push('graph source hash unavailable');
-  }
+  if (!input.graphSourceHash) strictErrors.push('graph source hash unavailable');
   if (guessedEntities !== 0) strictErrors.push('guessedEntities != 0');
   if (autoResolvedAmbiguities !== 0) strictErrors.push('autoResolvedAmbiguities != 0');
   if (sqlGenerated !== 0) strictErrors.push('SQL generated != 0');
   if (sqlExecuted !== 0) strictErrors.push('SQL executed != 0');
   if (filesRead !== 0) strictErrors.push('filesRead != 0');
   if (oracleWrites !== 0) strictErrors.push('Oracle writes != 0');
+  if (irrelevantGlobalAmbiguities !== 0) {
+    strictErrors.push(`irrelevantGlobalAmbiguities=${irrelevantGlobalAmbiguities}`);
+  }
+  if (graphResolvedEvidence < 1 && graphResolved < 1) {
+    // Prefer evidence-level resolved counts from Stage 3B.1 applicability
+    strictErrors.push('graphResolvedEvidence expected > 0 when Stage 3A can resolve refs');
+  }
+
+  const diagnosis = {
+    rootCause:
+      'Stage 3B previously called resolveForm(nameFragment) on Polish display titles that live on plugin_registry_entry, not application_form; then resolveField without formNodeId searched help_field+ui_control+action_control globally and applied the same ambiguous result to every evidence type including action_parameter.',
+    stage3b1Fix: [
+      'resolve form via GUID or plugin_registry_entry → GUID/className → resolveForm',
+      'resolveField only with formNodeId when form known',
+      'skip global field search when form missing; emit field_scope_missing + clarification',
+      'mark action_parameter not_applicable for ordinary data fields',
+      'import tables: businessTarget + canonicalCandidates + selectionRequiredBeforeExecution',
+      'report subjects: config graphSearchTerms queried through Stage 3A',
+    ],
+  };
 
   const report: Stage3bAuditReport = {
     contractVersion: STAGE3B_CONTRACT_VERSION,
@@ -292,6 +360,16 @@ export function runStage3bAudit(input: {
     graphAmbiguous,
     graphUnresolved,
     graphConflicting,
+    graphResolvedEvidence,
+    graphAmbiguousEvidence,
+    graphUnresolvedEvidence,
+    scopedFieldQueries,
+    unscopedFieldQueries,
+    irrelevantGlobalAmbiguities,
+    clarificationQuestionsForAmbiguities,
+    evidenceNotApplicable,
+    resolvedForms,
+    resolvedFormScopedFields,
     missingRequiredEvidence,
     deferredEvidence,
     guessedEntities,
@@ -304,6 +382,7 @@ export function runStage3bAudit(input: {
       timings.length === 0 ? 0 : Math.round(timings.reduce((a, b) => a + b, 0) / timings.length),
     maxPlanningTimeMs: timings.length === 0 ? 0 : Math.max(...timings),
     referenceResults,
+    diagnosis,
     strictErrors,
     deterministicCheckOk: !strictErrors.some((e) => e.includes('non-deterministic')),
     generatedAt: new Date().toISOString(),

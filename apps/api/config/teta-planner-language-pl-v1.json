@@ -18,6 +18,11 @@
     "dateRange": "Podaj zakres dat.",
     "relativeDateRange": "Podaj okres (np. ten miesiąc)."
   },
+  "clarificationTemplates": {
+    "field_scope_missing": "Na którym formularzu znajduje się pole „{fieldLabel}”?",
+    "multiple_forms": "Który formularz masz na myśli: {candidateLabels}?",
+    "multiple_fields": "Które pole masz na myśli: {candidateLabels}?"
+  },
   "monthNames": {
     "styczen": 1,
     "styczeń": 1,
@@ -47,15 +52,24 @@
         "badaniami\\s+bhp",
         "badan\\s+bhp",
         "medycyn.{0,20}pracy"
+      ],
+      "graphSearchTerms": [
+        "badania BHP",
+        "badania",
+        "termin badania",
+        "ważność badania",
+        "BHP"
       ]
     },
     {
       "id": "expiring_contracts",
-      "patterns": ["wygasaj[aą]cych\\s+um[oó]w", "wygasaj[aą]ce\\s+umowy", "ko[nń]cz[aą]cych\\s+si[eę]\\s+um[oó]w"]
+      "patterns": ["wygasaj[aą]cych\\s+um[oó]w", "wygasaj[aą]ce\\s+umowy", "ko[nń]cz[aą]cych\\s+si[eę]\\s+um[oó]w"],
+      "graphSearchTerms": ["umowy", "wygasające umowy"]
     },
     {
       "id": "employees_without_position",
-      "patterns": ["pracownik.{0,40}bez\\s+stanowisk"]
+      "patterns": ["pracownik.{0,40}bez\\s+stanowisk"],
+      "graphSearchTerms": ["stanowisko"]
     }
   ],
   "relativeDateExpressions": [
