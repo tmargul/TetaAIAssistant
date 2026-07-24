@@ -124,6 +124,11 @@ export type EvidenceRequirement = {
   graphResolution: {
     status: string | null;
     selectedNodeId: string | null;
+    /** For multi-node evidence (columns, etc.) */
+    selectedNodeIds?: string[];
+    pathNodeIds?: string[];
+    pathEdgeIds?: string[];
+    paths?: unknown[];
     candidates: unknown[];
     truncated?: boolean;
     businessTarget?: string;
@@ -254,6 +259,12 @@ export type Stage3bAuditReport = {
   evidenceNotApplicable: number;
   resolvedForms: number;
   resolvedFormScopedFields: number;
+  resolvedEvidenceWithoutNodeOrPath: number;
+  evidenceSelectedNodeTypeMismatch: number;
+  fieldEvidenceOutsideResolvedPath: number;
+  bindingResolvedWithoutResolvedControl: number;
+  lookupResolvedWithoutLookupEdge: number;
+  helpDocumentPointingToForm: number;
   missingRequiredEvidence: number;
   deferredEvidence: number;
   guessedEntities: number;

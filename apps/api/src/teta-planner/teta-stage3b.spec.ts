@@ -16,6 +16,11 @@ import {
 import { stripVolatilePlanFields, stableStringify } from './teta-task-contract';
 import { STAGE3B_REFERENCE_QUESTIONS } from './teta-stage3b-audit';
 import type { GraphResolverResult } from '../teta-plugins/teta-stage3a.types';
+import {
+  coerceResolvedStatus,
+  hasResolvedIdentity,
+  validateEvidenceList,
+} from './teta-evidence-contract';
 import { readFileSync } from 'fs';
 
 const apiRoot = path.resolve(__dirname, '..', '..');
@@ -293,27 +298,86 @@ describe('Stage 3B intent & evidence planner', () => {
           ],
         };
       },
-      getEvidenceSubgraph: () => {
-        calls.push('subgraph:help');
-        return {
-          ...emptyGraph('resolved'),
-          nodes: [
-            {
-              id: helpId,
-              type: 'help_field',
-              domain: 'help',
-              name: 'Wartość',
-              canonicalName: 'Wartość',
-              owner: null,
-              objectType: null,
-              confidence: 'confirmed',
-              sourceStages: ['2C'],
-              attributes: {},
-              evidence: [{ kind: 'help', text: 'wartość składnika' }],
-              semanticNormalization: null,
-            },
-          ],
-        };
+      getEvidenceSubgraph: (input) => {
+        const edges = input.allowedEdgeTypes ?? [];
+        const start = input.startNodeIds?.[0] ?? '';
+        if (edges.includes('HAS_HELP')) {
+          calls.push('subgraph:HAS_HELP');
+          const docId = `help-doc:${formGuid}:ListyObliczoneWidok`;
+          return {
+            ...emptyGraph('resolved'),
+            nodes: [
+              {
+                id: docId,
+                type: 'help_document',
+                domain: 'help',
+                name: 'Lista obliczona',
+                canonicalName: 'Lista obliczona',
+                owner: null,
+                objectType: null,
+                confidence: 'confirmed',
+                sourceStages: ['2C'],
+                attributes: {},
+                evidence: [],
+                semanticNormalization: null,
+              },
+            ],
+            edges: [
+              {
+                id: `edge:HAS_HELP:${formId}->${docId}`,
+                type: 'HAS_HELP',
+                from: formId,
+                to: docId,
+                confidence: 'confirmed',
+                sourceStages: ['2C'],
+                attributes: {},
+                evidence: [],
+              },
+            ],
+          };
+        }
+        if (edges.includes('DESCRIBES') || edges.includes('LABEL_FOR')) {
+          // Field discovery: help-doc --DESCRIBES--> help_field
+          if (start.startsWith('help-doc:')) {
+            calls.push('subgraph:DESCRIBES:helpFields');
+            return {
+              ...emptyGraph('resolved'),
+              nodes: [
+                {
+                  id: helpId,
+                  type: 'help_field',
+                  domain: 'help',
+                  name: 'Wartość',
+                  canonicalName: 'Wartość',
+                  owner: null,
+                  objectType: null,
+                  confidence: 'confirmed',
+                  sourceStages: ['2C'],
+                  attributes: {},
+                  evidence: [],
+                  semanticNormalization: null,
+                },
+              ],
+              edges: [
+                {
+                  id: `edge:DESCRIBES:${start}->${helpId}`,
+                  type: 'DESCRIBES',
+                  from: start,
+                  to: helpId,
+                  confidence: 'confirmed',
+                  sourceStages: ['2C'],
+                  attributes: {},
+                  evidence: [],
+                },
+              ],
+            };
+          }
+          // Path evidence: help_field --DESCRIBES--> control (none in Ref E graph)
+          calls.push('subgraph:DESCRIBES:control');
+          return emptyGraph('resolved');
+        }
+        calls.push('subgraph:bindings');
+        return emptyGraph('resolved');
       },
       traceFieldToOracle: () => {
         calls.push('trace');
@@ -327,8 +391,24 @@ describe('Stage 3B intent & evidence planner', () => {
     expect(plan.audit.scopedFieldQueries).toBe(1);
     expect(plan.audit.unscopedFieldQueries).toBe(0);
     expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'form')?.status).toBe('resolved');
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'help_document')?.status).toBe(
+      'resolved',
+    );
+    expect(
+      plan.evidenceRequirements.find((e) => e.evidenceType === 'help_document')?.graphResolution
+        ?.selectedNodeId,
+    ).toMatch(/^help-doc:/);
     expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'help_field')?.status).toBe(
       'resolved',
+    );
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'control')?.status).toBe(
+      'missing',
+    );
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'target_binding')?.status).not.toBe(
+      'resolved',
+    );
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'lookup_binding')?.status).toBe(
+      'not_applicable',
     );
     expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'action_parameter')?.status).toBe(
       'not_applicable',
@@ -738,5 +818,416 @@ describe('Stage 3B intent & evidence planner', () => {
         C.clarificationQuestions.length > 0 ||
         C.ambiguities.some((a) => a.selectionRequiredBeforeExecution),
     ).toBe(true);
+  });
+
+  test('34. help_document must not point at form node', () => {
+    const v = validateEvidenceList([
+      {
+        evidenceType: 'help_document',
+        required: true,
+        status: 'resolved',
+        reason: 't',
+        runtimeSourceRequired: false,
+        missingReason: null,
+        graphResolution: {
+          status: 'resolved',
+          selectedNodeId: 'form:x',
+          candidates: [],
+        },
+      },
+    ] as any);
+    expect(v.some((x) => x.code === 'helpDocumentPointingToForm')).toBe(true);
+  });
+
+  test('35. selectedNodeId type must match evidenceType', () => {
+    const v = validateEvidenceList([
+      {
+        evidenceType: 'target_binding',
+        required: false,
+        status: 'resolved',
+        reason: 't',
+        runtimeSourceRequired: false,
+        missingReason: null,
+        graphResolution: {
+          status: 'resolved',
+          selectedNodeId: 'form:x',
+          candidates: [],
+        },
+      },
+    ] as any);
+    expect(v.some((x) => x.code === 'evidenceSelectedNodeTypeMismatch')).toBe(true);
+  });
+
+  test('36. resolved evidence requires node id or path', () => {
+    expect(hasResolvedIdentity({ selectedNodeId: null })).toBe(false);
+    expect(hasResolvedIdentity({ selectedNodeId: null, selectedNodeIds: [] })).toBe(false);
+    expect(hasResolvedIdentity({ selectedNodeId: 'a' })).toBe(true);
+    expect(hasResolvedIdentity({ selectedNodeId: null, selectedNodeIds: ['a'] })).toBe(true);
+    expect(hasResolvedIdentity({ selectedNodeId: null, pathNodeIds: ['a'] })).toBe(true);
+    expect(coerceResolvedStatus('resolved', { selectedNodeId: null })).toBe('missing');
+  });
+
+  test('37. binding not resolved without control; no lookup without BINDS_LOOKUP', () => {
+    const formGuid = '03c5e06f-fad6-414e-8053-47d944b0b19e';
+    const formId = `form:${formGuid}:ListyObliczoneWidok`;
+    const helpId = `help-field:${formGuid}:ListyObliczoneWidok:wartość`;
+    const controlId = `${formId}:dgcWartosc`;
+    const alienBinding = `binding-target:${formGuid}:otherField`;
+    const resolver = mockResolver({
+      resolveNode: (input) => {
+        if (input.nodeType === 'plugin_registry_entry') {
+          return {
+            ...emptyGraph('resolved'),
+            selectedNodeId: `plugin:${formGuid}`,
+            candidates: [
+              {
+                nodeId: `plugin:${formGuid}`,
+                scoreRank: 4,
+                matchKind: 'exact_name',
+                confidence: 'confirmed',
+                domain: 'application',
+                type: 'plugin_registry_entry',
+                canonicalName: formGuid,
+                name: 'Lista obliczona',
+              },
+            ],
+            nodes: [
+              {
+                id: `plugin:${formGuid}`,
+                type: 'plugin_registry_entry',
+                domain: 'application',
+                name: 'Lista obliczona',
+                canonicalName: formGuid,
+                owner: null,
+                objectType: null,
+                confidence: 'confirmed',
+                sourceStages: ['1'],
+                attributes: { className: 'ListyObliczoneWidok', guid: formGuid },
+                evidence: [],
+                semanticNormalization: null,
+              },
+            ],
+          };
+        }
+        if (input.id === helpId) {
+          return {
+            ...emptyGraph('resolved'),
+            selectedNodeId: helpId,
+            candidates: [
+              {
+                nodeId: helpId,
+                scoreRank: 1,
+                matchKind: 'exact_canonical_id',
+                confidence: 'confirmed',
+                domain: 'help',
+                type: 'help_field',
+                canonicalName: 'Wartość',
+                name: 'Wartość',
+              },
+            ],
+          };
+        }
+        return emptyGraph('unresolved');
+      },
+      resolveForm: () => ({
+        ...emptyGraph('resolved'),
+        selectedNodeId: formId,
+        candidates: [
+          {
+            nodeId: formId,
+            scoreRank: 1,
+            matchKind: 'exact',
+            confidence: 'confirmed',
+            domain: 'application',
+            type: 'application_form',
+            canonicalName: 'ListyObliczoneWidok',
+            name: 'ListyObliczoneWidok',
+          },
+        ],
+        nodes: [
+          {
+            id: formId,
+            type: 'application_form',
+            domain: 'application',
+            name: 'ListyObliczoneWidok',
+            canonicalName: 'ListyObliczoneWidok',
+            owner: null,
+            objectType: null,
+            confidence: 'confirmed',
+            sourceStages: ['2A'],
+            attributes: {},
+            evidence: [],
+            semanticNormalization: null,
+          },
+        ],
+      }),
+      resolveField: () => ({
+        ...emptyGraph('resolved'),
+        selectedNodeId: helpId,
+        candidates: [
+          {
+            nodeId: helpId,
+            scoreRank: 1,
+            matchKind: 'exact_help_in_form',
+            confidence: 'confirmed',
+            domain: 'help',
+            type: 'help_field',
+            canonicalName: 'Wartość',
+            name: 'Wartość',
+          },
+        ],
+      }),
+      getEvidenceSubgraph: (input) => {
+        const edges = input.allowedEdgeTypes ?? [];
+        const start = input.startNodeIds?.[0] ?? '';
+        if (edges.includes('HAS_HELP')) {
+          const docId = `help-doc:${formGuid}:ListyObliczoneWidok`;
+          return {
+            ...emptyGraph('resolved'),
+            nodes: [
+              {
+                id: docId,
+                type: 'help_document',
+                domain: 'help',
+                name: 'doc',
+                canonicalName: 'doc',
+                owner: null,
+                objectType: null,
+                confidence: 'confirmed',
+                sourceStages: ['2C'],
+                attributes: {},
+                evidence: [],
+                semanticNormalization: null,
+              },
+            ],
+            edges: [
+              {
+                id: `e:help`,
+                type: 'HAS_HELP',
+                from: formId,
+                to: docId,
+                confidence: 'confirmed',
+                sourceStages: ['2C'],
+                attributes: {},
+                evidence: [],
+              },
+            ],
+          };
+        }
+        if (edges.includes('DESCRIBES') || edges.includes('LABEL_FOR')) {
+          if (start.startsWith('help-doc:')) {
+            return {
+              ...emptyGraph('resolved'),
+              nodes: [
+                {
+                  id: helpId,
+                  type: 'help_field',
+                  domain: 'help',
+                  name: 'Wartość',
+                  canonicalName: 'Wartość',
+                  owner: null,
+                  objectType: null,
+                  confidence: 'confirmed',
+                  sourceStages: ['2C'],
+                  attributes: {},
+                  evidence: [],
+                  semanticNormalization: null,
+                },
+              ],
+              edges: [
+                {
+                  id: 'e:hf',
+                  type: 'DESCRIBES',
+                  from: start,
+                  to: helpId,
+                  confidence: 'confirmed',
+                  sourceStages: ['2C'],
+                  attributes: {},
+                  evidence: [],
+                },
+              ],
+            };
+          }
+          return {
+            ...emptyGraph('resolved'),
+            nodes: [
+              {
+                id: controlId,
+                type: 'ui_control',
+                domain: 'application',
+                name: 'dgcWartosc',
+                canonicalName: 'dgcWartosc',
+                owner: null,
+                objectType: null,
+                confidence: 'confirmed',
+                sourceStages: ['2A'],
+                attributes: {},
+                evidence: [],
+                semanticNormalization: null,
+              },
+            ],
+            edges: [
+              {
+                id: 'e:describes',
+                type: 'DESCRIBES',
+                from: helpId,
+                to: controlId,
+                confidence: 'confirmed',
+                sourceStages: ['2C'],
+                attributes: {},
+                evidence: [],
+              },
+            ],
+          };
+        }
+        // Control path: only BINDS_TARGET — no lookup; omit alien binding from same form
+        const targetId = `binding-target:${formGuid}:dgcWartosc`;
+        const dsId = `dataset-column:${formGuid}:VAL`;
+        const oraId = `oracle-column:TETA:T:VAL`;
+        return {
+          ...emptyGraph('resolved'),
+          nodes: [
+            {
+              id: targetId,
+              type: 'target_binding',
+              domain: 'application',
+              name: 'target',
+              canonicalName: 'target',
+              owner: null,
+              objectType: null,
+              confidence: 'confirmed',
+              sourceStages: ['2A'],
+              attributes: {},
+              evidence: [],
+              semanticNormalization: null,
+            },
+            {
+              id: dsId,
+              type: 'dataset_column',
+              domain: 'application',
+              name: 'VAL',
+              canonicalName: 'VAL',
+              owner: null,
+              objectType: null,
+              confidence: 'confirmed',
+              sourceStages: ['2A'],
+              attributes: {},
+              evidence: [],
+              semanticNormalization: null,
+            },
+            {
+              id: oraId,
+              type: 'oracle_column',
+              domain: 'oracle',
+              name: 'VAL',
+              canonicalName: 'VAL',
+              owner: 'TETA',
+              objectType: 'COLUMN',
+              confidence: 'confirmed',
+              sourceStages: ['2D'],
+              attributes: {},
+              evidence: [],
+              semanticNormalization: null,
+            },
+          ],
+          edges: [
+            {
+              id: 'e:bt',
+              type: 'BINDS_TARGET',
+              from: controlId,
+              to: targetId,
+              confidence: 'confirmed',
+              sourceStages: ['2A'],
+              attributes: {},
+              evidence: [],
+            },
+            {
+              id: 'e:map',
+              type: 'MAPS_TO_DATASET_COLUMN',
+              from: targetId,
+              to: dsId,
+              confidence: 'confirmed',
+              sourceStages: ['2A'],
+              attributes: {},
+              evidence: [],
+            },
+            {
+              id: 'e:ora',
+              type: 'RESOLVES_TO_ORACLE_COLUMN',
+              from: dsId,
+              to: oraId,
+              confidence: 'confirmed',
+              sourceStages: ['2D'],
+              attributes: {},
+              evidence: [],
+            },
+          ],
+        };
+      },
+    });
+    const plan = planner(resolver).plan(STAGE3B_REFERENCE_QUESTIONS.E!);
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'control')?.status).toBe(
+      'resolved',
+    );
+    expect(
+      plan.evidenceRequirements.find((e) => e.evidenceType === 'control')?.graphResolution
+        ?.selectedNodeId,
+    ).toBe(controlId);
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'target_binding')?.status).toBe(
+      'resolved',
+    );
+    const tb = plan.evidenceRequirements.find((e) => e.evidenceType === 'target_binding');
+    expect(tb?.graphResolution?.selectedNodeId ?? tb?.graphResolution?.selectedNodeIds?.[0]).toBeTruthy();
+    expect(JSON.stringify(tb)).not.toContain(alienBinding);
+    expect(plan.evidenceRequirements.find((e) => e.evidenceType === 'lookup_binding')?.status).toBe(
+      'not_applicable',
+    );
+    const ds = plan.evidenceRequirements.find((e) => e.evidenceType === 'dataset_columns');
+    const ora = plan.evidenceRequirements.find((e) => e.evidenceType === 'oracle_columns');
+    expect(ds?.status).toBe('resolved');
+    expect(ora?.status).toBe('resolved');
+    expect(
+      Boolean(
+        ds?.graphResolution?.selectedNodeId ||
+          (ds?.graphResolution?.selectedNodeIds?.length ?? 0) > 0,
+      ),
+    ).toBe(true);
+    expect(
+      Boolean(
+        ora?.graphResolution?.selectedNodeId ||
+          (ora?.graphResolution?.selectedNodeIds?.length ?? 0) > 0,
+      ),
+    ).toBe(true);
+  });
+
+  test('38. binding not resolved when control missing', () => {
+    const v = validateEvidenceList(
+      [
+        {
+          evidenceType: 'control',
+          required: true,
+          status: 'missing',
+          reason: 't',
+          runtimeSourceRequired: false,
+          missingReason: 'x',
+          graphResolution: { status: 'unresolved', selectedNodeId: null, candidates: [] },
+        },
+        {
+          evidenceType: 'target_binding',
+          required: false,
+          status: 'resolved',
+          reason: 't',
+          runtimeSourceRequired: false,
+          missingReason: null,
+          graphResolution: {
+            status: 'resolved',
+            selectedNodeId: 'binding-target:x',
+            candidates: [],
+          },
+        },
+      ] as any,
+      { lookupEdgePresent: false },
+    );
+    expect(v.some((x) => x.code === 'bindingResolvedWithoutResolvedControl')).toBe(true);
   });
 });

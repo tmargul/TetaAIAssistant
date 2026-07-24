@@ -121,6 +121,7 @@ ${JSON.stringify(report.diagnosis, null, 2)}
 3. \`action_parameter=not_applicable\` dla zwykłego pola danych.
 4. Import: \`businessTarget\` + \`canonicalCandidates\` + \`selectionRequiredBeforeExecution\` (bez auto-owner).
 5. Raport BHP: \`graphSearchTerms\` z konfiguracji → zapytania Stage 3A; runtime nadal \`deferred\`.
+6. Patch spójności evidence: typowanie \`selectedNodeId\`, resolved wymaga identity, ścieżka pola (nie cały formularz), lookup tylko z \`BINDS_LOOKUP\`.
 
 ## Katalog intencji
 
@@ -143,6 +144,12 @@ ${JSON.stringify(report.diagnosis, null, 2)}
 | graphResolvedEvidence / ambiguousEvidence | **${report.graphResolvedEvidence}** / **${report.graphAmbiguousEvidence}** |
 | scopedFieldQueries / unscopedFieldQueries | **${report.scopedFieldQueries}** / **${report.unscopedFieldQueries}** |
 | resolvedForms / resolvedFormScopedFields | **${report.resolvedForms}** / **${report.resolvedFormScopedFields}** |
+| resolvedEvidenceWithoutNodeOrPath | **${report.resolvedEvidenceWithoutNodeOrPath}** |
+| evidenceSelectedNodeTypeMismatch | **${report.evidenceSelectedNodeTypeMismatch}** |
+| fieldEvidenceOutsideResolvedPath | **${report.fieldEvidenceOutsideResolvedPath}** |
+| bindingResolvedWithoutResolvedControl | **${report.bindingResolvedWithoutResolvedControl}** |
+| lookupResolvedWithoutLookupEdge | **${report.lookupResolvedWithoutLookupEdge}** |
+| helpDocumentPointingToForm | **${report.helpDocumentPointingToForm}** |
 | irrelevantGlobalAmbiguities | **${report.irrelevantGlobalAmbiguities}** |
 | evidenceNotApplicable | **${report.evidenceNotApplicable}** |
 | clarificationQuestionsForAmbiguities | **${report.clarificationQuestionsForAmbiguities}** |

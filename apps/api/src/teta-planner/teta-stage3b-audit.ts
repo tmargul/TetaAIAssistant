@@ -6,6 +6,7 @@ import path from 'path';
 import type { TetaEvidencePlannerService } from './teta-evidence-planner.service';
 import { stripVolatilePlanFields, stableStringify } from './teta-task-contract';
 import { assertNoSideEffects } from './teta-planner-validation';
+import { hasResolvedIdentity, validateEvidenceList } from './teta-evidence-contract';
 import type { Stage3bAuditReport, TetaEvidencePlan, TetaPlanningRequest } from './teta-stage3b.types';
 import { STAGE3B_CONTRACT_VERSION, STAGE3B_PLANNER_CONFIG_VERSION } from './teta-stage3b.types';
 
@@ -61,6 +62,8 @@ function summarizePlan(plan: TetaEvidencePlan): Record<string, unknown> {
       status: e.status,
       runtimeSourceRequired: e.runtimeSourceRequired,
       selectedNodeId: e.graphResolution?.selectedNodeId ?? null,
+      selectedNodeIds: e.graphResolution?.selectedNodeIds ?? null,
+      pathNodeIds: e.graphResolution?.pathNodeIds?.slice(0, 12) ?? null,
     })),
     executionPolicy: plan.executionPolicy,
     graphNodes: plan.resolvedGraphEvidence.nodes.length,
@@ -172,18 +175,60 @@ function checkReference(key: string, plan: TetaEvidencePlan): string[] {
     if (plan.audit.scopedFieldQueries < 1) errors.push('E: expected scoped field query');
     if (plan.audit.unscopedFieldQueries !== 0) errors.push('E: unexpected unscoped field query');
     if (ev('form')?.status !== 'resolved') errors.push('E: form evidence not resolved');
-    const helpOrControl =
-      ev('help_field')?.status === 'resolved' || ev('control')?.status === 'resolved';
-    if (!helpOrControl) errors.push('E: help_field or control must be resolved');
+    const formId = ev('form')?.graphResolution?.selectedNodeId ?? '';
+    if (!formId.startsWith('form:')) errors.push('E: form selectedNodeId must be application_form');
+    if (ev('help_document')?.status !== 'resolved') errors.push('E: help_document must be resolved');
+    const helpDocId = ev('help_document')?.graphResolution?.selectedNodeId ?? '';
+    if (!helpDocId.startsWith('help-doc:')) {
+      errors.push('E: help_document must point to help-doc node, not form');
+    }
+    if (helpDocId.startsWith('form:')) errors.push('E: help_document pointing to form');
+    if (ev('help_field')?.status !== 'resolved') errors.push('E: help_field must be resolved');
+    const helpFieldId = ev('help_field')?.graphResolution?.selectedNodeId ?? '';
+    if (!helpFieldId.startsWith('help-field:')) errors.push('E: help_field selectedNodeId');
     if (ev('action_parameter')?.status !== 'not_applicable') {
       errors.push('E: action_parameter must be not_applicable for data field');
     }
     if (plan.ambiguities.some((a) => a.subject === 'action_parameter')) {
       errors.push('E: must not have action_parameter ambiguity');
     }
+    // control may be missing when DESCRIBES link absent — not deferred-fake-resolved bindings
+    const controlStatus = ev('control')?.status;
+    if (controlStatus === 'resolved') {
+      const cid = ev('control')?.graphResolution?.selectedNodeId ?? '';
+      if (!cid.startsWith('control:') && !cid.startsWith('action:')) {
+        errors.push('E: control selectedNodeId type mismatch');
+      }
+    } else if (!['missing', 'ambiguous', 'unavailable'].includes(String(controlStatus))) {
+      // deferred without identity was the old bug; prefer missing
+      if (controlStatus === 'deferred' && !hasResolvedIdentity(ev('control')?.graphResolution)) {
+        errors.push('E: control deferred without identity — use missing');
+      }
+    }
+    if (ev('lookup_binding')?.status === 'resolved' && controlStatus !== 'resolved') {
+      errors.push('E: lookup resolved without control');
+    }
+    if (ev('lookup_binding')?.status === 'resolved') {
+      // Wartość typically has no lookup — if resolved must have ids
+      if (!hasResolvedIdentity(ev('lookup_binding')?.graphResolution)) {
+        errors.push('E: lookup resolved without ids');
+      }
+    }
+    for (const t of ['target_binding', 'dataset_columns', 'oracle_columns'] as const) {
+      if (ev(t)?.status === 'resolved') {
+        if (controlStatus !== 'resolved') errors.push(`E: ${t} resolved without control`);
+        if (!hasResolvedIdentity(ev(t)?.graphResolution)) {
+          errors.push(`E: ${t} resolved without node ids`);
+        }
+      }
+    }
+    for (const e of plan.evidenceRequirements) {
+      if (e.status === 'resolved' && !hasResolvedIdentity(e.graphResolution)) {
+        errors.push(`E: resolved evidence ${e.evidenceType} without identity`);
+      }
+    }
     if (plan.resolvedGraphEvidence.nodes.length < 1) errors.push('E: graphNodes expected > 0');
     if (plan.planningStatus !== 'ready' && plan.planningStatus !== 'ambiguous') {
-      // ready preferred when unique; ambiguous only if Stage 3A truly has multiple forms
       errors.push(`E: unexpected planningStatus=${plan.planningStatus}`);
     }
   }
@@ -262,6 +307,12 @@ export function runStage3bAudit(input: {
   let sqlExecuted = 0;
   let filesRead = 0;
   let oracleWrites = 0;
+  let resolvedEvidenceWithoutNodeOrPath = 0;
+  let evidenceSelectedNodeTypeMismatch = 0;
+  let fieldEvidenceOutsideResolvedPath = 0;
+  let bindingResolvedWithoutResolvedControl = 0;
+  let lookupResolvedWithoutLookupEdge = 0;
+  let helpDocumentPointingToForm = 0;
 
   for (const [key, req] of Object.entries(STAGE3B_REFERENCE_QUESTIONS)) {
     const plan = input.planner.plan(req);
@@ -307,6 +358,31 @@ export function runStage3bAudit(input: {
       else if (st === 'conflicting') graphConflicting += 1;
     }
 
+    const pathSeed = new Set<string>();
+    for (const et of ['form', 'help_document', 'help_field', 'control'] as const) {
+      const e = plan.evidenceRequirements.find((x) => x.evidenceType === et);
+      if (e?.graphResolution?.selectedNodeId) pathSeed.add(e.graphResolution.selectedNodeId);
+      for (const id of e?.graphResolution?.pathNodeIds ?? []) pathSeed.add(id);
+      for (const id of e?.graphResolution?.selectedNodeIds ?? []) pathSeed.add(id);
+    }
+    const hasLookupEdge = plan.resolvedGraphEvidence.edges.some(
+      (e) => (e as { type?: string }).type === 'BINDS_LOOKUP',
+    );
+    const violations = validateEvidenceList(plan.evidenceRequirements, {
+      lookupEdgePresent: hasLookupEdge,
+      allowedFieldPathNodeIds: pathSeed.size > 0 ? pathSeed : undefined,
+    });
+    for (const v of violations) {
+      if (v.code === 'resolvedEvidenceWithoutNodeOrPath') resolvedEvidenceWithoutNodeOrPath += 1;
+      else if (v.code === 'evidenceSelectedNodeTypeMismatch') evidenceSelectedNodeTypeMismatch += 1;
+      else if (v.code === 'fieldEvidenceOutsideResolvedPath') fieldEvidenceOutsideResolvedPath += 1;
+      else if (v.code === 'bindingResolvedWithoutResolvedControl') {
+        bindingResolvedWithoutResolvedControl += 1;
+      } else if (v.code === 'lookupResolvedWithoutLookupEdge') lookupResolvedWithoutLookupEdge += 1;
+      else if (v.code === 'helpDocumentPointingToForm') helpDocumentPointingToForm += 1;
+      strictErrors.push(`${key}: evidence contract ${v.code} (${v.evidenceType}: ${v.detail})`);
+    }
+
     const plan2 = input.planner.plan(req);
     if (stableStringify(stripVolatilePlanFields(plan)) !== stableStringify(stripVolatilePlanFields(plan2))) {
       strictErrors.push(`${key}: non-deterministic plan output`);
@@ -327,6 +403,26 @@ export function runStage3bAudit(input: {
     // Prefer evidence-level resolved counts from Stage 3B.1 applicability
     strictErrors.push('graphResolvedEvidence expected > 0 when Stage 3A can resolve refs');
   }
+  if (resolvedEvidenceWithoutNodeOrPath !== 0) {
+    strictErrors.push(`resolvedEvidenceWithoutNodeOrPath=${resolvedEvidenceWithoutNodeOrPath}`);
+  }
+  if (evidenceSelectedNodeTypeMismatch !== 0) {
+    strictErrors.push(`evidenceSelectedNodeTypeMismatch=${evidenceSelectedNodeTypeMismatch}`);
+  }
+  if (fieldEvidenceOutsideResolvedPath !== 0) {
+    strictErrors.push(`fieldEvidenceOutsideResolvedPath=${fieldEvidenceOutsideResolvedPath}`);
+  }
+  if (bindingResolvedWithoutResolvedControl !== 0) {
+    strictErrors.push(
+      `bindingResolvedWithoutResolvedControl=${bindingResolvedWithoutResolvedControl}`,
+    );
+  }
+  if (lookupResolvedWithoutLookupEdge !== 0) {
+    strictErrors.push(`lookupResolvedWithoutLookupEdge=${lookupResolvedWithoutLookupEdge}`);
+  }
+  if (helpDocumentPointingToForm !== 0) {
+    strictErrors.push(`helpDocumentPointingToForm=${helpDocumentPointingToForm}`);
+  }
 
   const diagnosis = {
     rootCause:
@@ -338,6 +434,12 @@ export function runStage3bAudit(input: {
       'mark action_parameter not_applicable for ordinary data fields',
       'import tables: businessTarget + canonicalCandidates + selectionRequiredBeforeExecution',
       'report subjects: config graphSearchTerms queried through Stage 3A',
+    ],
+    evidenceContractPatch: [
+      'selectedNodeId must match evidenceType node type (help_document ≠ form)',
+      'resolved requires selectedNodeId | selectedNodeIds | path',
+      'field bindings/columns only from help_field/control path, not whole form subgraph',
+      'lookup only when BINDS_LOOKUP; honest missing/not_applicable over fake resolved',
     ],
   };
 
@@ -370,6 +472,12 @@ export function runStage3bAudit(input: {
     evidenceNotApplicable,
     resolvedForms,
     resolvedFormScopedFields,
+    resolvedEvidenceWithoutNodeOrPath,
+    evidenceSelectedNodeTypeMismatch,
+    fieldEvidenceOutsideResolvedPath,
+    bindingResolvedWithoutResolvedControl,
+    lookupResolvedWithoutLookupEdge,
+    helpDocumentPointingToForm,
     missingRequiredEvidence,
     deferredEvidence,
     guessedEntities,

@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-24** (Etap 3B.1 — Graph-scoped evidence resolution)
+> Ostatnia aktualizacja: **2026-07-24** (Stage 3B evidence contract consistency patch)
 
 ---
 
@@ -136,6 +136,13 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-07-24 — Stage 3B evidence contract consistency (pre-commit patch)
+
+- Po 3B.1 audit OK, ale Ref E: `help_document.selectedNodeId` = form; bindingi/kolumny = `resolved` bez ID (z całego podgrafu).
+- Patch: `teta-evidence-contract.ts` + ścieżka `help_field→control→bindings→columns`; `HAS_HELP` → prawdziwy `help_document`; bez control → missing / not_applicable (nie fake resolved).
+- Nowe strict metrics: `resolvedEvidenceWithoutNodeOrPath`, `evidenceSelectedNodeTypeMismatch`, `fieldEvidenceOutsideResolvedPath`, `bindingResolvedWithoutResolvedControl`, `lookupResolvedWithoutLookupEdge`, `helpDocumentPointingToForm` (=0).
+- Bez Stage 3B.2 / 3C / SQL / commit.
 
 ### 2026-07-24 — Etap 3B.1 Graph-scoped evidence resolution ✅
 

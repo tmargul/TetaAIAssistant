@@ -1,6 +1,6 @@
 # AIA Intent & Evidence Planner — Stage 3B
 
-Wygenerowano: **2026-07-24T18:11:37.095Z**
+Wygenerowano: **2026-07-24T18:51:00.435Z**
 contractVersion: `teta-aia-evidence-plan-v1`
 plannerConfigVersion: `teta-aia-planner-config-v1`
 
@@ -37,6 +37,12 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
     "mark action_parameter not_applicable for ordinary data fields",
     "import tables: businessTarget + canonicalCandidates + selectionRequiredBeforeExecution",
     "report subjects: config graphSearchTerms queried through Stage 3A"
+  ],
+  "evidenceContractPatch": [
+    "selectedNodeId must match evidenceType node type (help_document ≠ form)",
+    "resolved requires selectedNodeId | selectedNodeIds | path",
+    "field bindings/columns only from help_field/control path, not whole form subgraph",
+    "lookup only when BINDS_LOOKUP; honest missing/not_applicable over fake resolved"
   ]
 }
 
@@ -47,6 +53,7 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
 3. `action_parameter=not_applicable` dla zwykłego pola danych.
 4. Import: `businessTarget` + `canonicalCandidates` + `selectionRequiredBeforeExecution` (bez auto-owner).
 5. Raport BHP: `graphSearchTerms` z konfiguracji → zapytania Stage 3A; runtime nadal `deferred`.
+6. Patch spójności evidence: typowanie `selectedNodeId`, resolved wymaga identity, ścieżka pola (nie cały formularz), lookup tylko z `BINDS_LOOKUP`.
 
 ## Katalog intencji
 
@@ -65,17 +72,23 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
 | intentsResolved / unknown / unsupported | **6** / **0** / **1** |
 | ready / needs_clarification / ambiguous / invalid | **4** / **2** / **0** / **0** |
 | entitiesExtracted | **16** |
-| graphQueries / graphResolved / graphAmbiguous | **19** / **8** / **3** |
-| graphResolvedEvidence / ambiguousEvidence | **9** / **3** |
+| graphQueries / graphResolved / graphAmbiguous | **21** / **5** / **3** |
+| graphResolvedEvidence / ambiguousEvidence | **5** / **3** |
 | scopedFieldQueries / unscopedFieldQueries | **1** / **0** |
 | resolvedForms / resolvedFormScopedFields | **1** / **1** |
+| resolvedEvidenceWithoutNodeOrPath | **0** |
+| evidenceSelectedNodeTypeMismatch | **0** |
+| fieldEvidenceOutsideResolvedPath | **0** |
+| bindingResolvedWithoutResolvedControl | **0** |
+| lookupResolvedWithoutLookupEdge | **0** |
+| helpDocumentPointingToForm | **0** |
 | irrelevantGlobalAmbiguities | **0** |
-| evidenceNotApplicable | **2** |
+| evidenceNotApplicable | **4** |
 | clarificationQuestionsForAmbiguities | **1** |
-| deferredEvidence | **50** |
+| deferredEvidence | **44** |
 | guessedEntities / autoResolvedAmbiguities | **0** / **0** |
 | SQL gen/exec / filesRead / oracleWrites | **0** / **0** / **0** / **0** |
-| avg / max planning ms | **30** / **138** |
+| avg / max planning ms | **26** / **122** |
 | graphSourceHash | `2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3` |
 | strictErrors | **0** |
 
@@ -128,79 +141,105 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
         "evidenceType": "employee_identity",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "payroll_identity",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "payroll_period",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "calculated_component_result",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "payroll_component_definition",
         "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "effective_component_definition",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "formula_or_algorithm",
         "status": "unavailable",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "component_dependencies",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "called_packages_and_functions",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "runtime_input_values",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "employee_insurance_context",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "effective_dates",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "calculation_trace_availability",
         "status": "unavailable",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       }
     ],
     "executionPolicy": {
@@ -221,7 +260,7 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
       "resolveNodeMs": 0,
       "otherMs": 0
     },
-    "durationMs": 9
+    "durationMs": 8
   },
   "B": {
     "planningStatus": "needs_clarification",
@@ -264,79 +303,105 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
         "evidenceType": "employee_identity",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "payroll_identity",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "payroll_period",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "calculated_component_result",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "payroll_component_definition",
         "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "effective_component_definition",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "formula_or_algorithm",
         "status": "unavailable",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "component_dependencies",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "called_packages_and_functions",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "runtime_input_values",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "employee_insurance_context",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "effective_dates",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "calculation_trace_availability",
         "status": "unavailable",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       }
     ],
     "executionPolicy": {
@@ -357,7 +422,7 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
       "resolveNodeMs": 0,
       "otherMs": 0
     },
-    "durationMs": 1
+    "durationMs": 0
   },
   "C": {
     "planningStatus": "ready",
@@ -437,109 +502,154 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
         "evidenceType": "file_metadata",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "file_columns",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "target_tables",
         "status": "ambiguous",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": [
+          "oracle-object:HRM:VIEW:T_PRAC",
+          "oracle-object:TETA_ADMIN:TABLE:L_STANOWISKA",
+          "oracle-object:TETA_ADMIN:TABLE:L_STAWKI",
+          "oracle-object:TETA_ADMIN:TABLE:T_PRAC",
+          "oracle-object:TETA_ADMIN_P:SYNONYM:L_STANOWISKA",
+          "oracle-object:TETA_ADMIN_P:VIEW:L_STAWKI",
+          "oracle-object:TETA_ADMIN_P:VIEW:T_PRAC",
+          "oracle-object:UNKNOWN:VIEW:L_STANOWISKA"
+        ],
+        "pathNodeIds": null
       },
       {
         "evidenceType": "target_columns",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "datatype_rules",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "length_and_precision_rules",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "not_null_rules",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "primary_keys",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "unique_constraints",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "foreign_keys",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "check_constraints",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "required_dictionary_values",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "triggers",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "validation_packages",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "business_rules",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "temporal_overlap_rules",
         "status": "deferred",
         "runtimeSourceRequired": true,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "import_order",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "rollback_validation_capability",
         "status": "unavailable",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       }
     ],
     "executionPolicy": {
@@ -557,10 +667,10 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
     "queryTimingMs": {
       "resolveFormMs": 0,
       "resolveFieldMs": 0,
-      "resolveNodeMs": 25,
+      "resolveNodeMs": 23,
       "otherMs": 0
     },
-    "durationMs": 26
+    "durationMs": 24
   },
   "D": {
     "planningStatus": "ready",
@@ -606,67 +716,164 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
         "evidenceType": "report_subject",
         "status": "resolved",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": [
+          "form:13c03944-be28-4fc3-811e-13461b75f318:Teta.Sumo.Personel.plgPersonelSlowniki.CrdBhpResourceGroups.BhpResourceGroupsView",
+          "form:1425b4e5-e820-4350-bc4d-2a6c1d887244:Teta.Sumo.Personel.plgBHP.CrdRejestrWypadkow.RejestrWypadkowWidok",
+          "form:19a5dac6-733f-4801-8a66-f9ee707bb404:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaBadanBHP.KartotekaBadanBHPWidok",
+          "form:20866b0b-6e81-4748-b21b-a4eadc077282:Teta.Sumo.Personel.plgBadaniaBHP.GroupOshTrainingsAdding.ActGroupOshTrainingsAdding",
+          "form:3b8c28a4-61ae-4c18-a6dc-9d30aad4066c:Teta.Sumo.Personel.plgPracownikImp.CrdSzkoleniaBHPImp.SzkoleniaBHPImpWidok",
+          "form:54dd8c92-1709-47c5-ac60-8a24d131e2a4:Teta.Sumo.Personel.plgBHP.CrdSrodkiWydane.SrodkiWydaneWidok",
+          "form:5b233dd2-5d93-49a8-b2af-07e0d3464f17:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaSzkolenBHP.KartotekaSzkolenBHPWidok",
+          "form:65d5bc4e-376b-44cd-9c91-e14841342df1:Teta.Sumo.Personel.plgPersonelParametryRap.BHP.PrmStatystycznaKartaWypadkowa",
+          "form:6ee1ad28-5ad6-4ae3-9bd2-566ae2d82c59:Teta.Sumo.Personel.plgBHP.UsuwaniePotrzeb.ActUsuwaniePotrzeb",
+          "form:8fbf5391-643c-4fef-9776-157c533ff415:Teta.Sumo.Personel.plgBHP.CrdZapotrzebowaniaNaSrodki.ZapotrzebowanieNaSrodkiWidok",
+          "form:925ce275-e7dd-4bfa-b6db-0e720e5e2013:Teta.Sumo.Personel.plgBHP.CrdKartotekaZapotrzebowan.KartotekaZapotrzebowanWidok",
+          "form:ab949fc0-8825-4b29-a7a0-85f2f6e87e8f:Teta.Sumo.Personel.plgBHP.AktualizacjaDatyDo.ActAktualizacjaDatyDo",
+          "form:ac6093fe-6396-448e-aecd-63c73b22b4c3:Teta.Sumo.Personel.plgBHP.CrdKartaBHP.KartaBHPWidok",
+          "form:acb75227-c774-4fb2-8598-9f476d2046c1:Teta.Sumo.Personel.plgBHP.CrdSrodkiDostepne.SrodkiDostepneWidok",
+          "form:bbb9529f-edd3-4396-ae27-07b244ac5cb2:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeSzkolenBHP",
+          "form:bc2882b3-4f6e-4836-8cdc-3bf62a3fcf2a:Teta.Sumo.Personel.plgPersonelSlowniki.CrdAsortymentSrodkowBHP.AsortymentSrodkowBHPWidok",
+          "form:eb73ecf9-b897-4d94-a2ff-9e7dba523f51:Teta.Sumo.Personel.plgBHP.BadaniePotrzeb.ActBadaniePotrzeb",
+          "form:ec5b60b5-7fe2-4e40-8bfc-45f02642661d:Teta.Sumo.Personel.plgBHP.CrdKartotekaWydan.KartotekaWydanWidok",
+          "form:f231b353-9f6d-4a57-aa37-42b3337213db:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeBadanBHP",
+          "form:f2bcc3b9-6508-4b22-95a0-cdbc2d26c782:Teta.Sumo.Personel.plgBHP.CrdRozmiaryPracownika.RozmiaryPracownikaWidok",
+          "form:feaeaeb2-2500-1cab-e030-2f64070ae40e:Teta.Sumo.Personel.plgBadaniaBHP.CrdBadaniaBHP.BadaniaBHPWidok",
+          "help-field:77ededc5-b019-498a-94ab-3d9115e2fc3e:Teta.Sumo.Personel.plgPersonelSlowniki.DicZawieszenia:Zawieszenia pracy:8:bhp",
+          "help-field:77ededc5-b019-498a-94ab-3d9115e2fc3e:Teta.Sumo.Personel.plgPersonelSlowniki.DicZawieszenia:linked:8edd42:bhp",
+          "plugin:24ec37ef-95a7-434f-bb89-f3eafe51ca87"
+        ],
+        "pathNodeIds": null
       },
       {
         "evidenceType": "employee_source",
         "status": "ambiguous",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": [
+          "form:13c03944-be28-4fc3-811e-13461b75f318:Teta.Sumo.Personel.plgPersonelSlowniki.CrdBhpResourceGroups.BhpResourceGroupsView",
+          "form:1425b4e5-e820-4350-bc4d-2a6c1d887244:Teta.Sumo.Personel.plgBHP.CrdRejestrWypadkow.RejestrWypadkowWidok",
+          "form:19a5dac6-733f-4801-8a66-f9ee707bb404:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaBadanBHP.KartotekaBadanBHPWidok",
+          "form:20866b0b-6e81-4748-b21b-a4eadc077282:Teta.Sumo.Personel.plgBadaniaBHP.GroupOshTrainingsAdding.ActGroupOshTrainingsAdding",
+          "form:3b8c28a4-61ae-4c18-a6dc-9d30aad4066c:Teta.Sumo.Personel.plgPracownikImp.CrdSzkoleniaBHPImp.SzkoleniaBHPImpWidok",
+          "form:54dd8c92-1709-47c5-ac60-8a24d131e2a4:Teta.Sumo.Personel.plgBHP.CrdSrodkiWydane.SrodkiWydaneWidok",
+          "form:5b233dd2-5d93-49a8-b2af-07e0d3464f17:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaSzkolenBHP.KartotekaSzkolenBHPWidok",
+          "form:65d5bc4e-376b-44cd-9c91-e14841342df1:Teta.Sumo.Personel.plgPersonelParametryRap.BHP.PrmStatystycznaKartaWypadkowa",
+          "form:6ee1ad28-5ad6-4ae3-9bd2-566ae2d82c59:Teta.Sumo.Personel.plgBHP.UsuwaniePotrzeb.ActUsuwaniePotrzeb",
+          "form:8fbf5391-643c-4fef-9776-157c533ff415:Teta.Sumo.Personel.plgBHP.CrdZapotrzebowaniaNaSrodki.ZapotrzebowanieNaSrodkiWidok",
+          "form:925ce275-e7dd-4bfa-b6db-0e720e5e2013:Teta.Sumo.Personel.plgBHP.CrdKartotekaZapotrzebowan.KartotekaZapotrzebowanWidok",
+          "form:ab949fc0-8825-4b29-a7a0-85f2f6e87e8f:Teta.Sumo.Personel.plgBHP.AktualizacjaDatyDo.ActAktualizacjaDatyDo",
+          "form:ac6093fe-6396-448e-aecd-63c73b22b4c3:Teta.Sumo.Personel.plgBHP.CrdKartaBHP.KartaBHPWidok",
+          "form:acb75227-c774-4fb2-8598-9f476d2046c1:Teta.Sumo.Personel.plgBHP.CrdSrodkiDostepne.SrodkiDostepneWidok",
+          "form:bbb9529f-edd3-4396-ae27-07b244ac5cb2:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeSzkolenBHP",
+          "form:bc2882b3-4f6e-4836-8cdc-3bf62a3fcf2a:Teta.Sumo.Personel.plgPersonelSlowniki.CrdAsortymentSrodkowBHP.AsortymentSrodkowBHPWidok",
+          "form:eb73ecf9-b897-4d94-a2ff-9e7dba523f51:Teta.Sumo.Personel.plgBHP.BadaniePotrzeb.ActBadaniePotrzeb",
+          "form:ec5b60b5-7fe2-4e40-8bfc-45f02642661d:Teta.Sumo.Personel.plgBHP.CrdKartotekaWydan.KartotekaWydanWidok",
+          "form:f231b353-9f6d-4a57-aa37-42b3337213db:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeBadanBHP",
+          "form:f2bcc3b9-6508-4b22-95a0-cdbc2d26c782:Teta.Sumo.Personel.plgBHP.CrdRozmiaryPracownika.RozmiaryPracownikaWidok",
+          "form:feaeaeb2-2500-1cab-e030-2f64070ae40e:Teta.Sumo.Personel.plgBadaniaBHP.CrdBadaniaBHP.BadaniaBHPWidok",
+          "help-field:77ededc5-b019-498a-94ab-3d9115e2fc3e:Teta.Sumo.Personel.plgPersonelSlowniki.DicZawieszenia:Zawieszenia pracy:8:bhp",
+          "help-field:77ededc5-b019-498a-94ab-3d9115e2fc3e:Teta.Sumo.Personel.plgPersonelSlowniki.DicZawieszenia:linked:8edd42:bhp",
+          "plugin:24ec37ef-95a7-434f-bb89-f3eafe51ca87"
+        ],
+        "pathNodeIds": null
       },
       {
         "evidenceType": "business_event_source",
         "status": "ambiguous",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": [
+          "form:13c03944-be28-4fc3-811e-13461b75f318:Teta.Sumo.Personel.plgPersonelSlowniki.CrdBhpResourceGroups.BhpResourceGroupsView",
+          "form:1425b4e5-e820-4350-bc4d-2a6c1d887244:Teta.Sumo.Personel.plgBHP.CrdRejestrWypadkow.RejestrWypadkowWidok",
+          "form:19a5dac6-733f-4801-8a66-f9ee707bb404:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaBadanBHP.KartotekaBadanBHPWidok",
+          "form:20866b0b-6e81-4748-b21b-a4eadc077282:Teta.Sumo.Personel.plgBadaniaBHP.GroupOshTrainingsAdding.ActGroupOshTrainingsAdding",
+          "form:3b8c28a4-61ae-4c18-a6dc-9d30aad4066c:Teta.Sumo.Personel.plgPracownikImp.CrdSzkoleniaBHPImp.SzkoleniaBHPImpWidok",
+          "form:54dd8c92-1709-47c5-ac60-8a24d131e2a4:Teta.Sumo.Personel.plgBHP.CrdSrodkiWydane.SrodkiWydaneWidok",
+          "form:5b233dd2-5d93-49a8-b2af-07e0d3464f17:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaSzkolenBHP.KartotekaSzkolenBHPWidok",
+          "form:65d5bc4e-376b-44cd-9c91-e14841342df1:Teta.Sumo.Personel.plgPersonelParametryRap.BHP.PrmStatystycznaKartaWypadkowa",
+          "form:6ee1ad28-5ad6-4ae3-9bd2-566ae2d82c59:Teta.Sumo.Personel.plgBHP.UsuwaniePotrzeb.ActUsuwaniePotrzeb",
+          "form:8fbf5391-643c-4fef-9776-157c533ff415:Teta.Sumo.Personel.plgBHP.CrdZapotrzebowaniaNaSrodki.ZapotrzebowanieNaSrodkiWidok",
+          "form:925ce275-e7dd-4bfa-b6db-0e720e5e2013:Teta.Sumo.Personel.plgBHP.CrdKartotekaZapotrzebowan.KartotekaZapotrzebowanWidok",
+          "form:ab949fc0-8825-4b29-a7a0-85f2f6e87e8f:Teta.Sumo.Personel.plgBHP.AktualizacjaDatyDo.ActAktualizacjaDatyDo",
+          "form:ac6093fe-6396-448e-aecd-63c73b22b4c3:Teta.Sumo.Personel.plgBHP.CrdKartaBHP.KartaBHPWidok",
+          "form:acb75227-c774-4fb2-8598-9f476d2046c1:Teta.Sumo.Personel.plgBHP.CrdSrodkiDostepne.SrodkiDostepneWidok",
+          "form:bbb9529f-edd3-4396-ae27-07b244ac5cb2:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeSzkolenBHP",
+          "form:bc2882b3-4f6e-4836-8cdc-3bf62a3fcf2a:Teta.Sumo.Personel.plgPersonelSlowniki.CrdAsortymentSrodkowBHP.AsortymentSrodkowBHPWidok",
+          "form:eb73ecf9-b897-4d94-a2ff-9e7dba523f51:Teta.Sumo.Personel.plgBHP.BadaniePotrzeb.ActBadaniePotrzeb",
+          "form:ec5b60b5-7fe2-4e40-8bfc-45f02642661d:Teta.Sumo.Personel.plgBHP.CrdKartotekaWydan.KartotekaWydanWidok",
+          "form:f231b353-9f6d-4a57-aa37-42b3337213db:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeBadanBHP",
+          "form:f2bcc3b9-6508-4b22-95a0-cdbc2d26c782:Teta.Sumo.Personel.plgBHP.CrdRozmiaryPracownika.RozmiaryPracownikaWidok",
+          "form:feaeaeb2-2500-1cab-e030-2f64070ae40e:Teta.Sumo.Personel.plgBadaniaBHP.CrdBadaniaBHP.BadaniaBHPWidok",
+          "help-field:77ededc5-b019-498a-94ab-3d9115e2fc3e:Teta.Sumo.Personel.plgPersonelSlowniki.DicZawieszenia:Zawieszenia pracy:8:bhp",
+          "help-field:77ededc5-b019-498a-94ab-3d9115e2fc3e:Teta.Sumo.Personel.plgPersonelSlowniki.DicZawieszenia:linked:8edd42:bhp",
+          "plugin:24ec37ef-95a7-434f-bb89-f3eafe51ca87"
+        ],
+        "pathNodeIds": null
       },
       {
         "evidenceType": "requested_columns",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "filter_columns",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "date_semantics",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "joins",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "dictionary_display_columns",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "employee_scope",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "authorization_scope",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "output_format",
         "status": "deferred",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       }
     ],
     "executionPolicy": {
@@ -682,12 +889,12 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
     "scopedFieldQueries": 0,
     "unscopedFieldQueries": 0,
     "queryTimingMs": {
-      "resolveFormMs": 30,
+      "resolveFormMs": 27,
       "resolveFieldMs": 0,
-      "resolveNodeMs": 3,
+      "resolveNodeMs": 4,
       "otherMs": 0
     },
-    "durationMs": 34
+    "durationMs": 31
   },
   "E": {
     "planningStatus": "ready",
@@ -716,61 +923,101 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
         "evidenceType": "form",
         "status": "resolved",
         "runtimeSourceRequired": false,
-        "selectedNodeId": "form:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok"
+        "selectedNodeId": "form:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+        "selectedNodeIds": null,
+        "pathNodeIds": [
+          "form:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-doc:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-field:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok:Zakładka Składniki listy:4:wartość"
+        ]
       },
       {
         "evidenceType": "help_document",
         "status": "resolved",
         "runtimeSourceRequired": false,
-        "selectedNodeId": "form:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok"
+        "selectedNodeId": "help-doc:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+        "selectedNodeIds": null,
+        "pathNodeIds": [
+          "form:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-doc:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-field:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok:Zakładka Składniki listy:4:wartość"
+        ]
       },
       {
         "evidenceType": "help_field",
         "status": "resolved",
         "runtimeSourceRequired": false,
-        "selectedNodeId": "help-field:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok:Zakładka Składniki listy:4:wartość"
+        "selectedNodeId": "help-field:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok:Zakładka Składniki listy:4:wartość",
+        "selectedNodeIds": null,
+        "pathNodeIds": [
+          "form:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-doc:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-field:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok:Zakładka Składniki listy:4:wartość"
+        ]
       },
       {
         "evidenceType": "control",
-        "status": "deferred",
+        "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "target_binding",
-        "status": "resolved",
+        "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "lookup_binding",
-        "status": "resolved",
+        "status": "not_applicable",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "dataset_columns",
-        "status": "resolved",
+        "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "oracle_columns",
-        "status": "resolved",
+        "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "action_parameter",
         "status": "not_applicable",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "provenance",
         "status": "resolved",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": "help-field:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok:Zakładka Składniki listy:4:wartość",
+        "selectedNodeIds": [
+          "form:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-doc:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-field:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok:Zakładka Składniki listy:4:wartość"
+        ],
+        "pathNodeIds": [
+          "form:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-doc:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok",
+          "help-field:03c5e06f-fad6-414e-8053-47d944b0b19e:Teta.Sumo.Personel.plgListaPlac.CrdListyObliczone.ListyObliczoneWidok:Zakładka Składniki listy:4:wartość"
+        ]
       }
     ],
     "executionPolicy": {
@@ -781,17 +1028,17 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
       "reason": "Stage 3B planning only — ready ≠ SQL execution"
     },
     "graphNodes": 34,
-    "graphEdges": 27,
+    "graphEdges": 28,
     "graphConflicts": 0,
     "scopedFieldQueries": 1,
     "unscopedFieldQueries": 0,
     "queryTimingMs": {
-      "resolveFormMs": 0,
-      "resolveFieldMs": 70,
+      "resolveFormMs": 1,
+      "resolveFieldMs": 67,
       "resolveNodeMs": 0,
-      "otherMs": 65
+      "otherMs": 50
     },
-    "durationMs": 138
+    "durationMs": 122
   },
   "F": {
     "planningStatus": "needs_clarification",
@@ -826,61 +1073,81 @@ plannerConfigVersion: `teta-aia-planner-config-v1`
         "evidenceType": "form",
         "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "help_document",
         "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "help_field",
         "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "control",
         "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "target_binding",
-        "status": "deferred",
+        "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "lookup_binding",
-        "status": "deferred",
+        "status": "not_applicable",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "dataset_columns",
-        "status": "deferred",
+        "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "oracle_columns",
-        "status": "deferred",
+        "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "action_parameter",
         "status": "not_applicable",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       },
       {
         "evidenceType": "provenance",
-        "status": "deferred",
+        "status": "missing",
         "runtimeSourceRequired": false,
-        "selectedNodeId": null
+        "selectedNodeId": null,
+        "selectedNodeIds": null,
+        "pathNodeIds": null
       }
     ],
     "executionPolicy": {
