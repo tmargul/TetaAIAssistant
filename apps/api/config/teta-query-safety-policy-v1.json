@@ -1,0 +1,40 @@
+{
+  "version": "teta-aia-query-safety-policy-v1",
+  "logicalOperation": "SELECT",
+  "allowSelectStar": false,
+  "maxRows": 500,
+  "maxColumns": 20,
+  "statementTimeoutMs": 30000,
+  "requireBindVariablesForUserValues": true,
+  "forbidDbLinks": true,
+  "forbidForUpdate": true,
+  "forbidPlSql": true,
+  "forbidDynamicSql": true,
+  "forbidWithDefinedFunctions": true,
+  "forbidOracleHints": true,
+  "forbidSqlComments": true,
+  "forbidRawSqlInPlan": true,
+  "forbidCartesianJoins": true,
+  "authorization": {
+    "status": "deferred",
+    "assumedOracleUser": "TETA_ADMIN",
+    "filtersApplied": false,
+    "reason": "Authorization will be implemented in a later stage. Development environment assumes TETA_ADMIN with full privileges; this is not a production security model."
+  },
+  "executionPolicyDefaults": {
+    "sqlCompilationAllowed": false,
+    "sqlExecutionAllowed": false,
+    "oracleConnectionAllowed": false,
+    "oracleWriteAllowed": false,
+    "fileReadAllowed": false,
+    "reason": "Stage 3C creates a typed plan only."
+  },
+  "ownerPolicy": {
+    "preferredCanonicalOwner": "TETA_ADMIN",
+    "allowedAccessOwners": ["TETA_ADMIN", "TETA_ADMIN_P"],
+    "forbiddenAutoSelectOwners": ["HRM", "UNKNOWN"],
+    "preferApplicationViewOverBaseTable": true,
+    "baseTableRequiresGraphPath": true,
+    "equalCandidatesRequireSelection": true
+  }
+}

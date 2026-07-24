@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-24** (Stage 3B evidence contract consistency patch)
+> Ostatnia aktualizacja: **2026-07-24** (Stage 3C read-only query planner)
 
 ---
 
@@ -136,6 +136,18 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-07-24 — Etap 3C Canonical Read-Only Query Planning Layer ✅
+
+- Moduł `apps/api/src/teta-query-planner/` + CLI `query:stage3c` (`plan|plan-reference-bhp|templates|audit --strict`).
+- Kontrakt `teta-aia-readonly-query-plan-v1`; configi: `teta-report-query-templates-v1.json`, `teta-query-safety-policy-v1.json` (bez hardcodu Oracle w produkcji).
+- Wejście: Stage 3B `TetaEvidencePlan` → wyjście: `TetaReadOnlyQueryPlan` (bez SQL/Oracle/LLM/Qdrant).
+- Scope v1: tylko `build_employee_report` + `occupational_health_examinations`.
+- Owner policy: TETA_ADMIN preferowany; TETA_ADMIN_P access OK; HRM/UNKNOWN bez auto-select; equal → `needs_selection`.
+- Filtry AST: half-open current month (`oracle_sysdate`); active employee wymaga dowodu grafowego.
+- Reference A (live): `needs_graph_resolution` — wszystkie source roles missing (brak semanticTags w live grafie; jawne luki, bez hardcodu). Fixture E: `ready_for_compilation`.
+- Audit `--strict` EXIT 0; testy `teta-stage3c.spec.ts` (48). Artefakty: `docs/AIA_READ_ONLY_QUERY_PLANNER_STAGE3C.md` / `.json` (`.local` gitignored).
+- **Bez** kompilatora SQL / wykonania Oracle / commit bez prośby.
 
 ### 2026-07-24 — Stage 3B evidence contract consistency (pre-commit patch)
 

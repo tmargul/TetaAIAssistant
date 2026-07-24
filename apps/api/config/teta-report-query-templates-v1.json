@@ -1,0 +1,200 @@
+{
+  "version": "teta-aia-report-query-templates-v1",
+  "templates": [
+    {
+      "subject": "occupational_health_examinations",
+      "intent": "build_employee_report",
+      "requiredSourceRoles": [
+        "employee",
+        "health_examination",
+        "examination_type",
+        "current_position",
+        "organizational_unit"
+      ],
+      "requiredProjectionRoles": [
+        "employee_number",
+        "employee_first_name",
+        "employee_last_name",
+        "examination_type_name",
+        "examination_valid_from",
+        "examination_valid_to",
+        "position_name",
+        "organizational_unit_name"
+      ],
+      "requiredFilters": [
+        "examination_valid_to_in_current_month",
+        "employee_active_on_oracle_sysdate"
+      ],
+      "defaultOrdering": [
+        "examination_valid_to_ascending",
+        "employee_last_name_ascending",
+        "employee_first_name_ascending"
+      ],
+      "sourceRoleResolutions": [
+        {
+          "sourceRole": "employee",
+          "enrichment": false,
+          "searchTerms": ["pracownicy", "pracownik"],
+          "formNameFragments": ["KartotekaBadanBHP", "BadaniaBHP"],
+          "semanticTags": ["employee_master"]
+        },
+        {
+          "sourceRole": "health_examination",
+          "enrichment": false,
+          "searchTerms": ["badania BHP", "badania", "termin badania", "ważność badania"],
+          "formNameFragments": ["KartotekaBadanBHP", "BadaniaBHP", "DicRodzajeBadanBHP"],
+          "semanticTags": ["health_examination", "occupational_health"]
+        },
+        {
+          "sourceRole": "examination_type",
+          "enrichment": false,
+          "searchTerms": ["rodzaje badań BHP", "rodzaj badania"],
+          "formNameFragments": ["DicRodzajeBadanBHP"],
+          "semanticTags": ["examination_type_dictionary"]
+        },
+        {
+          "sourceRole": "current_position",
+          "enrichment": true,
+          "searchTerms": ["stanowisko", "stanowiska"],
+          "formNameFragments": [],
+          "semanticTags": ["current_position"]
+        },
+        {
+          "sourceRole": "organizational_unit",
+          "enrichment": true,
+          "searchTerms": ["jednostka organizacyjna", "struktura organizacyjna"],
+          "formNameFragments": [],
+          "semanticTags": ["organizational_unit"]
+        }
+      ],
+      "projectionRoleResolutions": [
+        {
+          "businessRole": "employee_number",
+          "sourceRole": "employee",
+          "displayLabel": "Numer ewidencyjny",
+          "labelHints": ["numer ewidencyjny", "nr ewidencyjny", "nr ewid"],
+          "preferDisplayText": false
+        },
+        {
+          "businessRole": "employee_first_name",
+          "sourceRole": "employee",
+          "displayLabel": "Imię",
+          "labelHints": ["imię", "imie"],
+          "preferDisplayText": false
+        },
+        {
+          "businessRole": "employee_last_name",
+          "sourceRole": "employee",
+          "displayLabel": "Nazwisko",
+          "labelHints": ["nazwisko"],
+          "preferDisplayText": false
+        },
+        {
+          "businessRole": "examination_type_name",
+          "sourceRole": "examination_type",
+          "displayLabel": "Rodzaj badania",
+          "labelHints": ["rodzaj badania", "nazwa"],
+          "preferDisplayText": true
+        },
+        {
+          "businessRole": "examination_valid_from",
+          "sourceRole": "health_examination",
+          "displayLabel": "Data od",
+          "labelHints": ["data od", "ważne od", "termin od"],
+          "preferDisplayText": false
+        },
+        {
+          "businessRole": "examination_valid_to",
+          "sourceRole": "health_examination",
+          "displayLabel": "Data do",
+          "labelHints": ["data do", "ważne do", "termin do", "ważność"],
+          "preferDisplayText": false
+        },
+        {
+          "businessRole": "position_name",
+          "sourceRole": "current_position",
+          "displayLabel": "Stanowisko",
+          "labelHints": ["stanowisko", "nazwa stanowiska"],
+          "preferDisplayText": true
+        },
+        {
+          "businessRole": "organizational_unit_name",
+          "sourceRole": "organizational_unit",
+          "displayLabel": "Jednostka organizacyjna",
+          "labelHints": ["jednostka organizacyjna", "nazwa jednostki", "jednostka"],
+          "preferDisplayText": true
+        }
+      ],
+      "requiredJoins": [
+        {
+          "leftSourceRole": "health_examination",
+          "rightSourceRole": "employee",
+          "joinType": "inner",
+          "required": true,
+          "enrichment": false
+        },
+        {
+          "leftSourceRole": "health_examination",
+          "rightSourceRole": "examination_type",
+          "joinType": "inner",
+          "required": true,
+          "enrichment": false
+        },
+        {
+          "leftSourceRole": "employee",
+          "rightSourceRole": "current_position",
+          "joinType": "left",
+          "required": true,
+          "enrichment": true
+        },
+        {
+          "leftSourceRole": "employee",
+          "rightSourceRole": "organizational_unit",
+          "joinType": "left",
+          "required": true,
+          "enrichment": true
+        }
+      ],
+      "filterResolutions": [
+        {
+          "filterRole": "examination_valid_to_in_current_month",
+          "type": "half_open_date_interval",
+          "columnBusinessRole": "examination_valid_to",
+          "clock": "oracle_sysdate"
+        },
+        {
+          "filterRole": "employee_active_on_oracle_sysdate",
+          "type": "effective_on_date",
+          "clock": "oracle_sysdate",
+          "requiresActiveEmploymentEvidence": true,
+          "searchTerms": ["zatrudnienie", "okres zatrudnienia", "aktualny pracownik"]
+        }
+      ],
+      "orderingResolutions": [
+        {
+          "orderRole": "examination_valid_to_ascending",
+          "businessRole": "examination_valid_to",
+          "direction": "ascending"
+        },
+        {
+          "orderRole": "employee_last_name_ascending",
+          "businessRole": "employee_last_name",
+          "direction": "ascending"
+        },
+        {
+          "orderRole": "employee_first_name_ascending",
+          "businessRole": "employee_first_name",
+          "direction": "ascending"
+        }
+      ],
+      "auditReferenceHints": {
+        "note": "Known Oracle object names may appear only as audit references after Stage 3A confirms a graph path. They are not production hardcoding for the planner.",
+        "knownConfirmedObjectsIfPresentInGraph": [
+          "T_PRAC",
+          "L_BADANIA_BHP",
+          "SL_BADANIA_BHP"
+        ]
+      }
+    }
+  ]
+}
