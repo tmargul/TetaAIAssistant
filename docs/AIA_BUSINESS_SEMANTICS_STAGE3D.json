@@ -29,7 +29,7 @@
     "organizational_unit:ID",
     "organizational_unit:NAZWA"
   ],
-  "activeEmployeeMechanism": "effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=true); join employee.ID = active_employment.PRAC_ID",
+  "activeEmployeeMechanism": "effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=true); correlated EXISTS on employee.ID = active_employment.PRAC_ID (usage=filter_only, rowSemantics=exists) so contracts qualify employees without multiplying report rows",
   "currentPositionTemporalMechanism": "effective_on_date on current_position DATA_OD/DATA_DO (openEndedEndAllowed=true, startInclusive=true, endInclusive=true, clock=oracle_sysdate)",
   "currentPositionTemporalBindingsRequired": 1,
   "currentPositionTemporalBindingsApproved": 1,
@@ -55,42 +55,49 @@
         {
           "role": "employee",
           "status": "resolved",
+          "usage": "row_source",
           "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_PRC_PRACOWNICY",
           "access": "oracle-object:TETA_ADMIN_P:VIEW:NT_KP_PRC_PRACOWNICY"
         },
         {
           "role": "health_examination",
           "status": "resolved",
+          "usage": "row_source",
           "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_BADANIA_BHP",
           "access": "oracle-object:TETA_ADMIN_P:VIEW:NT_KP_KDR_BADANIA_BHP"
         },
         {
           "role": "examination_type",
           "status": "resolved",
+          "usage": "row_source",
           "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP",
           "access": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP"
         },
         {
           "role": "current_position",
           "status": "resolved",
+          "usage": "row_source",
           "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_STANOWISKA",
           "access": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_STANOWISKA"
         },
         {
           "role": "organizational_unit",
           "status": "resolved",
+          "usage": "row_source",
           "logical": "oracle-object:TETA_ADMIN:VIEW:NT_PA_SLO_JEDNOSTKI_ORG",
           "access": "oracle-object:TETA_ADMIN:VIEW:NT_PA_SLO_JEDNOSTKI_ORG"
         },
         {
           "role": "active_employment",
           "status": "resolved",
+          "usage": "filter_only",
           "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE",
           "access": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE"
         },
         {
           "role": "position_dictionary",
           "status": "resolved",
+          "usage": "row_source",
           "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_STANOWISKA",
           "access": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_STANOWISKA"
         }
@@ -153,13 +160,6 @@
           "right": "position_dictionary"
         },
         {
-          "id": "join:employee:active_employment",
-          "status": "resolved",
-          "predicates": 1,
-          "left": "employee",
-          "right": "active_employment"
-        },
-        {
           "id": "join:employee:current_position",
           "status": "resolved",
           "predicates": 1,
@@ -201,6 +201,18 @@
           "sourceRole": "current_position"
         }
       ],
+      "existenceFilters": [
+        {
+          "role": "employee_active_on_oracle_sysdate",
+          "status": "resolved",
+          "relation": "employee_to_active_employment",
+          "correlatedSource": "employee",
+          "filterOnlySource": "active_employment",
+          "correlationPredicates": 1,
+          "preservesReportGrain": true
+        }
+      ],
+      "reportGrain": "health_examination",
       "positionNamePath": [
         "current_position:SSTN_ID",
         "position_dictionary:ID",
@@ -216,7 +228,7 @@
         "organizational_unit:ID",
         "organizational_unit:NAZWA"
       ],
-      "activeEmployeeMechanism": "effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=true); join employee.ID = active_employment.PRAC_ID",
+      "activeEmployeeMechanism": "effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=true); correlated EXISTS on employee.ID = active_employment.PRAC_ID (usage=filter_only, rowSemantics=exists) so contracts qualify employees without multiplying report rows",
       "currentPositionTemporalMechanism": "effective_on_date on current_position DATA_OD/DATA_DO (openEndedEndAllowed=true, startInclusive=true, endInclusive=true, clock=oracle_sysdate)",
       "authoritativeOrganizationalUnitPath": [
         "current_position:JEOR_ID",
@@ -237,5 +249,5 @@
     },
     "resolutionStatus": "ready"
   },
-  "generatedAt": "2026-07-25T04:15:10.757Z"
+  "generatedAt": "2026-07-25T07:17:40.395Z"
 }

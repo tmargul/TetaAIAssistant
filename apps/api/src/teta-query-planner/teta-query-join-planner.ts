@@ -3,11 +3,15 @@
  */
 import type { RequiredJoinSpec } from './teta-report-template.types';
 import type { QueryJoin, QuerySource } from './teta-query-plan.types';
+import { isFilterOnlyQuerySource } from './teta-query-plan.types';
 import {
   findJoinEvidenceBetweenObjects,
   type Stage3cGraphClient,
 } from './teta-query-graph-client';
-import type { SemanticRelationBinding } from '../teta-business-semantics/teta-business-semantics.types';
+import {
+  isFilterOnlyRelation,
+  type SemanticRelationBinding,
+} from '../teta-business-semantics/teta-business-semantics.types';
 import { joinFromSemanticRelation } from '../teta-business-semantics/teta-stage3c-semantic-adapter';
 
 export function planJoins(input: {
@@ -16,10 +20,20 @@ export function planJoins(input: {
   sources: QuerySource[];
   /** Optional Stage 3D approved relation bindings. */
   semanticRelations?: SemanticRelationBinding[] | null;
-}): { joins: QueryJoin[]; cartesianJoins: number; unprovenJoinPredicates: number } {
+}): {
+  joins: QueryJoin[];
+  cartesianJoins: number;
+  unprovenJoinPredicates: number;
+  /** Relations withheld from the join tree because they must compile as existence tests. */
+  filterOnlyRelations: SemanticRelationBinding[];
+} {
   const joins: QueryJoin[] = [];
   let cartesianJoins = 0;
   let unprovenJoinPredicates = 0;
+  const filterOnlyRelations: SemanticRelationBinding[] = [];
+  const recordFilterOnly = (rel: SemanticRelationBinding) => {
+    if (!filterOnlyRelations.some((r) => r.role === rel.role)) filterOnlyRelations.push(rel);
+  };
 
   const sortedSpecs = [...input.joinSpecs].sort((a, b) => {
     const la = `${a.leftSourceRole}:${a.rightSourceRole}`;
@@ -39,6 +53,10 @@ export function planJoins(input: {
         r.rightSourceRole === spec.rightSourceRole &&
         r.predicates.length > 0,
     );
+    if (semantic && isFilterOnlyRelation(semantic)) {
+      recordFilterOnly(semantic);
+      continue;
+    }
     if (semantic) {
       const mapped = joinFromSemanticRelation(semantic);
       joins.push({
@@ -133,6 +151,11 @@ export function planJoins(input: {
   const covered = new Set(joins.map((j) => `${j.leftSourceRole}:${j.rightSourceRole}`));
   for (const rel of input.semanticRelations ?? []) {
     if (rel.status !== 'approved' || !rel.predicates.length) continue;
+    // Filter-only relations have no cardinality proof, so joining them could multiply report rows.
+    if (isFilterOnlyRelation(rel)) {
+      recordFilterOnly(rel);
+      continue;
+    }
     const key = `${rel.leftSourceRole}:${rel.rightSourceRole}`;
     if (covered.has(key)) continue;
     const left = input.sources.find((s) => s.sourceRole === rel.leftSourceRole);
@@ -151,15 +174,22 @@ export function planJoins(input: {
     return ka.localeCompare(kb);
   });
 
-  return { joins, cartesianJoins, unprovenJoinPredicates };
+  filterOnlyRelations.sort((a, b) => a.role.localeCompare(b.role));
+
+  return { joins, cartesianJoins, unprovenJoinPredicates, filterOnlyRelations };
 }
 
-/** Union-find connectivity over resolved sources using joins with ≥1 predicate. */
+/**
+ * Union-find connectivity over resolved row-producing sources using joins with ≥1 predicate.
+ * Filter-only sources live inside existence subqueries, so they are never part of the join tree.
+ */
 export function sourcesAreConnected(
   sources: QuerySource[],
   joins: QueryJoin[],
 ): { connected: boolean; disconnectedSourceGraphs: number } {
-  const resolved = sources.filter((s) => s.status === 'resolved').map((s) => s.sourceRole);
+  const resolved = sources
+    .filter((s) => s.status === 'resolved' && !isFilterOnlyQuerySource(s))
+    .map((s) => s.sourceRole);
   if (resolved.length <= 1) return { connected: true, disconnectedSourceGraphs: 0 };
 
   const parent = new Map<string, string>();

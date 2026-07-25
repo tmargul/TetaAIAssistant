@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-24** (Stage 3D business semantics)
+> Ostatnia aktualizacja: **2026-07-25** (Stage 3E Oracle SELECT compiler — **niezacommitowany**)
 
 ---
 
@@ -136,6 +136,25 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-07-25 — Etap 3E Deterministic Oracle SELECT Compiler ✅ (⚠️ NIE zacommitowany)
+
+- **Status git: brak commita** — czeka na decyzję użytkownika. W working tree: `apps/api/src/teta-oracle-compiler/`, `apps/api/src/scripts/oracle-compiler-stage3e.ts`, `apps/api/src/teta-query-planner/teta-query-existence-filter-planner.ts`, `apps/api/package.json` (skrypt), configi 3C/3D (`teta-business-semantic-bindings-v1.json`, `teta-business-ontology-v1.json`, `teta-report-query-templates-v1.json`), `docs/AIA_ORACLE_SELECT_COMPILER_STAGE3E.md` / `.json`, przeliczone `docs/AIA_BUSINESS_SEMANTICS_STAGE3D.*`.
+- Moduł `apps/api/src/teta-oracle-compiler/` + CLI `compiler:stage3e` (`compile|compile-reference-bhp|validate|audit --strict`).
+- Kontrakt `teta-aia-oracle-select-v1`, dialekt `oracle19c`, wejście `teta-aia-readonly-query-plan-v1` (Stage 3C, bez zmian kontraktów 3A–3D).
+- Wejście: plan 3C `ready_for_compilation` → wyjście `TetaCompiledOracleSelect` (`compiled|rejected_not_ready|rejected_invalid_plan|rejected_unsafe|rejected_unsupported`). `sqlCompilationAllowed=false` w 3C **nie** blokuje; odrzut tylko przy `sqlExecutionAllowed` / `oracleConnectionAllowed` / write / fileRead.
+- SQL zawsze z `accessObject`; aliasy pozycyjne `S01…S06` dla źródeł wierszowych i **osobna przestrzeń `E01…`** dla źródeł `filter_only` (kolejność `sources[]`); identyfikatory `^[A-Z][A-Z0-9_$#]*$`, bez cudzysłowów i konkatenacji z tekstu.
+- Mapowanie kolumn logicznych → access: `oracle-column:TETA_ADMIN:OBJ:COL` → `oracle-column:TETA_ADMIN_P:OBJ:COL` przez `columnsOfOracleObject` (HAS_COLUMN). Brak dowodu → `missing_access_column_evidence`. Live: **8** remapów (S01 + S02 na `TETA_ADMIN_P`).
+- Join tree: spójny, acykliczny, `|edges| = |rowProducingSources| - 1`, tylko `equals`, bez self-join/cartesian; root = pierwszy source nie po stronie nullable `LEFT JOIN`; cykl → `cyclic_join_graph_unsupported`.
+- Filtry `LEFT JOIN`-owych źródeł idą do `ON` (w `WHERE` zamieniłyby outer na inner i gubiły pracowników bez stanowiska).
+- **`filter_only` + `EXISTS` + `reportGrain` (patch 3D/3C/3E, additive, bez zmiany stringów kontraktów):** `active_employment` ma `sourceUsage=filter_only`, a relacja `employee_to_active_employment` — `usage=filter_only`, `rowSemantics=exists`, `preservesReportGrain=true`. Pracownik może mieć wiele umów, więc po filtrze czasowym **brak dowodu kardynalności** → `INNER JOIN` zwielokrotniałby wiersze badań. Warunek kwalifikujący kompiluje się jako skorelowany `EXISTS (SELECT 1 FROM …UMOWY_O_PRACE E01 WHERE E01.PRAC_ID = S01.ID AND …)`. Plan 3C nosi `existenceFilters[]` + `reportGrain='health_examination'` (z `teta-report-query-templates-v1.json`); temporal `employee_active_on_oracle_sysdate` zostaje w `plan.filters` (AST), ale **nie** jest emitowany drugi raz jako `WHERE` na główne drzewo.
+- Stage 3E odrzuca: `filter_only` w `FROM`/`JOIN`/projekcjach/`ORDER BY`, brak `existenceFilters` dla `filter_only`, niesskorelowany `EXISTS`, `DISTINCT`, `IN (…)`, podzapytania inne niż kontrolowany `SELECT 1`.
+- LIVE BHP (*„Zrób raport pracowników, którym kończą się badania BHP w tym miesiącu.”*): `compiled`, 7 sources (**6 row-producing + 1 filter_only**) / 5 joins / 8 projekcji / 5 predykatów (1 = `EXISTS`) / 1 existence filter / 3 ordering / **0** bindów, 28 linii, `FETCH FIRST 500 ROWS ONLY`.
+- `sqlSha256` = `7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691` (graphSourceHash `2e7f0b7e…f73c3`, ten sam co 3D). **Jedna wartość we wszystkich artefaktach** — audit liczy własny `sha256(sqlText)` i porównuje z `compiled.sqlSha256`, docs JSON/MD, `.local` sql/json oraz tym plikiem: `sqlArtifactHashMismatches` / `sqlArtifactTextMismatches` / `sessionContextHashMismatch` = **0**, `typecheckErrors` = **0**.
+- Osobny token-walidator (23 checki: brak komentarzy, hintów, `SELECT *`, DML/DDL/PLSQL, `FOR UPDATE`, `WITH`, `;`, db-link, niekwalifikowanych kolumn, inline literałów, `DISTINCT`, `IN (…)`, tylko kontrolowany `EXISTS`, aliasy `E*` wyłącznie w `EXISTS`) — live `ok=true`, 0 violations.
+- Bindy: user literals → `:P001` (Reference G, fixture); live BHP nie potrzebuje bindów (wszystko z grafu + `SYSDATE`).
+- Audity `--strict` **EXIT 0** (3D i 3E); referencje 3E A–M 13/13; `pnpm --filter @teta/api run build` **EXIT 0**; testy **294** passed (`teta-stage3c.spec` 48 / `teta-stage3d.spec` 79 / `teta-stage3e.spec` 167). Artefakty `.local/AIA_ORACLE_SELECT_COMPILER_STAGE3E.{audit.json,reference-bhp.json,reference-bhp.sql}` (gitignored).
+- **Bez** wykonania SQL / połączenia Oracle po dane / commita. Nazwy Oracle tylko w fixture'ach i configu, nie w kodzie produkcyjnym.
 
 ### 2026-07-24 — Etap 3D Canonical Business Semantics Layer ✅
 

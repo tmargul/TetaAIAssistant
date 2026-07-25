@@ -25,6 +25,7 @@ import { resolveSources } from './teta-query-source-resolver';
 import { resolveColumns } from './teta-query-column-resolver';
 import { planJoins, sourcesAreConnected } from './teta-query-join-planner';
 import { planFilters } from './teta-query-filter-planner';
+import { buildExistenceFilters } from './teta-query-existence-filter-planner';
 import { planOrdering } from './teta-query-projection-planner';
 import type { Stage3cGraphClient } from './teta-query-graph-client';
 import type { TetaBusinessRoleResolver } from '../teta-business-semantics/teta-business-role-resolver';
@@ -73,6 +74,8 @@ function basePlan(partial: Partial<TetaReadOnlyQueryPlan> & Pick<TetaReadOnlyQue
     projections: [],
     filters: [],
     ordering: [],
+    reportGrain: null,
+    existenceFilters: [],
     limits: { maxRows: 500, maxColumns: 20, statementTimeoutMs: 30000 },
     authorization: {
       status: 'deferred',
@@ -316,6 +319,12 @@ export class TetaReadOnlyQueryPlannerService {
       projections: columnResult.projections,
     });
 
+    const existenceFilters = buildExistenceFilters({
+      filterOnlyRelations: joinResult.filterOnlyRelations,
+      sources: sourceResult.sources,
+      filters: filterResult.filters,
+    });
+
     const connectivity = sourcesAreConnected(sourceResult.sources, joinResult.joins);
 
     const unresolvedSelections = [
@@ -365,6 +374,24 @@ export class TetaReadOnlyQueryPlannerService {
         ),
       );
 
+    // Every filter-only source must be covered by a resolved existence filter, otherwise its
+    // qualifying condition would silently disappear from the compiled query.
+    const filterOnlySourceRoles = sourceResult.sources
+      .filter((s) => s.status === 'resolved' && s.sourceUsage === 'filter_only')
+      .map((s) => s.sourceRole);
+    const existenceFiltersOk =
+      existenceFilters.every((e) => e.status === 'resolved') &&
+      filterOnlySourceRoles.every((role) =>
+        existenceFilters.some((e) => e.filterOnlySourceRole === role && e.status === 'resolved'),
+      );
+    if (!existenceFiltersOk) {
+      warnings.push({
+        code: 'filter_only_source_without_existence_filter',
+        message:
+          'Filter-only sources must compile as correlated existence tests; missing existence coverage',
+      });
+    }
+
     const blockingSelection = unresolvedSelections.some((u) => u.blocksPlanning);
     const equalAuto =
       sourceResult.unresolvedSelections.some((u) => u.reason.includes('equal')) &&
@@ -382,7 +409,8 @@ export class TetaReadOnlyQueryPlannerService {
       !filtersOk ||
       !connectivity.connected ||
       joinResult.cartesianJoins > 0 ||
-      !enrichmentLeftOk
+      !enrichmentLeftOk ||
+      !existenceFiltersOk
     ) {
       planStatus = 'needs_graph_resolution';
     }
@@ -407,6 +435,12 @@ export class TetaReadOnlyQueryPlannerService {
       ]),
       ...joinResult.joins.flatMap((j) => j.pathNodeIds),
       ...filterResult.filters.flatMap((f) => f.provenanceNodeIds),
+      ...existenceFilters.flatMap((e) =>
+        e.correlationPredicates.flatMap((p) => [
+          p.outerOracleColumnNodeId,
+          p.innerOracleColumnNodeId,
+        ]),
+      ),
     ]);
     const edgeIds = sortLex([
       ...sourceResult.sources.flatMap((s) => s.provenanceEdgeIds),
@@ -424,6 +458,8 @@ export class TetaReadOnlyQueryPlannerService {
       projections: columnResult.projections,
       filters: filterResult.filters,
       ordering,
+      reportGrain: template.reportGrain ?? null,
+      existenceFilters,
       limits: {
         maxRows: this.options.safety.maxRows,
         maxColumns: this.options.safety.maxColumns,

@@ -49,7 +49,7 @@
         {
           "role": "active_employment",
           "kind": "supporting",
-          "description": "Employment contract periods used for active-employee filter",
+          "description": "Employment contract periods used for active-employee filter; qualifying filter only, never a report row source",
           "searchTerms": ["umowy o pracę", "zatrudnienie", "okres zatrudnienia"],
           "formNameFragments": [],
           "semanticTags": ["active_employment"]
@@ -177,7 +177,8 @@
           "rightSourceRole": "active_employment",
           "joinType": "inner",
           "required": true,
-          "enrichment": false
+          "enrichment": false,
+          "description": "Qualifying existence check: employee must hold an active contract, but contracts must not multiply report rows"
         }
       ],
       "valuePathRoles": [

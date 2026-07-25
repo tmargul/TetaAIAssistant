@@ -1,6 +1,6 @@
 # AIA Business Semantics — Stage 3D
 
-Generated: 2026-07-25T04:15:10.757Z
+Generated: 2026-07-25T07:17:40.395Z
 
 ## Summary
 
@@ -26,7 +26,7 @@ Generated: 2026-07-25T04:15:10.757Z
 
 ### Active employee
 
-effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=true); join employee.ID = active_employment.PRAC_ID
+effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=true); correlated EXISTS on employee.ID = active_employment.PRAC_ID (usage=filter_only, rowSemantics=exists) so contracts qualify employees without multiplying report rows
 
 ### Current position
 
@@ -97,7 +97,6 @@ _none_
   "joins": [
     "current_position→organizational_unit",
     "current_position→position_dictionary",
-    "employee→active_employment",
     "employee→current_position",
     "health_examination→employee",
     "health_examination→examination_type"

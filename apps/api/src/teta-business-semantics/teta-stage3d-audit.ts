@@ -228,9 +228,42 @@ export function runStage3dAudit(input: {
     strictErrors.push('organizational_unit_name authoritativeStartSourceRole must be current_position');
   }
 
+  // Active employment qualifies employees but has no cardinality proof, so it must stay out of the
+  // join tree and be consumed by a correlated existence test instead.
+  const activeEmploymentRelation = input.semanticResolver.getApprovedRelation(
+    STAGE3C_SUPPORTED_SUBJECT,
+    'employee_to_active_employment',
+  );
+  if (activeEmploymentRelation?.usage !== 'filter_only') {
+    strictErrors.push('employee_to_active_employment must be bound as usage=filter_only');
+  }
+  if (activeEmploymentRelation?.rowSemantics !== 'exists') {
+    strictErrors.push('employee_to_active_employment must declare rowSemantics=exists');
+  }
+  if (activeEmploymentRelation?.preservesReportGrain !== true) {
+    strictErrors.push('employee_to_active_employment must declare preservesReportGrain=true');
+  }
+  if (
+    queryPlan.joins.some(
+      (j) => j.leftSourceRole === 'active_employment' || j.rightSourceRole === 'active_employment',
+    )
+  ) {
+    strictErrors.push('active_employment must not appear in the Stage 3C join tree');
+  }
+  if (
+    !(queryPlan.existenceFilters ?? []).some(
+      (e) => e.filterOnlySourceRole === 'active_employment' && e.status === 'resolved',
+    )
+  ) {
+    strictErrors.push('Reference A: active_employment has no resolved existence filter');
+  }
+  if (!queryPlan.reportGrain) {
+    strictErrors.push('Reference A: query plan does not declare a reportGrain');
+  }
+
   const activeEmployeeMechanism =
     active.type === 'effective_on_date'
-      ? `effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=${active.openEndedEndAllowed}); join employee.ID = active_employment.PRAC_ID`
+      ? `effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=${active.openEndedEndAllowed}); correlated EXISTS on employee.ID = active_employment.PRAC_ID (usage=filter_only, rowSemantics=exists) so contracts qualify employees without multiplying report rows`
       : null;
 
   const currentPositionTemporalMechanism =
@@ -295,6 +328,7 @@ export function runStage3dAudit(input: {
         sources: queryPlan.sources.map((s) => ({
           role: s.sourceRole,
           status: s.status,
+          usage: s.sourceUsage ?? 'row_source',
           logical: s.logicalObject?.nodeId ?? null,
           access: s.accessObject?.nodeId ?? null,
         })),
@@ -316,6 +350,16 @@ export function runStage3dAudit(input: {
           type: f.type,
           sourceRole: f.type === 'effective_on_date' ? f.sourceRole ?? null : null,
         })),
+        existenceFilters: (queryPlan.existenceFilters ?? []).map((e) => ({
+          role: e.filterRole,
+          status: e.status,
+          relation: e.relationRole,
+          correlatedSource: e.correlatedSourceRole,
+          filterOnlySource: e.filterOnlySourceRole,
+          correlationPredicates: e.correlationPredicates.length,
+          preservesReportGrain: e.preservesReportGrain,
+        })),
+        reportGrain: queryPlan.reportGrain ?? null,
         positionNamePath: positionVp.pathSummary,
         examinationTypeNamePath: examTypeVp.pathSummary,
         organizationalUnitNamePath: orgUnitVp.pathSummary,

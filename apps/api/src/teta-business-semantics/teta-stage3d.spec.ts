@@ -35,6 +35,8 @@ import {
   STAGE3D_IDENTITY_VERSION,
   STAGE3D_LANGUAGE_VERSION,
   STAGE3D_ONTOLOGY_VERSION,
+  isFilterOnlyRelation,
+  isFilterOnlySource,
   type BusinessOntologyFile,
   type SemanticBindingsFile,
   type Stage3dGraphClient,
@@ -56,6 +58,7 @@ import {
   STAGE3C_SUPPORTED_SUBJECT,
 } from '../teta-query-planner/teta-query-plan.types';
 import { minimalReadyEvidencePlan } from '../teta-query-planner/teta-stage3c-fixtures';
+import { sourcesAreConnected } from '../teta-query-planner/teta-query-join-planner';
 
 const apiRoot = path.resolve(__dirname, '..', '..');
 const HASH = 'fixture-semantics-hash-v1';
@@ -420,6 +423,7 @@ function fixtureBindings(): SemanticBindingsFile {
             accessObjectNodeId: 'oracle-object:FX_ADMIN:VIEW:FX_CONTRACT',
             businessReason: 'Fixture employment contracts',
             supporting: true,
+            sourceUsage: 'filter_only',
           },
           {
             role: 'position_dictionary',
@@ -621,6 +625,9 @@ function fixtureBindings(): SemanticBindingsFile {
             evidenceType: 'vendor_confirmed_relation',
             businessReason: 'employee to contract',
             required: true,
+            usage: 'filter_only',
+            rowSemantics: 'exists',
+            preservesReportGrain: true,
           },
         ],
         valuePaths: [
@@ -1399,7 +1406,112 @@ describe('Stage 3D business semantics', () => {
     expect(plan.planStatus).toBe('ready_for_compilation');
     const f = plan.filters.find((x) => x.filterRole === 'current_position_on_oracle_sysdate');
     expect(f?.status).toBe('resolved');
-    expect(f?.sourceRole).toBe('current_position');
     expect(f?.type).toBe('effective_on_date');
+    if (f?.type === 'effective_on_date') {
+      expect(f.sourceRole).toBe('current_position');
+    }
+  });
+
+  test('72. active employment is bound as a qualifying filter, not a row source', () => {
+    const relation = buildResolver().getApprovedRelation(SUBJECT, 'employee_to_active_employment')!;
+    expect(relation.usage).toBe('filter_only');
+    expect(relation.rowSemantics).toBe('exists');
+    expect(relation.preservesReportGrain).toBe(true);
+    expect(isFilterOnlyRelation(relation)).toBe(true);
+
+    const source = buildResolver()
+      .resolveSubject(SUBJECT)
+      .sources.find((s) => s.role === 'active_employment')!;
+    expect(source.sourceUsage).toBe('filter_only');
+    expect(isFilterOnlySource(source)).toBe(true);
+  });
+
+  test('73. relations without an explicit usage stay row-producing', () => {
+    const relation = buildResolver().getApprovedRelation(SUBJECT, 'employee_to_current_position')!;
+    expect(relation.usage).toBeUndefined();
+    expect(isFilterOnlyRelation(relation)).toBe(false);
+  });
+
+  test('74. the live bindings mark active employment filter-only too', () => {
+    const bindings = loadSemanticBindings(defaultBindingsPath(apiRoot));
+    const subject = bindings.subjects.find((s) => s.subject === SUBJECT)!;
+    expect(subject.sources.find((s) => s.role === 'active_employment')?.sourceUsage).toBe(
+      'filter_only',
+    );
+    const relation = subject.relations.find((r) => r.role === 'employee_to_active_employment')!;
+    expect(relation.usage).toBe('filter_only');
+    expect(relation.rowSemantics).toBe('exists');
+    expect(relation.preservesReportGrain).toBe(true);
+    expect(relation.businessReason).toContain('zwielokrotniać');
+  });
+
+  test('75. the filter-only source stays out of the join tree', () => {
+    const { plan } = planWithSemantics();
+    expect(plan.sources.find((s) => s.sourceRole === 'active_employment')?.sourceUsage).toBe(
+      'filter_only',
+    );
+    expect(
+      plan.joins.some(
+        (j) => j.leftSourceRole === 'active_employment' || j.rightSourceRole === 'active_employment',
+      ),
+    ).toBe(false);
+    // Connectivity is judged over row-producing sources only, so the plan is still ready.
+    expect(sourcesAreConnected(plan.sources, plan.joins).connected).toBe(true);
+    expect(plan.planStatus).toBe('ready_for_compilation');
+    expect(plan.joins.length).toBe(
+      plan.sources.filter((s) => s.sourceUsage !== 'filter_only').length - 1,
+    );
+  });
+
+  test('76. the plan carries an existence filter for the qualifying relation', () => {
+    const { plan } = planWithSemantics();
+    expect(plan.existenceFilters).toHaveLength(1);
+    const existence = plan.existenceFilters![0]!;
+    expect(existence.status).toBe('resolved');
+    expect(existence.filterRole).toBe('employee_active_on_oracle_sysdate');
+    expect(existence.relationRole).toBe('employee_to_active_employment');
+    expect(existence.correlatedSourceRole).toBe('employee');
+    expect(existence.filterOnlySourceRole).toBe('active_employment');
+    expect(existence.temporalFilterRole).toBe('employee_active_on_oracle_sysdate');
+    expect(existence.preservesReportGrain).toBe(true);
+    expect(existence.correlationPredicates).toHaveLength(1);
+    // Correlation is oriented outer (employee) → inner (contract) regardless of storage order.
+    expect(existence.correlationPredicates[0]!.outerOracleColumnNodeId).toBe(
+      'oracle-column:FX_ADMIN:FX_EMP:ID',
+    );
+    expect(existence.correlationPredicates[0]!.innerOracleColumnNodeId).toBe(
+      'oracle-column:FX_ADMIN:FX_CONTRACT:EMP_ID',
+    );
+    expect(existence.correlationPredicates[0]!.operator).toBe('equals');
+  });
+
+  test('77. the temporal filter stays in plan.filters for the AST', () => {
+    const { plan } = planWithSemantics();
+    const temporal = plan.filters.find(
+      (f) => f.filterRole === 'employee_active_on_oracle_sysdate',
+    );
+    expect(temporal?.status).toBe('resolved');
+    expect(temporal?.type).toBe('effective_on_date');
+    if (temporal?.type === 'effective_on_date') {
+      expect(temporal.sourceRole).toBe('active_employment');
+    }
+  });
+
+  test('78. the plan declares the report grain one row stands for', () => {
+    const { plan } = planWithSemantics();
+    expect(plan.reportGrain).toBe('health_examination');
+  });
+
+  test('79. a filter-only source with no existence coverage is not ready', () => {
+    const b = fixtureBindings();
+    const temporal = b.subjects[0]!.temporals.find(
+      (t) => t.role === 'employee_active_on_oracle_sysdate',
+    )!;
+    temporal.status = 'discovered';
+    const { plan } = planWithSemantics(b);
+    expect(plan.planStatus).not.toBe('ready_for_compilation');
+    expect(
+      plan.warnings.some((w) => w.code === 'filter_only_source_without_existence_filter'),
+    ).toBe(true);
   });
 });

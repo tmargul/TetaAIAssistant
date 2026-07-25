@@ -82,6 +82,12 @@ export type BusinessOntologyFile = {
   subjects: BusinessOntologySubject[];
 };
 
+/**
+ * `filter_only` sources qualify report rows but must never widen them: they belong in a correlated
+ * EXISTS, not in the main join tree. Absent means `row_source`.
+ */
+export type SemanticSourceUsage = 'row_source' | 'filter_only';
+
 export type SemanticSourceBinding = {
   role: string;
   status: SemanticBindingStatus;
@@ -94,6 +100,7 @@ export type SemanticSourceBinding = {
   candidateNodeIds?: string[];
   enrichment?: boolean;
   supporting?: boolean;
+  sourceUsage?: SemanticSourceUsage;
 };
 
 export type SemanticProjectionBinding = {
@@ -115,6 +122,15 @@ export type SemanticRelationPredicate = {
   rightOracleColumnNodeId: string;
 };
 
+/**
+ * `row_producing` relations may appear as a join in the main tree. `filter_only` relations have no
+ * cardinality proof on the right-hand side, so joining them could multiply report rows; they are
+ * consumed as a correlated existence test instead. Absent means `row_producing`.
+ */
+export type SemanticRelationUsage = 'row_producing' | 'filter_only';
+
+export type SemanticRelationRowSemantics = 'exists';
+
 export type SemanticRelationBinding = {
   role: string;
   status: SemanticBindingStatus;
@@ -131,7 +147,20 @@ export type SemanticRelationBinding = {
   enrichment?: boolean;
   /** Keep structural fact in registry but do not use as authoritative projection join. */
   projectionUsage?: 'authoritative' | 'not_used_for_this_projection' | 'supporting';
+  usage?: SemanticRelationUsage;
+  rowSemantics?: SemanticRelationRowSemantics;
+  preservesReportGrain?: boolean;
 };
+
+/** True when the relation must be compiled as a correlated existence test, not a join. */
+export function isFilterOnlyRelation(relation: SemanticRelationBinding): boolean {
+  return relation.usage === 'filter_only';
+}
+
+/** True when the source may only be referenced from inside an existence subquery. */
+export function isFilterOnlySource(source: SemanticSourceBinding): boolean {
+  return source.sourceUsage === 'filter_only';
+}
 
 export type SemanticValuePathStep = {
   sourceRole: string;

@@ -1,0 +1,267 @@
+{
+  "contractVersion": "teta-aia-oracle-select-v1",
+  "dialect": "oracle19c",
+  "sourcePlanContractVersion": "teta-aia-readonly-query-plan-v1",
+  "semanticBindingsVersion": "teta-aia-business-semantic-bindings-v1",
+  "graphSourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+  "graphIndexSchemaVersion": "teta-aia-graph-index-v1",
+  "liveSourcePlanStatus": "ready_for_compilation",
+  "liveCompileStatus": "compiled",
+  "liveSqlSha256": "7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691",
+  "liveSqlLineCount": 28,
+  "liveSourceCount": 7,
+  "liveJoinCount": 5,
+  "liveProjectionCount": 8,
+  "livePredicateCount": 5,
+  "liveOrderingCount": 3,
+  "liveBindCount": 0,
+  "liveAccessColumnRemaps": 8,
+  "liveValidationOk": true,
+  "liveReportGrain": "health_examination",
+  "liveRowProducingSources": 6,
+  "liveFilterOnlySources": 1,
+  "liveExistenceFilterCount": 1,
+  "referencesTested": 13,
+  "referencesPassed": 13,
+  "referenceResults": [
+    {
+      "reference": "A",
+      "description": "Live BHP plan (Stage 3D bindings) compiles to a single read-only SELECT",
+      "compileStatus": "compiled",
+      "rejectionCode": null,
+      "sqlSha256": "7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691",
+      "validationOk": true,
+      "notes": [
+        "compiled SQL passes the independent token validator",
+        "two consecutive compilations produce identical output",
+        "no binds are needed (all values derive from the graph and SYSDATE)"
+      ]
+    },
+    {
+      "reference": "B",
+      "description": "Fixture BHP plan compiles with positional aliases and access objects only",
+      "compileStatus": "compiled",
+      "rejectionCode": null,
+      "sqlSha256": "dda844dc9e3d0ef2d63591ff4f9d44a827d3d53034c0babbde6bafdf696de4b4",
+      "validationOk": true,
+      "notes": [
+        "aliases follow sources[] order; filter-only sources use the E space",
+        "root is the first source that is not on a LEFT JOIN nullable side",
+        "main join tree holds 6 row-producing sources and 5 edges",
+        "fixture compilation is deterministic"
+      ]
+    },
+    {
+      "reference": "C",
+      "description": "Plan that is not ready_for_compilation is rejected without SQL",
+      "compileStatus": "rejected_not_ready",
+      "rejectionCode": "source_plan_not_ready_for_compilation",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    },
+    {
+      "reference": "D",
+      "description": "Plan that grants SQL execution is rejected as unsafe",
+      "compileStatus": "rejected_unsafe",
+      "rejectionCode": "execution_policy_violation",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    },
+    {
+      "reference": "E",
+      "description": "HRM owner never reaches a compiled statement",
+      "compileStatus": "rejected_unsafe",
+      "rejectionCode": "forbidden_owner",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    },
+    {
+      "reference": "F",
+      "description": "Cyclic join graph is unsupported in v1",
+      "compileStatus": "rejected_unsupported",
+      "rejectionCode": "cyclic_join_graph_unsupported",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    },
+    {
+      "reference": "G",
+      "description": "User-supplied literal is passed as a bind variable, never inlined",
+      "compileStatus": "compiled",
+      "rejectionCode": null,
+      "sqlSha256": "bf27582068e803e1e9ac1f4ee049307eec8abbccd892e1970320bed4a31d7953",
+      "validationOk": true,
+      "notes": [
+        "exactly one bind is allocated",
+        "the first bind placeholder is :P001",
+        "the literal value does not appear in the statement text"
+      ]
+    },
+    {
+      "reference": "H",
+      "description": "Missing HAS_COLUMN evidence on the access object blocks compilation",
+      "compileStatus": "rejected_invalid_plan",
+      "rejectionCode": "missing_access_column_evidence",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    },
+    {
+      "reference": "I",
+      "description": "Active employment qualifies employees through a correlated EXISTS, never a row-producing join",
+      "compileStatus": "compiled",
+      "rejectionCode": null,
+      "sqlSha256": "dda844dc9e3d0ef2d63591ff4f9d44a827d3d53034c0babbde6bafdf696de4b4",
+      "validationOk": true,
+      "notes": [
+        "the filter-only source is aliased E01",
+        "the EXISTS is correlated to the employee row source",
+        "the active-employment temporal rule lives inside the subquery",
+        "the contract object appears only in the EXISTS FROM clause",
+        "the contract object is never joined into the main tree",
+        "no filter-only source reaches the main join tree",
+        "the compiled statement records the health_examination report grain"
+      ]
+    },
+    {
+      "reference": "J",
+      "description": "Joining a filter-only source into the main tree is rejected as unsafe",
+      "compileStatus": "rejected_unsafe",
+      "rejectionCode": "filter_only_source_in_join_tree",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    },
+    {
+      "reference": "K",
+      "description": "A filter-only source with no existence filter is rejected as unsafe",
+      "compileStatus": "rejected_unsafe",
+      "rejectionCode": "filter_only_source_without_existence_filter",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    },
+    {
+      "reference": "L",
+      "description": "An uncorrelated EXISTS would not filter rows and is rejected",
+      "compileStatus": "rejected_unsafe",
+      "rejectionCode": "uncorrelated_existence_filter",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    },
+    {
+      "reference": "M",
+      "description": "Projecting a filter-only column is rejected as unsafe",
+      "compileStatus": "rejected_unsafe",
+      "rejectionCode": "filter_only_source_in_projection",
+      "sqlSha256": null,
+      "validationOk": false,
+      "notes": []
+    }
+  ],
+  "counters": {
+    "statementsCompiled": 1,
+    "finalSqlGenerated": 1,
+    "sqlExecuted": 0,
+    "oracleConnections": 0,
+    "oracleWrites": 0,
+    "businessDataRowsRead": 0,
+    "xlsxFilesRead": 0,
+    "qdrantCalls": 0,
+    "embeddingCalls": 0,
+    "llmCalls": 0,
+    "agentCalls": 0,
+    "selectStar": 0,
+    "unqualifiedColumns": 0,
+    "sqlComments": 0,
+    "optimizerHints": 0,
+    "semicolons": 0,
+    "dmlStatements": 0,
+    "plsqlBlocks": 0,
+    "dbLinks": 0,
+    "forUpdateClauses": 0,
+    "withClauses": 0,
+    "multipleStatements": 0,
+    "unboundUserLiterals": 0,
+    "cartesianJoins": 0,
+    "crossJoins": 0,
+    "selfJoins": 0,
+    "cyclicJoinGraphs": 0,
+    "invalidIdentifiers": 0,
+    "missingAccessColumns": 0,
+    "forbiddenOwnerReferences": 0,
+    "logicalObjectsUsedInSql": 0,
+    "reportGrainDefined": 1,
+    "rowProducingSources": 6,
+    "filterOnlySources": 1,
+    "existenceFiltersCompiled": 1,
+    "filterOnlySourcesInMainJoinTree": 0,
+    "filterOnlyAliasesOutsideExists": 0,
+    "filterOnlySourcesProjected": 0,
+    "filterOnlySourcesUsedForOrdering": 0,
+    "unprovenFilterJoinCardinality": 0,
+    "possibleReportRowMultiplication": 0,
+    "distinctAddedToHideMultiplicity": 0,
+    "arbitrarySubqueriesDetected": 0,
+    "uncorrelatedExistsDetected": 0,
+    "existsWithoutSemanticEvidence": 0,
+    "uncontrolledSubqueries": 0,
+    "inSubqueries": 0,
+    "distinctClauses": 0
+  },
+  "deterministicCheckOk": true,
+  "sqlArtifactHashMismatches": 0,
+  "sqlArtifactTextMismatches": 0,
+  "sessionContextHashMismatch": 0,
+  "artifactHashChecks": [
+    {
+      "artifact": "compiled.sqlSha256",
+      "hashOk": true,
+      "textOk": null,
+      "detail": "compiler hash matches an independent sha256 of sqlText"
+    },
+    {
+      "artifact": "docs\\AIA_ORACLE_SELECT_COMPILER_STAGE3E.json",
+      "hashOk": true,
+      "textOk": null,
+      "detail": "liveSqlSha256=7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691"
+    },
+    {
+      "artifact": "docs\\AIA_ORACLE_SELECT_COMPILER_STAGE3E.md",
+      "hashOk": true,
+      "textOk": true,
+      "detail": "documented SQL block and hash compared"
+    },
+    {
+      "artifact": ".local\\AIA_ORACLE_SELECT_COMPILER_STAGE3E.audit.json",
+      "hashOk": true,
+      "textOk": true,
+      "detail": "compiled.sqlSha256=7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691"
+    },
+    {
+      "artifact": ".local\\AIA_ORACLE_SELECT_COMPILER_STAGE3E.reference-bhp.json",
+      "hashOk": true,
+      "textOk": true,
+      "detail": "compiled.sqlSha256=7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691"
+    },
+    {
+      "artifact": ".local\\AIA_ORACLE_SELECT_COMPILER_STAGE3E.reference-bhp.sql",
+      "hashOk": true,
+      "textOk": true,
+      "detail": "sha256 of stored statement=7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691"
+    },
+    {
+      "artifact": "docs\\session-context.md",
+      "hashOk": true,
+      "textOk": null,
+      "detail": "recorded sqlSha256=7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691"
+    }
+  ],
+  "typecheckErrors": 0,
+  "strictErrors": [],
+  "generatedAt": "2026-07-25T07:20:53.371Z"
+}

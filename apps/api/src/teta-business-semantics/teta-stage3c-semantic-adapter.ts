@@ -4,6 +4,7 @@
  */
 import type {
   QueryColumnRef,
+  QueryExistenceFilter,
   QueryFilter,
   QueryJoin,
   QueryJoinEvidenceType,
@@ -206,6 +207,52 @@ export function sourceFromSemanticBinding(binding: SemanticSourceBinding): Query
       ...(binding.formNodeIds ?? []),
     ].sort(),
     enrichment: !!binding.enrichment,
+    sourceUsage: binding.sourceUsage === 'filter_only' ? 'filter_only' : 'row_source',
+  };
+}
+
+/**
+ * Builds the existence filter for a `filter_only` relation. Correlation predicates are oriented
+ * outer (row-producing side) → inner (filter-only side) regardless of how the relation is stored.
+ */
+export function existenceFilterFromSemanticRelation(input: {
+  relation: SemanticRelationBinding;
+  filterOnlySourceRole: string;
+  temporalFilterRole: string | null;
+  temporalFilterStatus: 'resolved' | 'incomplete' | 'missing' | null;
+}): QueryExistenceFilter {
+  const { relation, filterOnlySourceRole } = input;
+  const filterOnlyIsRight = relation.rightSourceRole === filterOnlySourceRole;
+  const correlatedSourceRole = filterOnlyIsRight
+    ? relation.leftSourceRole
+    : relation.rightSourceRole;
+
+  const correlationPredicates = relation.predicates.map((p) => ({
+    outerOracleColumnNodeId: filterOnlyIsRight
+      ? p.leftOracleColumnNodeId
+      : p.rightOracleColumnNodeId,
+    innerOracleColumnNodeId: filterOnlyIsRight
+      ? p.rightOracleColumnNodeId
+      : p.leftOracleColumnNodeId,
+    operator: 'equals' as const,
+  }));
+
+  const status: QueryExistenceFilter['status'] =
+    correlationPredicates.length === 0 || input.temporalFilterStatus === 'missing'
+      ? 'missing'
+      : input.temporalFilterStatus === 'resolved'
+        ? 'resolved'
+        : 'incomplete';
+
+  return {
+    filterRole: input.temporalFilterRole ?? `${relation.role}_exists`,
+    status,
+    correlatedSourceRole,
+    filterOnlySourceRole,
+    correlationPredicates,
+    temporalFilterRole: input.temporalFilterRole,
+    relationRole: relation.role,
+    preservesReportGrain: true,
   };
 }
 

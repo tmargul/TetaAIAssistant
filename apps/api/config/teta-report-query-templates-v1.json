@@ -4,6 +4,7 @@
     {
       "subject": "occupational_health_examinations",
       "intent": "build_employee_report",
+      "reportGrain": "health_examination",
       "requiredSourceRoles": [
         "employee",
         "health_examination",

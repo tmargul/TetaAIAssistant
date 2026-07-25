@@ -97,7 +97,7 @@
           "status": "approved",
           "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE",
           "accessObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE",
-          "businessReason": "Employment contracts with DATA_OD/DATA_DO used as active-employee evidence; not assumed from employee master alone.",
+          "businessReason": "Employment contracts with DATA_OD/DATA_DO used as active-employee evidence; not assumed from employee master alone. Pracownik może mieć wiele umów, więc źródło służy wyłącznie jako filtr kwalifikujący (sourceUsage=filter_only), nie jako źródło wierszy raportu.",
           "evidenceNodeIds": [
             "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE",
             "oracle-column:TETA_ADMIN:NT_KP_KDR_UMOWY_O_PRACE:DATA_OD",
@@ -105,7 +105,8 @@
             "oracle-column:TETA_ADMIN:NT_KP_KDR_UMOWY_O_PRACE:PRAC_ID"
           ],
           "enrichment": false,
-          "supporting": true
+          "supporting": true,
+          "sourceUsage": "filter_only"
         },
         {
           "role": "position_dictionary",
@@ -338,9 +339,12 @@
           ],
           "evidenceType": "vendor_confirmed_relation",
           "joinNodeId": null,
-          "businessReason": "Active employment contracts linked by PRAC_ID = employee ID.",
+          "businessReason": "Active employment contracts linked by PRAC_ID = employee ID. Aktywne zatrudnienie kwalifikuje pracownika do raportu, ale nie może zwielokrotniać rekordów badań — brak dowodu kardynalności 1:1 po nałożeniu filtru czasowego, dlatego relacja jest kompilowana jako skorelowany EXISTS (usage=filter_only, rowSemantics=exists).",
           "required": true,
-          "enrichment": false
+          "enrichment": false,
+          "usage": "filter_only",
+          "rowSemantics": "exists",
+          "preservesReportGrain": true
         }
       ],
       "valuePaths": [

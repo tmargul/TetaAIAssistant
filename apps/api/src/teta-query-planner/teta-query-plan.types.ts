@@ -38,6 +38,12 @@ export type QueryAccessObject = {
   objectName: string;
 };
 
+/**
+ * `filter_only` sources qualify rows through a correlated existence test and never join the main
+ * tree, so they cannot change the report grain. Absent means `row_source`.
+ */
+export type QuerySourceUsage = 'row_source' | 'filter_only';
+
 export type QuerySource = {
   sourceRole: string;
   status: SourceResolutionStatus;
@@ -49,7 +55,17 @@ export type QuerySource = {
   provenanceEdgeIds: string[];
   pathNodeIds: string[];
   enrichment?: boolean;
+  sourceUsage?: QuerySourceUsage;
 };
+
+/** Sources without explicit usage are row-producing. */
+export function querySourceUsageOf(source: QuerySource): QuerySourceUsage {
+  return source.sourceUsage ?? 'row_source';
+}
+
+export function isFilterOnlyQuerySource(source: QuerySource): boolean {
+  return querySourceUsageOf(source) === 'filter_only';
+}
 
 export type QueryColumnRef = {
   businessRole: string;
@@ -129,6 +145,25 @@ export type QueryFilter =
       provenanceEdgeIds: string[];
     };
 
+/**
+ * A qualifying condition compiled as a correlated existence test instead of a join, so the
+ * filter-only source can never multiply report rows.
+ */
+export type QueryExistenceFilter = {
+  filterRole: string;
+  status: 'resolved' | 'incomplete' | 'missing';
+  correlatedSourceRole: string;
+  filterOnlySourceRole: string;
+  correlationPredicates: Array<{
+    outerOracleColumnNodeId: string;
+    innerOracleColumnNodeId: string;
+    operator: 'equals';
+  }>;
+  temporalFilterRole: string | null;
+  relationRole: string;
+  preservesReportGrain: true;
+};
+
 export type QueryOrdering = {
   orderRole: string;
   status: 'resolved' | 'missing';
@@ -170,6 +205,9 @@ export type TetaReadOnlyQueryPlan = {
   projections: QueryColumnRef[];
   filters: QueryFilter[];
   ordering: QueryOrdering[];
+  /** Business entity one report row stands for, e.g. `health_examination`. */
+  reportGrain?: string | null;
+  existenceFilters?: QueryExistenceFilter[];
   limits: {
     maxRows: number;
     maxColumns: number;

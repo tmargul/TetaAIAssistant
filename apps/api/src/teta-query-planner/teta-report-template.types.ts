@@ -52,6 +52,8 @@ export type OrderingResolution = {
 export type ReportQueryTemplate = {
   subject: string;
   intent: string;
+  /** Business entity one report row stands for; guards against row multiplication. */
+  reportGrain?: string;
   requiredSourceRoles: string[];
   requiredProjectionRoles: string[];
   requiredFilters: string[];
