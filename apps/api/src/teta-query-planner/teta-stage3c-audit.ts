@@ -123,6 +123,9 @@ function checkRef(
     if (!plan.filters.some((f) => f.filterRole === 'employee_active_on_oracle_sysdate')) {
       errors.push('A: missing active employee filter');
     }
+    if (!plan.filters.some((f) => f.filterRole === 'current_position_on_oracle_sysdate')) {
+      errors.push('A: missing current position temporal filter');
+    }
     const month = plan.filters.find((f) => f.filterRole === 'examination_valid_to_in_current_month');
     if (month && month.type === 'half_open_date_interval') {
       if (month.lowerBoundary.transform !== 'month_start' || month.lowerBoundary.inclusive !== true) {

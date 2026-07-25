@@ -1,0 +1,219 @@
+{
+  "version": "teta-aia-business-ontology-v1",
+  "identityVersion": "teta-aia-canonical-id-v1",
+  "subjects": [
+    {
+      "subject": "occupational_health_examinations",
+      "intent": "build_employee_report",
+      "sourceRoles": [
+        {
+          "role": "employee",
+          "kind": "required",
+          "description": "Employee master record",
+          "searchTerms": ["pracownicy", "pracownik"],
+          "formNameFragments": ["KartotekaBadanBHP", "BadaniaBHP"],
+          "semanticTags": ["employee_master"]
+        },
+        {
+          "role": "health_examination",
+          "kind": "required",
+          "description": "Occupational health examination card",
+          "searchTerms": ["badania BHP", "badania", "termin badania"],
+          "formNameFragments": ["KartotekaBadanBHP", "BadaniaBHP"],
+          "semanticTags": ["health_examination", "occupational_health"]
+        },
+        {
+          "role": "examination_type",
+          "kind": "required",
+          "description": "Examination type dictionary",
+          "searchTerms": ["rodzaje badań BHP", "rodzaj badania"],
+          "formNameFragments": ["DicRodzajeBadanBHP"],
+          "semanticTags": ["examination_type_dictionary"]
+        },
+        {
+          "role": "current_position",
+          "kind": "enrichment",
+          "description": "Current employee position assignment",
+          "searchTerms": ["stanowisko", "stanowiska"],
+          "formNameFragments": [],
+          "semanticTags": ["current_position"]
+        },
+        {
+          "role": "organizational_unit",
+          "kind": "enrichment",
+          "description": "Organizational unit dictionary used for display",
+          "searchTerms": ["jednostka organizacyjna", "struktura organizacyjna"],
+          "formNameFragments": [],
+          "semanticTags": ["organizational_unit"]
+        },
+        {
+          "role": "active_employment",
+          "kind": "supporting",
+          "description": "Employment contract periods used for active-employee filter",
+          "searchTerms": ["umowy o pracę", "zatrudnienie", "okres zatrudnienia"],
+          "formNameFragments": [],
+          "semanticTags": ["active_employment"]
+        },
+        {
+          "role": "position_dictionary",
+          "kind": "supporting",
+          "description": "Position name dictionary",
+          "searchTerms": ["słownik stanowisk", "nazwa stanowiska"],
+          "formNameFragments": [],
+          "semanticTags": ["position_dictionary"]
+        },
+        {
+          "role": "examination_type_dictionary",
+          "kind": "supporting",
+          "description": "Alias of examination_type when used as dictionary display source",
+          "searchTerms": ["rodzaje badań BHP"],
+          "formNameFragments": ["DicRodzajeBadanBHP"],
+          "semanticTags": ["examination_type_dictionary"]
+        }
+      ],
+      "projectionRoles": [
+        {
+          "role": "employee_number",
+          "sourceRole": "employee",
+          "preferDisplayText": false,
+          "labelHints": ["numer ewidencyjny", "nr ewidencyjny"]
+        },
+        {
+          "role": "employee_first_name",
+          "sourceRole": "employee",
+          "preferDisplayText": false,
+          "labelHints": ["imię", "imie"]
+        },
+        {
+          "role": "employee_last_name",
+          "sourceRole": "employee",
+          "preferDisplayText": false,
+          "labelHints": ["nazwisko"]
+        },
+        {
+          "role": "examination_type_name",
+          "sourceRole": "examination_type",
+          "preferDisplayText": true,
+          "labelHints": ["rodzaj badania", "nazwa"]
+        },
+        {
+          "role": "examination_valid_from",
+          "sourceRole": "health_examination",
+          "preferDisplayText": false,
+          "labelHints": ["data wykonania", "ważne od"]
+        },
+        {
+          "role": "examination_valid_to",
+          "sourceRole": "health_examination",
+          "preferDisplayText": false,
+          "labelHints": ["data ważności", "ważne do"]
+        },
+        {
+          "role": "position_name",
+          "sourceRole": "current_position",
+          "preferDisplayText": true,
+          "labelHints": ["stanowisko", "nazwa stanowiska"]
+        },
+        {
+          "role": "organizational_unit_name",
+          "sourceRole": "organizational_unit",
+          "preferDisplayText": true,
+          "labelHints": ["jednostka organizacyjna", "nazwa jednostki"]
+        }
+      ],
+      "relationRoles": [
+        {
+          "role": "health_examination_to_employee",
+          "leftSourceRole": "health_examination",
+          "rightSourceRole": "employee",
+          "joinType": "inner",
+          "required": true,
+          "enrichment": false
+        },
+        {
+          "role": "health_examination_to_examination_type",
+          "leftSourceRole": "health_examination",
+          "rightSourceRole": "examination_type",
+          "joinType": "inner",
+          "required": true,
+          "enrichment": false
+        },
+        {
+          "role": "employee_to_current_position",
+          "leftSourceRole": "employee",
+          "rightSourceRole": "current_position",
+          "joinType": "left",
+          "required": true,
+          "enrichment": true
+        },
+        {
+          "role": "current_position_to_position_dictionary",
+          "leftSourceRole": "current_position",
+          "rightSourceRole": "position_dictionary",
+          "joinType": "left",
+          "required": false,
+          "enrichment": true
+        },
+        {
+          "role": "current_position_to_organizational_unit",
+          "leftSourceRole": "current_position",
+          "rightSourceRole": "organizational_unit",
+          "joinType": "left",
+          "required": true,
+          "enrichment": true
+        },
+        {
+          "role": "employee_to_organizational_unit",
+          "leftSourceRole": "employee",
+          "rightSourceRole": "organizational_unit",
+          "joinType": "left",
+          "required": false,
+          "enrichment": true,
+          "description": "Supporting structural bridge; BHP projection uses current_position_to_organizational_unit"
+        },
+        {
+          "role": "employee_to_active_employment",
+          "leftSourceRole": "employee",
+          "rightSourceRole": "active_employment",
+          "joinType": "inner",
+          "required": true,
+          "enrichment": false
+        }
+      ],
+      "valuePathRoles": [
+        {
+          "role": "position_name",
+          "projectionRole": "position_name",
+          "description": "current_position.SSTN_ID → position_dictionary.ID → NAZWA"
+        },
+        {
+          "role": "examination_type_name",
+          "projectionRole": "examination_type_name",
+          "description": "health_examination.SLB_ID → examination_type.ID → NAZWA"
+        },
+        {
+          "role": "organizational_unit_name",
+          "projectionRole": "organizational_unit_name",
+          "description": "Authoritative: current_position → org-unit key → organizational_unit → display name"
+        }
+      ],
+      "temporalRoles": [
+        {
+          "role": "examination_valid_to_in_current_month",
+          "type": "half_open_date_interval",
+          "description": "Half-open month window on examination_valid_to using oracle_sysdate"
+        },
+        {
+          "role": "employee_active_on_oracle_sysdate",
+          "type": "effective_on_date",
+          "description": "Active employment effective dating with open-ended DATA_DO allowed"
+        },
+        {
+          "role": "current_position_on_oracle_sysdate",
+          "type": "effective_on_date",
+          "description": "Current position effective dating on DATA_OD/DATA_DO"
+        }
+      ]
+    }
+  ]
+}

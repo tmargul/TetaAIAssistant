@@ -37,7 +37,9 @@ export type FilterResolution =
       filterRole: string;
       type: 'effective_on_date';
       clock: 'oracle_sysdate';
-      requiresActiveEmploymentEvidence: boolean;
+      requiresActiveEmploymentEvidence?: boolean;
+      /** When set, resolve effective dating against this resolved source (e.g. current_position). */
+      sourceRole?: string;
       searchTerms?: string[];
     };
 

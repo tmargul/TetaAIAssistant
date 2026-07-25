@@ -27,6 +27,9 @@ import { planJoins, sourcesAreConnected } from './teta-query-join-planner';
 import { planFilters } from './teta-query-filter-planner';
 import { planOrdering } from './teta-query-projection-planner';
 import type { Stage3cGraphClient } from './teta-query-graph-client';
+import type { TetaBusinessRoleResolver } from '../teta-business-semantics/teta-business-role-resolver';
+import { buildStage3cSemanticPackage } from '../teta-business-semantics/teta-stage3c-semantic-adapter';
+import type { SemanticTemporalBinding } from '../teta-business-semantics/teta-business-semantics.types';
 
 export type QueryPlannerOptions = {
   templates: ReportQueryTemplatesFile;
@@ -34,6 +37,8 @@ export type QueryPlannerOptions = {
   graph: Stage3cGraphClient | null;
   graphSourceHash: string | null;
   graphIndexSchemaVersion?: string | null;
+  /** Optional Stage 3D business semantics resolver (does not change Stage 3C contracts). */
+  semanticResolver?: TetaBusinessRoleResolver | null;
 };
 
 function emptySideEffectAudit() {
@@ -252,12 +257,25 @@ export class TetaReadOnlyQueryPlannerService {
       return plan;
     }
 
+    const semanticPkg =
+      this.options.semanticResolver && subject
+        ? buildStage3cSemanticPackage(this.options.semanticResolver, subject)
+        : null;
+
+    const roleOrder = [
+      ...template.requiredSourceRoles,
+      ...((semanticPkg?.additionalSourceRoles ?? []).filter(
+        (r) => !template.requiredSourceRoles.includes(r),
+      )),
+    ];
+
     const sourceResult = resolveSources({
       client: this.options.graph,
       roles: template.sourceRoleResolutions,
-      roleOrder: template.requiredSourceRoles,
+      roleOrder,
       policy: this.options.safety,
       evidencePlan: request.evidencePlan,
+      semanticSources: semanticPkg?.sourcesByRole ?? null,
     });
 
     const columnResult = resolveColumns({
@@ -265,13 +283,23 @@ export class TetaReadOnlyQueryPlannerService {
       projections: template.projectionRoleResolutions,
       projectionOrder: template.requiredProjectionRoles,
       sources: sourceResult.sources,
+      semanticProjections: semanticPkg?.projectionsByRole ?? null,
     });
 
     const joinResult = planJoins({
       client: this.options.graph,
       joinSpecs: template.requiredJoins,
       sources: sourceResult.sources,
+      semanticRelations: semanticPkg?.relations ?? null,
     });
+
+    const semanticTemporals = new Map<string, SemanticTemporalBinding>();
+    if (semanticPkg && this.options.semanticResolver && subject) {
+      for (const filterRole of template.requiredFilters) {
+        const t = this.options.semanticResolver.getApprovedTemporal(subject, filterRole);
+        if (t) semanticTemporals.set(filterRole, t);
+      }
+    }
 
     const filterResult = planFilters({
       client: this.options.graph,
@@ -279,6 +307,7 @@ export class TetaReadOnlyQueryPlannerService {
       filterOrder: template.requiredFilters,
       projections: columnResult.projections,
       sources: sourceResult.sources,
+      semanticTemporals: semanticTemporals.size ? semanticTemporals : null,
     });
 
     const ordering = planOrdering({

@@ -1,0 +1,241 @@
+{
+  "contractVersion": "teta-aia-business-semantics-v1",
+  "ontologyVersion": "teta-aia-business-ontology-v1",
+  "bindingsVersion": "teta-aia-business-semantic-bindings-v1",
+  "languageVersion": "teta-aia-business-language-pl-v1",
+  "identityVersion": "teta-aia-canonical-id-v1",
+  "graphSourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+  "graphIndexSchemaVersion": "teta-aia-graph-index-v1",
+  "subjectsValidated": 1,
+  "approvedBindings": 31,
+  "staleBindings": 0,
+  "invalidBindings": 0,
+  "unresolvedRoles": 0,
+  "ambiguousRoles": 0,
+  "validationOk": true,
+  "referenceBhpPlanStatus": "ready_for_compilation",
+  "positionNamePath": [
+    "current_position:SSTN_ID",
+    "position_dictionary:ID",
+    "position_dictionary:NAZWA"
+  ],
+  "examinationTypeNamePath": [
+    "health_examination:SLB_ID",
+    "examination_type:ID",
+    "examination_type:NAZWA"
+  ],
+  "organizationalUnitNamePath": [
+    "current_position:JEOR_ID",
+    "organizational_unit:ID",
+    "organizational_unit:NAZWA"
+  ],
+  "activeEmployeeMechanism": "effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=true); join employee.ID = active_employment.PRAC_ID",
+  "currentPositionTemporalMechanism": "effective_on_date on current_position DATA_OD/DATA_DO (openEndedEndAllowed=true, startInclusive=true, endInclusive=true, clock=oracle_sysdate)",
+  "currentPositionTemporalBindingsRequired": 1,
+  "currentPositionTemporalBindingsApproved": 1,
+  "currentPositionFiltersResolved": 1,
+  "currentPositionFiltersMissing": 0,
+  "historicalPositionLeakRisk": 0,
+  "competingOrganizationalUnitPaths": 0,
+  "projectionPathsWithMultipleAuthoritativeSources": 0,
+  "finalSqlGenerated": 0,
+  "sqlExecuted": 0,
+  "oracleConnections": 0,
+  "qdrantCalls": 0,
+  "embeddingCalls": 0,
+  "llmCalls": 0,
+  "agentCalls": 0,
+  "strictErrors": [],
+  "deterministicCheckOk": true,
+  "referenceResults": {
+    "A": {
+      "evidencePlanningStatus": "ready",
+      "queryPlanStatus": "ready_for_compilation",
+      "sources": [
+        {
+          "role": "employee",
+          "status": "resolved",
+          "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_PRC_PRACOWNICY",
+          "access": "oracle-object:TETA_ADMIN_P:VIEW:NT_KP_PRC_PRACOWNICY"
+        },
+        {
+          "role": "health_examination",
+          "status": "resolved",
+          "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_BADANIA_BHP",
+          "access": "oracle-object:TETA_ADMIN_P:VIEW:NT_KP_KDR_BADANIA_BHP"
+        },
+        {
+          "role": "examination_type",
+          "status": "resolved",
+          "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP",
+          "access": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP"
+        },
+        {
+          "role": "current_position",
+          "status": "resolved",
+          "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_STANOWISKA",
+          "access": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_STANOWISKA"
+        },
+        {
+          "role": "organizational_unit",
+          "status": "resolved",
+          "logical": "oracle-object:TETA_ADMIN:VIEW:NT_PA_SLO_JEDNOSTKI_ORG",
+          "access": "oracle-object:TETA_ADMIN:VIEW:NT_PA_SLO_JEDNOSTKI_ORG"
+        },
+        {
+          "role": "active_employment",
+          "status": "resolved",
+          "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE",
+          "access": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE"
+        },
+        {
+          "role": "position_dictionary",
+          "status": "resolved",
+          "logical": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_STANOWISKA",
+          "access": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_STANOWISKA"
+        }
+      ],
+      "projections": [
+        {
+          "role": "employee_number",
+          "status": "resolved",
+          "column": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:NR_EWIDENCYJNY"
+        },
+        {
+          "role": "employee_first_name",
+          "status": "resolved",
+          "column": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:IMIE"
+        },
+        {
+          "role": "employee_last_name",
+          "status": "resolved",
+          "column": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:NAZWISKO"
+        },
+        {
+          "role": "examination_type_name",
+          "status": "resolved",
+          "column": "oracle-column:TETA_ADMIN:NT_KP_SLO_BADANIA_BHP:NAZWA"
+        },
+        {
+          "role": "examination_valid_from",
+          "status": "resolved",
+          "column": "oracle-column:TETA_ADMIN:NT_KP_KDR_BADANIA_BHP:DATA_WYKONANIA"
+        },
+        {
+          "role": "examination_valid_to",
+          "status": "resolved",
+          "column": "oracle-column:TETA_ADMIN:NT_KP_KDR_BADANIA_BHP:DATA_WAZNOSCI"
+        },
+        {
+          "role": "position_name",
+          "status": "resolved",
+          "column": "oracle-column:TETA_ADMIN:NT_KP_SLO_STANOWISKA:NAZWA"
+        },
+        {
+          "role": "organizational_unit_name",
+          "status": "resolved",
+          "column": "oracle-column:TETA_ADMIN:NT_PA_SLO_JEDNOSTKI_ORG:NAZWA"
+        }
+      ],
+      "joins": [
+        {
+          "id": "join:current_position:organizational_unit",
+          "status": "resolved",
+          "predicates": 1,
+          "left": "current_position",
+          "right": "organizational_unit"
+        },
+        {
+          "id": "join:current_position:position_dictionary",
+          "status": "resolved",
+          "predicates": 1,
+          "left": "current_position",
+          "right": "position_dictionary"
+        },
+        {
+          "id": "join:employee:active_employment",
+          "status": "resolved",
+          "predicates": 1,
+          "left": "employee",
+          "right": "active_employment"
+        },
+        {
+          "id": "join:employee:current_position",
+          "status": "resolved",
+          "predicates": 1,
+          "left": "employee",
+          "right": "current_position"
+        },
+        {
+          "id": "join:health_examination:employee",
+          "status": "resolved",
+          "predicates": 1,
+          "left": "health_examination",
+          "right": "employee"
+        },
+        {
+          "id": "join:health_examination:examination_type",
+          "status": "resolved",
+          "predicates": 1,
+          "left": "health_examination",
+          "right": "examination_type"
+        }
+      ],
+      "filters": [
+        {
+          "role": "examination_valid_to_in_current_month",
+          "status": "resolved",
+          "type": "half_open_date_interval",
+          "sourceRole": null
+        },
+        {
+          "role": "employee_active_on_oracle_sysdate",
+          "status": "resolved",
+          "type": "effective_on_date",
+          "sourceRole": "active_employment"
+        },
+        {
+          "role": "current_position_on_oracle_sysdate",
+          "status": "resolved",
+          "type": "effective_on_date",
+          "sourceRole": "current_position"
+        }
+      ],
+      "positionNamePath": [
+        "current_position:SSTN_ID",
+        "position_dictionary:ID",
+        "position_dictionary:NAZWA"
+      ],
+      "examinationTypeNamePath": [
+        "health_examination:SLB_ID",
+        "examination_type:ID",
+        "examination_type:NAZWA"
+      ],
+      "organizationalUnitNamePath": [
+        "current_position:JEOR_ID",
+        "organizational_unit:ID",
+        "organizational_unit:NAZWA"
+      ],
+      "activeEmployeeMechanism": "effective_on_date on active_employment DATA_OD/DATA_DO (openEndedEndAllowed=true); join employee.ID = active_employment.PRAC_ID",
+      "currentPositionTemporalMechanism": "effective_on_date on current_position DATA_OD/DATA_DO (openEndedEndAllowed=true, startInclusive=true, endInclusive=true, clock=oracle_sysdate)",
+      "authoritativeOrganizationalUnitPath": [
+        "current_position:JEOR_ID",
+        "organizational_unit:ID",
+        "organizational_unit:NAZWA"
+      ],
+      "competingOrganizationalUnitPaths": 0
+    },
+    "validation": {
+      "ok": true,
+      "graphSourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+      "registryGraphSourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+      "identityVersion": "teta-aia-canonical-id-v1",
+      "issues": [],
+      "stale": false,
+      "approvedBindingCount": 31,
+      "invalidBindingCount": 0
+    },
+    "resolutionStatus": "ready"
+  },
+  "generatedAt": "2026-07-25T04:15:10.757Z"
+}

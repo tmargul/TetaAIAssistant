@@ -1,0 +1,476 @@
+{
+  "version": "teta-aia-business-semantic-bindings-v1",
+  "identityVersion": "teta-aia-canonical-id-v1",
+  "graphSourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+  "subjects": [
+    {
+      "subject": "occupational_health_examinations",
+      "sources": [
+        {
+          "role": "employee",
+          "status": "approved",
+          "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_PRC_PRACOWNICY",
+          "accessObjectNodeId": "oracle-object:TETA_ADMIN_P:VIEW:NT_KP_PRC_PRACOWNICY",
+          "businessReason": "Canonical employee master view for BHP KartotekaBadanBHP joins; TETA_ADMIN_P view is approved access layer.",
+          "evidenceNodeIds": [
+            "oracle-object:TETA_ADMIN:VIEW:NT_KP_PRC_PRACOWNICY",
+            "oracle-object:TETA_ADMIN_P:VIEW:NT_KP_PRC_PRACOWNICY",
+            "form:19a5dac6-733f-4801-8a66-f9ee707bb404:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaBadanBHP.KartotekaBadanBHPWidok",
+            "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.KartotekaBadanBHPBO:PRAC:NT_KP_PRC_PRACOWNICY:2be88ca4242c"
+          ],
+          "formNodeIds": [
+            "form:19a5dac6-733f-4801-8a66-f9ee707bb404:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaBadanBHP.KartotekaBadanBHPWidok"
+          ],
+          "enrichment": false,
+          "supporting": false
+        },
+        {
+          "role": "health_examination",
+          "status": "approved",
+          "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_BADANIA_BHP",
+          "accessObjectNodeId": "oracle-object:TETA_ADMIN_P:VIEW:NT_KP_KDR_BADANIA_BHP",
+          "businessReason": "Vendor BHP examination card view used by KartotekaBadanBHPBO; TETA_ADMIN logical, TETA_ADMIN_P access.",
+          "evidenceNodeIds": [
+            "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_BADANIA_BHP",
+            "oracle-object:TETA_ADMIN_P:VIEW:NT_KP_KDR_BADANIA_BHP",
+            "form:19a5dac6-733f-4801-8a66-f9ee707bb404:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaBadanBHP.KartotekaBadanBHPWidok"
+          ],
+          "formNodeIds": [
+            "form:19a5dac6-733f-4801-8a66-f9ee707bb404:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaBadanBHP.KartotekaBadanBHPWidok",
+            "form:feaeaeb2-2500-1cab-e030-2f64070ae40e:Teta.Sumo.Personel.plgBadaniaBHP.CrdBadaniaBHP.BadaniaBHPWidok"
+          ],
+          "enrichment": false,
+          "supporting": false
+        },
+        {
+          "role": "examination_type",
+          "status": "approved",
+          "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP",
+          "accessObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP",
+          "businessReason": "Examination type dictionary view NT_KP_SLO_BADANIA_BHP joined via SLB_ID.",
+          "evidenceNodeIds": [
+            "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP",
+            "form:f231b353-9f6d-4a57-aa37-42b3337213db:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeBadanBHP",
+            "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.KartotekaBadanBHPBO:SLB:NT_KP_SLO_BADANIA_BHP:2be88ca4242c"
+          ],
+          "formNodeIds": [
+            "form:f231b353-9f6d-4a57-aa37-42b3337213db:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeBadanBHP"
+          ],
+          "enrichment": false,
+          "supporting": false
+        },
+        {
+          "role": "examination_type_dictionary",
+          "status": "approved",
+          "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP",
+          "accessObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP",
+          "businessReason": "Same dictionary as examination_type for value-path display resolution.",
+          "evidenceNodeIds": ["oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_BADANIA_BHP"],
+          "enrichment": false,
+          "supporting": true
+        },
+        {
+          "role": "current_position",
+          "status": "approved",
+          "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_STANOWISKA",
+          "accessObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_STANOWISKA",
+          "businessReason": "Employee position assignment card with PRAC_ID, SSTN_ID, JEOR_ID and effective dates.",
+          "evidenceNodeIds": ["oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_STANOWISKA"],
+          "enrichment": true,
+          "supporting": false
+        },
+        {
+          "role": "organizational_unit",
+          "status": "approved",
+          "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_PA_SLO_JEDNOSTKI_ORG",
+          "accessObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_PA_SLO_JEDNOSTKI_ORG",
+          "businessReason": "Organizational unit dictionary providing NAZWA via JEOR_ID from current_position.",
+          "evidenceNodeIds": [
+            "oracle-object:TETA_ADMIN:VIEW:NT_PA_SLO_JEDNOSTKI_ORG",
+            "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.BadaniaBHPBO:JEOR:NT_PA_SLO_JEDNOSTKI_ORG:ca7cd624ba70"
+          ],
+          "enrichment": true,
+          "supporting": false
+        },
+        {
+          "role": "active_employment",
+          "status": "approved",
+          "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE",
+          "accessObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE",
+          "businessReason": "Employment contracts with DATA_OD/DATA_DO used as active-employee evidence; not assumed from employee master alone.",
+          "evidenceNodeIds": [
+            "oracle-object:TETA_ADMIN:VIEW:NT_KP_KDR_UMOWY_O_PRACE",
+            "oracle-column:TETA_ADMIN:NT_KP_KDR_UMOWY_O_PRACE:DATA_OD",
+            "oracle-column:TETA_ADMIN:NT_KP_KDR_UMOWY_O_PRACE:DATA_DO",
+            "oracle-column:TETA_ADMIN:NT_KP_KDR_UMOWY_O_PRACE:PRAC_ID"
+          ],
+          "enrichment": false,
+          "supporting": true
+        },
+        {
+          "role": "position_dictionary",
+          "status": "approved",
+          "logicalObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_STANOWISKA",
+          "accessObjectNodeId": "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_STANOWISKA",
+          "businessReason": "Position name dictionary for SSTN_ID → NAZWA value path.",
+          "evidenceNodeIds": [
+            "oracle-object:TETA_ADMIN:VIEW:NT_KP_SLO_STANOWISKA",
+            "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.BadaniaBHPBO:SSTN:NT_KP_SLO_STANOWISKA:fa86296861eb"
+          ],
+          "enrichment": false,
+          "supporting": true
+        }
+      ],
+      "projections": [
+        {
+          "role": "employee_number",
+          "status": "approved",
+          "sourceRole": "employee",
+          "oracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:NR_EWIDENCYJNY",
+          "displayLabel": "Numer ewidencyjny",
+          "businessReason": "Employee registry number column on employee master view."
+        },
+        {
+          "role": "employee_first_name",
+          "status": "approved",
+          "sourceRole": "employee",
+          "oracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:IMIE",
+          "displayLabel": "Imię",
+          "businessReason": "Employee first name column on employee master view."
+        },
+        {
+          "role": "employee_last_name",
+          "status": "approved",
+          "sourceRole": "employee",
+          "oracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:NAZWISKO",
+          "displayLabel": "Nazwisko",
+          "businessReason": "Employee last name column on employee master view."
+        },
+        {
+          "role": "examination_type_name",
+          "status": "approved",
+          "sourceRole": "examination_type",
+          "oracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_BADANIA_BHP:NAZWA",
+          "displayLabel": "Rodzaj badania",
+          "viaValuePathRole": "examination_type_name",
+          "businessReason": "Display name from examination type dictionary via SLB_ID value path."
+        },
+        {
+          "role": "examination_valid_from",
+          "status": "approved",
+          "sourceRole": "health_examination",
+          "oracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_BADANIA_BHP:DATA_WYKONANIA",
+          "displayLabel": "Data od",
+          "businessReason": "Vendor assertion: examination validity start uses DATA_WYKONANIA."
+        },
+        {
+          "role": "examination_valid_to",
+          "status": "approved",
+          "sourceRole": "health_examination",
+          "oracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_BADANIA_BHP:DATA_WAZNOSCI",
+          "displayLabel": "Data do",
+          "businessReason": "Vendor assertion: examination validity end uses DATA_WAZNOSCI."
+        },
+        {
+          "role": "position_name",
+          "status": "approved",
+          "sourceRole": "current_position",
+          "oracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_STANOWISKA:NAZWA",
+          "displayLabel": "Stanowisko",
+          "viaValuePathRole": "position_name",
+          "businessReason": "Position display name resolved through SSTN_ID → SLO_STANOWISKA.NAZWA."
+        },
+        {
+          "role": "organizational_unit_name",
+          "status": "approved",
+          "sourceRole": "organizational_unit",
+          "oracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_PA_SLO_JEDNOSTKI_ORG:NAZWA",
+          "displayLabel": "Jednostka organizacyjna",
+          "viaValuePathRole": "organizational_unit_name",
+          "businessReason": "Org unit display name resolved through JEOR_ID → NT_PA_SLO_JEDNOSTKI_ORG.NAZWA."
+        }
+      ],
+      "relations": [
+        {
+          "role": "health_examination_to_employee",
+          "status": "approved",
+          "leftSourceRole": "health_examination",
+          "rightSourceRole": "employee",
+          "joinType": "inner",
+          "predicates": [
+            {
+              "leftOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_BADANIA_BHP:PRAC_ID",
+              "operator": "equals",
+              "rightOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:ID"
+            }
+          ],
+          "evidenceType": "vendor_confirmed_relation",
+          "joinNodeId": "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.KartotekaBadanBHPBO:PRAC:NT_KP_PRC_PRACOWNICY:2be88ca4242c",
+          "businessReason": "PRAC_ID on examination card equals employee ID; cited join node from KartotekaBadanBHPBO.",
+          "evidenceNodeIds": [
+            "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.KartotekaBadanBHPBO:PRAC:NT_KP_PRC_PRACOWNICY:2be88ca4242c"
+          ],
+          "required": true,
+          "enrichment": false
+        },
+        {
+          "role": "health_examination_to_examination_type",
+          "status": "approved",
+          "leftSourceRole": "health_examination",
+          "rightSourceRole": "examination_type",
+          "joinType": "inner",
+          "predicates": [
+            {
+              "leftOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_BADANIA_BHP:SLB_ID",
+              "operator": "equals",
+              "rightOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_BADANIA_BHP:ID"
+            }
+          ],
+          "evidenceType": "vendor_confirmed_relation",
+          "joinNodeId": "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.KartotekaBadanBHPBO:SLB:NT_KP_SLO_BADANIA_BHP:2be88ca4242c",
+          "businessReason": "SLB_ID on examination card equals examination type dictionary ID.",
+          "evidenceNodeIds": [
+            "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.KartotekaBadanBHPBO:SLB:NT_KP_SLO_BADANIA_BHP:2be88ca4242c"
+          ],
+          "required": true,
+          "enrichment": false
+        },
+        {
+          "role": "employee_to_current_position",
+          "status": "approved",
+          "leftSourceRole": "employee",
+          "rightSourceRole": "current_position",
+          "joinType": "left",
+          "predicates": [
+            {
+              "leftOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:ID",
+              "operator": "equals",
+              "rightOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:PRAC_ID"
+            }
+          ],
+          "evidenceType": "vendor_confirmed_relation",
+          "joinNodeId": null,
+          "businessReason": "Left enrichment join: employee ID equals current_position.PRAC_ID.",
+          "required": true,
+          "enrichment": true
+        },
+        {
+          "role": "current_position_to_position_dictionary",
+          "status": "approved",
+          "leftSourceRole": "current_position",
+          "rightSourceRole": "position_dictionary",
+          "joinType": "left",
+          "predicates": [
+            {
+              "leftOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:SSTN_ID",
+              "operator": "equals",
+              "rightOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_STANOWISKA:ID"
+            }
+          ],
+          "evidenceType": "reconstructed_sql_join",
+          "joinNodeId": "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.BadaniaBHPBO:SSTN:NT_KP_SLO_STANOWISKA:fa86296861eb",
+          "businessReason": "SSTN_ID = SLO_STANOWISKA.ID from reconstructed SQL join on BadaniaBHPBO.",
+          "evidenceNodeIds": [
+            "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.BadaniaBHPBO:SSTN:NT_KP_SLO_STANOWISKA:fa86296861eb"
+          ],
+          "required": false,
+          "enrichment": true
+        },
+        {
+          "role": "current_position_to_organizational_unit",
+          "status": "approved",
+          "leftSourceRole": "current_position",
+          "rightSourceRole": "organizational_unit",
+          "joinType": "left",
+          "predicates": [
+            {
+              "leftOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:JEOR_ID",
+              "operator": "equals",
+              "rightOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_PA_SLO_JEDNOSTKI_ORG:ID"
+            }
+          ],
+          "evidenceType": "reconstructed_sql_join",
+          "joinNodeId": "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.BadaniaBHPBO:JEOR:NT_PA_SLO_JEDNOSTKI_ORG:ca7cd624ba70",
+          "businessReason": "JEOR_ID on current_position equals organizational unit dictionary ID.",
+          "evidenceNodeIds": [
+            "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.BadaniaBHPBO:JEOR:NT_PA_SLO_JEDNOSTKI_ORG:ca7cd624ba70"
+          ],
+          "required": true,
+          "enrichment": true
+        },
+        {
+          "role": "employee_to_organizational_unit",
+          "status": "approved",
+          "leftSourceRole": "employee",
+          "rightSourceRole": "organizational_unit",
+          "joinType": "left",
+          "predicates": [
+            {
+              "leftOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:ID",
+              "operator": "equals",
+              "rightOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:PRAC_ID"
+            },
+            {
+              "leftOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:JEOR_ID",
+              "operator": "equals",
+              "rightOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_PA_SLO_JEDNOSTKI_ORG:ID"
+            }
+          ],
+          "evidenceType": "reconstructed_sql_join",
+          "joinNodeId": "join:Teta.Sumo.Personel.bosBadaniaBHP.BO.BadaniaBHPBO:JEOR:NT_PA_SLO_JEDNOSTKI_ORG:ca7cd624ba70",
+          "businessReason": "Supporting structural bridge via current_position.JEOR_ID. Not used as authoritative path for organizational_unit_name; report uses current_position_to_organizational_unit.",
+          "required": false,
+          "enrichment": true,
+          "projectionUsage": "not_used_for_this_projection"
+        },
+        {
+          "role": "employee_to_active_employment",
+          "status": "approved",
+          "leftSourceRole": "employee",
+          "rightSourceRole": "active_employment",
+          "joinType": "inner",
+          "predicates": [
+            {
+              "leftOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_PRC_PRACOWNICY:ID",
+              "operator": "equals",
+              "rightOracleColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_UMOWY_O_PRACE:PRAC_ID"
+            }
+          ],
+          "evidenceType": "vendor_confirmed_relation",
+          "joinNodeId": null,
+          "businessReason": "Active employment contracts linked by PRAC_ID = employee ID.",
+          "required": true,
+          "enrichment": false
+        }
+      ],
+      "valuePaths": [
+        {
+          "role": "position_name",
+          "status": "approved",
+          "projectionRole": "position_name",
+          "steps": [
+            {
+              "sourceRole": "current_position",
+              "columnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:SSTN_ID",
+              "note": "FK to position dictionary"
+            },
+            {
+              "sourceRole": "position_dictionary",
+              "columnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_STANOWISKA:ID",
+              "note": "dictionary key"
+            },
+            {
+              "sourceRole": "position_dictionary",
+              "displayColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_STANOWISKA:NAZWA",
+              "note": "display text"
+            }
+          ],
+          "displayColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_STANOWISKA:NAZWA",
+          "displaySourceRole": "position_dictionary",
+          "businessReason": "position_name must not end on SSTN_ID; display NAZWA from dictionary."
+        },
+        {
+          "role": "examination_type_name",
+          "status": "approved",
+          "projectionRole": "examination_type_name",
+          "steps": [
+            {
+              "sourceRole": "health_examination",
+              "columnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_BADANIA_BHP:SLB_ID",
+              "note": "FK to examination type"
+            },
+            {
+              "sourceRole": "examination_type",
+              "columnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_BADANIA_BHP:ID",
+              "note": "dictionary key"
+            },
+            {
+              "sourceRole": "examination_type",
+              "displayColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_BADANIA_BHP:NAZWA",
+              "note": "display text"
+            }
+          ],
+          "displayColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_SLO_BADANIA_BHP:NAZWA",
+          "displaySourceRole": "examination_type",
+          "businessReason": "examination_type_name resolves through SLB_ID to dictionary NAZWA."
+        },
+        {
+          "role": "organizational_unit_name",
+          "status": "approved",
+          "projectionRole": "organizational_unit_name",
+          "steps": [
+            {
+              "sourceRole": "current_position",
+              "columnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:JEOR_ID",
+              "note": "FK to org unit dictionary"
+            },
+            {
+              "sourceRole": "organizational_unit",
+              "columnNodeId": "oracle-column:TETA_ADMIN:NT_PA_SLO_JEDNOSTKI_ORG:ID",
+              "note": "dictionary key"
+            },
+            {
+              "sourceRole": "organizational_unit",
+              "displayColumnNodeId": "oracle-column:TETA_ADMIN:NT_PA_SLO_JEDNOSTKI_ORG:NAZWA",
+              "note": "display text"
+            }
+          ],
+          "displayColumnNodeId": "oracle-column:TETA_ADMIN:NT_PA_SLO_JEDNOSTKI_ORG:NAZWA",
+          "displaySourceRole": "organizational_unit",
+          "authoritativeStartSourceRole": "current_position",
+          "businessReason": "organizational_unit_name for BHP is the unit of the current position: current_position.JEOR_ID → organizational_unit.ID → NAZWA. Employee→OU is not an authoritative projection path."
+        }
+      ],
+      "temporals": [
+        {
+          "role": "examination_valid_to_in_current_month",
+          "status": "approved",
+          "type": "half_open_date_interval",
+          "clock": "oracle_sysdate",
+          "columnBusinessRole": "examination_valid_to",
+          "columnOracleNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_BADANIA_BHP:DATA_WAZNOSCI",
+          "businessReason": "Half-open current month filter on examination_valid_to (DATA_WAZNOSCI)."
+        },
+        {
+          "role": "employee_active_on_oracle_sysdate",
+          "status": "approved",
+          "type": "effective_on_date",
+          "clock": "oracle_sysdate",
+          "sourceRole": "active_employment",
+          "validFromColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_UMOWY_O_PRACE:DATA_OD",
+          "validToColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_UMOWY_O_PRACE:DATA_DO",
+          "openEndedEndAllowed": true,
+          "businessReason": "Active employee = employment contract covering oracle_sysdate; DATA_DO may be null."
+        },
+        {
+          "role": "current_position_on_oracle_sysdate",
+          "status": "approved",
+          "type": "effective_on_date",
+          "clock": "oracle_sysdate",
+          "sourceRole": "current_position",
+          "validFromColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:DATA_OD",
+          "validToColumnNodeId": "oracle-column:TETA_ADMIN:NT_KP_KDR_STANOWISKA:DATA_DO",
+          "openEndedEndAllowed": true,
+          "startInclusive": true,
+          "endInclusive": true,
+          "assertionKind": "vendor_business_assertion",
+          "businessReason": "Raport ma pokazywać stanowisko obowiązujące w dniu wykonania raportu. NT_KP_KDR_STANOWISKA jest źródłem historycznym; bez ograniczenia DATA_OD/DATA_DO na oracle_sysdate plan mógłby zwrócić historyczne stanowiska."
+        }
+      ],
+      "forms": [
+        {
+          "role": "kartoteka_badan_bhp",
+          "status": "approved",
+          "formNodeId": "form:19a5dac6-733f-4801-8a66-f9ee707bb404:Teta.Sumo.Personel.plgBadaniaBHP.CrdKartotekaBadanBHP.KartotekaBadanBHPWidok",
+          "businessReason": "Primary BHP examination card form."
+        },
+        {
+          "role": "dic_rodzaje_badan_bhp",
+          "status": "approved",
+          "formNodeId": "form:f231b353-9f6d-4a57-aa37-42b3337213db:Teta.Sumo.Personel.plgPersonelSlowniki.DicRodzajeBadanBHP",
+          "businessReason": "Examination type dictionary form."
+        }
+      ]
+    }
+  ]
+}

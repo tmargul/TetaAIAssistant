@@ -1,0 +1,42 @@
+{
+  "version": "teta-aia-business-language-pl-v1",
+  "labels": {
+    "occupational_health_examinations": "Badania BHP pracowników",
+    "employee": "Pracownik",
+    "health_examination": "Badanie BHP",
+    "examination_type": "Rodzaj badania",
+    "current_position": "Aktualne stanowisko",
+    "organizational_unit": "Jednostka organizacyjna",
+    "active_employment": "Aktywne zatrudnienie",
+    "position_dictionary": "Słownik stanowisk",
+    "employee_number": "Numer ewidencyjny",
+    "employee_first_name": "Imię",
+    "employee_last_name": "Nazwisko",
+    "examination_type_name": "Rodzaj badania",
+    "examination_valid_from": "Data wykonania",
+    "examination_valid_to": "Data ważności",
+    "position_name": "Stanowisko",
+    "organizational_unit_name": "Jednostka organizacyjna",
+    "examination_valid_to_in_current_month": "Ważność badania w bieżącym miesiącu",
+    "employee_active_on_oracle_sysdate": "Aktywny pracownik na SYSDATE",
+    "current_position_on_oracle_sysdate": "Aktualne stanowisko na SYSDATE"
+  },
+  "roleDescriptions": {
+    "employee": "Źródło kartoteki pracowników używane w raporcie BHP.",
+    "health_examination": "Kartoteka badań BHP z datami wykonania i ważności.",
+    "examination_type": "Słownik rodzajów badań BHP.",
+    "current_position": "Przypisanie stanowiska pracownika z okresem obowiązywania.",
+    "organizational_unit": "Słownik jednostek organizacyjnych (NAZWA).",
+    "active_employment": "Umowy o pracę służące do filtra aktywnego zatrudnienia.",
+    "position_dictionary": "Słownik nazw stanowisk (NAZWA).",
+    "position_name": "Nazwa stanowiska przez SSTN_ID → słownik.",
+    "examination_type_name": "Nazwa rodzaju badania przez SLB_ID → słownik.",
+    "organizational_unit_name": "Nazwa JO z aktualnego stanowiska (JEOR_ID → słownik).",
+    "employee_active_on_oracle_sysdate": "DATA_OD/DATA_DO na umowie o pracę; DATA_DO może być puste.",
+    "current_position_on_oracle_sysdate": "DATA_OD/DATA_DO na kartotece stanowisk; raport pokazuje stanowisko obowiązujące na SYSDATE."
+  },
+  "clarificationHints": {
+    "missing_active_employment": "Brak zatwierdzonego źródła aktywnego zatrudnienia w rejestrze semantyki.",
+    "stale_bindings": "Rejestr semantyki biznesowej nie pasuje do aktualnego hash grafu Stage 3A."
+  }
+}

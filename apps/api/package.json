@@ -36,7 +36,8 @@
     "diagnose:stage2e": "ts-node -r tsconfig-paths/register src/scripts/diagnose-stage2e-graph.ts",
     "graph:stage3a": "ts-node -r tsconfig-paths/register src/scripts/graph-stage3a.ts",
     "planner:stage3b": "ts-node -r tsconfig-paths/register src/scripts/planner-stage3b.ts",
-    "query:stage3c": "ts-node -r tsconfig-paths/register src/scripts/query-planner-stage3c.ts"
+    "query:stage3c": "ts-node -r tsconfig-paths/register src/scripts/query-planner-stage3c.ts",
+    "semantics:stage3d": "ts-node -r tsconfig-paths/register src/scripts/business-semantics-stage3d.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

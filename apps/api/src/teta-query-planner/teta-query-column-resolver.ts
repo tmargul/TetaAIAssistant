@@ -10,6 +10,8 @@ import {
   ownerOf,
   type Stage3cGraphClient,
 } from './teta-query-graph-client';
+import type { SemanticProjectionBinding } from '../teta-business-semantics/teta-business-semantics.types';
+import { columnFromSemanticBinding } from '../teta-business-semantics/teta-stage3c-semantic-adapter';
 
 function norm(s: string): string {
   return s
@@ -61,11 +63,20 @@ export function resolveColumns(input: {
   projections: ProjectionRoleResolution[];
   projectionOrder: string[];
   sources: QuerySource[];
+  /** Optional Stage 3D approved projection bindings keyed by business role. */
+  semanticProjections?: Map<string, SemanticProjectionBinding> | null;
 }): { projections: QueryColumnRef[]; unresolvedSelections: QueryUnresolvedSelection[] } {
   const unresolvedSelections: QueryUnresolvedSelection[] = [];
   const out: QueryColumnRef[] = [];
 
   for (const role of input.projectionOrder) {
+    const approved = input.semanticProjections?.get(role);
+    if (approved && approved.status === 'approved' && approved.oracleColumnNodeId) {
+      const spec = input.projections.find((p) => p.businessRole === role);
+      out.push(columnFromSemanticBinding(approved, spec?.displayLabel ?? approved.displayLabel));
+      continue;
+    }
+
     const spec = input.projections.find((p) => p.businessRole === role);
     const source = input.sources.find((s) => s.sourceRole === spec?.sourceRole);
     if (!spec || !source || source.status !== 'resolved' || !source.accessObject) {

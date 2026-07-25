@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-24** (Stage 3C read-only query planner)
+> Ostatnia aktualizacja: **2026-07-24** (Stage 3D business semantics)
 
 ---
 
@@ -136,6 +136,20 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-07-24 — Etap 3D Canonical Business Semantics Layer ✅
+
+- Moduł `apps/api/src/teta-business-semantics/` + CLI `semantics:stage3d` (`discover|validate|explain-role|plan-reference-bhp|audit --strict`).
+- Kontrakt `teta-aia-business-semantics-v1`; configi: `teta-business-ontology-v1.json`, `teta-business-semantic-bindings-v1.json` (LIVE BHP approved), `teta-business-language-pl-v1.json`.
+- `TetaBusinessRoleResolver` — tylko `approved` (+ walidacja hash); discovery bez auto-approve; statusy `discovered|approved|ambiguous|unresolved|rejected|stale|invalid`.
+- Integracja 3C (bez zmiany kontraktu/safety/enums): opcjonalny `semanticResolver` w `QueryPlannerOptions`; adapter → source/column/join/filter resolvers.
+- LIVE Ref BHP: `planStatus=ready_for_compilation`; trzy filtry: `examination_valid_to_in_current_month`, `employee_active_on_oracle_sysdate`, `current_position_on_oracle_sysdate`.
+- `position_name` = SSTN_ID→SLO_STANOWISKA.NAZWA; `examination_type_name` = SLB_ID→SLO_BADANIA_BHP.NAZWA; `organizational_unit_name` = JEOR_ID ze **current_position** → JO.NAZWA (employee→OU = supporting / `not_used_for_this_projection`).
+- Aktywny pracownik = `effective_on_date` na umowie; aktualne stanowisko = `effective_on_date` na KDR_STANOWISKA DATA_OD/DATA_DO (`openEndedEndAllowed`, inclusive).
+- graphSourceHash: `2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3`; identity `teta-aia-canonical-id-v1`.
+- Pre-commit patch: temporal current_position + brak konkurencyjnej ścieżki JO; nowe strict metrics (`historicalPositionLeakRisk=0`, `competingOrganizationalUnitPaths=0`).
+- Audit `--strict` EXIT 0; testy `teta-stage3d.spec.ts` (71) + `teta-stage3c.spec.ts` (48). Artefakty: `docs/AIA_BUSINESS_SEMANTICS_STAGE3D.md` / `.json`.
+- **Bez** SQL / Oracle data / commit bez prośby. Live Oracle names tylko w JSON registry.
 
 ### 2026-07-24 — Etap 3C Canonical Read-Only Query Planning Layer ✅
 

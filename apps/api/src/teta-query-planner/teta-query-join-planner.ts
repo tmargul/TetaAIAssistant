@@ -7,11 +7,15 @@ import {
   findJoinEvidenceBetweenObjects,
   type Stage3cGraphClient,
 } from './teta-query-graph-client';
+import type { SemanticRelationBinding } from '../teta-business-semantics/teta-business-semantics.types';
+import { joinFromSemanticRelation } from '../teta-business-semantics/teta-stage3c-semantic-adapter';
 
 export function planJoins(input: {
   client: Stage3cGraphClient;
   joinSpecs: RequiredJoinSpec[];
   sources: QuerySource[];
+  /** Optional Stage 3D approved relation bindings. */
+  semanticRelations?: SemanticRelationBinding[] | null;
 }): { joins: QueryJoin[]; cartesianJoins: number; unprovenJoinPredicates: number } {
   const joins: QueryJoin[] = [];
   let cartesianJoins = 0;
@@ -27,6 +31,24 @@ export function planJoins(input: {
     const left = input.sources.find((s) => s.sourceRole === spec.leftSourceRole);
     const right = input.sources.find((s) => s.sourceRole === spec.rightSourceRole);
     const joinId = `join:${spec.leftSourceRole}:${spec.rightSourceRole}`;
+
+    const semantic = (input.semanticRelations ?? []).find(
+      (r) =>
+        r.status === 'approved' &&
+        r.leftSourceRole === spec.leftSourceRole &&
+        r.rightSourceRole === spec.rightSourceRole &&
+        r.predicates.length > 0,
+    );
+    if (semantic) {
+      const mapped = joinFromSemanticRelation(semantic);
+      joins.push({
+        ...mapped,
+        joinType: spec.joinType,
+        required: spec.required,
+        enrichment: !!spec.enrichment,
+      });
+      continue;
+    }
 
     if (
       !left ||
@@ -105,6 +127,22 @@ export function planJoins(input: {
       required: spec.required,
       enrichment: !!spec.enrichment,
     });
+  }
+
+  // Supporting Stage 3D relations (e.g. active_employment, position_dictionary) not in template.
+  const covered = new Set(joins.map((j) => `${j.leftSourceRole}:${j.rightSourceRole}`));
+  for (const rel of input.semanticRelations ?? []) {
+    if (rel.status !== 'approved' || !rel.predicates.length) continue;
+    const key = `${rel.leftSourceRole}:${rel.rightSourceRole}`;
+    if (covered.has(key)) continue;
+    const left = input.sources.find((s) => s.sourceRole === rel.leftSourceRole);
+    const right = input.sources.find((s) => s.sourceRole === rel.rightSourceRole);
+    if (!left || !right || left.status !== 'resolved' || right.status !== 'resolved') continue;
+    // Skip multi-hop / non-authoritative projection bridges kept only as structural facts.
+    if (rel.role === 'employee_to_organizational_unit') continue;
+    if (rel.projectionUsage === 'not_used_for_this_projection') continue;
+    joins.push(joinFromSemanticRelation(rel));
+    covered.add(key);
   }
 
   joins.sort((a, b) => {

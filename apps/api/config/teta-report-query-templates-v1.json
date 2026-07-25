@@ -23,7 +23,8 @@
       ],
       "requiredFilters": [
         "examination_valid_to_in_current_month",
-        "employee_active_on_oracle_sysdate"
+        "employee_active_on_oracle_sysdate",
+        "current_position_on_oracle_sysdate"
       ],
       "defaultOrdering": [
         "examination_valid_to_ascending",
@@ -148,7 +149,7 @@
           "enrichment": true
         },
         {
-          "leftSourceRole": "employee",
+          "leftSourceRole": "current_position",
           "rightSourceRole": "organizational_unit",
           "joinType": "left",
           "required": true,
@@ -168,6 +169,14 @@
           "clock": "oracle_sysdate",
           "requiresActiveEmploymentEvidence": true,
           "searchTerms": ["zatrudnienie", "okres zatrudnienia", "aktualny pracownik"]
+        },
+        {
+          "filterRole": "current_position_on_oracle_sysdate",
+          "type": "effective_on_date",
+          "clock": "oracle_sysdate",
+          "requiresActiveEmploymentEvidence": false,
+          "sourceRole": "current_position",
+          "searchTerms": ["stanowisko", "okres stanowiska", "aktualne stanowisko"]
         }
       ],
       "orderingResolutions": [

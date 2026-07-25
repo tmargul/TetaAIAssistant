@@ -14,6 +14,8 @@ import {
 } from './teta-query-graph-client';
 import type { GraphNodeView } from '../teta-plugins/teta-stage3a.types';
 import type { TetaEvidencePlan } from '../teta-planner/teta-stage3b.types';
+import type { SemanticSourceBinding } from '../teta-business-semantics/teta-business-semantics.types';
+import { sourceFromSemanticBinding } from '../teta-business-semantics/teta-stage3c-semantic-adapter';
 
 export type SourceResolveResult = {
   sources: QuerySource[];
@@ -115,6 +117,8 @@ export function resolveSources(input: {
   roleOrder: string[];
   policy: QuerySafetyPolicy;
   evidencePlan: TetaEvidencePlan;
+  /** Optional Stage 3D approved source bindings keyed by role. */
+  semanticSources?: Map<string, SemanticSourceBinding> | null;
 }): SourceResolveResult {
   const metrics = {
     unknownOwnerAutoSelections: 0,
@@ -129,8 +133,30 @@ export function resolveSources(input: {
   const evidenceIds = new Set(evidencePlanOracleIds(input.evidencePlan));
 
   for (const roleName of input.roleOrder) {
+    const approved = input.semanticSources?.get(roleName);
+    if (approved && approved.status === 'approved') {
+      sources.push(sourceFromSemanticBinding(approved));
+      continue;
+    }
+
     const spec = input.roles.find((r) => r.sourceRole === roleName);
     if (!spec) {
+      // Supporting semantic roles may not appear in the Stage 3C template.
+      if (approved && approved.status !== 'approved') {
+        sources.push({
+          sourceRole: roleName,
+          status: 'missing',
+          logicalObject: null,
+          accessObject: null,
+          selectionReason: `semantic_binding_${approved.status}`,
+          candidateNodeIds: approved.candidateNodeIds ?? [],
+          provenanceNodeIds: [],
+          provenanceEdgeIds: [],
+          pathNodeIds: [],
+          enrichment: !!approved.enrichment,
+        });
+        continue;
+      }
       sources.push({
         sourceRole: roleName,
         status: 'missing',

@@ -245,12 +245,22 @@ export function buildBhpFixtureGraph(opts?: {
   });
 
   const posEmp = col(posView, 'PRAC_ID', 'position_employee_fk', { labelHints: ['prac id'] });
+  const posJeor = col(posView, 'JEOR_ID', 'position_org_unit_fk', { labelHints: ['jeor id'] });
+  const posOd = col(posView, 'DATA_OD', 'position_valid_from', {
+    labelHints: ['data od', 'stanowisko'],
+    semanticTags: ['current_position'],
+    positionEffectiveDating: 'confirmed',
+  });
+  const posDo = col(posView, 'DATA_DO', 'position_valid_to', {
+    labelHints: ['data do', 'stanowisko'],
+    semanticTags: ['current_position'],
+  });
   const posName = col(posView, 'NAZWA', 'position_name', {
     labelHints: ['stanowisko', 'nazwa stanowiska'],
     preferDisplayText: true,
   });
 
-  const orgEmp = col(orgView, 'PRAC_ID', 'org_employee_fk', { labelHints: ['prac id'] });
+  const orgId = col(orgView, 'ID', 'organizational_unit_id', { labelHints: ['id'] });
   const orgName = col(orgView, 'NAZWA', 'organizational_unit_name', {
     labelHints: ['jednostka organizacyjna', 'nazwa jednostki', 'jednostka'],
     preferDisplayText: true,
@@ -266,6 +276,8 @@ export function buildBhpFixtureGraph(opts?: {
   void typeName;
   void posName;
   void orgName;
+  void posOd;
+  void posDo;
 
   const edges: GraphEdgeView[] = [
     e('USES_DATASOURCE', formId, examView),
@@ -285,8 +297,11 @@ export function buildBhpFixtureGraph(opts?: {
     e('HAS_COLUMN', examType, typeId),
     e('HAS_COLUMN', examType, typeName),
     e('HAS_COLUMN', posView, posEmp),
+    e('HAS_COLUMN', posView, posJeor),
+    e('HAS_COLUMN', posView, posOd),
+    e('HAS_COLUMN', posView, posDo),
     e('HAS_COLUMN', posView, posName),
-    e('HAS_COLUMN', orgView, orgEmp),
+    e('HAS_COLUMN', orgView, orgId),
     e('HAS_COLUMN', orgView, orgName),
   ];
 
@@ -299,7 +314,7 @@ export function buildBhpFixtureGraph(opts?: {
       e('FOREIGN_KEY_TO', examPrac, empId),
       e('FOREIGN_KEY_TO', examTypeFk, typeId),
       e('FOREIGN_KEY_TO', posEmp, empId),
-      e('FOREIGN_KEY_TO', orgEmp, empId),
+      e('FOREIGN_KEY_TO', posJeor, orgId),
     );
   }
 
