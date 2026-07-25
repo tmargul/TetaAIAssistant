@@ -1,0 +1,116 @@
+{
+  "resultContractVersion": "teta-aia-oracle-read-result-v1",
+  "xlsxContractVersion": "teta-aia-oracle-xlsx-export-v1",
+  "sourceSelectContractVersion": "teta-aia-oracle-select-v1",
+  "dialect": "oracle19c",
+  "mode": "live_oracle",
+  "liveRequested": true,
+  "live": {
+    "attempted": true,
+    "executionStatus": "completed_empty",
+    "sessionUser": "TETA_ADMIN",
+    "sqlSha256": "7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691",
+    "rowCount": 0,
+    "columnCount": 8,
+    "limitReached": false,
+    "durationMs": 4275,
+    "xlsxFileName": "badania_bhp_koniec_waznosci_2026-07-25_110932.xlsx",
+    "xlsxFileSha256": "61bbcdf483b3cb7e77fbda61f3192d3b9685964eb2c89f62a6b1cd7bf3fe5661",
+    "xlsxByteLength": 7165,
+    "parsebackOk": true,
+    "failureCode": null,
+    "failureMessage": null
+  },
+  "referencesTested": 4,
+  "referencesPassed": 4,
+  "referenceResults": [
+    {
+      "reference": "offline-gate-accept",
+      "description": "Stage 3E fixture passes the Stage 3F gate without Oracle",
+      "executionStatus": "completed",
+      "rejectionCode": null,
+      "notes": [
+        "recomputedSha256=dda844dc9e3d0ef2d63591ff4f9d44a827d3d53034c0babbde6bafdf696de4b4"
+      ]
+    },
+    {
+      "reference": "offline-no-approval",
+      "description": "Missing flags must not open a connection",
+      "executionStatus": "rejected",
+      "rejectionCode": "execution_not_approved",
+      "notes": [
+        "connectionsOpened=0"
+      ]
+    },
+    {
+      "reference": "offline-fake-execute",
+      "description": "In-memory fake adapter execute (not counted as live Oracle)",
+      "executionStatus": "completed",
+      "rejectionCode": null,
+      "notes": [
+        "rowCount=2",
+        "columnCount=8"
+      ]
+    },
+    {
+      "reference": "offline-xlsx-export",
+      "description": "XLSX export + parseback of fixture result",
+      "executionStatus": "exported",
+      "rejectionCode": null,
+      "notes": [
+        "fileSha256=8db832fdb0b2ef13563d3472bf12b90b656f148ea9d62bbc24b0d80c49bff96f",
+        "parsebackOk=true"
+      ]
+    }
+  ],
+  "counters": {
+    "connectionsOpened": 1,
+    "connectionsClosed": 0,
+    "preflightStatements": 1,
+    "businessStatements": 1,
+    "writeStatements": 0,
+    "commits": 0,
+    "rollbacks": 0,
+    "ddlStatements": 0,
+    "plsqlBlocks": 0,
+    "statementsRejectedByGate": 0,
+    "sessionUserRejections": 0,
+    "timeouts": 0,
+    "statementBreaks": 0,
+    "businessRowsRead": 0,
+    "rowValuesLogged": 0,
+    "rowValuesPersistedToDocs": 0,
+    "xlsxFilesWritten": 2,
+    "xlsxFormulaCells": 0,
+    "xlsxExternalLinks": 0,
+    "xlsxMacros": 0,
+    "xlsxParsebackFailures": 0,
+    "chatIntegrations": 0,
+    "publicSqlEndpoints": 0,
+    "llmCalls": 0,
+    "qdrantCalls": 0,
+    "agentCalls": 0
+  },
+  "deterministicCheckOk": true,
+  "rowDataLeakChecks": [
+    {
+      "artifact": "docs-md",
+      "ok": true,
+      "detail": "no row fingerprints"
+    },
+    {
+      "artifact": "docs-json",
+      "ok": true,
+      "detail": "no row fingerprints"
+    },
+    {
+      "artifact": "session-context",
+      "ok": true,
+      "detail": "no row fingerprints"
+    }
+  ],
+  "rowDataLeaks": 0,
+  "typecheckErrors": 0,
+  "strictErrors": [],
+  "generatedAt": "2026-07-25T09:09:32.328Z"
+}

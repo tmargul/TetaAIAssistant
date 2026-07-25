@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-25** (Stage 3E Oracle SELECT compiler — **niezacommitowany**)
+> Ostatnia aktualizacja: **2026-07-25** (Stage 3F Oracle read-only executor + XLSX — **niezacommitowany**; Stage 3E = `1751a40`)
 
 ---
 
@@ -123,6 +123,20 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 ---
 
+
+### Stage 3F — 2026-07-25
+
+- Status: `completed_empty` (**niezacommitowany**)
+- rowCount / columnCount: 0 / 8
+- sqlSha256: `7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691`
+- XLSX: `badania_bhp_koniec_waznosci_2026-07-25_110932.xlsx`
+- fileSha256: `61bbcdf483b3cb7e77fbda61f3192d3b9685964eb2c89f62a6b1cd7bf3fe5661`
+- parseback: true; sessionUser `TETA_ADMIN`; businessStatements=1
+- Oracle writes/commits: 0 / 0 (Stage 3F policy)
+- Live wymaga flag: `--execute-real-oracle` + `--confirm-readonly-execution`
+- Bez integracji z czatem/UI/endpointem SQL
+
+
 ## Otwarte / do sprawdzenia
 
 - [ ] **RAG smoke test:** `_temp/zu1/zu1.jsonl` rozpakowany (44 chunki, `trainings/zu1.mp4`) — import + chat po uruchomieniu Qdrant
@@ -137,18 +151,29 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 ## Notatki sesji
 
-### 2026-07-25 — Etap 3E Deterministic Oracle SELECT Compiler ✅ (⚠️ NIE zacommitowany)
+### 2026-07-25 — Etap 3E Deterministic Oracle SELECT Compiler ✅ (commit `1751a40`)
 
-- **Status git: brak commita** — czeka na decyzję użytkownika. W working tree: `apps/api/src/teta-oracle-compiler/`, `apps/api/src/scripts/oracle-compiler-stage3e.ts`, `apps/api/src/teta-query-planner/teta-query-existence-filter-planner.ts`, `apps/api/package.json` (skrypt), configi 3C/3D (`teta-business-semantic-bindings-v1.json`, `teta-business-ontology-v1.json`, `teta-report-query-templates-v1.json`), `docs/AIA_ORACLE_SELECT_COMPILER_STAGE3E.md` / `.json`, przeliczone `docs/AIA_BUSINESS_SEMANTICS_STAGE3D.*`.
+- **Zacommitowany** na `main` / `origin/main` jako `1751a40` („Stage 3E”).
 - Moduł `apps/api/src/teta-oracle-compiler/` + CLI `compiler:stage3e` (`compile|compile-reference-bhp|validate|audit --strict`).
 - Kontrakt `teta-aia-oracle-select-v1`, dialekt `oracle19c`, wejście `teta-aia-readonly-query-plan-v1` (Stage 3C, bez zmian kontraktów 3A–3D).
-- Wejście: plan 3C `ready_for_compilation` → wyjście `TetaCompiledOracleSelect` (`compiled|rejected_not_ready|rejected_invalid_plan|rejected_unsafe|rejected_unsupported`). `sqlCompilationAllowed=false` w 3C **nie** blokuje; odrzut tylko przy `sqlExecutionAllowed` / `oracleConnectionAllowed` / write / fileRead.
-- SQL zawsze z `accessObject`; aliasy pozycyjne `S01…S06` dla źródeł wierszowych i **osobna przestrzeń `E01…`** dla źródeł `filter_only` (kolejność `sources[]`); identyfikatory `^[A-Z][A-Z0-9_$#]*$`, bez cudzysłowów i konkatenacji z tekstu.
-- Mapowanie kolumn logicznych → access: `oracle-column:TETA_ADMIN:OBJ:COL` → `oracle-column:TETA_ADMIN_P:OBJ:COL` przez `columnsOfOracleObject` (HAS_COLUMN). Brak dowodu → `missing_access_column_evidence`. Live: **8** remapów (S01 + S02 na `TETA_ADMIN_P`).
-- Join tree: spójny, acykliczny, `|edges| = |rowProducingSources| - 1`, tylko `equals`, bez self-join/cartesian; root = pierwszy source nie po stronie nullable `LEFT JOIN`; cykl → `cyclic_join_graph_unsupported`.
-- Filtry `LEFT JOIN`-owych źródeł idą do `ON` (w `WHERE` zamieniłyby outer na inner i gubiły pracowników bez stanowiska).
-- **`filter_only` + `EXISTS` + `reportGrain` (patch 3D/3C/3E, additive, bez zmiany stringów kontraktów):** `active_employment` ma `sourceUsage=filter_only`, a relacja `employee_to_active_employment` — `usage=filter_only`, `rowSemantics=exists`, `preservesReportGrain=true`. Pracownik może mieć wiele umów, więc po filtrze czasowym **brak dowodu kardynalności** → `INNER JOIN` zwielokrotniałby wiersze badań. Warunek kwalifikujący kompiluje się jako skorelowany `EXISTS (SELECT 1 FROM …UMOWY_O_PRACE E01 WHERE E01.PRAC_ID = S01.ID AND …)`. Plan 3C nosi `existenceFilters[]` + `reportGrain='health_examination'` (z `teta-report-query-templates-v1.json`); temporal `employee_active_on_oracle_sysdate` zostaje w `plan.filters` (AST), ale **nie** jest emitowany drugi raz jako `WHERE` na główne drzewo.
-- Stage 3E odrzuca: `filter_only` w `FROM`/`JOIN`/projekcjach/`ORDER BY`, brak `existenceFilters` dla `filter_only`, niesskorelowany `EXISTS`, `DISTINCT`, `IN (…)`, podzapytania inne niż kontrolowany `SELECT 1`.
+- Live BHP `sqlSha256` = `7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691` (bez trailing newline w `sqlText`).
+- `filter_only` + skorelowany `EXISTS` dla `active_employment`; `reportGrain=health_examination`.
+
+### 2026-07-25 — Etap 3F Controlled Read-Only Executor + XLSX ⚠️ (niezacommitowany)
+
+- Moduł `apps/api/src/teta-oracle-executor/` + CLI `executor:stage3f`.
+- Gate → preflight `TETA_ADMIN` → 1 SELECT → `TetaOracleReadResult` → XLSX (`.local/exports/`).
+- Live: `completed_empty`, 0×8, parseback OK, 0 writes/commits (szczegóły wyżej w bloku Stage 3F).
+- Testy: 71; build EXIT 0; `audit --strict` EXIT 0; live audit EXIT 0.
+- Następne (po akceptacji): commit Stage 3F; **nie** chat/UI/endpoint.
+
+### 2026-07-25 — Etap 3E (szczegóły techniczne, skrót)
+
+- Wejście: plan 3C `ready_for_compilation` → wyjście `TetaCompiledOracleSelect`. `sqlCompilationAllowed=false` w 3C **nie** blokuje kompilacji.
+- SQL zawsze z `accessObject`; aliasy `S01…` / `E01…` dla `filter_only`.
+- Mapowanie kolumn logicznych → access przez `HAS_COLUMN` (live: remap na `TETA_ADMIN_P`).
+- Join tree acykliczny; filtry temporalne `LEFT JOIN` w `ON`.
+- **`filter_only` + `EXISTS`:** brak dowodu kardynalności aktywnej umowy → bez `INNER JOIN` employment w drzewie wierszy.
 - LIVE BHP (*„Zrób raport pracowników, którym kończą się badania BHP w tym miesiącu.”*): `compiled`, 7 sources (**6 row-producing + 1 filter_only**) / 5 joins / 8 projekcji / 5 predykatów (1 = `EXISTS`) / 1 existence filter / 3 ordering / **0** bindów, 28 linii, `FETCH FIRST 500 ROWS ONLY`.
 - `sqlSha256` = `7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691` (graphSourceHash `2e7f0b7e…f73c3`, ten sam co 3D). **Jedna wartość we wszystkich artefaktach** — audit liczy własny `sha256(sqlText)` i porównuje z `compiled.sqlSha256`, docs JSON/MD, `.local` sql/json oraz tym plikiem: `sqlArtifactHashMismatches` / `sqlArtifactTextMismatches` / `sessionContextHashMismatch` = **0**, `typecheckErrors` = **0**.
 - Osobny token-walidator (23 checki: brak komentarzy, hintów, `SELECT *`, DML/DDL/PLSQL, `FOR UPDATE`, `WITH`, `;`, db-link, niekwalifikowanych kolumn, inline literałów, `DISTINCT`, `IN (…)`, tylko kontrolowany `EXISTS`, aliasy `E*` wyłącznie w `EXISTS`) — live `ok=true`, 0 violations.

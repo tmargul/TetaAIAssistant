@@ -38,7 +38,8 @@
     "planner:stage3b": "ts-node -r tsconfig-paths/register src/scripts/planner-stage3b.ts",
     "query:stage3c": "ts-node -r tsconfig-paths/register src/scripts/query-planner-stage3c.ts",
     "semantics:stage3d": "ts-node -r tsconfig-paths/register src/scripts/business-semantics-stage3d.ts",
-    "compiler:stage3e": "ts-node -r tsconfig-paths/register src/scripts/oracle-compiler-stage3e.ts"
+    "compiler:stage3e": "ts-node -r tsconfig-paths/register src/scripts/oracle-compiler-stage3e.ts",
+    "executor:stage3f": "ts-node -r tsconfig-paths/register src/scripts/oracle-executor-stage3f.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
