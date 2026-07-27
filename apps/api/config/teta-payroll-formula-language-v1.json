@@ -1,0 +1,22 @@
+{
+  "contractVersion": "teta-payroll-formula-language-v1",
+  "componentCurrentListPatterns": ["m0_(\\d+)"],
+  "knownFunctions": [
+    { "name": "m0", "class": "component_current_list_reference", "componentArgIndexes": [] },
+    { "name": "e", "class": "payroll_function", "componentArgIndexes": [] },
+    {
+      "name": "wartosc_formuly_sql",
+      "class": "sql_formula_reference",
+      "componentArgIndexes": []
+    },
+    {
+      "name": "tab_l_skl_obl_war",
+      "class": "package_context_reference",
+      "componentArgIndexes": []
+    },
+    { "name": "p_oblicz", "class": "package_context_reference" },
+    { "name": "s", "class": "component_current_list_reference", "componentArgIndexes": [0] },
+    { "name": "mz", "class": "component_historical_reference", "componentArgIndexes": [0] },
+    { "name": "m1", "class": "component_previous_list_reference", "componentArgIndexes": [0] }
+  ]
+}

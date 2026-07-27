@@ -1,0 +1,244 @@
+{
+  "contractVersion": "teta-aia-payroll-parameter-snapshot-v1",
+  "generatedAt": "2026-07-27T20:18:35.510Z",
+  "parserVersion": "teta-payroll-report-parser-v1",
+  "apiUploadAudit": {
+    "uploadRequests": 4,
+    "uploadsAccepted": 4,
+    "uploadsRejected": 0,
+    "uploadsAlreadyImported": 2,
+    "uploadsActivated": 1,
+    "uploadsInactive": 1,
+    "note": "uploadsAccepted includes already_imported; uploadsAlreadyImported is a subset of accepted",
+    "uploadCounterInvariantOk": true
+  },
+  "validationReferenceAudit": {
+    "malformedRtfReferences": 1,
+    "wrongReportReferences": 2,
+    "invalidSignatureReferences": 1,
+    "incompleteReportReferences": 1,
+    "limitRejectionReferences": 0,
+    "note": "validateOnly / fixture probes — do not increment apiUploadAudit.uploadRequests"
+  },
+  "sideEffects": {
+    "oracleConnectionsOpened": 0,
+    "oracleStatementsExecuted": 0,
+    "oracleWrites": 0,
+    "llmCalls": 0,
+    "qdrantCalls": 0,
+    "embeddingCalls": 0,
+    "formulasExecuted": 0,
+    "sqlFormulasExecuted": 0,
+    "domanFallbacks": 0,
+    "legacyAgentFallbacks": 0,
+    "clientPayrollQuestionWithoutSnapshotFallbacks": 0,
+    "rawReportContentLogged": 0,
+    "formulasLogged": 0,
+    "sqlFormulasLogged": 0,
+    "customerNamesWrittenToDocs": 0,
+    "localFixturesAddedToGit": 0
+  },
+  "sectionReconciliation": {
+    "tocSectionCount": 26,
+    "bodySectionCount": 26,
+    "matchedSectionCount": 26,
+    "coreSectionsNormalized": 4,
+    "genericSectionsPreserved": 22,
+    "unknownSectionsPreserved": 0
+  },
+  "goldenMeta": {
+    "parserVersion": "teta-payroll-report-parser-v1",
+    "detectionStatus": "valid_payroll_parameters_report",
+    "fileSha256": "434d8ba4e870018c75bca13535634ce99d7fe3a02ab34af8d9de7158c9142625",
+    "reportGeneratedAt": "2020-05-22",
+    "reportDateParseStatus": "exact",
+    "kpVersion": "27.61.099494",
+    "paVersion": "27.61.099393",
+    "summary": {
+      "componentCount": 1037,
+      "componentFormulaCount": 776,
+      "directDependencyCount": 2136,
+      "sqlFormulaCount": 60,
+      "calculationFormulaCount": 81,
+      "calculationFormulaComponentReferences": 345,
+      "contextRecordCount": 87,
+      "unparsedRecordCount": 1,
+      "warningCount": 2,
+      "sectionCount": 26,
+      "totalSectionsDetected": 26,
+      "coreSectionsNormalized": 4,
+      "genericSectionsPreserved": 22,
+      "unknownSectionsPreserved": 0,
+      "tocSectionCount": 26,
+      "bodySectionCount": 26,
+      "matchedSectionCount": 26
+    },
+    "knownDependencyChecks": {
+      "1350": [
+        "1346",
+        "1348"
+      ],
+      "1353": [
+        "1350",
+        "1351",
+        "1352"
+      ],
+      "1355": [
+        "0010",
+        "0300",
+        "1338",
+        "1350"
+      ],
+      "1353_transitive_includes_1348_1346": true
+    },
+    "calculationFormulaSectionDetected": true,
+    "calculationFormulaSectionNormalized": true,
+    "sourceScope": "customer_example"
+  },
+  "references": [
+    {
+      "id": "chat-ref-a-snapshot-required",
+      "ok": true,
+      "detail": "snapshot_required"
+    },
+    {
+      "id": "chat-ref-d-generic",
+      "ok": true,
+      "detail": "generic_payroll_knowledge"
+    },
+    {
+      "id": "golden-fixture-present",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "id": "golden-extract",
+      "ok": true,
+      "detail": "chars=284602"
+    },
+    {
+      "id": "golden-detection",
+      "ok": true,
+      "detail": "valid_payroll_parameters_report"
+    },
+    {
+      "id": "golden-import",
+      "ok": true,
+      "detail": "imported"
+    },
+    {
+      "id": "golden-deps-1350",
+      "ok": true,
+      "detail": "direct=1346,1348"
+    },
+    {
+      "id": "golden-deps-1353",
+      "ok": true,
+      "detail": "direct=1350,1351,1352"
+    },
+    {
+      "id": "golden-deps-1355",
+      "ok": true,
+      "detail": "direct=0010,0300,1338,1350"
+    },
+    {
+      "id": "golden-transitive-1353",
+      "ok": true,
+      "detail": "transitive_has_1348_1346"
+    },
+    {
+      "id": "golden-idempotent",
+      "ok": true,
+      "detail": "already_imported"
+    },
+    {
+      "id": "chat-ref-b-active",
+      "ok": true,
+      "detail": "component_summary"
+    },
+    {
+      "id": "chat-ref-c-missing",
+      "ok": true,
+      "detail": "component_not_found"
+    },
+    {
+      "id": "golden-section-reconciliation",
+      "ok": true,
+      "detail": "toc=26 body=26 matched=26"
+    },
+    {
+      "id": "golden-calculation-formulas",
+      "ok": true,
+      "detail": "calculationFormulaCount=81"
+    },
+    {
+      "id": "synthetic-valid-import",
+      "ok": true,
+      "detail": "older_report_requires_activation"
+    },
+    {
+      "id": "synthetic-idempotent",
+      "ok": true,
+      "detail": "already_imported"
+    },
+    {
+      "id": "malformed-rejected",
+      "ok": true,
+      "detail": "malformed_rtf"
+    },
+    {
+      "id": "wrong-report-rejected",
+      "ok": true,
+      "detail": "unsupported_rtf_report"
+    },
+    {
+      "id": "incomplete-rejected",
+      "ok": true,
+      "detail": "incomplete_payroll_parameters_report"
+    },
+    {
+      "id": "invalid-extension-rejected",
+      "ok": true,
+      "detail": "unsupported_rtf_report"
+    },
+    {
+      "id": "stage3i-jest",
+      "ok": true,
+      "detail": "136/136 passed, failed=0"
+    },
+    {
+      "id": "regression-jest-3b-h",
+      "ok": true,
+      "detail": "645/645 passed, failed=0"
+    }
+  ],
+  "referencesTested": 23,
+  "referencesPassed": 23,
+  "verification": {
+    "stage3iTestsExecuted": 136,
+    "stage3iTestsPassed": 136,
+    "stage3iTestsFailed": 0,
+    "stage3iJestReport": ".local/stage3i-jest.json",
+    "regressionTestsExecuted": 645,
+    "regressionTestsPassed": 645,
+    "regressionTestsFailed": 0,
+    "regressionJestReport": ".local/stage3b-h-jest.json",
+    "note": "Test counts come from jest --json outputFile; never hardcoded; distinct from referencesTested"
+  },
+  "invariants": {
+    "uploadCounterInvariantOk": true,
+    "referenceCountersSeparatedFromUploads": true,
+    "runtimeTestCountersNotConfusedWithReferences": true,
+    "documentedTestCountMatchesRunner": true,
+    "tocAndBodySectionCountsMatch": true,
+    "allGoldenTocSectionsInventoried": true,
+    "allGoldenBodySectionsInventoried": true,
+    "coreSectionsPresent": true,
+    "calculationFormulaSectionDetected": true,
+    "calculationFormulaSectionNormalized": true,
+    "calculationFormulaRecordsParsed": true,
+    "noCalculationFormulaExecution": true,
+    "sectionCountNotLimitedToNormalizedCoreSections": true
+  },
+  "strictErrors": []
+}

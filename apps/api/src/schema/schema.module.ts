@@ -4,6 +4,7 @@ import { ChatQueryTimeoutModule } from '../chat/chat-query-timeout.module';
 import { OllamaModule } from '../chat/ollama.module';
 import { OracleModule } from '../oracle/oracle.module';
 import { TetaChatReportsModule } from '../teta-chat-reports/teta-chat-reports.module';
+import { TetaPayrollSnapshotsModule } from '../teta-payroll-snapshots/teta-payroll-snapshots.module';
 import { SchemaController } from './schema.controller';
 import { SchemaCrawlService } from './schema-crawl.service';
 import { SchemaExplorerService } from './schema-explorer.service';
@@ -25,6 +26,7 @@ import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module'
     SchemaGraphCoreModule,
     TetaPluginsCoreModule,
     forwardRef(() => TetaChatReportsModule),
+    forwardRef(() => TetaPayrollSnapshotsModule),
   ],
   controllers: [SchemaController],
   providers: [

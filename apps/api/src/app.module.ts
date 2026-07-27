@@ -14,6 +14,7 @@ import { ChatModule } from './chat/chat.module';
 import { DoctorModule } from './doctor/doctor.module';
 import { RagModule } from './rag/rag.module';
 import { TetaChatReportsModule } from './teta-chat-reports/teta-chat-reports.module';
+import { TetaPayrollSnapshotsModule } from './teta-payroll-snapshots/teta-payroll-snapshots.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { TetaChatReportsModule } from './teta-chat-reports/teta-chat-reports.mod
     ChatModule,
     DoctorModule,
     TetaChatReportsModule,
+    TetaPayrollSnapshotsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

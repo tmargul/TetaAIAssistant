@@ -7,10 +7,19 @@ import { VendorPackagesPanel } from './VendorPackagesPanel';
 import { ClientUpdatesPanel } from './ClientUpdatesPanel';
 import { TetaAppSettingsPanel } from './TetaAppSettingsPanel';
 import { ChatAssistantSettingsPanel } from './ChatAssistantSettingsPanel';
+import { PayrollParameterSnapshotPanel } from './PayrollParameterSnapshotPanel';
 import { OracleConnectionForm } from '../oracle/OracleConnectionForm';
 import './settings.css';
 
-type SettingsTab = 'users' | 'servers' | 'oracle' | 'assistant' | 'packages' | 'updates' | 'tetaApp';
+type SettingsTab =
+  | 'users'
+  | 'servers'
+  | 'oracle'
+  | 'assistant'
+  | 'packages'
+  | 'updates'
+  | 'tetaApp'
+  | 'payroll';
 
 const SETTINGS_TAB_KEY = 'teta-settings-tab';
 
@@ -20,7 +29,19 @@ export function AdminSettingsView() {
   const isVendorMode = health?.appMode === 'vendor' && health?.vendorEnabled;
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
     const pending = sessionStorage.getItem(SETTINGS_TAB_KEY) as SettingsTab | null;
-    if (pending && ['users', 'servers', 'oracle', 'assistant', 'packages', 'updates', 'tetaApp'].includes(pending)) {
+    if (
+      pending &&
+      [
+        'users',
+        'servers',
+        'oracle',
+        'assistant',
+        'packages',
+        'updates',
+        'tetaApp',
+        'payroll',
+      ].includes(pending)
+    ) {
       sessionStorage.removeItem(SETTINGS_TAB_KEY);
       return pending;
     }
@@ -155,6 +176,13 @@ export function AdminSettingsView() {
         >
           Asystent AI
         </button>
+        <button
+          type="button"
+          className={`settings__tab${activeTab === 'payroll' ? ' settings__tab--active' : ''}`}
+          onClick={() => setActiveTab('payroll')}
+        >
+          Parametryzacja płac
+        </button>
         {isVendorMode && (
           <button
             type="button"
@@ -267,6 +295,8 @@ export function AdminSettingsView() {
         {activeTab === 'tetaApp' && isVendorMode && <TetaAppSettingsPanel />}
 
         {activeTab === 'assistant' && <ChatAssistantSettingsPanel />}
+
+        {activeTab === 'payroll' && <PayrollParameterSnapshotPanel />}
 
         {activeTab === 'packages' && isVendorMode && <VendorPackagesPanel />}
 

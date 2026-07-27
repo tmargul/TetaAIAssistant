@@ -8,6 +8,10 @@ export const STAGE3B_PLANNER_CONFIG_VERSION = 'teta-aia-planner-config-v1';
 
 export type PlannerIntentType =
   | 'explain_payroll_component'
+  | 'inspect_payroll_component'
+  | 'explain_payroll_component_configuration'
+  | 'compare_payroll_components'
+  | 'design_analogous_payroll_component'
   | 'validate_import_file'
   | 'build_employee_report'
   | 'explain_application_field'

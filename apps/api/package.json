@@ -41,7 +41,8 @@
     "compiler:stage3e": "ts-node -r tsconfig-paths/register src/scripts/oracle-compiler-stage3e.ts",
     "executor:stage3f": "ts-node -r tsconfig-paths/register src/scripts/oracle-executor-stage3f.ts",
     "chat-report:stage3g": "ts-node -r tsconfig-paths/register src/scripts/canonical-chat-report-stage3g.ts",
-    "chat-report:stage3h": "ts-node -r tsconfig-paths/register src/scripts/parameterized-bhp-report-stage3h.ts"
+    "chat-report:stage3h": "ts-node -r tsconfig-paths/register src/scripts/parameterized-bhp-report-stage3h.ts",
+    "payroll-snapshot:stage3i": "ts-node -r tsconfig-paths/register src/scripts/payroll-snapshot-stage3i.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

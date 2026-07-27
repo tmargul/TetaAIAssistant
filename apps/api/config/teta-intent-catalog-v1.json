@@ -25,6 +25,57 @@
       ]
     },
     {
+      "type": "inspect_payroll_component",
+      "minScore": 4,
+      "requiredEntityTypes": ["componentCode"],
+      "clarificationEntityOrder": ["componentCode"],
+      "signals": [
+        { "id": "jak_zbudowany", "pattern": "jak\\s+zbudowan[ya]\\s+(jest\\s+)?sk[łl]adnik", "weight": 5 },
+        { "id": "od_czego_zalezy", "pattern": "od\\s+czego\\s+zale[zż][ya]\\s+sk[łl]adnik", "weight": 5 },
+        { "id": "zaleznosci_skladnika", "pattern": "zale[zż]no[sś]ci\\s+sk[łl]adnik", "weight": 4 },
+        { "id": "budowa_skladnika", "pattern": "budow[ae]\\s+sk[łl]adnik", "weight": 4 },
+        { "id": "inspekcja_skladnika", "pattern": "sprawd[zź]\\s+sk[łl]adnik\\s+\\d{3,5}|poka[zż]\\s+sk[łl]adnik\\s+\\d{3,5}", "weight": 3 }
+      ]
+    },
+    {
+      "type": "explain_payroll_component_configuration",
+      "minScore": 4,
+      "requiredEntityTypes": ["componentCode"],
+      "clarificationEntityOrder": ["componentCode"],
+      "signals": [
+        { "id": "konfiguracja_skladnika", "pattern": "konfiguracj[ae]\\s+sk[łl]adnik", "weight": 5 },
+        { "id": "parametry_skladnika", "pattern": "parametr[yy]\\s+sk[łl]adnik", "weight": 4 },
+        { "id": "ustawienia_skladnika", "pattern": "ustawieni[ae]\\s+sk[łl]adnik", "weight": 4 },
+        { "id": "jak_skonfigurowany", "pattern": "jak\\s+skonfigurowan[ya]\\s+(jest\\s+)?sk[łl]adnik", "weight": 5 },
+        { "id": "wzor_skladnika_cfg", "pattern": "wz[oó]r\\s+sk[łl]adnik|formu[łl]a\\s+sk[łl]adnik", "weight": 3 }
+      ]
+    },
+    {
+      "type": "compare_payroll_components",
+      "minScore": 4,
+      "requiredEntityTypes": ["componentCode"],
+      "clarificationEntityOrder": ["componentCode"],
+      "signals": [
+        { "id": "porownaj_skladniki", "pattern": "por[oó]wnaj\\s+sk[łl]adnik", "weight": 5 },
+        { "id": "roznica_skladnikow", "pattern": "r[oó][zż]nic[ae]\\s+(mi[eę]dzy\\s+)?sk[łl]adnik", "weight": 4 },
+        { "id": "skladnik_vs_skladnik", "pattern": "sk[łl]adnik\\s+\\d{3,5}.{0,40}(a|vs|versus|wzgl[eę]dem)\\s+sk[łl]adnik", "weight": 4 },
+        { "id": "porownanie_skladnikow", "pattern": "por[oó]wnanie\\s+sk[łl]adnik", "weight": 4 }
+      ]
+    },
+    {
+      "type": "design_analogous_payroll_component",
+      "minScore": 4,
+      "requiredEntityTypes": ["componentCode"],
+      "clarificationEntityOrder": ["componentCode"],
+      "signals": [
+        { "id": "analogiczny_do", "pattern": "analogiczn[ya]\\s+do\\s+sk[łl]adnik", "weight": 5 },
+        { "id": "podobny_skladnik", "pattern": "podobn[ya]\\s+sk[łl]adnik|sk[łl]adnik\\s+podobn", "weight": 4 },
+        { "id": "na_wzor_skladnika", "pattern": "na\\s+wz[oó]r\\s+sk[łl]adnik", "weight": 5 },
+        { "id": "zaprojektuj_skladnik", "pattern": "zaprojektuj\\s+sk[łl]adnik|zaprojektowa[cć]\\s+sk[łl]adnik", "weight": 4 },
+        { "id": "nowy_skladnik_jak", "pattern": "now[ya]\\s+sk[łl]adnik.{0,40}jak\\s+sk[łl]adnik", "weight": 4 }
+      ]
+    },
+    {
       "type": "validate_import_file",
       "minScore": 4,
       "requiredEntityTypes": ["fileName"],

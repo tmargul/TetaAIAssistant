@@ -323,6 +323,135 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     this.ensureColumn('oracle_metadata_import_jobs', 'catalog_totals_json', 'TEXT');
     this.ensureColumn('oracle_metadata_import_jobs', 'import_limits_json', 'TEXT');
     this.ensureColumn('schema_columns', 'data_default', 'TEXT');
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS teta_payroll_parameter_snapshots (
+        snapshot_id TEXT PRIMARY KEY,
+        contract_version TEXT NOT NULL,
+        parser_version TEXT NOT NULL,
+        installation_scope_id TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('active','inactive','superseded','rejected')),
+        file_name TEXT NOT NULL,
+        file_sha256 TEXT NOT NULL,
+        file_size_bytes INTEGER NOT NULL,
+        report_generated_at TEXT,
+        imported_at TEXT NOT NULL,
+        kp_version TEXT,
+        pa_version TEXT,
+        company_scope_json TEXT NOT NULL DEFAULT '[]',
+        summary_json TEXT NOT NULL,
+        validation_json TEXT NOT NULL,
+        source_scope TEXT NOT NULL DEFAULT 'customer_installation'
+      );
+      CREATE INDEX IF NOT EXISTS idx_payroll_snap_scope_status
+        ON teta_payroll_parameter_snapshots(installation_scope_id, status);
+      CREATE INDEX IF NOT EXISTS idx_payroll_snap_sha
+        ON teta_payroll_parameter_snapshots(installation_scope_id, file_sha256);
+
+      CREATE TABLE IF NOT EXISTS teta_payroll_snapshot_sections (
+        snapshot_id TEXT NOT NULL,
+        section_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        ordinal INTEGER NOT NULL,
+        record_count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (snapshot_id, section_id),
+        FOREIGN KEY (snapshot_id) REFERENCES teta_payroll_parameter_snapshots(snapshot_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS teta_payroll_components (
+        snapshot_id TEXT NOT NULL,
+        component_internal_id TEXT,
+        code TEXT NOT NULL,
+        title TEXT,
+        type_code TEXT,
+        hint_id TEXT,
+        formula_raw TEXT,
+        correction_mode TEXT,
+        meaning_raw TEXT,
+        parameters_json TEXT NOT NULL DEFAULT '{}',
+        section_title TEXT NOT NULL,
+        record_ordinal INTEGER NOT NULL,
+        record_hash TEXT NOT NULL,
+        PRIMARY KEY (snapshot_id, code, record_ordinal),
+        FOREIGN KEY (snapshot_id) REFERENCES teta_payroll_parameter_snapshots(snapshot_id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_payroll_components_code
+        ON teta_payroll_components(snapshot_id, code);
+      CREATE INDEX IF NOT EXISTS idx_payroll_components_title
+        ON teta_payroll_components(snapshot_id, title);
+
+      CREATE TABLE IF NOT EXISTS teta_payroll_component_dependencies (
+        snapshot_id TEXT NOT NULL,
+        from_component_code TEXT NOT NULL,
+        to_component_code TEXT NOT NULL,
+        relation_type TEXT NOT NULL,
+        source_function TEXT,
+        source_fragment TEXT NOT NULL,
+        confidence TEXT NOT NULL,
+        section_title TEXT NOT NULL,
+        record_ordinal INTEGER NOT NULL,
+        FOREIGN KEY (snapshot_id) REFERENCES teta_payroll_parameter_snapshots(snapshot_id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_payroll_deps_from
+        ON teta_payroll_component_dependencies(snapshot_id, from_component_code);
+      CREATE INDEX IF NOT EXISTS idx_payroll_deps_to
+        ON teta_payroll_component_dependencies(snapshot_id, to_component_code);
+
+      CREATE TABLE IF NOT EXISTS teta_payroll_formula_calls (
+        snapshot_id TEXT NOT NULL,
+        component_code TEXT NOT NULL,
+        call_name TEXT NOT NULL,
+        ordinal INTEGER NOT NULL,
+        FOREIGN KEY (snapshot_id) REFERENCES teta_payroll_parameter_snapshots(snapshot_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS teta_payroll_sql_formulas (
+        snapshot_id TEXT NOT NULL,
+        formula_code TEXT,
+        ordinal INTEGER NOT NULL,
+        record_hash TEXT NOT NULL,
+        FOREIGN KEY (snapshot_id) REFERENCES teta_payroll_parameter_snapshots(snapshot_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS teta_payroll_calculation_formulas (
+        snapshot_id TEXT NOT NULL,
+        formula_id TEXT,
+        internal_id TEXT,
+        title TEXT,
+        formula_type_raw TEXT,
+        formula_raw TEXT,
+        source_label TEXT,
+        canonical_id TEXT,
+        formula_code TEXT,
+        ordinal INTEGER NOT NULL,
+        record_hash TEXT NOT NULL,
+        FOREIGN KEY (snapshot_id) REFERENCES teta_payroll_parameter_snapshots(snapshot_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS teta_payroll_calculation_formula_component_refs (
+        snapshot_id TEXT NOT NULL,
+        calculation_formula_id TEXT NOT NULL,
+        component_code TEXT NOT NULL,
+        source_function TEXT,
+        confidence TEXT,
+        FOREIGN KEY (snapshot_id) REFERENCES teta_payroll_parameter_snapshots(snapshot_id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS teta_payroll_snapshot_diagnostics (
+        snapshot_id TEXT PRIMARY KEY,
+        diagnostics_json TEXT NOT NULL,
+        FOREIGN KEY (snapshot_id) REFERENCES teta_payroll_parameter_snapshots(snapshot_id) ON DELETE CASCADE
+      );
+    `);
+
+    this.ensureColumn('teta_payroll_calculation_formulas', 'formula_id', 'TEXT');
+    this.ensureColumn('teta_payroll_calculation_formulas', 'internal_id', 'TEXT');
+    this.ensureColumn('teta_payroll_calculation_formulas', 'title', 'TEXT');
+    this.ensureColumn('teta_payroll_calculation_formulas', 'formula_type_raw', 'TEXT');
+    this.ensureColumn('teta_payroll_calculation_formulas', 'formula_raw', 'TEXT');
+    this.ensureColumn('teta_payroll_calculation_formulas', 'source_label', 'TEXT');
+    this.ensureColumn('teta_payroll_calculation_formulas', 'canonical_id', 'TEXT');
     this.migrateSchemaEntityLinkSources();
   }
 

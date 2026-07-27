@@ -1,0 +1,195 @@
+{
+  "contractVersion": "teta-payroll-report-sections-v1",
+  "sections": [
+    {
+      "canonicalId": "components",
+      "canonicalLabel": "SKŁADNIKI PŁACOWE",
+      "kind": "components",
+      "core": true,
+      "aliases": ["SKŁADNIKI PŁACOWE"]
+    },
+    {
+      "canonicalId": "context_components",
+      "canonicalLabel": "SKŁADNIKI PŁACOWE OBLICZANE W KONTEKŚCIE",
+      "kind": "context_components",
+      "core": true,
+      "aliases": ["SKŁADNIKI PŁACOWE OBLICZANE W KONTEKŚCIE"]
+    },
+    {
+      "canonicalId": "sql_formulas",
+      "canonicalLabel": "FORMUŁY SQL",
+      "kind": "sql_formulas",
+      "core": true,
+      "aliases": ["FORMUŁY SQL"]
+    },
+    {
+      "canonicalId": "calculation_formulas",
+      "canonicalLabel": "FORMUŁY KALKULACYJNE",
+      "kind": "calculation_formulas",
+      "core": true,
+      "aliases": ["FORMUŁY KALKULACYJNE", "FORMUŁY KLAKULACYJNE"]
+    },
+    {
+      "canonicalId": "work_cards",
+      "canonicalLabel": "KARTY PRACY",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["KARTY PRACY"]
+    },
+    {
+      "canonicalId": "absences",
+      "canonicalLabel": "RODZAJE NIEOBECNOŚCI",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["RODZAJE NIEOBECNOŚCI"]
+    },
+    {
+      "canonicalId": "suspensions",
+      "canonicalLabel": "ZAWIESZENIA",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["ZAWIESZENIA"]
+    },
+    {
+      "canonicalId": "payroll_constants",
+      "canonicalLabel": "STAŁE PŁACOWE",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["STAŁE PŁACOWE"]
+    },
+    {
+      "canonicalId": "tax_constants",
+      "canonicalLabel": "STAŁE PODATKOWE",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["STAŁE PODATKOWE"]
+    },
+    {
+      "canonicalId": "cumulative_components",
+      "canonicalLabel": "SKŁADNIKI NARASTAJĄCO",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["SKŁADNIKI NARASTAJĄCO"]
+    },
+    {
+      "canonicalId": "fixed_deductions",
+      "canonicalLabel": "STAŁE POTRĄCENIA",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["STAŁE POTRĄCENIA"]
+    },
+    {
+      "canonicalId": "fixed_additions",
+      "canonicalLabel": "STAŁE DODATKI",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["STAŁE DODATKI"]
+    },
+    {
+      "canonicalId": "periodic_component_kinds",
+      "canonicalLabel": "RODZAJE SKŁADNIKÓW OKRESOWYCH",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["RODZAJE SKŁADNIKÓW OKRESOWYCH"]
+    },
+    {
+      "canonicalId": "zus_contribution_rates",
+      "canonicalLabel": "PROCENTY SKŁADEK ZUS",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["PROCENTY SKŁADEK ZUS"]
+    },
+    {
+      "canonicalId": "insurance_codes_dkub",
+      "canonicalLabel": "KODY UBEZPIECZEŃ DLA FUNKCJI \"DKUB\" - DNI KODU UBEZPIECZENIA",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": [
+        "KODY UBEZPIECZEŃ DLA FUNKCJI \"DKUB\" - DNI KODU UBEZPIECZENIA",
+        "KODY UBEZPIECZEŃ DLA FUNKCJI \"DKUB\" – DNI KODU UBEZPIECZENIA"
+      ]
+    },
+    {
+      "canonicalId": "zus_components",
+      "canonicalLabel": "SKŁADNIKI ZUS",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["SKŁADNIKI ZUS"]
+    },
+    {
+      "canonicalId": "z3_rp7_components",
+      "canonicalLabel": "SKŁADNIKI DO Z-3 I RP-7",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["SKŁADNIKI DO Z-3 I RP-7"]
+    },
+    {
+      "canonicalId": "pit_dictionary",
+      "canonicalLabel": "SŁOWNIK SKŁADNIKÓW DO PIT",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["SŁOWNIK SKŁADNIKÓW DO PIT"]
+    },
+    {
+      "canonicalId": "gus_dictionary",
+      "canonicalLabel": "SŁOWNIK SKŁADNIKÓW DO GUS",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["SŁOWNIK SKŁADNIKÓW DO GUS"]
+    },
+    {
+      "canonicalId": "uc_contract_kinds",
+      "canonicalLabel": "RODZAJE UMÓW UC",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["RODZAJE UMÓW UC"]
+    },
+    {
+      "canonicalId": "ds_limits",
+      "canonicalLabel": "DS – LIMITY",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["DS – LIMITY", "DS - LIMITY", "DS LIMITY"]
+    },
+    {
+      "canonicalId": "ds_holidays",
+      "canonicalLabel": "DS – WCZASY I KOLONIE",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["DS – WCZASY I KOLONIE", "DS - WCZASY I KOLONIE", "DS WCZASY I KOLONIE"]
+    },
+    {
+      "canonicalId": "ds_allowances",
+      "canonicalLabel": "DS - ZAPOMOGI",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["DS - ZAPOMOGI", "DS – ZAPOMOGI", "DS ZAPOMOGI"]
+    },
+    {
+      "canonicalId": "ds_benefits_in_kind",
+      "canonicalLabel": "DS – ŚWIADCZENIA RZECZOWE",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": [
+        "DS – ŚWIADCZENIA RZECZOWE",
+        "DS - ŚWIADCZENIA RZECZOWE",
+        "DS ŚWIADCZENIA RZECZOWE",
+        "DS Ś WIADCZENIA RZECZOWE"
+      ]
+    },
+    {
+      "canonicalId": "ds_credits",
+      "canonicalLabel": "DS - KREDYTY",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["DS - KREDYTY", "DS – KREDYTY", "DS KREDYTY"]
+    },
+    {
+      "canonicalId": "rcp_components",
+      "canonicalLabel": "SKŁADNIKI RCP",
+      "kind": "recognized_generic",
+      "core": false,
+      "aliases": ["SKŁADNIKI RCP"]
+    }
+  ]
+}

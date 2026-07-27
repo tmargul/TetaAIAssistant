@@ -101,6 +101,77 @@
         "missingReason": "runtime_calculation_trace_not_available_in_stage3b"
       }
     ],
+    "inspect_payroll_component": [
+      {
+        "evidenceType": "payroll_component_definition",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred",
+        "missingWhenNoEntity": ["componentCode"],
+        "notes": "stage3i_snapshot_inspect"
+      },
+      {
+        "evidenceType": "component_dependencies",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred"
+      }
+    ],
+    "explain_payroll_component_configuration": [
+      {
+        "evidenceType": "payroll_component_definition",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred",
+        "missingWhenNoEntity": ["componentCode"]
+      },
+      {
+        "evidenceType": "formula_or_algorithm",
+        "required": false,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred",
+        "notes": "configuration_from_snapshot_not_execution"
+      }
+    ],
+    "compare_payroll_components": [
+      {
+        "evidenceType": "payroll_component_definition",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred",
+        "missingWhenNoEntity": ["componentCode"]
+      },
+      {
+        "evidenceType": "component_dependencies",
+        "required": false,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred"
+      }
+    ],
+    "design_analogous_payroll_component": [
+      {
+        "evidenceType": "payroll_component_definition",
+        "required": true,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred",
+        "missingWhenNoEntity": ["componentCode"],
+        "notes": "analogous_design_uses_snapshot_as_reference_only"
+      },
+      {
+        "evidenceType": "component_dependencies",
+        "required": false,
+        "graphQuery": null,
+        "runtimeSourceRequired": true,
+        "defaultStatus": "deferred"
+      }
+    ],
     "validate_import_file": [
       { "evidenceType": "file_metadata", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },
       { "evidenceType": "file_columns", "required": true, "graphQuery": null, "runtimeSourceRequired": true, "defaultStatus": "deferred" },

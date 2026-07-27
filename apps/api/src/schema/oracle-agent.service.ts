@@ -73,6 +73,11 @@ import {
 } from './oracle-agent-parse.util';
 import { TetaCanonicalReportOrchestratorService } from '../teta-chat-reports/teta-canonical-report-orchestrator.service';
 import type { Stage3gChatReportResponse } from '../teta-chat-reports/teta-chat-report.types';
+import {
+  evaluatePayrollChatGate,
+  formatPayrollChatGateMessage,
+} from '../teta-payroll-snapshots/teta-payroll-snapshot-chat-gate';
+import { TetaPayrollSnapshotQueryService } from '../teta-payroll-snapshots/teta-payroll-snapshot-query.service';
 
 const DOMAIN_PROMPTS: Record<OracleAgentDomain, string> = {
   general: 'Jesteś asystentem bazy Teta — ogólny kontekst schematu.',
@@ -105,6 +110,7 @@ export class OracleAgentService {
     private readonly graph: SchemaGraphService,
     private readonly queryTimeout: ChatQueryTimeoutService,
     @Optional() private readonly canonicalReports?: TetaCanonicalReportOrchestratorService,
+    @Optional() private readonly payrollSnapshots?: TetaPayrollSnapshotQueryService,
   ) {}
 
   async streamComplete(
@@ -146,6 +152,34 @@ export class OracleAgentService {
       const message = input.message.trim();
       if (!message) {
         throw new BadRequestException('Wiadomość nie może być pusta.');
+      }
+
+      // Stage 3I — client payroll configuration gate (before canonical reports / Oracle / LLM / Qdrant)
+      if (this.payrollSnapshots) {
+        const role = streamOptions?.role ?? 'user';
+        const uploadAllowed = role === 'admin' || workMode === 'vendor';
+        const gate = evaluatePayrollChatGate({
+          question: message,
+          queryService: this.payrollSnapshots,
+          uploadAllowed,
+        });
+        if (gate.kind !== 'generic_payroll_knowledge') {
+          const content = formatPayrollChatGateMessage(gate) ?? '';
+          writeEvent({ type: 'token', delta: content });
+          writeEvent({
+            type: 'done',
+            content,
+            model: input.model,
+            createdAt: new Date().toISOString(),
+            timing: {
+              totalMs: Date.now() - startedAt,
+              ragMs: 0,
+              llmMs: 0,
+            },
+          });
+          res.end();
+          return;
+        }
       }
 
       if (this.canonicalReports && userId != null) {
