@@ -108,6 +108,18 @@ function bhpPlan(overrides: Partial<TetaEvidencePlan> = {}): TetaEvidencePlan {
     resolvedGraphEvidence: {} as TetaEvidencePlan['resolvedGraphEvidence'],
     clarificationQuestions: [],
     selectionRequiredBeforeExecution: false,
+    reportParameters: {
+      period: {
+        status: 'resolved',
+        period: {
+          kind: 'current_month',
+          source: 'user_text',
+          normalizedLabel: 'Bieżący miesiąc',
+        },
+        clarificationQuestion: null,
+        errors: [],
+      },
+    },
     executionPolicy: {
       sqlGenerationAllowed: false,
       sqlExecutionAllowed: false,

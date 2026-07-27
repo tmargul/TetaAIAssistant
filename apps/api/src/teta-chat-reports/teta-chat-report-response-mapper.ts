@@ -1,5 +1,10 @@
 import type { TetaOracleReadResult } from '../teta-oracle-executor/teta-oracle-executor.types';
 import {
+  buildPeriodStatusMessage,
+  periodPresentation,
+} from '../teta-report-period/teta-report-period-presentation';
+import type { TetaReportPeriod } from '../teta-report-period/teta-report-period.types';
+import {
   STAGE3G_BHP_ROUTE_ID,
   STAGE3G_REPORT_TITLE,
   STAGE3G_RESPONSE_CONTRACT_VERSION,
@@ -55,7 +60,12 @@ export function buildStatusMessage(
   status: Stage3gChatReportStatus,
   rowCount: number,
   errorCode?: Stage3gErrorCode | null,
+  period?: TetaReportPeriod | null,
 ): string {
+  if (period) {
+    const periodMessage = buildPeriodStatusMessage(period, status, rowCount);
+    if (periodMessage) return periodMessage;
+  }
   switch (status) {
     case 'completed':
       return `Znalazłem ${rowCount} rekordów badań BHP kończących się w bieżącym miesiącu. Wynik znajduje się w tabeli poniżej.`;
@@ -70,6 +80,9 @@ export function buildStatusMessage(
     case 'rejected':
       if (errorCode === 'canonical_report_not_authorized') {
         return 'Nie masz uprawnień do uruchomienia tego raportu.';
+      }
+      if (errorCode === 'canonical_report_not_ready') {
+        return 'Proszę doprecyzować okres raportu badań BHP.';
       }
       return 'Raport nie mógł zostać wygenerowany.';
     case 'failed':
@@ -91,6 +104,9 @@ export function mapOracleResultToChatReport(options: {
   } | null;
   statusOverride?: Stage3gChatReportStatus;
   errorCode?: Stage3gErrorCode | null;
+  period?: TetaReportPeriod | null;
+  title?: string;
+  message?: string;
 }): Stage3gChatReportResponse {
   const { result } = options;
   const status =
@@ -132,12 +148,16 @@ export function mapOracleResultToChatReport(options: {
         fileSha256: null,
       };
 
+  const presentation = options.period ? periodPresentation(options.period) : null;
+
   return {
     contractVersion: STAGE3G_RESPONSE_CONTRACT_VERSION,
     routeId: options.routeId ?? STAGE3G_BHP_ROUTE_ID,
     status,
-    title: STAGE3G_REPORT_TITLE,
-    message: buildStatusMessage(status, result.rowCount, options.errorCode),
+    title: options.title ?? presentation?.title ?? STAGE3G_REPORT_TITLE,
+    message:
+      options.message ??
+      buildStatusMessage(status, result.rowCount, options.errorCode, options.period),
     report: {
       columns,
       rows,
@@ -149,7 +169,9 @@ export function mapOracleResultToChatReport(options: {
     metadata: {
       executionId: options.executionId ?? null,
       sqlSha256: result.sqlSha256 ?? null,
+      executionFingerprintSha256: result.executionFingerprintSha256 ?? null,
       reportGrain: result.reportGrain ?? null,
+      period: presentation?.clientMeta ?? null,
     },
     errorCode: options.errorCode ?? null,
   };
@@ -160,14 +182,20 @@ export function buildRejectedChatReport(options: {
   errorCode: Stage3gErrorCode;
   status?: Stage3gChatReportStatus;
   columns?: Stage3gReportColumn[];
+  title?: string;
+  message?: string;
+  period?: TetaReportPeriod | null;
 }): Stage3gChatReportResponse {
   const status = options.status ?? 'rejected';
+  const presentation = options.period ? periodPresentation(options.period) : null;
   return {
     contractVersion: STAGE3G_RESPONSE_CONTRACT_VERSION,
     routeId: options.routeId,
     status,
-    title: STAGE3G_REPORT_TITLE,
-    message: buildStatusMessage(status, 0, options.errorCode),
+    title: options.title ?? presentation?.title ?? STAGE3G_REPORT_TITLE,
+    message:
+      options.message ??
+      buildStatusMessage(status, 0, options.errorCode, options.period),
     report: {
       columns: options.columns ?? [],
       rows: [],
@@ -187,8 +215,55 @@ export function buildRejectedChatReport(options: {
     metadata: {
       executionId: null,
       sqlSha256: null,
+      executionFingerprintSha256: null,
       reportGrain: null,
+      period: presentation?.clientMeta ?? null,
     },
     errorCode: options.errorCode,
+  };
+}
+
+export function buildPeriodClarificationChatReport(options: {
+  routeId: string;
+  clarificationQuestion: string | null;
+  invalid?: boolean;
+}): Stage3gChatReportResponse {
+  const message =
+    options.clarificationQuestion ??
+    (options.invalid
+      ? 'Podany okres raportu jest niepoprawny. Podaj poprawny zakres dat lub liczbę dni (1–366).'
+      : 'Proszę podać okres raportu: bieżący miesiąc, następny miesiąc, liczbę dni (1–366) albo zakres dat od–do.');
+  return {
+    contractVersion: STAGE3G_RESPONSE_CONTRACT_VERSION,
+    routeId: options.routeId,
+    status: 'rejected',
+    title: STAGE3G_REPORT_TITLE,
+    message,
+    report: {
+      columns: [],
+      rows: [],
+      rowCount: 0,
+      columnCount: 0,
+      limitReached: false,
+    },
+    download: {
+      available: false,
+      token: null,
+      fileName: null,
+      mimeType: null,
+      expiresAt: null,
+      fileSizeBytes: null,
+      fileSha256: null,
+    },
+    metadata: {
+      executionId: null,
+      sqlSha256: null,
+      executionFingerprintSha256: null,
+      reportGrain: null,
+      period: null,
+    },
+    errorCode: options.invalid
+      ? 'canonical_report_not_ready'
+      : 'canonical_report_not_ready',
   };
 }

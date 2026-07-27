@@ -31,6 +31,8 @@ import type { Stage3cGraphClient } from './teta-query-graph-client';
 import type { TetaBusinessRoleResolver } from '../teta-business-semantics/teta-business-role-resolver';
 import { buildStage3cSemanticPackage } from '../teta-business-semantics/teta-stage3c-semantic-adapter';
 import type { SemanticTemporalBinding } from '../teta-business-semantics/teta-business-semantics.types';
+import { applyPeriodToQueryFilters } from '../teta-report-period/teta-report-period-temporal';
+import type { TetaReportPeriod } from '../teta-report-period/teta-report-period.types';
 
 export type QueryPlannerOptions = {
   templates: ReportQueryTemplatesFile;
@@ -74,6 +76,7 @@ function basePlan(partial: Partial<TetaReadOnlyQueryPlan> & Pick<TetaReadOnlyQue
     projections: [],
     filters: [],
     ordering: [],
+    reportParameters: null,
     reportGrain: null,
     existenceFilters: [],
     limits: { maxRows: 500, maxColumns: 20, statementTimeoutMs: 30000 },
@@ -313,6 +316,27 @@ export class TetaReadOnlyQueryPlannerService {
       semanticTemporals: semanticTemporals.size ? semanticTemporals : null,
     });
 
+    // Stage 3H — rewrite BHP examination temporal filter from resolved period.
+    let filters = filterResult.filters;
+    let reportParameters: { period: TetaReportPeriod } | null = null;
+    const periodRes = request.evidencePlan.reportParameters?.period;
+    if (periodRes?.status === 'resolved' && periodRes.period) {
+      const applied = applyPeriodToQueryFilters(filters, periodRes.period);
+      filters = applied.filters;
+      if (applied.applied) {
+        reportParameters = { period: periodRes.period };
+      }
+    } else if (
+      request.evidencePlan.planningStatus === 'needs_clarification' ||
+      request.evidencePlan.planningStatus === 'invalid' ||
+      periodRes?.status === 'missing' ||
+      periodRes?.status === 'ambiguous' ||
+      periodRes?.status === 'invalid'
+    ) {
+      // Period not ready — Stage 3C must not pretend compilation is possible.
+      // Gate below will still require filters; orchestrator should stop earlier.
+    }
+
     const ordering = planOrdering({
       orderingSpecs: template.orderingResolutions,
       orderingOrder: template.defaultOrdering,
@@ -322,7 +346,7 @@ export class TetaReadOnlyQueryPlannerService {
     const existenceFilters = buildExistenceFilters({
       filterOnlyRelations: joinResult.filterOnlyRelations,
       sources: sourceResult.sources,
-      filters: filterResult.filters,
+      filters,
     });
 
     const connectivity = sourcesAreConnected(sourceResult.sources, joinResult.joins);
@@ -336,7 +360,7 @@ export class TetaReadOnlyQueryPlannerService {
     const warnings: TetaReadOnlyQueryPlan['warnings'] = [];
 
     // Forbidden: examination type filter must not appear
-    if (filterResult.filters.some((f) => /examination_type/i.test(f.filterRole))) {
+    if (filters.some((f) => /examination_type/i.test(f.filterRole))) {
       warnings.push({
         code: 'unexpected_examination_type_filter',
         message: 'Report must include all examination types; type filter is forbidden',
@@ -361,7 +385,7 @@ export class TetaReadOnlyQueryPlannerService {
         ),
       );
     const filtersOk = template.requiredFilters.every((r) =>
-      filterResult.filters.some((f) => f.filterRole === r && f.status === 'resolved'),
+      filters.some((f) => f.filterRole === r && f.status === 'resolved'),
     );
     const enrichmentLeftOk = template.requiredJoins
       .filter((j) => j.enrichment)
@@ -434,7 +458,7 @@ export class TetaReadOnlyQueryPlannerService {
         ...p.provenanceNodeIds,
       ]),
       ...joinResult.joins.flatMap((j) => j.pathNodeIds),
-      ...filterResult.filters.flatMap((f) => f.provenanceNodeIds),
+      ...filters.flatMap((f) => f.provenanceNodeIds),
       ...existenceFilters.flatMap((e) =>
         e.correlationPredicates.flatMap((p) => [
           p.outerOracleColumnNodeId,
@@ -446,7 +470,7 @@ export class TetaReadOnlyQueryPlannerService {
       ...sourceResult.sources.flatMap((s) => s.provenanceEdgeIds),
       ...columnResult.projections.flatMap((p) => p.provenanceEdgeIds),
       ...joinResult.joins.flatMap((j) => j.provenanceEdgeIds),
-      ...filterResult.filters.flatMap((f) => f.provenanceEdgeIds),
+      ...filters.flatMap((f) => f.provenanceEdgeIds),
     ]);
 
     const plan = basePlan({
@@ -456,8 +480,9 @@ export class TetaReadOnlyQueryPlannerService {
       sources: sourceResult.sources,
       joins: joinResult.joins,
       projections: columnResult.projections,
-      filters: filterResult.filters,
+      filters,
       ordering,
+      reportParameters,
       reportGrain: template.reportGrain ?? null,
       existenceFilters,
       limits: {

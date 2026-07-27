@@ -111,7 +111,9 @@ export type QueryJoin = {
 
 export type DateBoundary = {
   clock: 'oracle_sysdate';
-  transform: 'month_start' | 'next_month_start' | 'identity';
+  transform: 'month_start' | 'next_month_start' | 'identity' | 'day_start';
+  /** Additive month offset for `month_start` (0 = current month start). */
+  offsetMonths?: number;
   inclusive: boolean;
 };
 
@@ -124,6 +126,34 @@ export type QueryFilter =
       columnBusinessRole?: string;
       lowerBoundary: DateBoundary;
       upperBoundary: DateBoundary;
+      provenanceNodeIds: string[];
+      provenanceEdgeIds: string[];
+    }
+  | {
+      filterRole: string;
+      type: 'rolling_date_interval';
+      status: 'resolved' | 'missing' | 'incomplete';
+      columnOracleNodeId: string | null;
+      columnBusinessRole?: string;
+      clock: 'oracle_sysdate';
+      startTransform: 'day_start';
+      daysParameterId: 'report_period_days';
+      lowerInclusive: boolean;
+      upperInclusive: boolean;
+      provenanceNodeIds: string[];
+      provenanceEdgeIds: string[];
+    }
+  | {
+      filterRole: string;
+      type: 'explicit_local_date_interval';
+      status: 'resolved' | 'missing' | 'incomplete';
+      columnOracleNodeId: string | null;
+      columnBusinessRole?: string;
+      startParameterId: 'report_period_start_date';
+      endInclusiveParameterId: 'report_period_end_date';
+      lowerInclusive: boolean;
+      upperInclusive: boolean;
+      dateSemantics: 'oracle_local_date';
       provenanceNodeIds: string[];
       provenanceEdgeIds: string[];
     }
@@ -205,6 +235,10 @@ export type TetaReadOnlyQueryPlan = {
   projections: QueryColumnRef[];
   filters: QueryFilter[];
   ordering: QueryOrdering[];
+  /** Stage 3H — typed period carried from Stage 3B when resolved. */
+  reportParameters?: {
+    period: import('../teta-report-period/teta-report-period.types').TetaReportPeriod;
+  } | null;
   /** Business entity one report row stands for, e.g. `health_examination`. */
   reportGrain?: string | null;
   existenceFilters?: QueryExistenceFilter[];

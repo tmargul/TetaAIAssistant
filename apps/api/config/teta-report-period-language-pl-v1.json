@@ -1,0 +1,53 @@
+{
+  "contractVersion": "teta-report-period-language-pl-v1",
+  "maxPeriodDays": 366,
+  "minPeriodDays": 1,
+  "currentMonthPhrases": [
+    "w tym miesiącu",
+    "w bieżącym miesiącu",
+    "bieżącym miesiącu",
+    "tego miesiąca",
+    "bieżącego miesiąca",
+    "kończących się w tym miesiącu",
+    "kończące się w tym miesiącu",
+    "tracą ważność w bieżącym miesiącu",
+    "wygasają w tym miesiącu"
+  ],
+  "nextMonthPhrases": [
+    "w przyszłym miesiącu",
+    "w następnym miesiącu",
+    "przyszłego miesiąca",
+    "następnego miesiąca",
+    "kończących się w przyszłym miesiącu",
+    "kończące się w przyszłym miesiącu",
+    "kończących się w następnym miesiącu",
+    "wygasają w następnym miesiącu",
+    "wygasają w przyszłym miesiącu"
+  ],
+  "nextNDaysPatterns": [
+    "w ciągu\\s+(\\d{1,4})\\s+dni",
+    "przez\\s+następne\\s+(\\d{1,4})\\s+dni",
+    "w ciągu\\s+następnych\\s+(\\d{1,4})\\s+dni",
+    "następne\\s+(\\d{1,4})\\s+dni",
+    "na\\s+(\\d{1,4})\\s+dni",
+    "w\\s+ciągu\\s+(\\d{1,4})\\s+dni"
+  ],
+  "explicitRangePatterns": [
+    "od\\s+(\\d{1,2}[./-]\\d{1,2}[./-]\\d{4}|\\d{4}-\\d{2}-\\d{2})\\s+do\\s+(\\d{1,2}[./-]\\d{1,2}[./-]\\d{4}|\\d{4}-\\d{2}-\\d{2})",
+    "od\\s+(\\d{1,2}\\s+(?:stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|października|listopada|grudnia)\\s+\\d{4})\\s+do\\s+(\\d{1,2}\\s+(?:stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|października|listopada|grudnia)\\s+\\d{4})"
+  ],
+  "monthNames": {
+    "stycznia": 1,
+    "lutego": 2,
+    "marca": 3,
+    "kwietnia": 4,
+    "maja": 5,
+    "czerwca": 6,
+    "lipca": 7,
+    "sierpnia": 8,
+    "września": 9,
+    "października": 10,
+    "listopada": 11,
+    "grudnia": 12
+  }
+}

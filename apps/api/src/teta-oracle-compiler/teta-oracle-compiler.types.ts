@@ -200,8 +200,14 @@ export type CompiledBind = {
   name: string;
   placeholder: string;
   filterRole: string;
-  valueKind: 'user_literal';
+  valueKind: 'user_literal' | 'report_period_parameter';
   oracleType: 'string' | 'number' | 'date';
+  semanticType?: 'positive_integer_days' | 'local_date' | 'user_literal';
+  sourceParameterId?:
+    | 'report_period_days'
+    | 'report_period_start_date'
+    | 'report_period_end_date'
+    | null;
 };
 
 export type CompiledSqlValidationCheck =

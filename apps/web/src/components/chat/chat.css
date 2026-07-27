@@ -950,7 +950,8 @@
 }
 
 .chat__canonical-report-meta,
-.chat__canonical-report-expires {
+.chat__canonical-report-expires,
+.chat__canonical-report-period {
   font-size: 0.8rem;
   color: var(--muted, #6b7280);
 }

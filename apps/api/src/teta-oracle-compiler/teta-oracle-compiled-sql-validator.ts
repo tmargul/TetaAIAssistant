@@ -35,7 +35,7 @@ const STRUCTURAL_KEYWORDS = new Set([
   'EXISTS',
 ]);
 
-const ALLOWED_FUNCTIONS = new Set(['TRUNC', 'ADD_MONTHS', 'SYSDATE']);
+const ALLOWED_FUNCTIONS = new Set(['TRUNC', 'ADD_MONTHS', 'SYSDATE', 'TO_DATE']);
 
 const FORBIDDEN_WORDS: Array<{ word: string; check: CompiledSqlValidationCheck; code: string }> = [
   { word: 'INSERT', check: 'no_dml_or_ddl', code: 'dml_forbidden' },
@@ -96,9 +96,12 @@ export type CompiledSqlValidationInput = {
   bindPlaceholders: string[];
   /** Aliases of filter-only sources; legal only inside a controlled EXISTS subquery. */
   existenceAliases?: string[];
-  /** Literals the compiler is allowed to emit inline (only date-format masks such as 'MM'). */
+  /** Literals the compiler is allowed to emit inline (Oracle date-format masks, not user data). */
   allowedInlineLiterals?: string[];
 };
+
+/** Oracle date-format masks — never user-supplied values. */
+export const DEFAULT_ALLOWED_INLINE_LITERALS = ["'MM'", "'YYYY-MM-DD'"] as const;
 
 type ExistsBlock = { start: number; end: number; text: string };
 
@@ -297,7 +300,9 @@ export function validateCompiledSql(input: CompiledSqlValidationInput): Compiled
   }
 
   const allowedLiterals = new Set(
-    (input.allowedInlineLiterals ?? ["'MM'"]).map((l) => l.toUpperCase()),
+    (input.allowedInlineLiterals ?? [...DEFAULT_ALLOWED_INLINE_LITERALS]).map((l) =>
+      l.toUpperCase(),
+    ),
   );
   for (const literal of literals) {
     if (!allowedLiterals.has(literal.toUpperCase())) {

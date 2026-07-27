@@ -3,8 +3,46 @@
   "routes": [
     {
       "routeId": "occupational_health_examinations_current_month",
+      "routeFamilyId": "occupational_health_examinations",
       "intent": "build_employee_report",
       "subject": "occupational_health_examinations",
+      "periodKind": "current_month",
+      "enabled": true,
+      "allowedWorkModes": ["vendor"],
+      "allowedRoles": ["admin"],
+      "resultPresentation": "table_and_xlsx",
+      "pipeline": "canonical_stage3b_to_stage3f"
+    },
+    {
+      "routeId": "occupational_health_examinations_next_month",
+      "routeFamilyId": "occupational_health_examinations",
+      "intent": "build_employee_report",
+      "subject": "occupational_health_examinations",
+      "periodKind": "next_month",
+      "enabled": true,
+      "allowedWorkModes": ["vendor"],
+      "allowedRoles": ["admin"],
+      "resultPresentation": "table_and_xlsx",
+      "pipeline": "canonical_stage3b_to_stage3f"
+    },
+    {
+      "routeId": "occupational_health_examinations_next_n_days",
+      "routeFamilyId": "occupational_health_examinations",
+      "intent": "build_employee_report",
+      "subject": "occupational_health_examinations",
+      "periodKind": "next_n_days",
+      "enabled": true,
+      "allowedWorkModes": ["vendor"],
+      "allowedRoles": ["admin"],
+      "resultPresentation": "table_and_xlsx",
+      "pipeline": "canonical_stage3b_to_stage3f"
+    },
+    {
+      "routeId": "occupational_health_examinations_date_range",
+      "routeFamilyId": "occupational_health_examinations",
+      "intent": "build_employee_report",
+      "subject": "occupational_health_examinations",
+      "periodKind": "explicit_date_range",
       "enabled": true,
       "allowedWorkModes": ["vendor"],
       "allowedRoles": ["admin"],

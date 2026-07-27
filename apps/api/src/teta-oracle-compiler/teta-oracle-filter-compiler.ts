@@ -218,6 +218,117 @@ export function compileFilters(input: {
       continue;
     }
 
+    if (filter.type === 'rolling_date_interval') {
+      const typed = filter as Extract<QueryFilter, { type: 'rolling_date_interval' }>;
+      if (!typed.columnOracleNodeId) {
+        return {
+          ok: false,
+          issue: {
+            code: 'filter_without_column_evidence',
+            filterRole: filter.filterRole,
+            message: `Filter ${filter.filterRole} has no columnOracleNodeId`,
+          },
+        };
+      }
+      const preferredRole = sourceRoleForColumnBusinessRole(
+        plan.projections,
+        typed.columnBusinessRole,
+      );
+      const column = accessColumns.resolve(typed.columnOracleNodeId, preferredRole);
+      if (!column.ok) {
+        return {
+          ok: false,
+          issue: {
+            code: column.issue.code,
+            filterRole: filter.filterRole,
+            message: `Filter ${filter.filterRole}: ${column.issue.message}`,
+          },
+        };
+      }
+      const daysBind = bindPlan.allocatePeriod({
+        filterRole: filter.filterRole,
+        oracleType: 'number',
+        semanticType: 'positive_integer_days',
+        sourceParameterId: typed.daysParameterId,
+      });
+      const colExpr = column.column.qualifiedExpression;
+      push(
+        filter,
+        'rolling_interval_lower',
+        `${colExpr} >= TRUNC(SYSDATE)`,
+        column.column.sourceRole,
+        [column.column.accessColumnNodeId],
+      );
+      push(
+        filter,
+        'rolling_interval_upper',
+        `${colExpr} < TRUNC(SYSDATE) + ${daysBind.placeholder}`,
+        column.column.sourceRole,
+        [column.column.accessColumnNodeId],
+        [daysBind.name],
+      );
+      continue;
+    }
+
+    if (filter.type === 'explicit_local_date_interval') {
+      const typed = filter as Extract<QueryFilter, { type: 'explicit_local_date_interval' }>;
+      if (!typed.columnOracleNodeId) {
+        return {
+          ok: false,
+          issue: {
+            code: 'filter_without_column_evidence',
+            filterRole: filter.filterRole,
+            message: `Filter ${filter.filterRole} has no columnOracleNodeId`,
+          },
+        };
+      }
+      const preferredRole = sourceRoleForColumnBusinessRole(
+        plan.projections,
+        typed.columnBusinessRole,
+      );
+      const column = accessColumns.resolve(typed.columnOracleNodeId, preferredRole);
+      if (!column.ok) {
+        return {
+          ok: false,
+          issue: {
+            code: column.issue.code,
+            filterRole: filter.filterRole,
+            message: `Filter ${filter.filterRole}: ${column.issue.message}`,
+          },
+        };
+      }
+      const startBind = bindPlan.allocatePeriod({
+        filterRole: filter.filterRole,
+        oracleType: 'string',
+        semanticType: 'local_date',
+        sourceParameterId: typed.startParameterId,
+      });
+      const endBind = bindPlan.allocatePeriod({
+        filterRole: filter.filterRole,
+        oracleType: 'string',
+        semanticType: 'local_date',
+        sourceParameterId: typed.endInclusiveParameterId,
+      });
+      const colExpr = column.column.qualifiedExpression;
+      push(
+        filter,
+        'explicit_interval_lower',
+        `${colExpr} >= TO_DATE(${startBind.placeholder},'YYYY-MM-DD')`,
+        column.column.sourceRole,
+        [column.column.accessColumnNodeId],
+        [startBind.name],
+      );
+      push(
+        filter,
+        'explicit_interval_upper',
+        `${colExpr} < TO_DATE(${endBind.placeholder},'YYYY-MM-DD') + 1`,
+        column.column.sourceRole,
+        [column.column.accessColumnNodeId],
+        [endBind.name],
+      );
+      continue;
+    }
+
     if (filter.type === 'effective_on_date') {
       const typed = filter as Extract<QueryFilter, { type: 'effective_on_date' }>;
       if (typed.clock !== 'oracle_sysdate') {

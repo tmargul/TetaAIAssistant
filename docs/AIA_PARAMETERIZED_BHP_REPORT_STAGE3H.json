@@ -1,0 +1,314 @@
+{
+  "contractVersion": "teta-aia-report-period-v1",
+  "generatedAt": "2026-07-27T16:46:49.103Z",
+  "offlineAudit": {
+    "counters": {
+      "periodKindsResolved": {
+        "current_month": 1,
+        "next_month": 1,
+        "next_n_days": 1,
+        "explicit_date_range": 1
+      },
+      "periodMissingClarifications": 1,
+      "periodInvalidRejections": 3,
+      "periodAmbiguousRejections": 1,
+      "periodRejectedWithoutOracle": 5,
+      "currentMonthZeroBinds": 1,
+      "nextMonthCompiled": 1,
+      "nextNDaysSingleBind": 1,
+      "explicitRangeDualBind": 1,
+      "userDatesEmbeddedInSqlText": 0,
+      "bindTamperingRejections": 1,
+      "bindDefinitionsRequired": 2,
+      "bindValuesValidated": 1,
+      "bindValuesInterpolatedIntoSql": 0,
+      "parameterizedStatementsExecuted": 1,
+      "fingerprintDiffersForDifferentDays": 1,
+      "oracleConnectionsOpened": 0,
+      "oracleConnectionsClosed": 0,
+      "businessStatementsExecuted": 0,
+      "llmCalls": 0,
+      "qdrantCalls": 0,
+      "embeddingCalls": 0,
+      "legacyAgentCalls": 0,
+      "canonicalRouteFallbackToLegacyOracleAgent": 0,
+      "chatReportRowsPersisted": 0,
+      "chatReportTokensPersisted": 0,
+      "sqlTextsSentToClient": 0,
+      "rowDataLeaks": 0,
+      "chatRequestsReceived": 0,
+      "canonicalRoutesMatched": 0,
+      "canonicalPipelineExecutions": 0,
+      "reportsCompletedEmpty": 0,
+      "downloadTokensIssued": 0,
+      "downloadRequests": 0,
+      "downloadsSuccessful": 0,
+      "writesAttempted": 0,
+      "commits": 0
+    },
+    "references": [
+      {
+        "id": "registry-four-period-routes",
+        "ok": true,
+        "detail": "teta-aia-chat-report-routes-v1"
+      },
+      {
+        "id": "period-current-month",
+        "ok": true,
+        "detail": "current_month"
+      },
+      {
+        "id": "compile-current-month-zero-binds",
+        "ok": true,
+        "detail": "binds=0"
+      },
+      {
+        "id": "period-next-month",
+        "ok": true,
+        "detail": "next_month"
+      },
+      {
+        "id": "compile-next-month",
+        "ok": true,
+        "detail": "ADD_MONTHS offsets"
+      },
+      {
+        "id": "period-next-n-days",
+        "ok": true,
+        "detail": "next_n_days"
+      },
+      {
+        "id": "compile-next-n-days-p001",
+        "ok": true,
+        "detail": ":P001"
+      },
+      {
+        "id": "period-explicit-range",
+        "ok": true,
+        "detail": "explicit_date_range"
+      },
+      {
+        "id": "compile-explicit-range-binds",
+        "ok": true,
+        "detail": "P001/P002 no literals"
+      },
+      {
+        "id": "sqlSha256-differs-by-period-kind",
+        "ok": true,
+        "detail": "current vs rolling"
+      },
+      {
+        "id": "sqlSha256-stable-for-same-kind",
+        "ok": true,
+        "detail": "rolling template stable"
+      },
+      {
+        "id": "fingerprint-differs-for-different-days",
+        "ok": true,
+        "detail": "P001 10 vs 11"
+      },
+      {
+        "id": "bind-tampering-rejected",
+        "ok": true,
+        "detail": "invalid_execution_bind"
+      },
+      {
+        "id": "reject-zero-days",
+        "ok": true,
+        "detail": "invalid"
+      },
+      {
+        "id": "reject-reversed-range",
+        "ok": true,
+        "detail": "invalid"
+      },
+      {
+        "id": "reject-too-many-days",
+        "ok": true,
+        "detail": "invalid"
+      },
+      {
+        "id": "reject-ambiguous",
+        "ok": true,
+        "detail": "ambiguous"
+      },
+      {
+        "id": "reject-missing",
+        "ok": true,
+        "detail": "missing"
+      },
+      {
+        "id": "parameterized-exec-offline-fake",
+        "ok": true,
+        "detail": "completed_empty"
+      },
+      {
+        "id": "route-current-month-admin",
+        "ok": true,
+        "detail": "occupational_health_examinations_current_month"
+      },
+      {
+        "id": "persistence-redaction",
+        "ok": true,
+        "detail": "rows/token null"
+      }
+    ],
+    "referencesTested": 21,
+    "referencesPassed": 21,
+    "sqlSha256ByPeriodKind": {
+      "current_month": "dda844dc9e3d0ef2d63591ff4f9d44a827d3d53034c0babbde6bafdf696de4b4",
+      "next_month": "55199105edd7c3ef0c3675620689f001aaa0c329e0c7e5e80ad586fc36f69b28",
+      "next_n_days": "af8bc13ae917ecfb754d382a35677176a7178193c25c9b981d1ee0666c6c2360",
+      "explicit_date_range": "4ddf419d5f6b60ad014e3f7754a6319753cb22b3821afd547befdeb0fe0506f9"
+    }
+  },
+  "liveAudit": {
+    "attempted": true,
+    "connectionError": null,
+    "scenarios": [
+      {
+        "scenarioId": "live-current-month",
+        "question": "Zrób raport badań BHP kończących się w tym miesiącu.",
+        "periodKind": "current_month",
+        "status": "completed_empty",
+        "rowCount": 0,
+        "columnCount": 8,
+        "sqlSha256": "7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691",
+        "executionFingerprintSha256": "c3c2bdb1a7be4e61c5a07983340dd945dad157854bd4df885cc554c0641240eb",
+        "bindDefinitionsRequired": 0,
+        "bindValuesValidated": 0,
+        "parameterizedStatementsExecuted": 0,
+        "bindValuesInterpolatedIntoSql": 0,
+        "oracleConnectionsOpened": 1,
+        "oracleConnectionsClosed": 1,
+        "downloadAvailable": true,
+        "downloadShaMatches": true,
+        "responseBytesSha256": "6c1f3f354bccf1f9ceb1494cb2320ab72a8564c1d3e23d32c845f79c11d6806c",
+        "fileSha256": "6c1f3f354bccf1f9ceb1494cb2320ab72a8564c1d3e23d32c845f79c11d6806c",
+        "counters": {
+          "chatRequestsReceived": 1,
+          "canonicalRoutesMatched": 1,
+          "canonicalPipelineExecutions": 1,
+          "stage3fExecutions": 1,
+          "reportsCompletedEmpty": 1,
+          "downloadTokensIssued": 1,
+          "downloadRequests": 1,
+          "downloadsSuccessful": 1,
+          "llmCalls": 0,
+          "qdrantCalls": 0,
+          "legacyAgentCalls": 0
+        },
+        "trace": {
+          "traceId": "72d88cea-3aad-4f50-8cb0-bc5fb63b3fe6",
+          "requestReceived": true,
+          "routeResolution": {
+            "stage3bCalled": true,
+            "stage3bStatus": "ready",
+            "intent": "build_employee_report",
+            "subject": "occupational_health_examinations",
+            "routeMatched": true,
+            "routeId": "occupational_health_examinations_current_month",
+            "authorized": true
+          },
+          "pipeline": {
+            "stage3dResolved": true,
+            "stage3cCalled": true,
+            "stage3cStatus": "ready_for_compilation",
+            "stage3eCalled": true,
+            "stage3eStatus": "compiled",
+            "stage3fCalled": true,
+            "stage3fStatus": "completed_empty"
+          },
+          "delivery": {
+            "responseMapped": true,
+            "xlsxGenerated": true,
+            "downloadRegistered": true
+          },
+          "integrity": {
+            "directCanonicalRouteBypassDetected": false,
+            "prebuiltPlanUsedByStage3g": false,
+            "precompiledSqlUsedByStage3g": false
+          }
+        },
+        "reference": {
+          "id": "live-current-month",
+          "ok": true,
+          "detail": "completed_empty 0x8 oracle 1/1"
+        },
+        "errorMessage": null
+      },
+      {
+        "scenarioId": "live-date-range",
+        "question": "Zrób raport badań BHP od 01.07.2026 do 31.07.2026.",
+        "periodKind": "explicit_date_range",
+        "status": "completed_empty",
+        "rowCount": 0,
+        "columnCount": 8,
+        "sqlSha256": "b62ab1e52c5a0b1954be034d7f055653f020f817562f218145757487a00672ab",
+        "executionFingerprintSha256": "67a4edb33b07e0a3a5a43efc67e64735f048f00f5d391bb387a5e54159b35933",
+        "bindDefinitionsRequired": 2,
+        "bindValuesValidated": 2,
+        "parameterizedStatementsExecuted": 1,
+        "bindValuesInterpolatedIntoSql": 0,
+        "oracleConnectionsOpened": 1,
+        "oracleConnectionsClosed": 1,
+        "downloadAvailable": true,
+        "downloadShaMatches": true,
+        "responseBytesSha256": "386c7336723447ac711eb0ecd6bedf2f6b7a256646f0d8a35cf1cb0492677e59",
+        "fileSha256": "386c7336723447ac711eb0ecd6bedf2f6b7a256646f0d8a35cf1cb0492677e59",
+        "counters": {
+          "chatRequestsReceived": 1,
+          "canonicalRoutesMatched": 1,
+          "canonicalPipelineExecutions": 1,
+          "stage3fExecutions": 1,
+          "reportsCompletedEmpty": 1,
+          "downloadTokensIssued": 1,
+          "downloadRequests": 1,
+          "downloadsSuccessful": 1,
+          "llmCalls": 0,
+          "qdrantCalls": 0,
+          "legacyAgentCalls": 0
+        },
+        "trace": {
+          "traceId": "924933bb-fa77-414c-8815-ed9a71c3b8a8",
+          "requestReceived": true,
+          "routeResolution": {
+            "stage3bCalled": true,
+            "stage3bStatus": "ready",
+            "intent": "build_employee_report",
+            "subject": "occupational_health_examinations",
+            "routeMatched": true,
+            "routeId": "occupational_health_examinations_date_range",
+            "authorized": true
+          },
+          "pipeline": {
+            "stage3dResolved": true,
+            "stage3cCalled": true,
+            "stage3cStatus": "ready_for_compilation",
+            "stage3eCalled": true,
+            "stage3eStatus": "compiled",
+            "stage3fCalled": true,
+            "stage3fStatus": "completed_empty"
+          },
+          "delivery": {
+            "responseMapped": true,
+            "xlsxGenerated": true,
+            "downloadRegistered": true
+          },
+          "integrity": {
+            "directCanonicalRouteBypassDetected": false,
+            "prebuiltPlanUsedByStage3g": false,
+            "precompiledSqlUsedByStage3g": false
+          }
+        },
+        "reference": {
+          "id": "live-date-range",
+          "ok": true,
+          "detail": "completed_empty 0x8 oracle 1/1"
+        },
+        "errorMessage": null
+      }
+    ]
+  },
+  "strictErrors": []
+}

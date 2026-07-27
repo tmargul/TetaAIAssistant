@@ -26,8 +26,9 @@ import {
   defaultCanonicalChatReportRoutesPath,
   loadCanonicalChatReportRoutes,
 } from './teta-chat-report-route-registry';
-import { resolveCanonicalChatReportRoute } from './teta-chat-report-route-resolver';
+import { resolveCanonicalChatReportRoute, resolveBhpFamilyRouteForPeriodIssue } from './teta-chat-report-route-resolver';
 import {
+  buildPeriodClarificationChatReport,
   buildRejectedChatReport,
   mapOracleResultToChatReport,
 } from './teta-chat-report-response-mapper';
@@ -48,6 +49,12 @@ import {
   type TetaCanonicalChatReportTrace,
 } from './teta-canonical-chat-report-trace';
 import type { TetaEvidencePlan } from '../teta-planner/teta-stage3b.types';
+import { bindValuesForPeriod } from '../teta-report-period/teta-report-period-parser';
+import {
+  buildPeriodExportFileName,
+  periodPresentation,
+} from '../teta-report-period/teta-report-period-presentation';
+import type { TetaReportPeriod } from '../teta-report-period/teta-report-period.types';
 
 export type Stage3gOrchestratorDeps = {
   pipeline?: Stage3gCanonicalPipeline;
@@ -156,6 +163,50 @@ export class TetaCanonicalReportOrchestratorService {
       counters.stage3bReady = 1;
     }
 
+    // Stage 3H — period missing/ambiguous/invalid: clarify without Oracle (no legacy fallback).
+    const periodIssue = resolveBhpFamilyRouteForPeriodIssue({
+      evidencePlan,
+      registry,
+      context,
+    });
+    if (periodIssue?.matched) {
+      counters.canonicalRoutesMatched = 1;
+      trace.routeResolution.routeMatched = true;
+      trace.routeResolution.routeId = periodIssue.route.routeId;
+      trace.routeResolution.authorized = periodIssue.authorized;
+      if (!periodIssue.authorized) {
+        counters.canonicalRoutesRejectedByAuth = 1;
+        applyTraceToCounters(trace, counters);
+        return {
+          handled: true,
+          legacyFallbackUsed: false,
+          counters,
+          trace,
+          response: buildRejectedChatReport({
+            routeId: periodIssue.route.routeId,
+            errorCode: 'canonical_report_not_authorized',
+          }),
+        };
+      }
+      counters.authorizationAccepted = 1;
+      const periodRes = evidencePlan.reportParameters?.period;
+      applyTraceToCounters(trace, counters);
+      return {
+        handled: true,
+        legacyFallbackUsed: false,
+        counters,
+        trace,
+        response: buildPeriodClarificationChatReport({
+          routeId: periodIssue.route.routeId,
+          clarificationQuestion:
+            periodRes?.clarificationQuestion ??
+            evidencePlan.clarificationQuestions[0]?.question ??
+            null,
+          invalid: periodRes?.status === 'invalid',
+        }),
+      };
+    }
+
     const resolved = resolveCanonicalChatReportRoute({
       evidencePlan,
       registry,
@@ -194,6 +245,27 @@ export class TetaCanonicalReportOrchestratorService {
     }
 
     counters.authorizationAccepted = 1;
+
+    const period: TetaReportPeriod | null =
+      evidencePlan.reportParameters?.period?.status === 'resolved'
+        ? evidencePlan.reportParameters.period.period
+        : null;
+    if (!period) {
+      counters.reportsFailed = 1;
+      applyTraceToCounters(trace, counters);
+      return {
+        handled: true,
+        legacyFallbackUsed: false,
+        counters,
+        trace,
+        response: buildPeriodClarificationChatReport({
+          routeId: resolved.route.routeId,
+          clarificationQuestion: 'Proszę podać okres raportu badań BHP.',
+        }),
+      };
+    }
+    const presentation = periodPresentation(period);
+    const trustedBindValues = bindValuesForPeriod(period);
 
     // Stage 3D — subject roles (no SQL generation).
     try {
@@ -336,6 +408,7 @@ export class TetaCanonicalReportOrchestratorService {
         approval,
         adapter,
         expectedSqlSha256: compiled.sqlSha256,
+        bindValues: trustedBindValues,
       });
       trace.pipeline.stage3fStatus = result.executionStatus;
     } catch (error) {
@@ -399,6 +472,7 @@ export class TetaCanonicalReportOrchestratorService {
           executionId: randomUUID(),
           download: null,
           errorCode: 'canonical_report_timed_out',
+          period,
         }),
       };
     }
@@ -418,6 +492,7 @@ export class TetaCanonicalReportOrchestratorService {
           executionId: randomUUID(),
           download: null,
           errorCode: 'canonical_report_execution_rejected',
+          period,
         }),
       };
     }
@@ -441,13 +516,28 @@ export class TetaCanonicalReportOrchestratorService {
           executionId: randomUUID(),
           download: null,
           errorCode: 'canonical_report_failed',
+          period,
         }),
       };
     }
 
     onProgress?.('exporting', 'Tworzę plik Excel…');
     const workbook = createSheetJsWorkbookAdapter();
-    const exported = await this.exporter.exportToBuffer(result, workbook);
+    const exported = await this.exporter.exportToBuffer(result, workbook, {
+      fileName: buildPeriodExportFileName(period, new Date()),
+      reportInfo: {
+        title: presentation.title,
+        criterion: presentation.criterion,
+        periodKindLabel: presentation.periodKindLabel,
+        startDate: presentation.clientMeta.startDate,
+        endDateInclusive: presentation.clientMeta.endDateInclusive,
+        days: presentation.clientMeta.days,
+        clockSourceNote:
+          period.kind === 'explicit_date_range'
+            ? 'Jawny zakres dat (lokalne daty Oracle)'
+            : 'Oracle SYSDATE (relative periods)',
+      },
+    });
     trace.delivery.xlsxGenerated = true;
     const executionId = randomUUID();
 
@@ -497,6 +587,7 @@ export class TetaCanonicalReportOrchestratorService {
       result,
       routeId: resolved.route.routeId,
       executionId,
+      period,
       download: {
         token: registered.token,
         fileName: exported.fileName,

@@ -52,22 +52,46 @@ function summarize(plan: TetaReadOnlyQueryPlan): Record<string, unknown> {
       predicates: j.predicates.length,
       evidenceType: j.evidenceType,
     })),
-    filters: plan.filters.map((f) => ({
-      filterRole: f.filterRole,
-      type: f.type,
-      status: f.status,
-      ...(f.type === 'half_open_date_interval'
-        ? {
-            columnOracleNodeId: f.columnOracleNodeId,
-            lower: f.lowerBoundary,
-            upper: f.upperBoundary,
-          }
-        : {
-            clock: f.clock,
-            predicates: f.resolvedPredicates.length,
-            missingReason: f.missingReason,
-          }),
-    })),
+    filters: plan.filters.map((f) => {
+      if (f.type === 'half_open_date_interval') {
+        return {
+          filterRole: f.filterRole,
+          type: f.type,
+          status: f.status,
+          columnOracleNodeId: f.columnOracleNodeId,
+          lower: f.lowerBoundary,
+          upper: f.upperBoundary,
+        };
+      }
+      if (f.type === 'rolling_date_interval') {
+        return {
+          filterRole: f.filterRole,
+          type: f.type,
+          status: f.status,
+          columnOracleNodeId: f.columnOracleNodeId,
+          daysParameterId: f.daysParameterId,
+          clock: f.clock,
+        };
+      }
+      if (f.type === 'explicit_local_date_interval') {
+        return {
+          filterRole: f.filterRole,
+          type: f.type,
+          status: f.status,
+          columnOracleNodeId: f.columnOracleNodeId,
+          startParameterId: f.startParameterId,
+          endInclusiveParameterId: f.endInclusiveParameterId,
+        };
+      }
+      return {
+        filterRole: f.filterRole,
+        type: f.type,
+        status: f.status,
+        clock: f.clock,
+        predicates: f.resolvedPredicates.length,
+        missingReason: f.missingReason,
+      };
+    }),
     ordering: plan.ordering,
     limits: plan.limits,
     authorization: plan.authorization,
@@ -474,8 +498,17 @@ export function runStage3cAudit(input: {
       return (
         n +
         p.filters.filter((f) => {
-          if (f.type === 'half_open_date_interval') return !f.columnOracleNodeId;
-          return f.resolvedPredicates.length === 0;
+          if (
+            f.type === 'half_open_date_interval' ||
+            f.type === 'rolling_date_interval' ||
+            f.type === 'explicit_local_date_interval'
+          ) {
+            return !f.columnOracleNodeId;
+          }
+          if (f.type === 'effective_on_date') {
+            return f.resolvedPredicates.length === 0;
+          }
+          return false;
         }).length
       );
     }, 0),
@@ -558,8 +591,17 @@ export function runStage3cAudit(input: {
     (n, p) =>
       n +
       p.filters.filter((f) => {
-        if (f.type === 'half_open_date_interval') return !f.columnOracleNodeId;
-        return f.resolvedPredicates.length === 0;
+        if (
+          f.type === 'half_open_date_interval' ||
+          f.type === 'rolling_date_interval' ||
+          f.type === 'explicit_local_date_interval'
+        ) {
+          return !f.columnOracleNodeId;
+        }
+        if (f.type === 'effective_on_date') {
+          return f.resolvedPredicates.length === 0;
+        }
+        return false;
       }).length,
     0,
   );

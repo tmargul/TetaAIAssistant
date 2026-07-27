@@ -35,7 +35,17 @@ export function redactCanonicalReportForHistory(
     metadata: {
       executionId: report.metadata.executionId,
       sqlSha256: report.metadata.sqlSha256,
+      executionFingerprintSha256: report.metadata.executionFingerprintSha256 ?? null,
       reportGrain: report.metadata.reportGrain,
+      period: report.metadata.period
+        ? {
+            periodKind: report.metadata.period.periodKind,
+            normalizedLabel: report.metadata.period.normalizedLabel,
+            startDate: report.metadata.period.startDate,
+            endDateInclusive: report.metadata.period.endDateInclusive,
+            days: report.metadata.period.days,
+          }
+        : null,
     },
   };
 }

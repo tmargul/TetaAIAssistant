@@ -47,10 +47,10 @@
     {
       "id": "occupational_health_examinations",
       "patterns": [
-        "badan.{0,30}bhp",
-        "bhp.{0,30}badan",
+        "bada[nń].{0,30}bhp",
+        "bhp.{0,30}bada[nń]",
         "badaniami\\s+bhp",
-        "badan\\s+bhp",
+        "bada[nń]\\s+bhp",
         "medycyn.{0,20}pracy"
       ],
       "graphSearchTerms": [

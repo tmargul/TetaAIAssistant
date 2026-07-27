@@ -114,6 +114,18 @@ function offlineEvidencePlanReady() {
         normalizedValue: 'occupational_health_examinations',
       },
     ],
+    reportParameters: {
+      period: {
+        status: 'resolved' as const,
+        period: {
+          kind: 'current_month' as const,
+          source: 'user_text' as const,
+          normalizedLabel: 'Bieżący miesiąc',
+        },
+        clarificationQuestion: null,
+        errors: [] as string[],
+      },
+    },
   };
 }
 

@@ -49,10 +49,21 @@ export type CanonicalChatReportDownload = {
   fileSha256: string | null;
 };
 
+export type CanonicalChatReportPeriodMeta = {
+  periodKind: string | null;
+  normalizedLabel: string | null;
+  startDate: string | null;
+  endDateInclusive: string | null;
+  days: number | null;
+};
+
 export type CanonicalChatReportMetadata = {
   executionId: string | null;
   sqlSha256: string | null;
+  executionFingerprintSha256?: string | null;
   reportGrain: string | null;
+  /** Safe period criteria — never includes bind names or raw bind maps. */
+  period?: CanonicalChatReportPeriodMeta | null;
 };
 
 export type TetaCanonicalChatReportResponse = {

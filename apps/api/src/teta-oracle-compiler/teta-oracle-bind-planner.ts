@@ -12,9 +12,17 @@ export type UserLiteralRequest = {
   oracleType: 'string' | 'number' | 'date';
 };
 
+export type ReportPeriodBindRequest = {
+  filterRole: string;
+  oracleType: 'string' | 'number';
+  semanticType: 'positive_integer_days' | 'local_date';
+  sourceParameterId: 'report_period_days' | 'report_period_start_date' | 'report_period_end_date';
+};
+
 export type BindPlan = {
   binds: CompiledBind[];
   allocate(request: UserLiteralRequest): CompiledBind;
+  allocatePeriod(request: ReportPeriodBindRequest): CompiledBind;
   names(): string[];
 };
 
@@ -36,6 +44,24 @@ export function createBindPlan(): BindPlan {
         filterRole: request.filterRole,
         valueKind: 'user_literal',
         oracleType: request.oracleType,
+        semanticType: 'user_literal',
+        sourceParameterId: null,
+      };
+      binds.push(bind);
+      return bind;
+    },
+    allocatePeriod(request) {
+      const ordinal = binds.length + 1;
+      const placeholder = bindPlaceholderFor(ordinal);
+      const bind: CompiledBind = {
+        ordinal,
+        name: placeholder.slice(1),
+        placeholder,
+        filterRole: request.filterRole,
+        valueKind: 'report_period_parameter',
+        oracleType: request.oracleType,
+        semanticType: request.semanticType,
+        sourceParameterId: request.sourceParameterId,
       };
       binds.push(bind);
       return bind;

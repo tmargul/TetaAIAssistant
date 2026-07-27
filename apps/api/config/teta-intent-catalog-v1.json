@@ -50,6 +50,7 @@
         { "id": "lista_pracownikow_warunek", "pattern": "lista\\s+pracownik.{0,40}(bez|z\\s+|kt[oó]rym)", "weight": 3 },
         { "id": "pokaz_pracownikow", "pattern": "poka[zż]\\s+pracownik", "weight": 3 },
         { "id": "koncza_sie_badan", "pattern": "ko[nń]cz[aą]\\s+si[eę]\\s+badan", "weight": 4 },
+        { "id": "raport_badan_bhp", "pattern": "raport\\s+bada[nń].{0,30}bhp|raport\\s+bhp.{0,30}bada[nń]", "weight": 4 },
         { "id": "wygasajace_umowy", "pattern": "wygasaj[aą]cych\\s+um[oó]w|wygasaj[aą]ce\\s+umowy", "weight": 4 },
         { "id": "badan_bhp", "pattern": "badan.{0,20}bhp|bhp.{0,20}badan", "weight": 3 }
       ]

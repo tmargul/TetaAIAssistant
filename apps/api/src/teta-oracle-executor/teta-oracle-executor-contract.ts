@@ -73,6 +73,14 @@ export function emptyStage3fCounters(): Stage3fAuditCounters {
     llmCalls: 0,
     qdrantCalls: 0,
     agentCalls: 0,
+    bindDefinitionsRequired: 0,
+    bindValuesProvided: 0,
+    bindValuesValidated: 0,
+    missingBindValues: 0,
+    extraBindValues: 0,
+    invalidBindValues: 0,
+    bindValuesInterpolatedIntoSql: 0,
+    parameterizedStatementsExecuted: 0,
   };
 }
 

@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-27** (Stage 3G live audit OK — gotowy do commita; Stage 3F w `f957dd2`)
+> Ostatnia aktualizacja: **2026-07-27** (Stage 3H offline+live OK — niezacommitowany; Stage 3G w `603a0d5`)
 
 ---
 
@@ -44,7 +44,7 @@ W trybie **real** logujesz się **prawdziwym kontem Oracle** — `teta_admin` ni
 1. **Edycja połączenia z UI** — zakładka **Ustawienia → Połączenie Oracle** (tylko admin). Hasło przy edycji można zostawić puste (zachowuje poprzednie).
 2. **Recovery bez logowania** — na ekranie logowania link *„Problemy z logowaniem? Zmień parametry połączenia Oracle”*; zapis z nagłówkiem `X-Teta-Oracle-Recovery: 1`.
 3. **`POST /api/oracle/config`** — bez auth przy pierwszym setupie lub recovery; po skonfigurowaniu wymaga JWT admina.
-4. Stara konfiguracja fake (`192.168.1.10`, SID `TETA`) w SQLite powodowała timeout — aktualnie w paczce: `172.20.23.182` / `TETAHR`. NJS-510 = VM nieosiągalna (brak trasy / VM wyłączona), nie błąd aplikacji.
+4. Stara konfiguracja fake (`192.168.1.10`, SID `TETA`) w SQLite powodowała timeout — aktualny host Oracle: **`172.27.16.145`** / `TETAHR`. NJS-510 = VM nieosiągalna (brak trasy / VM wyłączona), nie błąd aplikacji.
 5. Błędy Oracle (timeout, NJS-510) powinny wracać jako czytelny komunikat (`BadRequestException`), nie HTTP 500.
 
 ### Panel aktualizacji (z repo, ten komputer)
@@ -137,7 +137,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Live wymaga flag: `--execute-real-oracle` + `--confirm-readonly-execution`
 - Moduł: `apps/api/src/teta-oracle-executor/`; CLI `executor:stage3f`
 
-### Stage 3G — 2026-07-27
+### Stage 3G — 2026-07-27 ✅ (`603a0d5`)
 
 - routeId: `occupational_health_examinations_current_month`
 - audit v2 + trace patch: offline/live/download/ui sections, invarianty `noDirect*`
@@ -146,9 +146,22 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Oracle opened/closed: 1 / 1; business SELECT: 1; download: 1/1; strictErrors: []
 - testy: Stage 3G **139**, Stage 3F **89**
 - uiAudit: `not_measured`
-- Oracle w SQLite: host **`172.29.48.145`**, port 1521, SID `TETAHR`, user `teta_admin`, `TETA_ORACLE_MODE=real`
-- Docelowe IP w docs: `172.27.16.145` — po `Set-TetaVmNetwork.ps1` na VM
-- Stage 3G v1: admin/vendor only; **gotowy do commita** (czeka na decyzję)
+- Oracle w SQLite: host **`172.27.16.145`**, port 1521, SID `TETAHR`, user `teta_admin`, `TETA_ORACLE_MODE=real`
+- IP VM: `172.27.16.145` (nie używać starych: `172.29.48.145`, `172.22.240.145`, …)
+- Stage 3G v1: admin/vendor only; **zacommitowany**
+
+### Stage 3H — 2026-07-27 (niezacommitowany)
+
+- Period kinds: `current_month` | `next_month` | `next_n_days` | `explicit_date_range`
+- Bindy: current/next month **0**; next_n_days **1×NUMBER `:P001`**; explicit range **2×VARCHAR2 `:P001/:P002`**
+- Wartości użytkownika nigdy w `sqlText`; `executionFingerprintSha256` obok `sqlSha256`
+- Live A current_month: `completed_empty` 0×8; binds 0; sqlSha256=`7b86576c…c691` (regresja 3F/3G); fingerprint=`c3c2bdb1…240eb`; Oracle **1/1**; download SHA OK
+- Live B date range 01.07–31.07.2026: `completed_empty` 0×8; binds 2 validated; parameterizedStatementsExecuted=1; sqlSha256=`b62ab1e5…72ab`; fingerprint=`67a4edb3…5933`; Oracle **1/1**; download SHA OK
+- Offline audit: 21/21 refs; strictErrors=[]
+- Testy: Stage 3H **85**; 3B–3G regresja OK; API+web build OK
+- CLI: `pnpm --filter @teta/api run chat-report:stage3h [-- --execute-real-oracle --confirm-readonly-execution]`
+- Artefakty: `docs/AIA_PARAMETERIZED_BHP_REPORT_STAGE3H.*`, `.local/AIA_PARAMETERIZED_BHP_REPORT_STAGE3H*.json`
+- **Czeka na decyzję o commit** — bez nowych domen / bez innych raportów
 
 
 ## Otwarte / do sprawdzenia

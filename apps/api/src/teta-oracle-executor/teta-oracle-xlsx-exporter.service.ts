@@ -13,6 +13,7 @@ import {
   isValidExportFileName,
   sha256Bytes,
 } from './teta-oracle-executor-contract';
+import { isValidPeriodExportFileName } from '../teta-report-period/teta-report-period-presentation';
 import { headerLabelsOf } from './teta-oracle-result-metadata';
 import {
   STAGE3F_DATE_NUMBER_FORMAT,
@@ -85,13 +86,36 @@ function fitWidth(label: string, values: Array<string | number | Date | null>): 
   return Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, width + 2));
 }
 
-function buildInfoRows(result: TetaOracleReadResult, generatedAt: Date): Stage3fXlsxCell[][] {
+function buildInfoRows(
+  result: TetaOracleReadResult,
+  generatedAt: Date,
+  reportInfo?: Stage3fExportRequest['reportInfo'],
+): Stage3fXlsxCell[][] {
+  const title = reportInfo?.title ?? STAGE3F_REPORT_DEFINITION.title;
+  const criterion = reportInfo?.criterion ?? STAGE3F_REPORT_DEFINITION.criterion;
   const pairs: Array<[string, string]> = [
-    ['Nazwa raportu', STAGE3F_REPORT_DEFINITION.title],
+    ['Nazwa raportu', title],
     ['Data i czas wygenerowania', generatedAt.toISOString()],
-    ['Kryterium', STAGE3F_REPORT_DEFINITION.criterion],
+    ['Kryterium', criterion],
+    ['Rodzaj okresu', reportInfo?.periodKindLabel ?? 'Bieżący miesiąc'],
+    ['Kryterium okresu', criterion],
+  ];
+  if (reportInfo?.startDate) {
+    pairs.push(['Data początkowa', reportInfo.startDate]);
+  }
+  if (reportInfo?.endDateInclusive) {
+    pairs.push(['Data końcowa', reportInfo.endDateInclusive]);
+  }
+  if (reportInfo?.days != null) {
+    pairs.push(['Liczba dni', String(reportInfo.days)]);
+  }
+  pairs.push(
     ['Zakres pracowników', STAGE3F_REPORT_DEFINITION.employeeScope],
-    ['Źródło czasu', STAGE3F_REPORT_DEFINITION.clockSource],
+    [
+      'Źródło czasu',
+      reportInfo?.clockSourceNote ??
+        `${STAGE3F_REPORT_DEFINITION.clockSource} (relative periods)`,
+    ],
     ['Liczba wierszy', String(result.rowCount)],
     ['Limit wierszy', String(result.limits.maxRows)],
     [
@@ -102,6 +126,7 @@ function buildInfoRows(result: TetaOracleReadResult, generatedAt: Date): Stage3f
     ],
     ['reportGrain', result.reportGrain ?? ''],
     ['sqlSha256', result.sqlSha256 ?? ''],
+    ['executionFingerprintSha256', result.executionFingerprintSha256 ?? ''],
     ['executionId', result.audit.generatedAt],
     [
       'Uwagi',
@@ -111,13 +136,14 @@ function buildInfoRows(result: TetaOracleReadResult, generatedAt: Date): Stage3f
           ? 'Zwrócono maksymalny limit 500 wierszy. Wynik może być niepełny.'
           : '',
     ],
-  ];
+  );
   return pairs.map(([label, value]) => [textCell(label), textCell(value)]);
 }
 
 export function buildWorkbookSpec(
   result: TetaOracleReadResult,
   generatedAt: Date,
+  reportInfo?: Stage3fExportRequest['reportInfo'],
 ): Stage3fXlsxWorkbookSpec {
   const headers = headerLabelsOf(result.columns);
   const headerRow: Stage3fXlsxCell[] = headers.map((label) => textCell(label));
@@ -143,7 +169,7 @@ export function buildWorkbookSpec(
       },
       {
         name: STAGE3F_SHEET_INFO,
-        rows: buildInfoRows(result, generatedAt),
+        rows: buildInfoRows(result, generatedAt, reportInfo),
         freezeFirstRow: false,
         autoFilter: false,
         columnWidths: [28, 64],
@@ -236,7 +262,7 @@ export class TetaOracleXlsxExporterService {
     }
 
     const fileName = request.fileName ?? buildExportFileName(generatedAt);
-    if (!isValidExportFileName(fileName)) {
+    if (!isValidExportFileName(fileName) && !isValidPeriodExportFileName(fileName)) {
       return emptyExport('rejected_result', {
         code: 'invalid_export_file_name',
         message: `Unsafe export file name: ${fileName}`,
@@ -253,7 +279,7 @@ export class TetaOracleXlsxExporterService {
       });
     }
 
-    const spec = buildWorkbookSpec(result, generatedAt);
+    const spec = buildWorkbookSpec(result, generatedAt, request.reportInfo);
     let bytes: Buffer;
     try {
       bytes = await request.workbook.write(spec);
@@ -380,19 +406,34 @@ export class TetaOracleXlsxExporterService {
     };
   }
 
-  /** Buffer-only export for a future UI download path — no filesystem write. */
+  /** Buffer-only export for chat download path — no filesystem write. */
   async exportToBuffer(
     result: TetaOracleReadResult,
     workbook: Stage3fExportRequest['workbook'],
-    clock: () => Date = () => new Date(),
+    clockOrOptions?:
+      | (() => Date)
+      | {
+          clock?: () => Date;
+          fileName?: string;
+          reportInfo?: Stage3fExportRequest['reportInfo'];
+        },
   ): Promise<{ bytes: Buffer; fileSha256: string; fileName: string }> {
+    const options =
+      typeof clockOrOptions === 'function'
+        ? { clock: clockOrOptions }
+        : clockOrOptions ?? {};
+    const clock = options.clock ?? (() => new Date());
     const generatedAt = clock();
-    const spec = buildWorkbookSpec(result, generatedAt);
+    const fileName = options.fileName ?? buildExportFileName(generatedAt);
+    if (!isValidExportFileName(fileName) && !isValidPeriodExportFileName(fileName)) {
+      throw new Error(`Unsafe export file name: ${fileName}`);
+    }
+    const spec = buildWorkbookSpec(result, generatedAt, options.reportInfo);
     const bytes = await workbook.write(spec);
     return {
       bytes,
       fileSha256: sha256Bytes(bytes),
-      fileName: buildExportFileName(generatedAt),
+      fileName,
     };
   }
 }

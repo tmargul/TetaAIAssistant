@@ -205,6 +205,10 @@ export type TetaEvidencePlan = {
   resolvedGraphEvidence: ResolvedGraphEvidence;
   clarificationQuestions: ClarificationQuestion[];
   selectionRequiredBeforeExecution: boolean;
+  /** Stage 3H — typed report period for BHP (and future parameterized reports). */
+  reportParameters?: {
+    period: import('../teta-report-period/teta-report-period.types').TetaReportPeriodResolution;
+  };
   executionPolicy: ExecutionPolicy;
   audit: {
     deterministic: true;

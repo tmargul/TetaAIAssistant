@@ -38,6 +38,7 @@ import {
   type TetaEvidencePlan,
   type TetaPlanningRequest,
 } from './teta-stage3b.types';
+import { resolveReportPeriod } from '../teta-report-period/teta-report-period-parser';
 
 /** Minimal Stage 3A client surface used by the planner. */
 export type Stage3aResolverClient = {
@@ -687,6 +688,30 @@ export class TetaEvidencePlannerService {
     });
     if (intentResult.type === 'unsupported') planningStatus = 'unsupported';
 
+    // Stage 3H — resolve BHP report period deterministically (no LLM / no host clock).
+    let reportParameters: TetaEvidencePlan['reportParameters'] | undefined;
+    const reportSubject = entities.find(
+      (e) => e.type === 'reportSubject' && e.normalizedValue === 'occupational_health_examinations',
+    );
+    if (intentResult.type === 'build_employee_report' && reportSubject) {
+      const periodResolution = resolveReportPeriod(request.question);
+      reportParameters = { period: periodResolution };
+      if (periodResolution.status === 'missing' || periodResolution.status === 'ambiguous') {
+        planningStatus = 'needs_clarification';
+        if (
+          periodResolution.clarificationQuestion &&
+          !clarificationQuestions.some((q) => q.question === periodResolution.clarificationQuestion)
+        ) {
+          clarificationQuestions.push({
+            entityType: 'relativeDateRange',
+            question: periodResolution.clarificationQuestion,
+          });
+        }
+      } else if (periodResolution.status === 'invalid') {
+        planningStatus = 'invalid';
+      }
+    }
+
     // ready means plan complete for next evidence stage — never SQL-ready
     if (planningStatus === 'ready') {
       resolvedGraphEvidence.warnings.push(
@@ -721,6 +746,7 @@ export class TetaEvidencePlannerService {
       resolvedGraphEvidence,
       clarificationQuestions,
       selectionRequiredBeforeExecution,
+      ...(reportParameters ? { reportParameters } : {}),
       executionPolicy: {
         sqlGenerationAllowed: false,
         sqlExecutionAllowed: false,

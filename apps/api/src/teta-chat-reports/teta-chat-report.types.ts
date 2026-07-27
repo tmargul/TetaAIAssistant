@@ -52,8 +52,15 @@ export type Stage3gProgressStage = 'planning' | 'compiling' | 'executing' | 'exp
 
 export type Stage3gRouteDefinition = {
   routeId: string;
+  routeFamilyId?: string;
   intent: string;
   subject: string;
+  /** Stage 3H — which period variant this route serves. */
+  periodKind?:
+    | 'current_month'
+    | 'next_month'
+    | 'next_n_days'
+    | 'explicit_date_range';
   enabled: boolean;
   allowedWorkModes: string[];
   allowedRoles: string[];
@@ -108,7 +115,15 @@ export type Stage3gChatReportResponse = {
   metadata: {
     executionId: string | null;
     sqlSha256: string | null;
+    executionFingerprintSha256?: string | null;
     reportGrain: string | null;
+    period?: {
+      periodKind: string | null;
+      normalizedLabel: string | null;
+      startDate: string | null;
+      endDateInclusive: string | null;
+      days: number | null;
+    } | null;
   };
   errorCode?: Stage3gErrorCode | null;
 };

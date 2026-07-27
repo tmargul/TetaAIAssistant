@@ -79,6 +79,12 @@ export function CanonicalOracleReportCard({
         </span>
       </div>
 
+      {report.metadata.period?.normalizedLabel ? (
+        <p className="chat__canonical-report-period">
+          Okres: {report.metadata.period.normalizedLabel}
+        </p>
+      ) : null}
+
       {report.report.limitReached && (
         <p className="chat__canonical-report-warning">
           Wyświetlono maksymalny limit 500 rekordów. Wynik może być niepełny.

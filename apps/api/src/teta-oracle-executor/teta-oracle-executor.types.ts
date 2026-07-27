@@ -250,6 +250,15 @@ export type Stage3fAuditCounters = {
   llmCalls: number;
   qdrantCalls: number;
   agentCalls: number;
+  /** Stage 3H — parameterized bind metrics. */
+  bindDefinitionsRequired: number;
+  bindValuesProvided: number;
+  bindValuesValidated: number;
+  missingBindValues: number;
+  extraBindValues: number;
+  invalidBindValues: number;
+  bindValuesInterpolatedIntoSql: number;
+  parameterizedStatementsExecuted: number;
 };
 
 /** Offline-only slice of the Stage 3F audit — never mixed into live strict checks. */
@@ -290,6 +299,8 @@ export type TetaOracleReadResult = {
   reportGrain: string | null;
   sourceSqlSha256: string | null;
   sqlSha256: string | null;
+  /** Stage 3H — fingerprint of sqlSha256 + ordered trusted bind values. */
+  executionFingerprintSha256: string | null;
   sessionUser: string | null;
   oracleSession: {
     verified: boolean;
@@ -490,6 +501,16 @@ export type Stage3fExportRequest = {
   repoRoot: string;
   fileName?: string;
   clock?: () => Date;
+  /** Stage 3H — optional period-aware Informacje sheet overrides (no bind names). */
+  reportInfo?: {
+    title?: string;
+    criterion?: string;
+    periodKindLabel?: string;
+    startDate?: string | null;
+    endDateInclusive?: string | null;
+    days?: number | null;
+    clockSourceNote?: string;
+  };
 };
 
 /* ------------------------------------------------------------------ audit io */

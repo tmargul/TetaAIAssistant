@@ -15,6 +15,10 @@ import { validateCompiledSql } from '../teta-oracle-compiler/teta-oracle-compile
 import type { TetaCompiledOracleSelect } from '../teta-oracle-compiler/teta-oracle-compiler.types';
 import { gateCompiledSelect } from './teta-oracle-execution-gate';
 import { evaluateExecutionPolicy } from './teta-oracle-execution-policy';
+import {
+  computeExecutionFingerprintSha256,
+  validateExecutionBindValues,
+} from './teta-oracle-execution-fingerprint';
 import { emptyStage3fCounters } from './teta-oracle-executor-contract';
 import { buildResultColumns } from './teta-oracle-result-metadata';
 import { isUnsupportedOracleDbType, normalizeRows } from './teta-oracle-result-normalizer';
@@ -99,6 +103,7 @@ type BuildResultInput = {
   rejection: Stage3fViolation | null;
   warnings: Stage3fViolation[];
   generatedAt: string;
+  executionFingerprintSha256?: string | null;
 };
 
 type PendingOutcome = {
@@ -125,6 +130,7 @@ function buildResult(input: BuildResultInput): TetaOracleReadResult {
     reportGrain: input.compiled.reportGrain ?? null,
     sourceSqlSha256: input.compiled.sqlSha256 ?? null,
     sqlSha256: input.gate.recomputedSqlSha256,
+    executionFingerprintSha256: input.executionFingerprintSha256 ?? null,
     sessionUser: input.sessionUser,
     oracleSession: {
       verified: input.sessionUser === 'TETA_ADMIN',
@@ -206,7 +212,7 @@ export class TetaOracleReadOnlyExecutorService {
       projections: compiled?.projections ?? [],
     }).columns;
 
-    const finish = (pending: PendingOutcome): TetaOracleReadResult => {
+    const finish = (pending: PendingOutcome & { executionFingerprintSha256?: string | null }): TetaOracleReadResult => {
       timings.totalMs = now() - startedAt;
       return buildResult({
         compiled,
@@ -222,6 +228,7 @@ export class TetaOracleReadOnlyExecutorService {
         rejection: pending.rejection,
         warnings,
         generatedAt: clock().toISOString(),
+        executionFingerprintSha256: pending.executionFingerprintSha256 ?? null,
       });
     };
 
@@ -244,6 +251,35 @@ export class TetaOracleReadOnlyExecutorService {
           message: `Missing approval flag(s): ${policy.missingApprovals.join(' ')}`,
         },
       });
+    }
+
+    // Stage 3H — validate trusted bind values before any Oracle connection.
+    counters.bindDefinitionsRequired = compiled.binds.length;
+    counters.bindValuesProvided = Object.keys(request.bindValues ?? {}).length;
+    const bindValidation = validateExecutionBindValues({
+      compiled,
+      bindValues: request.bindValues,
+    });
+    counters.missingBindValues = bindValidation.missingBindValues;
+    counters.extraBindValues = bindValidation.extraBindValues;
+    counters.invalidBindValues = bindValidation.invalidBindValues;
+    if (!bindValidation.ok) {
+      return finish({
+        executionStatus: 'rejected',
+        rejection: {
+          code: bindValidation.code,
+          message: bindValidation.message,
+        },
+      });
+    }
+    counters.bindValuesValidated = bindValidation.orderedBindValues.length;
+    const executionFingerprintSha256 = computeExecutionFingerprintSha256({
+      compiledContractVersion: compiled.contractVersion,
+      sqlSha256: gate.recomputedSqlSha256 ?? compiled.sqlSha256 ?? '',
+      orderedBindValues: bindValidation.orderedBindValues,
+    });
+    if (compiled.binds.length > 0) {
+      counters.parameterizedStatementsExecuted = 0; // set to 1 after successful execute
     }
 
     const adapter = request.adapter;
@@ -334,6 +370,9 @@ export class TetaOracleReadOnlyExecutorService {
               },
             );
             counters.businessStatements = 1;
+            if (compiled.binds.length > 0) {
+              counters.parameterizedStatementsExecuted = 1;
+            }
           } catch (error) {
             timings.executeMs = now() - executeStartedAt;
             if (isTimeoutError(error)) {
@@ -533,15 +572,16 @@ export class TetaOracleReadOnlyExecutorService {
     }
 
     // finish() runs after finally so counters include successful closes.
-    return finish(
-      pending ?? {
-        executionStatus: 'failed',
+    return finish({
+      ...(pending ?? {
+        executionStatus: 'failed' as const,
         rejection: {
           code: 'executor_internal_error',
           message: 'Executor finished without an outcome',
         },
-      },
-    );
+      }),
+      executionFingerprintSha256,
+    });
   }
 }
 

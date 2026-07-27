@@ -55,8 +55,20 @@ export function compileDateBoundary(boundary: DateBoundary | null | undefined): 
   switch (boundary.transform) {
     case 'identity':
       return { ok: true, text: ORACLE_SYSDATE };
-    case 'month_start':
-      return { ok: true, text: ORACLE_MONTH_START };
+    case 'day_start':
+      return { ok: true, text: 'TRUNC(SYSDATE)' };
+    case 'month_start': {
+      const offset = boundary.offsetMonths ?? 0;
+      if (!Number.isInteger(offset) || offset < 0 || offset > 24) {
+        return {
+          ok: false,
+          code: 'unsupported_date_transform',
+          message: `Unsupported month_start offsetMonths=${String(boundary.offsetMonths)}`,
+        };
+      }
+      if (offset === 0) return { ok: true, text: ORACLE_MONTH_START };
+      return { ok: true, text: `ADD_MONTHS(TRUNC(SYSDATE,'MM'),${offset})` };
+    }
     case 'next_month_start':
       return { ok: true, text: ORACLE_NEXT_MONTH_START };
     default:
