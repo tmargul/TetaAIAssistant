@@ -126,6 +126,12 @@ export type Stage3fOracleAdapter = {
   ): Promise<Stage3fAdapterSelectResult>;
   /** Cancels an in-flight statement after a client-side timeout. */
   break?(): Promise<void>;
+  /** Closes an open business ResultSet, if the driver left one open. */
+  closeResultSet?(): Promise<void>;
+  /** True while the adapter still holds an open connection. */
+  isConnectionOpen?(): boolean;
+  /** True while a business ResultSet is still open. */
+  hasOpenResultSet?(): boolean;
 };
 
 export type Stage3fAdapterCounters = {
@@ -134,6 +140,8 @@ export type Stage3fAdapterCounters = {
   preflightStatements: number;
   businessStatements: number;
   breaks: number;
+  resultSetsOpened: number;
+  resultSetsClosed: number;
 };
 
 /* -------------------------------------------------------------------- result */
@@ -187,6 +195,12 @@ export type Stage3fResultValidation = {
 export type Stage3fAuditCounters = {
   connectionsOpened: number;
   connectionsClosed: number;
+  /** Connections still open after the executor returns. Must be 0. */
+  openOracleConnectionsAfterRun: number;
+  connectionCloseFailures: number;
+  resultSetsOpened: number;
+  resultSetsClosed: number;
+  resultSetCloseFailures: number;
   preflightStatements: number;
   /** Compiled Stage 3E statements executed. Exactly 1 on a successful run. */
   businessStatements: number;
@@ -199,6 +213,7 @@ export type Stage3fAuditCounters = {
   sessionUserRejections: number;
   timeouts: number;
   statementBreaks: number;
+  automaticRetries: number;
   businessRowsRead: number;
   /** Must stay 0: no cell value may be written to a log sink. */
   rowValuesLogged: number;
@@ -215,6 +230,34 @@ export type Stage3fAuditCounters = {
   llmCalls: number;
   qdrantCalls: number;
   agentCalls: number;
+};
+
+/** Offline-only slice of the Stage 3F audit — never mixed into live strict checks. */
+export type Stage3fOfflineAuditSlice = {
+  oracleConnectionsOpened: number;
+  businessStatementsExecuted: number;
+  fixtureXlsxExportsGenerated: number;
+  fixtureXlsxParsebackOk: boolean;
+};
+
+/** Live-only slice — fixtures must not increment these counters. */
+export type Stage3fLiveAuditSlice = {
+  requested: boolean;
+  oracleConnectionsOpened: number;
+  oracleConnectionsClosed: number;
+  openOracleConnectionsAfterRun: number;
+  connectionCloseFailures: number;
+  resultSetsOpened: number;
+  resultSetsClosed: number;
+  resultSetCloseFailures: number;
+  preflightStatementsExecuted: number;
+  businessStatementsExecuted: number;
+  liveXlsxExportsRequested: number;
+  liveXlsxExportsGenerated: number;
+  liveXlsxRowsWritten: number;
+  liveXlsxColumnsWritten: number;
+  liveXlsxSheetsCreated: number;
+  liveXlsxParsebackOk: boolean | null;
 };
 
 export type TetaOracleReadResult = {
@@ -464,6 +507,10 @@ export type Stage3fAuditReport = {
   mode: 'offline_fake_adapter' | 'live_oracle';
   liveRequested: boolean;
   live: Stage3fLiveSummary;
+  /** Fixture / fake-adapter audit — never summed into live strict metrics. */
+  offlineAudit: Stage3fOfflineAuditSlice;
+  /** Live Oracle Reference A metrics only. */
+  liveAudit: Stage3fLiveAuditSlice;
   referencesTested: number;
   referencesPassed: number;
   referenceResults: Stage3fReferenceResult[];

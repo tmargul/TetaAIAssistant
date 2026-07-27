@@ -5,6 +5,11 @@
  * and only then open a connection. The preflight settles the session identity before the business
  * statement runs, and the statement executed is byte-for-byte `compiled.sqlText` — this service never
  * builds, rewrites or concatenates SQL.
+ *
+ * Resource accounting is deliberate: outcome fields are collected inside `try`, but `finish()` runs
+ * only after the central `finally` has closed the result set and connection and updated counters.
+ * That avoids the classic bug where `return finish(...)` snapshots `connectionsClosed=0` before
+ * `finally` actually closes the connection.
  */
 import { validateCompiledSql } from '../teta-oracle-compiler/teta-oracle-compiled-sql-validator';
 import type { TetaCompiledOracleSelect } from '../teta-oracle-compiler/teta-oracle-compiler.types';
@@ -36,6 +41,7 @@ import {
 } from './teta-oracle-executor.types';
 
 const TIMEOUT_ERROR_RE = /timeout|timed out|DPI-1067|ORA-01013|NJS-500/i;
+const SECRET_LEAK_RE = /password|connectString|CONNECT_DATA|DESCRIPTION=|\buser\s*=/i;
 
 export class Stage3fTimeoutError extends Error {
   constructor(timeoutMs: number) {
@@ -50,10 +56,20 @@ export function isTimeoutError(error: unknown): boolean {
   return TIMEOUT_ERROR_RE.test(message);
 }
 
-/** Error text may echo Oracle diagnostics; row values never reach it because no row is bound. */
-function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error ?? 'unknown error');
+/** Safe diagnostics: never echo connection strings, passwords or credentials. */
+export function safeOracleErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    const message = error.message;
+    if (SECRET_LEAK_RE.test(message)) {
+      return 'Oracle resource operation failed (details redacted)';
+    }
+    return message;
+  }
+  const text = String(error ?? 'unknown error');
+  if (SECRET_LEAK_RE.test(text)) {
+    return 'Oracle resource operation failed (details redacted)';
+  }
+  return text;
 }
 
 type Timings = TetaOracleReadResult['timings'];
@@ -83,6 +99,15 @@ type BuildResultInput = {
   rejection: Stage3fViolation | null;
   warnings: Stage3fViolation[];
   generatedAt: string;
+};
+
+type PendingOutcome = {
+  executionStatus: Stage3fExecutionStatus;
+  rejection: Stage3fViolation | null;
+  columns?: Stage3fResultColumn[];
+  rows?: Stage3fResultRow[];
+  sessionUser?: string | null;
+  resultValidation?: Stage3fResultValidation | null;
 };
 
 function buildResult(input: BuildResultInput): TetaOracleReadResult {
@@ -137,10 +162,6 @@ function buildResult(input: BuildResultInput): TetaOracleReadResult {
   };
 }
 
-/**
- * Races the driver call against a client-side deadline. On expiry the adapter is asked to break the
- * statement so the server stops working on a result nobody will read.
- */
 async function executeWithDeadline(
   work: Promise<Stage3fAdapterSelectResult>,
   timeoutMs: number,
@@ -158,7 +179,6 @@ async function executeWithDeadline(
     ]);
   } finally {
     if (timer) clearTimeout(timer);
-    // The abandoned driver promise must not surface as an unhandled rejection.
     void work.catch(() => undefined);
   }
 }
@@ -186,24 +206,20 @@ export class TetaOracleReadOnlyExecutorService {
       projections: compiled?.projections ?? [],
     }).columns;
 
-    const finish = (
-      executionStatus: Stage3fExecutionStatus,
-      rejection: Stage3fViolation | null,
-      extra: Partial<BuildResultInput> = {},
-    ): TetaOracleReadResult => {
+    const finish = (pending: PendingOutcome): TetaOracleReadResult => {
       timings.totalMs = now() - startedAt;
       return buildResult({
         compiled,
-        executionStatus,
+        executionStatus: pending.executionStatus,
         gate,
         policy,
-        columns: extra.columns ?? baseColumns,
-        rows: extra.rows ?? [],
-        sessionUser: extra.sessionUser ?? null,
+        columns: pending.columns ?? baseColumns,
+        rows: pending.rows ?? [],
+        sessionUser: pending.sessionUser ?? null,
         counters,
         timings,
-        resultValidation: extra.resultValidation ?? null,
-        rejection,
+        resultValidation: pending.resultValidation ?? null,
+        rejection: pending.rejection,
         warnings,
         generatedAt: clock().toISOString(),
       });
@@ -211,24 +227,33 @@ export class TetaOracleReadOnlyExecutorService {
 
     if (!gate.ok) {
       counters.statementsRejectedByGate = 1;
-      return finish('rejected', {
-        code: gate.violations[0]?.code ?? 'gate_rejected',
-        message: `Execution gate rejected the compiled select (${gate.violations.length} violation(s))`,
+      return finish({
+        executionStatus: 'rejected',
+        rejection: {
+          code: gate.violations[0]?.code ?? 'gate_rejected',
+          message: `Execution gate rejected the compiled select (${gate.violations.length} violation(s))`,
+        },
       });
     }
 
     if (!policy.liveOracleAllowed) {
-      return finish('rejected', {
-        code: 'execution_not_approved',
-        message: `Missing approval flag(s): ${policy.missingApprovals.join(' ')}`,
+      return finish({
+        executionStatus: 'rejected',
+        rejection: {
+          code: 'execution_not_approved',
+          message: `Missing approval flag(s): ${policy.missingApprovals.join(' ')}`,
+        },
       });
     }
 
     const adapter = request.adapter;
     if (!adapter) {
-      return finish('failed', {
-        code: 'missing_oracle_adapter',
-        message: 'No Oracle adapter was supplied',
+      return finish({
+        executionStatus: 'failed',
+        rejection: {
+          code: 'missing_oracle_adapter',
+          message: 'No Oracle adapter was supplied',
+        },
       });
     }
 
@@ -236,30 +261,26 @@ export class TetaOracleReadOnlyExecutorService {
     const maxRows = limits.maxRows;
     const timeoutMs = limits.statementTimeoutMs;
 
+    let connectionOpened = false;
+    let businessResultSetOpened = false;
+    let pending: PendingOutcome | null = null;
+
     const connectStartedAt = now();
     try {
       await adapter.openConnection();
+      connectionOpened = true;
       counters.connectionsOpened = 1;
     } catch (error) {
       timings.connectMs = now() - connectStartedAt;
-      return finish('failed', {
-        code: 'oracle_connection_failed',
-        message: errorMessage(error),
+      return finish({
+        executionStatus: 'failed',
+        rejection: {
+          code: 'oracle_connection_failed',
+          message: safeOracleErrorMessage(error),
+        },
       });
     }
     timings.connectMs = now() - connectStartedAt;
-
-    const closeQuietly = async () => {
-      try {
-        await adapter.closeConnection();
-        counters.connectionsClosed = 1;
-      } catch (error) {
-        warnings.push({
-          code: 'connection_close_failed',
-          message: errorMessage(error),
-        });
-      }
-    };
 
     try {
       const preflightStartedAt = now();
@@ -270,137 +291,257 @@ export class TetaOracleReadOnlyExecutorService {
       } catch (error) {
         timings.preflightMs = now() - preflightStartedAt;
         counters.sessionUserRejections = 1;
-        return finish('rejected', {
-          code: 'preflight_failed',
-          message: errorMessage(error),
-        });
-      }
-      timings.preflightMs = now() - preflightStartedAt;
-
-      const session = validateSessionUser(rawSessionUser);
-      if (!session.ok) {
-        counters.sessionUserRejections = 1;
-        return finish('rejected', session.violation, {
-          sessionUser: session.sessionUser,
-        });
-      }
-
-      const binds = compiled.binds.map((bind) => (request.bindValues ?? {})[bind.name] ?? null);
-
-      const executeStartedAt = now();
-      let raw: Stage3fAdapterSelectResult;
-      try {
-        raw = await executeWithDeadline(
-          adapter.executeSelect(compiled.sqlText!, binds, { maxRows, timeoutMs }),
-          timeoutMs,
-          async () => {
-            if (!adapter.break) return;
-            try {
-              await adapter.break();
-              counters.statementBreaks += 1;
-            } catch {
-              // A failed break is not worse than the timeout itself; the connection is closed next.
-            }
+        pending = {
+          executionStatus: 'rejected',
+          rejection: {
+            code: 'preflight_failed',
+            message: safeOracleErrorMessage(error),
           },
-        );
-        counters.businessStatements = 1;
-      } catch (error) {
-        timings.executeMs = now() - executeStartedAt;
-        if (isTimeoutError(error)) {
-          counters.timeouts = 1;
-          return finish('timed_out', {
-            code: 'statement_timeout',
-            message: errorMessage(error),
-          });
-        }
-        return finish('failed', {
-          code: 'statement_execution_failed',
-          message: errorMessage(error),
-        });
+        };
       }
-      timings.executeMs = now() - executeStartedAt;
 
-      const normalizeStartedAt = now();
-      const declaredDbTypes: Record<string, string | undefined> = {};
-      for (const meta of raw.metaData ?? []) {
-        declaredDbTypes[meta.name] = meta.dbTypeName;
-        if (isUnsupportedOracleDbType(meta.dbTypeName)) {
-          return finish(
-            'rejected',
-            {
-              code: 'unsupported_result_type',
-              message: `Column ${meta.name} has unsupported Oracle type ${meta.dbTypeName}`,
-            },
-            {
-              columns: buildResultColumns({
+      if (!pending) {
+        timings.preflightMs = now() - preflightStartedAt;
+        const session = validateSessionUser(rawSessionUser!);
+        if (!session.ok) {
+          counters.sessionUserRejections = 1;
+          pending = {
+            executionStatus: 'rejected',
+            rejection: session.violation,
+            sessionUser: session.sessionUser,
+          };
+        } else {
+          const binds = compiled.binds.map(
+            (bind) => (request.bindValues ?? {})[bind.name] ?? null,
+          );
+
+          const executeStartedAt = now();
+          let raw: Stage3fAdapterSelectResult | null = null;
+          try {
+            counters.resultSetsOpened = 1;
+            businessResultSetOpened = true;
+            raw = await executeWithDeadline(
+              adapter.executeSelect(compiled.sqlText!, binds, { maxRows, timeoutMs }),
+              timeoutMs,
+              async () => {
+                if (!adapter.break) return;
+                try {
+                  await adapter.break();
+                  counters.statementBreaks += 1;
+                } catch {
+                  // Resources close in finally.
+                }
+              },
+            );
+            counters.businessStatements = 1;
+          } catch (error) {
+            timings.executeMs = now() - executeStartedAt;
+            if (isTimeoutError(error)) {
+              counters.timeouts = 1;
+              pending = {
+                executionStatus: 'timed_out',
+                rejection: {
+                  code: 'statement_timeout',
+                  message: safeOracleErrorMessage(error),
+                },
+                sessionUser: session.sessionUser,
+              };
+            } else {
+              pending = {
+                executionStatus: 'failed',
+                rejection: {
+                  code: 'statement_execution_failed',
+                  message: safeOracleErrorMessage(error),
+                },
+                sessionUser: session.sessionUser,
+              };
+            }
+          }
+
+          if (!pending && raw) {
+            timings.executeMs = now() - executeStartedAt;
+            const normalizeStartedAt = now();
+            const declaredDbTypes: Record<string, string | undefined> = {};
+            let unsupported: PendingOutcome | null = null;
+            for (const meta of raw.metaData ?? []) {
+              declaredDbTypes[meta.name] = meta.dbTypeName;
+              if (isUnsupportedOracleDbType(meta.dbTypeName)) {
+                unsupported = {
+                  executionStatus: 'rejected',
+                  rejection: {
+                    code: 'unsupported_result_type',
+                    message: `Column ${meta.name} has unsupported Oracle type ${meta.dbTypeName}`,
+                  },
+                  columns: buildResultColumns({
+                    projections: compiled.projections,
+                    declaredDbTypes,
+                  }).columns,
+                  rows: [],
+                  sessionUser: session.sessionUser,
+                };
+                break;
+              }
+            }
+
+            if (unsupported) {
+              pending = unsupported;
+            } else {
+              const metadata = buildResultColumns({
                 projections: compiled.projections,
                 declaredDbTypes,
-              }).columns,
-              rows: [],
-            },
-          );
+              });
+              warnings.push(...metadata.violations);
+              const columns = metadata.columns;
+
+              const normalized = normalizeRows(raw.rows ?? [], columns);
+              warnings.push(...normalized.warnings);
+              counters.businessRowsRead = normalized.rows.length;
+              timings.normalizeMs = now() - normalizeStartedAt;
+
+              const resultValidation = validateReadResult({
+                columns,
+                rows: normalized.rows,
+                driverColumns: raw.columns ?? [],
+                maxRows,
+              });
+
+              if (normalized.violations.length || !resultValidation.ok) {
+                const combined: Stage3fResultValidation = {
+                  ok: false,
+                  checks: resultValidation.checks,
+                  violations: [...normalized.violations, ...resultValidation.violations],
+                };
+                pending = {
+                  executionStatus: 'rejected',
+                  rejection: {
+                    code: combined.violations[0]?.code ?? 'result_shape_rejected',
+                    message: `Result validation failed with ${combined.violations.length} violation(s)`,
+                  },
+                  columns,
+                  rows: [],
+                  resultValidation: combined,
+                  sessionUser: session.sessionUser,
+                };
+              } else {
+                const limitReached = isLimitReached(normalized.rows.length, maxRows);
+                if (limitReached) {
+                  warnings.push({
+                    code: 'limit_reached',
+                    message:
+                      'Zwrócono maksymalny limit 500 wierszy; wynik może być niepełny.',
+                  });
+                }
+                const successStatus: Stage3fExecutionStatus = limitReached
+                  ? 'limit_reached'
+                  : normalized.rows.length === 0
+                    ? 'completed_empty'
+                    : 'completed';
+                pending = {
+                  executionStatus: successStatus,
+                  rejection: null,
+                  columns,
+                  rows: normalized.rows,
+                  sessionUser: session.sessionUser,
+                  resultValidation,
+                };
+              }
+            }
+          }
         }
       }
-      const metadata = buildResultColumns({
-        projections: compiled.projections,
-        declaredDbTypes,
-      });
-      warnings.push(...metadata.violations);
-      const columns = metadata.columns;
-
-      const normalized = normalizeRows(raw.rows ?? [], columns);
-      warnings.push(...normalized.warnings);
-      counters.businessRowsRead = normalized.rows.length;
-      timings.normalizeMs = now() - normalizeStartedAt;
-
-      const resultValidation = validateReadResult({
-        columns,
-        rows: normalized.rows,
-        driverColumns: raw.columns ?? [],
-        maxRows,
-      });
-
-      if (normalized.violations.length || !resultValidation.ok) {
-        const combined: Stage3fResultValidation = {
-          ok: false,
-          checks: resultValidation.checks,
-          violations: [...normalized.violations, ...resultValidation.violations],
-        };
-        return finish(
-          'rejected',
-          {
-            code: combined.violations[0]?.code ?? 'result_shape_rejected',
-            message: `Result validation failed with ${combined.violations.length} violation(s)`,
-          },
-          { columns, rows: [], resultValidation: combined },
-        );
-      }
-
-      const limitReached = isLimitReached(normalized.rows.length, maxRows);
-      if (limitReached) {
-        warnings.push({
-          code: 'limit_reached',
-          message:
-            'Zwrócono maksymalny limit 500 wierszy; wynik może być niepełny.',
-        });
-      }
-
-      const successStatus =
-        limitReached
-          ? 'limit_reached'
-          : normalized.rows.length === 0
-            ? 'completed_empty'
-            : 'completed';
-
-      return finish(successStatus, null, {
-        columns,
-        rows: normalized.rows,
-        sessionUser: session.sessionUser,
-        resultValidation,
-      });
     } finally {
-      await closeQuietly();
+      // 1) Close result set before the connection.
+      if (businessResultSetOpened) {
+        try {
+          if (adapter.closeResultSet) {
+            await adapter.closeResultSet();
+          }
+          if (!adapter.hasOpenResultSet || !adapter.hasOpenResultSet()) {
+            counters.resultSetsClosed = 1;
+          } else {
+            counters.resultSetCloseFailures = 1;
+            const closeFailure: Stage3fViolation = {
+              code: 'oracle_result_set_close_failed',
+              message: 'Business result set remained open after closeResultSet',
+            };
+            pending = {
+              executionStatus: 'failed',
+              rejection: pending?.rejection ?? closeFailure,
+              columns: pending?.columns,
+              rows: [],
+              sessionUser: pending?.sessionUser,
+              resultValidation: pending?.resultValidation,
+            };
+          }
+        } catch (error) {
+          counters.resultSetCloseFailures = 1;
+          const closeFailure: Stage3fViolation = {
+            code: 'oracle_result_set_close_failed',
+            message: safeOracleErrorMessage(error),
+          };
+          pending = {
+            executionStatus: 'failed',
+            rejection: pending?.rejection ?? closeFailure,
+            columns: pending?.columns,
+            rows: [],
+            sessionUser: pending?.sessionUser,
+            resultValidation: pending?.resultValidation,
+          };
+        }
+      }
+
+      // 2) Close / release the connection. Counter grows only after a successful close.
+      if (connectionOpened) {
+        try {
+          await adapter.closeConnection();
+          if (!adapter.isConnectionOpen || !adapter.isConnectionOpen()) {
+            counters.connectionsClosed = 1;
+            counters.openOracleConnectionsAfterRun = 0;
+          } else {
+            counters.connectionCloseFailures = 1;
+            counters.openOracleConnectionsAfterRun = 1;
+            const closeFailure: Stage3fViolation = {
+              code: 'oracle_connection_close_failed',
+              message: 'Oracle connection remained open after closeConnection',
+            };
+            pending = {
+              executionStatus: 'failed',
+              rejection: pending?.rejection ?? closeFailure,
+              columns: pending?.columns,
+              rows: [],
+              sessionUser: pending?.sessionUser,
+              resultValidation: pending?.resultValidation,
+            };
+          }
+        } catch (error) {
+          counters.connectionCloseFailures = 1;
+          counters.openOracleConnectionsAfterRun = 1;
+          const closeFailure: Stage3fViolation = {
+            code: 'oracle_connection_close_failed',
+            message: safeOracleErrorMessage(error),
+          };
+          pending = {
+            executionStatus: 'failed',
+            rejection: pending?.rejection ?? closeFailure,
+            columns: pending?.columns,
+            rows: [],
+            sessionUser: pending?.sessionUser,
+            resultValidation: pending?.resultValidation,
+          };
+        }
+      }
     }
+
+    // finish() runs after finally so counters include successful closes.
+    return finish(
+      pending ?? {
+        executionStatus: 'failed',
+        rejection: {
+          code: 'executor_internal_error',
+          message: 'Executor finished without an outcome',
+        },
+      },
+    );
   }
 }
 

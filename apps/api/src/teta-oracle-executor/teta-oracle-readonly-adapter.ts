@@ -4,6 +4,9 @@
  * The only file in the module that knows about a database driver. Credentials and the connect string
  * are injected, so unit tests replace the whole adapter with a fake and never load `oracledb` at all
  * (the driver is required lazily inside `openConnection`).
+ *
+ * Business SELECTs use an explicit ResultSet so the executor can close the cursor before the
+ * connection. autoCommit stays false.
  */
 import { STAGE3F_CONNECTION_SETTINGS } from './teta-oracle-execution-policy';
 import {
@@ -23,9 +26,16 @@ export type Stage3fOracleCredentials = {
 
 type OracleExecuteOptions = {
   outFormat: number;
-  maxRows: number;
+  maxRows?: number;
   autoCommit: boolean;
   extendedMetaData?: boolean;
+  resultSet?: boolean;
+};
+
+type OracleResultSet = {
+  getRows(numRows: number): Promise<unknown[][]>;
+  close(): Promise<void>;
+  metaData?: Array<{ name: string; dbTypeName?: string }>;
 };
 
 type OracleConnection = {
@@ -36,6 +46,7 @@ type OracleConnection = {
   ): Promise<{
     rows?: unknown[][];
     metaData?: Array<{ name: string; dbTypeName?: string }>;
+    resultSet?: OracleResultSet;
   }>;
   break(): Promise<void>;
   close(): Promise<void>;
@@ -81,9 +92,12 @@ export function createOracleReadOnlyAdapter(
     preflightStatements: 0,
     businessStatements: 0,
     breaks: 0,
+    resultSetsOpened: 0,
+    resultSetsClosed: 0,
   };
   const bindNames = options.bindNames ?? [];
   let connection: OracleConnection | null = null;
+  let openResultSet: OracleResultSet | null = null;
 
   const requireConnection = (): OracleConnection => {
     if (!connection) throw new Error('Stage 3F adapter has no open Oracle connection');
@@ -107,6 +121,14 @@ export function createOracleReadOnlyAdapter(
   return {
     counters,
 
+    isConnectionOpen(): boolean {
+      return connection !== null;
+    },
+
+    hasOpenResultSet(): boolean {
+      return openResultSet !== null;
+    },
+
     async openConnection(): Promise<void> {
       const driver = loadDriver();
       connection = await driver.getConnection({
@@ -124,6 +146,14 @@ export function createOracleReadOnlyAdapter(
       connection = null;
       await open.close();
       counters.connectionsClosed += 1;
+    },
+
+    async closeResultSet(): Promise<void> {
+      if (!openResultSet) return;
+      const rs = openResultSet;
+      openResultSet = null;
+      await rs.close();
+      counters.resultSetsClosed += 1;
     },
 
     async executePreflightSessionUser(): Promise<string> {
@@ -155,19 +185,39 @@ export function createOracleReadOnlyAdapter(
       const driver = loadDriver();
       const open = requireConnection();
       open.callTimeout = selectOptions.timeoutMs;
+      counters.resultSetsOpened += 1;
+
       const result = await open.execute(sql, bindObject(binds), {
         outFormat: driver.OUT_FORMAT_ARRAY,
-        maxRows: selectOptions.maxRows,
         autoCommit: STAGE3F_CONNECTION_SETTINGS.autoCommit,
         extendedMetaData: true,
+        resultSet: true,
       });
+
+      const resultSet = result.resultSet;
+      if (!resultSet) {
+        throw new Error('Oracle execute did not return a ResultSet');
+      }
+      openResultSet = resultSet;
       counters.businessStatements += 1;
-      const metaData = result.metaData ?? [];
-      return {
-        columns: metaData.map((meta) => meta.name),
-        rows: result.rows ?? [],
-        metaData: metaData.map((meta) => ({ name: meta.name, dbTypeName: meta.dbTypeName })),
-      };
+
+      try {
+        const rows = await resultSet.getRows(selectOptions.maxRows);
+        const metaData = resultSet.metaData ?? result.metaData ?? [];
+        return {
+          columns: metaData.map((meta) => meta.name),
+          rows: rows ?? [],
+          metaData: metaData.map((meta) => ({ name: meta.name, dbTypeName: meta.dbTypeName })),
+        };
+      } finally {
+        // Prefer closing here so rows are released before the executor continues; the executor
+        // still calls closeResultSet() which becomes a no-op when already closed.
+        if (openResultSet === resultSet) {
+          openResultSet = null;
+          await resultSet.close();
+          counters.resultSetsClosed += 1;
+        }
+      }
     },
 
     async break(): Promise<void> {

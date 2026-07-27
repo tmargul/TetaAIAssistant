@@ -44,7 +44,6 @@ import { TetaOracleSelectCompilerService } from '../teta-oracle-compiler/teta-or
 import type { CompilableQueryPlan } from '../teta-oracle-compiler/teta-oracle-compiler.types';
 import { STAGE3E_REFERENCE_BHP_QUESTION } from '../teta-oracle-compiler/teta-stage3e-audit';
 import {
-  addStage3fCounters,
   emptyStage3fCounters,
   findRowDataLeaks,
   redactReadResult,
@@ -54,9 +53,10 @@ import {
   STAGE3F_RESULT_CONTRACT_VERSION,
   STAGE3F_SOURCE_SELECT_CONTRACT_VERSION,
   STAGE3F_XLSX_CONTRACT_VERSION,
-  type Stage3fAuditCounters,
   type Stage3fAuditReport,
+  type Stage3fLiveAuditSlice,
   type Stage3fLiveSummary,
+  type Stage3fOfflineAuditSlice,
   type Stage3fReferenceResult,
   type TetaOracleReadResult,
 } from './teta-oracle-executor.types';
@@ -164,20 +164,18 @@ async function runOfflineReferences(
   repoRoot: string,
 ): Promise<{
   references: Stage3fReferenceResult[];
-  counters: Stage3fAuditCounters;
+  offlineAudit: Stage3fOfflineAuditSlice;
   errors: string[];
   sampleResult: TetaOracleReadResult | null;
 }> {
   const executor = new TetaOracleReadOnlyExecutorService();
   const exporter = new TetaOracleXlsxExporterService();
   const workbook = createSheetJsWorkbookAdapter();
-  const counters = emptyStage3fCounters();
   const references: Stage3fReferenceResult[] = [];
   const errors: string[] = [];
 
   const compiled = compileFixtureSelect();
 
-  // Gate-only acceptance (no adapter / no connection).
   const gate = gateCompiledSelect({
     compiled,
     expectedSqlSha256: compiled.sqlSha256,
@@ -191,7 +189,6 @@ async function runOfflineReferences(
   });
   if (!gate.ok) errors.push('offline gate rejected fixture compiled select');
 
-  // Denial path: missing flags must not open a connection.
   const deniedAdapter = createFakeOracleAdapter();
   const denied = await executor.execute({
     compiled,
@@ -212,7 +209,7 @@ async function runOfflineReferences(
     errors.push(`no-approval status=${denied.executionStatus}`);
   }
 
-  // Fake-adapter execute is exercised for XLSX input only; Oracle counters stay 0 in offline mode.
+  // Fake-adapter execute builds a fixture result for XLSX only — never counted as live Oracle.
   const fakeAdapter = createFakeOracleAdapter({
     selectResult: fixtureSelectResult(compiled, sampleBusinessRows()),
   });
@@ -232,9 +229,18 @@ async function runOfflineReferences(
     description: 'In-memory fake adapter execute (not counted as live Oracle)',
     executionStatus: executed.executionStatus,
     rejectionCode: executed.rejection?.code ?? null,
-    notes: [`rowCount=${executed.rowCount}`, `columnCount=${executed.columnCount}`],
+    notes: [
+      `rowCount=${executed.rowCount}`,
+      `columnCount=${executed.columnCount}`,
+      `connectionsClosed=${executed.audit.connectionsClosed}`,
+    ],
   });
   if (!okExec) errors.push(`offline fake execute status=${executed.executionStatus}`);
+  if (okExec && executed.audit.connectionsClosed !== 1) {
+    errors.push(
+      `offline fake execute connectionsClosed=${executed.audit.connectionsClosed}, expected 1`,
+    );
+  }
 
   const exported = await exporter.export({
     result: executed,
@@ -243,9 +249,6 @@ async function runOfflineReferences(
     repoRoot,
     fileName: 'badania_bhp_koniec_waznosci_2026-07-24_000000.xlsx',
   });
-  counters.xlsxFilesWritten += exported.exportStatus === 'exported' ? 1 : 0;
-  counters.xlsxFormulaCells += exported.parseback?.formulaCells ?? 0;
-  counters.xlsxParsebackFailures += exported.parseback?.ok === false ? 1 : 0;
   references.push({
     reference: 'offline-xlsx-export',
     description: 'XLSX export + parseback of fixture result',
@@ -260,26 +263,48 @@ async function runOfflineReferences(
     errors.push(`xlsx export failed: ${exported.rejection?.code ?? 'unknown'}`);
   }
 
-  // Offline audit publishes zero live-Oracle counters by contract.
-  counters.connectionsOpened = 0;
-  counters.connectionsClosed = 0;
-  counters.preflightStatements = 0;
-  counters.businessStatements = 0;
-  counters.writeStatements = 0;
-  counters.commits = 0;
+  const offlineAudit: Stage3fOfflineAuditSlice = {
+    // Real Oracle is never opened during offline audit.
+    oracleConnectionsOpened: 0,
+    businessStatementsExecuted: 0,
+    fixtureXlsxExportsGenerated: exported.exportStatus === 'exported' ? 1 : 0,
+    fixtureXlsxParsebackOk: exported.parseback?.ok === true,
+  };
 
-  return { references, counters, errors, sampleResult };
+  return { references, offlineAudit, errors, sampleResult };
 }
 
 async function runLiveReference(
   repoRoot: string,
   credentials: Stage3fOracleCredentials,
-): Promise<{ live: Stage3fLiveSummary; counters: Stage3fAuditCounters; errors: string[]; result: TetaOracleReadResult | null }> {
-  const counters = emptyStage3fCounters();
+): Promise<{
+  live: Stage3fLiveSummary;
+  liveAudit: Stage3fLiveAuditSlice;
+  errors: string[];
+  result: TetaOracleReadResult | null;
+}> {
   const errors: string[] = [];
   const live = emptyLiveSummary();
   live.attempted = true;
   const started = Date.now();
+  const liveAudit: Stage3fLiveAuditSlice = {
+    requested: true,
+    oracleConnectionsOpened: 0,
+    oracleConnectionsClosed: 0,
+    openOracleConnectionsAfterRun: 0,
+    connectionCloseFailures: 0,
+    resultSetsOpened: 0,
+    resultSetsClosed: 0,
+    resultSetCloseFailures: 0,
+    preflightStatementsExecuted: 0,
+    businessStatementsExecuted: 0,
+    liveXlsxExportsRequested: 0,
+    liveXlsxExportsGenerated: 0,
+    liveXlsxRowsWritten: 0,
+    liveXlsxColumnsWritten: 0,
+    liveXlsxSheetsCreated: 0,
+    liveXlsxParsebackOk: null,
+  };
 
   try {
     const { compiler, planFor } = buildLivePipeline(repoRoot);
@@ -293,7 +318,7 @@ async function runLiveReference(
       live.failureCode = compiled.rejection?.code ?? 'compile_failed';
       live.failureMessage = compiled.rejection?.message ?? 'Stage 3E did not compile';
       errors.push(live.failureMessage);
-      return { live, counters, errors, result: null };
+      return { live, liveAudit, errors, result: null };
     }
 
     const adapter = createOracleReadOnlyAdapter({
@@ -319,14 +344,15 @@ async function runLiveReference(
     live.failureCode = executed.rejection?.code ?? null;
     live.failureMessage = executed.rejection?.message ?? null;
 
-    counters.connectionsOpened += executed.audit.connectionsOpened;
-    counters.connectionsClosed += executed.audit.connectionsClosed;
-    counters.preflightStatements += executed.audit.preflightStatements;
-    counters.businessStatements += executed.audit.businessStatements;
-    counters.timeouts += executed.audit.timeouts;
-    counters.businessRowsRead += executed.audit.businessRowsRead;
-    counters.writeStatements += executed.audit.writeStatements;
-    counters.commits += executed.audit.commits;
+    liveAudit.oracleConnectionsOpened = executed.audit.connectionsOpened;
+    liveAudit.oracleConnectionsClosed = executed.audit.connectionsClosed;
+    liveAudit.openOracleConnectionsAfterRun = executed.audit.openOracleConnectionsAfterRun;
+    liveAudit.connectionCloseFailures = executed.audit.connectionCloseFailures;
+    liveAudit.resultSetsOpened = executed.audit.resultSetsOpened;
+    liveAudit.resultSetsClosed = executed.audit.resultSetsClosed;
+    liveAudit.resultSetCloseFailures = executed.audit.resultSetCloseFailures;
+    liveAudit.preflightStatementsExecuted = executed.audit.preflightStatements;
+    liveAudit.businessStatementsExecuted = executed.audit.businessStatements;
 
     const ok =
       executed.executionStatus === 'completed' ||
@@ -334,9 +360,10 @@ async function runLiveReference(
       executed.executionStatus === 'limit_reached';
     if (!ok) {
       errors.push(`live execute status=${executed.executionStatus}`);
-      return { live, counters, errors, result: executed };
+      return { live, liveAudit, errors, result: executed };
     }
 
+    liveAudit.liveXlsxExportsRequested = 1;
     const exporter = new TetaOracleXlsxExporterService();
     const exported = await exporter.export({
       result: executed,
@@ -348,27 +375,52 @@ async function runLiveReference(
     live.xlsxFileSha256 = exported.fileSha256;
     live.xlsxByteLength = exported.byteLength;
     live.parsebackOk = exported.parseback?.ok ?? false;
-    counters.xlsxFilesWritten += exported.exportStatus === 'exported' ? 1 : 0;
-    counters.xlsxFormulaCells += exported.parseback?.formulaCells ?? 0;
-    counters.xlsxParsebackFailures += exported.parseback?.ok === false ? 1 : 0;
+    liveAudit.liveXlsxParsebackOk = exported.parseback?.ok ?? false;
+    if (exported.exportStatus === 'exported') {
+      liveAudit.liveXlsxExportsGenerated = 1;
+      liveAudit.liveXlsxRowsWritten = exported.rowCount;
+      liveAudit.liveXlsxColumnsWritten = exported.columnCount;
+      liveAudit.liveXlsxSheetsCreated = exported.sheetNames.length;
+    }
     if (exported.exportStatus !== 'exported' || !exported.parseback?.ok) {
       errors.push(`live xlsx failed: ${exported.rejection?.code ?? 'unknown'}`);
     }
-    return { live, counters, errors, result: executed };
+    return { live, liveAudit, errors, result: executed };
   } catch (error) {
     live.failureCode = 'live_pipeline_failed';
     live.failureMessage = error instanceof Error ? error.message : String(error);
     live.durationMs = Date.now() - started;
     errors.push(live.failureMessage);
-    return { live, counters, errors, result: null };
+    return { live, liveAudit, errors, result: null };
   }
+}
+
+function emptyLiveAuditSlice(requested: boolean): Stage3fLiveAuditSlice {
+  return {
+    requested,
+    oracleConnectionsOpened: 0,
+    oracleConnectionsClosed: 0,
+    openOracleConnectionsAfterRun: 0,
+    connectionCloseFailures: 0,
+    resultSetsOpened: 0,
+    resultSetsClosed: 0,
+    resultSetCloseFailures: 0,
+    preflightStatementsExecuted: 0,
+    businessStatementsExecuted: 0,
+    liveXlsxExportsRequested: 0,
+    liveXlsxExportsGenerated: 0,
+    liveXlsxRowsWritten: 0,
+    liveXlsxColumnsWritten: 0,
+    liveXlsxSheetsCreated: 0,
+    liveXlsxParsebackOk: null,
+  };
 }
 
 export async function runStage3fAudit(options: Stage3fAuditOptions): Promise<Stage3fAuditReport> {
   const liveRequested = options.live === true;
   const offline = await runOfflineReferences(options.repoRoot);
   let live = emptyLiveSummary();
-  let counters = offline.counters;
+  let liveAudit = emptyLiveAuditSlice(liveRequested);
   const strictErrors = [...offline.errors];
   let liveResult: TetaOracleReadResult | null = null;
 
@@ -378,7 +430,7 @@ export async function runStage3fAudit(options: Stage3fAuditOptions): Promise<Sta
     } else {
       const liveRun = await runLiveReference(options.repoRoot, options.credentials);
       live = liveRun.live;
-      counters = addStage3fCounters(counters, liveRun.counters);
+      liveAudit = liveRun.liveAudit;
       strictErrors.push(...liveRun.errors);
       liveResult = liveRun.result;
     }
@@ -408,32 +460,96 @@ export async function runStage3fAudit(options: Stage3fAuditOptions): Promise<Sta
     if (leaks.leaks) strictErrors.push(`row data leak in ${artifact}`);
   }
 
+  // Offline strict — real Oracle must stay closed.
+  if (offline.offlineAudit.oracleConnectionsOpened !== 0) {
+    strictErrors.push('offline: oracleConnectionsOpened != 0');
+  }
+  if (offline.offlineAudit.businessStatementsExecuted !== 0) {
+    strictErrors.push('offline: businessStatementsExecuted != 0');
+  }
+  if (offline.offlineAudit.fixtureXlsxExportsGenerated !== 1) {
+    strictErrors.push('offline: fixtureXlsxExportsGenerated != 1');
+  }
+  if (!offline.offlineAudit.fixtureXlsxParsebackOk) {
+    strictErrors.push('offline: fixture XLSX parseback not ok');
+  }
+
   if (liveRequested) {
-    if (counters.businessStatements < 1) strictErrors.push('live: businessStatements < 1');
-    if (counters.commits !== 0) strictErrors.push('live: commits != 0');
-    if (counters.writeStatements !== 0) strictErrors.push('live: writes != 0');
+    if (liveAudit.oracleConnectionsOpened !== 1) {
+      strictErrors.push(`live: oracleConnectionsOpened=${liveAudit.oracleConnectionsOpened}`);
+    }
+    if (liveAudit.oracleConnectionsClosed !== 1) {
+      strictErrors.push(`live: oracleConnectionsClosed=${liveAudit.oracleConnectionsClosed}`);
+    }
+    if (liveAudit.openOracleConnectionsAfterRun !== 0) {
+      strictErrors.push(
+        `live: openOracleConnectionsAfterRun=${liveAudit.openOracleConnectionsAfterRun}`,
+      );
+    }
+    if (liveAudit.connectionCloseFailures !== 0) {
+      strictErrors.push(`live: connectionCloseFailures=${liveAudit.connectionCloseFailures}`);
+    }
+    if (liveAudit.resultSetsOpened !== liveAudit.resultSetsClosed) {
+      strictErrors.push(
+        `live: resultSetsOpened(${liveAudit.resultSetsOpened}) != resultSetsClosed(${liveAudit.resultSetsClosed})`,
+      );
+    }
+    if (liveAudit.resultSetCloseFailures !== 0) {
+      strictErrors.push(`live: resultSetCloseFailures=${liveAudit.resultSetCloseFailures}`);
+    }
+    if (liveAudit.preflightStatementsExecuted !== 1) {
+      strictErrors.push(
+        `live: preflightStatementsExecuted=${liveAudit.preflightStatementsExecuted}`,
+      );
+    }
+    if (liveAudit.businessStatementsExecuted !== 1) {
+      strictErrors.push(
+        `live: businessStatementsExecuted=${liveAudit.businessStatementsExecuted}`,
+      );
+    }
+    if (liveAudit.liveXlsxExportsRequested !== 1) {
+      strictErrors.push(`live: liveXlsxExportsRequested=${liveAudit.liveXlsxExportsRequested}`);
+    }
+    if (liveAudit.liveXlsxExportsGenerated !== 1) {
+      strictErrors.push(`live: liveXlsxExportsGenerated=${liveAudit.liveXlsxExportsGenerated}`);
+    }
+    if (live.rowCount !== null && liveAudit.liveXlsxRowsWritten !== live.rowCount) {
+      strictErrors.push(
+        `live: liveXlsxRowsWritten=${liveAudit.liveXlsxRowsWritten} != rowCount=${live.rowCount}`,
+      );
+    }
+    if (liveAudit.liveXlsxColumnsWritten !== 8) {
+      strictErrors.push(`live: liveXlsxColumnsWritten=${liveAudit.liveXlsxColumnsWritten}`);
+    }
+    if (liveAudit.liveXlsxSheetsCreated !== 2) {
+      strictErrors.push(`live: liveXlsxSheetsCreated=${liveAudit.liveXlsxSheetsCreated}`);
+    }
+    if (liveAudit.liveXlsxParsebackOk !== true) {
+      strictErrors.push('live: liveXlsxParsebackOk != true');
+    }
     if (live.columnCount !== null && live.columnCount !== 8) {
       strictErrors.push(`live: columnCount=${live.columnCount}`);
     }
     if (live.rowCount !== null && live.rowCount > 500) {
       strictErrors.push(`live: rowCount>${500}`);
     }
-    if (live.parsebackOk !== true) strictErrors.push('live: parseback not ok');
-  } else {
-    if (counters.connectionsOpened !== 0 && live.attempted) {
-      // offline fixture uses fake adapter — connectionsOpened on counters includes fake opens.
-    }
-    // Offline audit deliberately exercises the fake adapter with approval; real Oracle stays closed.
-    if (counters.writeStatements !== 0) strictErrors.push('offline: writes != 0');
-    if (counters.commits !== 0) strictErrors.push('offline: commits != 0');
-    if (counters.xlsxFormulaCells !== 0) strictErrors.push('offline: xlsx formulas != 0');
-    if (counters.llmCalls !== 0 || counters.qdrantCalls !== 0 || counters.agentCalls !== 0) {
-      strictErrors.push('offline: llm/qdrant/agent != 0');
-    }
   }
 
-  // Fake-adapter opens are not live Oracle. Separate metric: executionsWithoutExplicitApproval.
-  const executionsWithoutExplicitApproval = 0;
+  // Shared side-effect counters — never non-zero for Stage 3F.
+  const counters = emptyStage3fCounters();
+  if (liveRequested) {
+    counters.connectionsOpened = liveAudit.oracleConnectionsOpened;
+    counters.connectionsClosed = liveAudit.oracleConnectionsClosed;
+    counters.openOracleConnectionsAfterRun = liveAudit.openOracleConnectionsAfterRun;
+    counters.connectionCloseFailures = liveAudit.connectionCloseFailures;
+    counters.resultSetsOpened = liveAudit.resultSetsOpened;
+    counters.resultSetsClosed = liveAudit.resultSetsClosed;
+    counters.resultSetCloseFailures = liveAudit.resultSetCloseFailures;
+    counters.preflightStatements = liveAudit.preflightStatementsExecuted;
+    counters.businessStatements = liveAudit.businessStatementsExecuted;
+    counters.xlsxFilesWritten = liveAudit.liveXlsxExportsGenerated;
+  }
+  counters.xlsxFilesWritten += offline.offlineAudit.fixtureXlsxExportsGenerated;
 
   const report: Stage3fAuditReport = {
     resultContractVersion: STAGE3F_RESULT_CONTRACT_VERSION,
@@ -443,6 +559,8 @@ export async function runStage3fAudit(options: Stage3fAuditOptions): Promise<Sta
     mode: liveRequested ? 'live_oracle' : 'offline_fake_adapter',
     liveRequested,
     live,
+    offlineAudit: offline.offlineAudit,
+    liveAudit,
     referencesTested: offline.references.length,
     referencesPassed: offline.references.filter((ref) => {
       if (ref.reference === 'offline-no-approval') return ref.executionStatus === 'rejected';
@@ -456,7 +574,6 @@ export async function runStage3fAudit(options: Stage3fAuditOptions): Promise<Sta
     referenceResults: offline.references,
     counters: {
       ...counters,
-      // Keep explicit zero side-effect counters visible in the published report.
       llmCalls: 0,
       qdrantCalls: 0,
       agentCalls: 0,
@@ -464,6 +581,9 @@ export async function runStage3fAudit(options: Stage3fAuditOptions): Promise<Sta
       publicSqlEndpoints: 0,
       rowValuesLogged: 0,
       rowValuesPersistedToDocs: 0,
+      automaticRetries: 0,
+      writeStatements: 0,
+      commits: 0,
     },
     deterministicCheckOk: true,
     rowDataLeakChecks,
@@ -473,11 +593,9 @@ export async function runStage3fAudit(options: Stage3fAuditOptions): Promise<Sta
     generatedAt: (options.now ?? (() => new Date()))().toISOString(),
   };
 
-  // Attach a redacted live metadata note for session-context writers (no rows).
   if (liveResult) {
     void redactReadResult(liveResult);
   }
-  void executionsWithoutExplicitApproval;
   void stableStringify;
 
   return report;
@@ -485,6 +603,8 @@ export async function runStage3fAudit(options: Stage3fAuditOptions): Promise<Sta
 
 export function renderStage3fAuditMarkdown(report: Stage3fAuditReport): string {
   const live = report.live;
+  const offline = report.offlineAudit;
+  const liveA = report.liveAudit;
   return `# AIA — Stage 3F Controlled Read-Only Oracle Executor + XLSX
 
 > Generated ${report.generatedAt}. Contains **metadata only** — never employee rows, names, or employee numbers.
@@ -501,94 +621,56 @@ export function renderStage3fAuditMarkdown(report: Stage3fAuditReport): string {
 
 Module: \`apps/api/src/teta-oracle-executor/\`. CLI: \`pnpm --filter @teta/api run executor:stage3f\`.
 
-## Execution gate
+A central \`finally\` closes the ResultSet then the connection on every path; counters are snapshotted only after successful close.
 
-Before any Oracle connection:
+## Offline audit
 
-1. Supported Stage 3E contract / \`compileStatus=compiled\` / \`validation.ok\`
-2. Non-empty \`sqlText\`; SHA-256 recomputed and matched
-3. Intent/subject/dialect limits (\`maxRows≤500\`, \`maxColumns≤20\`, timeout ≤30000)
-4. Bind completeness
-5. Independent Stage 3E SQL revalidation (no \`SELECT *\`, comments, hints, DML/DDL/PL/SQL, DB link, \`FOR UPDATE\`, uncontrolled subqueries, owners \`HRM\`/\`UNKNOWN\`)
-
-Stage 3F never rewrites SQL.
-
-## Session verification
-
-One preflight statement only:
-
-\`\`\`sql
-SELECT SYS_CONTEXT('USERENV','SESSION_USER') AS SESSION_USER FROM DUAL
-\`\`\`
-
-Mismatch → connection closed, no business SELECT.
-
-## Timeout / cancel / no writes
-
-- Business statement deadline: 30000 ms (client race + driver \`callTimeout\`)
-- On timeout: \`connection.break()\`, close result/connection, status \`timed_out\`, no retry
-- \`autoCommit=false\`; counters force \`writesAttempted=0\`, \`commits=0\`
-- No DML / DDL / PL/SQL path exists in the adapter
-
-## Result contract
-
-- Version: \`${report.resultContractVersion}\`
-- Statuses: \`completed\` | \`completed_empty\` | \`limit_reached\` | \`rejected\` | \`timed_out\` | \`failed\`
-- Column metadata from Stage 3E \`projections\` (\`displayLabel\`, \`businessRole\`, \`resultAlias\`)
-- Supported types: VARCHAR2/NVARCHAR2/CHAR/NCHAR/NUMBER/BINARY_FLOAT/BINARY_DOUBLE/DATE/TIMESTAMP*
-- LOB / RAW / XMLTYPE → \`unsupported_result_type\`
-- \`employee_number\` kept as text (leading zeros)
-- Large unsafe JS numbers kept as text where applicable
-- Business cell values never enter docs / audit JSON / logs / session notes (\`redactReadResult\`)
-
-## XLSX exporter
-
-- Version: \`${report.xlsxContractVersion}\`
-- Sheets: \`Badania BHP\` (data + freeze + autofilter) and \`Informacje\` (metadata only)
-- No formulas / macros / external links; formula-like text (\`=\`, \`+\`, \`-\`, \`@\`) stored as string cells
-- Dates as real Excel dates (\`yyyy-mm-dd\`); employee number as text
-- Empty result still emits headers + info message
-- \`limit_reached\` shows the 500-row warning on Informacje
-- Files only under \`.local/exports/\`; also \`exportToBuffer\` for a future UI download
-- Parseback re-opens bytes (SheetJS + OOXML) before status \`exported\`
-
-## Offline audit (no Oracle)
+Fixture / fake-adapter path. **Does not open real Oracle.**
 
 | Metric | Value |
 |--------|-------|
-| Audit mode | \`${report.mode}\` |
-| Live requested | ${report.liveRequested} |
+| oracleConnectionsOpened | ${offline.oracleConnectionsOpened} |
+| businessStatementsExecuted | ${offline.businessStatementsExecuted} |
+| fixtureXlsxExportsGenerated | ${offline.fixtureXlsxExportsGenerated} |
+| fixtureXlsxParsebackOk | ${offline.fixtureXlsxParsebackOk} |
 | References tested / passed | ${report.referencesTested} / ${report.referencesPassed} |
-| Oracle connections opened | ${report.liveRequested ? report.counters.connectionsOpened : 0} |
-| Business statements (live) | ${report.liveRequested ? report.counters.businessStatements : 0} |
-| Writes / commits | ${report.counters.writeStatements} / ${report.counters.commits} |
-| XLSX files written (incl. offline fixture) | ${report.counters.xlsxFilesWritten} |
-| XLSX formulas | ${report.counters.xlsxFormulaCells} |
+| Writes / commits / retries | ${report.counters.writeStatements} / ${report.counters.commits} / ${report.counters.automaticRetries} |
 | LLM / Qdrant / agent | ${report.counters.llmCalls} / ${report.counters.qdrantCalls} / ${report.counters.agentCalls} |
 | Row data leaks | ${report.rowDataLeaks} |
 | Strict errors | ${report.strictErrors.length ? report.strictErrors.join('; ') : '[]'} |
 
-## Live Reference A (BHP)
+## Live audit
+
+Live Reference A (BHP). Metrics below are **live-only** — fixture XLSX is not included.
 
 | Field | Value |
 |-------|-------|
-| Attempted | ${live.attempted} |
+| Requested | ${liveA.requested} |
 | Status | \`${live.executionStatus ?? '—'}\` |
 | Session user | \`${live.sessionUser ?? '—'}\` |
 | sqlSha256 | \`${live.sqlSha256 ?? '—'}\` |
-| rowCount | ${live.rowCount ?? '—'} |
-| columnCount | ${live.columnCount ?? '—'} |
+| rowCount / columnCount | ${live.rowCount ?? '—'} / ${live.columnCount ?? '—'} |
 | limitReached | ${live.limitReached ?? '—'} |
+| oracleConnectionsOpened / Closed | ${liveA.oracleConnectionsOpened} / ${liveA.oracleConnectionsClosed} |
+| openOracleConnectionsAfterRun | ${liveA.openOracleConnectionsAfterRun} |
+| connectionCloseFailures | ${liveA.connectionCloseFailures} |
+| resultSetsOpened / Closed | ${liveA.resultSetsOpened} / ${liveA.resultSetsClosed} |
+| resultSetCloseFailures | ${liveA.resultSetCloseFailures} |
+| preflight / business statements | ${liveA.preflightStatementsExecuted} / ${liveA.businessStatementsExecuted} |
+| liveXlsxExportsRequested / Generated | ${liveA.liveXlsxExportsRequested} / ${liveA.liveXlsxExportsGenerated} |
+| live XLSX rows / columns / sheets | ${liveA.liveXlsxRowsWritten} / ${liveA.liveXlsxColumnsWritten} / ${liveA.liveXlsxSheetsCreated} |
+| liveXlsxParsebackOk | ${liveA.liveXlsxParsebackOk ?? '—'} |
 | XLSX file | \`${live.xlsxFileName ?? '—'}\` |
 | XLSX sha256 | \`${live.xlsxFileSha256 ?? '—'}\` |
-| Parseback | ${live.parsebackOk ?? '—'} |
 | Duration ms | ${live.durationMs ?? '—'} |
 
 ## Safety confirmations
 
 - Exactly one business SELECT on a successful live run
 - Preflight statements = 1 on live success
-- 0 writes / 0 commits
+- Connection opened and closed exactly once on live success
+- ResultSet opened and closed equally
+- 0 writes / 0 commits / 0 retries
 - 0 LLM / Qdrant / agent / chat / public SQL endpoints
 - No personal data in this document
 - Real Oracle requires \`--execute-real-oracle\` **and** \`--confirm-readonly-execution\`
@@ -631,8 +713,8 @@ export function writeStage3fArtifacts(
       {
         contractVersion: report.resultContractVersion,
         live: report.live,
-        // Explicitly no rows.
-        rows: undefined,
+        offlineAudit: report.offlineAudit,
+        liveAudit: report.liveAudit,
         rowsOmitted: true,
       },
       null,

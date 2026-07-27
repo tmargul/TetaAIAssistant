@@ -13,13 +13,37 @@
     "rowCount": 0,
     "columnCount": 8,
     "limitReached": false,
-    "durationMs": 4275,
-    "xlsxFileName": "badania_bhp_koniec_waznosci_2026-07-25_110932.xlsx",
-    "xlsxFileSha256": "61bbcdf483b3cb7e77fbda61f3192d3b9685964eb2c89f62a6b1cd7bf3fe5661",
+    "durationMs": 4132,
+    "xlsxFileName": "badania_bhp_koniec_waznosci_2026-07-27_100418.xlsx",
+    "xlsxFileSha256": "7443bfd4242c0799f3a2153112ce7ba82f042143de9c7f4a372fc35bacbbf7fe",
     "xlsxByteLength": 7165,
     "parsebackOk": true,
     "failureCode": null,
     "failureMessage": null
+  },
+  "offlineAudit": {
+    "oracleConnectionsOpened": 0,
+    "businessStatementsExecuted": 0,
+    "fixtureXlsxExportsGenerated": 1,
+    "fixtureXlsxParsebackOk": true
+  },
+  "liveAudit": {
+    "requested": true,
+    "oracleConnectionsOpened": 1,
+    "oracleConnectionsClosed": 1,
+    "openOracleConnectionsAfterRun": 0,
+    "connectionCloseFailures": 0,
+    "resultSetsOpened": 1,
+    "resultSetsClosed": 1,
+    "resultSetCloseFailures": 0,
+    "preflightStatementsExecuted": 1,
+    "businessStatementsExecuted": 1,
+    "liveXlsxExportsRequested": 1,
+    "liveXlsxExportsGenerated": 1,
+    "liveXlsxRowsWritten": 0,
+    "liveXlsxColumnsWritten": 8,
+    "liveXlsxSheetsCreated": 2,
+    "liveXlsxParsebackOk": true
   },
   "referencesTested": 4,
   "referencesPassed": 4,
@@ -49,7 +73,8 @@
       "rejectionCode": null,
       "notes": [
         "rowCount=2",
-        "columnCount=8"
+        "columnCount=8",
+        "connectionsClosed=1"
       ]
     },
     {
@@ -58,14 +83,19 @@
       "executionStatus": "exported",
       "rejectionCode": null,
       "notes": [
-        "fileSha256=8db832fdb0b2ef13563d3472bf12b90b656f148ea9d62bbc24b0d80c49bff96f",
+        "fileSha256=8c92e1072fe3be240369ba7c510dab1f95de77999faaa9735f81240c2c52945d",
         "parsebackOk=true"
       ]
     }
   ],
   "counters": {
     "connectionsOpened": 1,
-    "connectionsClosed": 0,
+    "connectionsClosed": 1,
+    "openOracleConnectionsAfterRun": 0,
+    "connectionCloseFailures": 0,
+    "resultSetsOpened": 1,
+    "resultSetsClosed": 1,
+    "resultSetCloseFailures": 0,
     "preflightStatements": 1,
     "businessStatements": 1,
     "writeStatements": 0,
@@ -77,6 +107,7 @@
     "sessionUserRejections": 0,
     "timeouts": 0,
     "statementBreaks": 0,
+    "automaticRetries": 0,
     "businessRowsRead": 0,
     "rowValuesLogged": 0,
     "rowValuesPersistedToDocs": 0,
@@ -112,5 +143,5 @@
   "rowDataLeaks": 0,
   "typecheckErrors": 0,
   "strictErrors": [],
-  "generatedAt": "2026-07-25T09:09:32.328Z"
+  "generatedAt": "2026-07-27T08:04:18.712Z"
 }

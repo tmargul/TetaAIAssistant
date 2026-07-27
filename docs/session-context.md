@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-25** (Stage 3F Oracle read-only executor + XLSX — **niezacommitowany**; Stage 3E = `1751a40`)
+> Ostatnia aktualizacja: **2026-07-27** (Stage 3F pre-commit patch: close/audit split — **niezacommitowany**; baza 3F w `978a770`)
 
 ---
 
@@ -124,17 +124,18 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 
-### Stage 3F — 2026-07-25
+### Stage 3F — 2026-07-27
 
-- Status: `completed_empty` (**niezacommitowany**)
+- Status: `completed_empty` (**pre-commit patch niezacommitowany**)
 - rowCount / columnCount: 0 / 8
 - sqlSha256: `7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691`
-- XLSX: `badania_bhp_koniec_waznosci_2026-07-25_110932.xlsx`
-- fileSha256: `61bbcdf483b3cb7e77fbda61f3192d3b9685964eb2c89f62a6b1cd7bf3fe5661`
-- parseback: true; sessionUser `TETA_ADMIN`; businessStatements=1
+- connections opened/closed: **1 / 1**; openAfterRun=0; resultSets 1/1
+- XLSX: `badania_bhp_koniec_waznosci_2026-07-27_100418.xlsx`
+- fileSha256: `7443bfd4242c0799f3a2153112ce7ba82f042143de9c7f4a372fc35bacbbf7fe`
+- parseback: true; liveXlsx 0 rows / 8 cols / 2 sheets
 - Oracle writes/commits: 0 / 0 (Stage 3F policy)
 - Live wymaga flag: `--execute-real-oracle` + `--confirm-readonly-execution`
-- Bez integracji z czatem/UI/endpointem SQL
+- Patch: counters snapshotted **po** `finally` close; offline/live audit rozdzielone
 
 
 ## Otwarte / do sprawdzenia
@@ -159,13 +160,14 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Live BHP `sqlSha256` = `7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691` (bez trailing newline w `sqlText`).
 - `filter_only` + skorelowany `EXISTS` dla `active_employment`; `reportGrain=health_examination`.
 
-### 2026-07-25 — Etap 3F Controlled Read-Only Executor + XLSX ⚠️ (niezacommitowany)
+### 2026-07-25 — Etap 3F Controlled Read-Only Executor + XLSX ⚠️ (pre-commit patch 2026-07-27)
 
-- Moduł `apps/api/src/teta-oracle-executor/` + CLI `executor:stage3f`.
-- Gate → preflight `TETA_ADMIN` → 1 SELECT → `TetaOracleReadResult` → XLSX (`.local/exports/`).
-- Live: `completed_empty`, 0×8, parseback OK, 0 writes/commits (szczegóły wyżej w bloku Stage 3F).
-- Testy: 71; build EXIT 0; `audit --strict` EXIT 0; live audit EXIT 0.
-- Następne (po akceptacji): commit Stage 3F; **nie** chat/UI/endpoint.
+- Moduł `apps/api/src/teta-oracle-executor/` + CLI `executor:stage3f` (w `978a770`, potem patch lokalny).
+- **Patch zasobów:** `finish()` dopiero po centralnym `finally` (RS → connection); `connectionsClosed` rośnie tylko po udanym close; close failure → `oracle_connection_close_failed` (bez haseł/connection string).
+- **Audyt:** osobne `offlineAudit` / `liveAudit` — fixture XLSX nie wchodzi w live strict.
+- Live: `completed_empty`, 0×8, opened/closed **1/1**, resultSets **1/1**, liveXlsx **1** (0/8/2), parseback OK.
+- Testy Stage 3F: **89**; build EXIT 0; oba audyty `--strict` EXIT 0.
+- Następne: commit patcha; **nie** chat/UI/endpoint.
 
 ### 2026-07-25 — Etap 3E (szczegóły techniczne, skrót)
 

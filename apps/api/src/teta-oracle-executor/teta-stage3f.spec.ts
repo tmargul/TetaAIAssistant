@@ -725,3 +725,289 @@ describe('Stage 3F — side-effect counters', () => {
     expect(redacted.rowCount).toBe(result.rowCount);
   });
 });
+
+describe('Stage 3F — resource close + audit split', () => {
+  test('83. connection closed after completed', async () => {
+    const { adapter, run } = approvedExecute();
+    const result = await run();
+    expect(result.executionStatus).toBe('completed');
+    expect(result.audit.connectionsOpened).toBe(1);
+    expect(result.audit.connectionsClosed).toBe(1);
+    expect(result.audit.openOracleConnectionsAfterRun).toBe(0);
+    expect(adapter.opened).toBe(false);
+  });
+
+  test('84. connection closed after completed_empty', async () => {
+    const compiled = compileFixtureSelect();
+    const { adapter, run } = approvedExecute(compiled, {
+      selectResult: fixtureSelectResult(compiled, emptyBusinessRows()),
+    });
+    const result = await run();
+    expect(result.executionStatus).toBe('completed_empty');
+    expect(result.audit.connectionsClosed).toBe(1);
+    expect(adapter.opened).toBe(false);
+  });
+
+  test('85. connection closed after limit_reached', async () => {
+    const compiled = compileFixtureSelect();
+    const many = Array.from({ length: 500 }, () => sampleBusinessRows()[0]!);
+    const { adapter, run } = approvedExecute(compiled, {
+      selectResult: fixtureSelectResult(compiled, many),
+    });
+    const result = await run();
+    expect(result.executionStatus).toBe('limit_reached');
+    expect(result.audit.connectionsClosed).toBe(1);
+    expect(adapter.opened).toBe(false);
+  });
+
+  test('86. connection closed after execution error', async () => {
+    const compiled = compileFixtureSelect();
+    const adapter = createFakeOracleAdapter({
+      selectError: new Error('ORA-00942'),
+    });
+    const result = await executor.execute({
+      compiled,
+      approval: fullApproval(),
+      adapter,
+      expectedSqlSha256: compiled.sqlSha256,
+    });
+    expect(result.executionStatus).toBe('failed');
+    expect(result.audit.connectionsOpened).toBe(1);
+    expect(result.audit.connectionsClosed).toBe(1);
+    expect(adapter.opened).toBe(false);
+  });
+
+  test('87. connection closed after timeout', async () => {
+    const compiled = cloneCompiled(compileFixtureSelect());
+    compiled.limits = { ...compiled.limits, statementTimeoutMs: 30 };
+    const { adapter, run } = approvedExecute(compiled, { hangSelect: true });
+    const result = await run();
+    expect(result.executionStatus).toBe('timed_out');
+    expect(result.audit.connectionsClosed).toBe(1);
+    expect(adapter.opened).toBe(false);
+  }, 10000);
+
+  test('88. result set closed before connection', async () => {
+    const compiled = compileFixtureSelect();
+    const order: string[] = [];
+    const adapter = createFakeOracleAdapter({
+      selectResult: fixtureSelectResult(compiled, sampleBusinessRows()),
+      holdResultSetOpen: true,
+    });
+    const originalCloseRs = adapter.closeResultSet!.bind(adapter);
+    const originalCloseConn = adapter.closeConnection.bind(adapter);
+    adapter.closeResultSet = async () => {
+      order.push('resultSet');
+      await originalCloseRs();
+    };
+    adapter.closeConnection = async () => {
+      order.push('connection');
+      await originalCloseConn();
+    };
+    const result = await executor.execute({
+      compiled,
+      approval: fullApproval(),
+      adapter,
+      expectedSqlSha256: compiled.sqlSha256,
+    });
+    expect(result.executionStatus).toBe('completed');
+    expect(order).toEqual(['resultSet', 'connection']);
+    expect(result.audit.resultSetsOpened).toBe(1);
+    expect(result.audit.resultSetsClosed).toBe(1);
+  });
+
+  test('89. close failure becomes failed + strict error code', async () => {
+    const compiled = compileFixtureSelect();
+    const adapter = createFakeOracleAdapter({
+      selectResult: fixtureSelectResult(compiled, sampleBusinessRows()),
+      closeError: new Error('password=SECRET connectString=BAD'),
+    });
+    const result = await executor.execute({
+      compiled,
+      approval: fullApproval(),
+      adapter,
+      expectedSqlSha256: compiled.sqlSha256,
+    });
+    expect(result.executionStatus).toBe('failed');
+    expect(result.rejection?.code).toBe('oracle_connection_close_failed');
+    expect(result.audit.connectionCloseFailures).toBe(1);
+    expect(result.audit.connectionsClosed).toBe(0);
+  });
+
+  test('90. closed counter grows only after successful close', async () => {
+    const compiled = compileFixtureSelect();
+    const adapter = createFakeOracleAdapter({
+      selectResult: fixtureSelectResult(compiled, sampleBusinessRows()),
+      closeError: new Error('boom'),
+    });
+    const result = await executor.execute({
+      compiled,
+      approval: fullApproval(),
+      adapter,
+      expectedSqlSha256: compiled.sqlSha256,
+    });
+    expect(result.audit.connectionsOpened).toBe(1);
+    expect(result.audit.connectionsClosed).toBe(0);
+    expect(adapter.counters.connectionsClosed).toBe(0);
+  });
+
+  test('91. openOracleConnectionsAfterRun = 0 on success', async () => {
+    const result = await approvedExecute().run();
+    expect(result.audit.openOracleConnectionsAfterRun).toBe(0);
+  });
+
+  test('92. offline and live counters are separated', () => {
+    const offline = {
+      oracleConnectionsOpened: 0,
+      businessStatementsExecuted: 0,
+      fixtureXlsxExportsGenerated: 1,
+    };
+    const live = {
+      liveXlsxExportsGenerated: 1,
+      oracleConnectionsOpened: 1,
+      businessStatementsExecuted: 1,
+    };
+    // Fixture XLSX must never be treated as a live Oracle connection/statement.
+    expect(offline.oracleConnectionsOpened).toBe(0);
+    expect(offline.businessStatementsExecuted).toBe(0);
+    expect(live.oracleConnectionsOpened).toBe(1);
+    expect(live.businessStatementsExecuted).toBe(1);
+    expect(offline.fixtureXlsxExportsGenerated).toBe(1);
+    expect(live.liveXlsxExportsGenerated).toBe(1);
+  });
+
+  test('93. fixture XLSX does not increase liveXlsxExportsGenerated', async () => {
+    const { result } = await (async () => {
+      const compiled = compileFixtureSelect();
+      const run = approvedExecute(compiled);
+      const executed = await run.run();
+      return { result: executed };
+    })();
+    // Exporting a fixture result must not touch live counters — those live only in the audit slice.
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'stage3f-live-split-'));
+    mkdirSync(path.join(repoRoot, '.local', 'exports'), { recursive: true });
+    try {
+      const exported = await exporter.export({
+        result,
+        workbook,
+        exportDir: defaultExportDir(repoRoot),
+        repoRoot,
+        fileName: 'badania_bhp_koniec_waznosci_2026-07-24_999999.xlsx',
+      });
+      expect(exported.exportStatus).toBe('exported');
+      // Live slice is only written by the audit runner; a bare export has no live counter.
+      expect(result.audit.xlsxFilesWritten).toBe(0);
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('94. empty result writes 0 data rows', async () => {
+    const compiled = compileFixtureSelect();
+    const { run } = approvedExecute(compiled, {
+      selectResult: fixtureSelectResult(compiled, emptyBusinessRows()),
+    });
+    const result = await run();
+    expect(result.rowCount).toBe(0);
+    expect(result.rows).toEqual([]);
+  });
+
+  test('95. empty workbook still has 8 headers', async () => {
+    const compiled = compileFixtureSelect();
+    const { run } = approvedExecute(compiled, {
+      selectResult: fixtureSelectResult(compiled, emptyBusinessRows()),
+    });
+    const result = await run();
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'stage3f-empty-hdr-'));
+    mkdirSync(path.join(repoRoot, '.local', 'exports'), { recursive: true });
+    try {
+      const exported = await exporter.export({
+        result,
+        workbook,
+        exportDir: defaultExportDir(repoRoot),
+        repoRoot,
+        fileName: 'badania_bhp_koniec_waznosci_2026-07-24_888888.xlsx',
+      });
+      expect(exported.headerLabels).toHaveLength(8);
+      expect(exported.columnCount).toBe(8);
+      expect(exported.rowCount).toBe(0);
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('96. empty workbook has exactly 2 sheets', async () => {
+    const compiled = compileFixtureSelect();
+    const { run } = approvedExecute(compiled, {
+      selectResult: fixtureSelectResult(compiled, emptyBusinessRows()),
+    });
+    const result = await run();
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'stage3f-empty-sheets-'));
+    mkdirSync(path.join(repoRoot, '.local', 'exports'), { recursive: true });
+    try {
+      const exported = await exporter.export({
+        result,
+        workbook,
+        exportDir: defaultExportDir(repoRoot),
+        repoRoot,
+        fileName: 'badania_bhp_koniec_waznosci_2026-07-24_777777.xlsx',
+      });
+      expect(exported.sheetNames).toEqual([STAGE3F_SHEET_DATA, STAGE3F_SHEET_INFO]);
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('97. standard audit path never opens Oracle (no approval)', async () => {
+    const compiled = compileFixtureSelect();
+    const adapter = createFakeOracleAdapter();
+    const result = await executor.execute({
+      compiled,
+      approval: noApproval(),
+      adapter,
+    });
+    expect(result.rejection?.code).toBe('execution_not_approved');
+    expect(adapter.counters.connectionsOpened).toBe(0);
+  });
+
+  test('98. live audit requires both flags', () => {
+    expect(
+      evaluateExecutionPolicy({
+        executeRealOracle: true,
+        confirmReadonlyExecution: false,
+      }).liveOracleAllowed,
+    ).toBe(false);
+    expect(
+      evaluateExecutionPolicy({
+        executeRealOracle: false,
+        confirmReadonlyExecution: true,
+      }).liveOracleAllowed,
+    ).toBe(false);
+    expect(fullApproval()).toEqual({
+      executeRealOracle: true,
+      confirmReadonlyExecution: true,
+    });
+  });
+
+  test('99. live success requires opened = closed', async () => {
+    const result = await approvedExecute().run();
+    expect(result.audit.connectionsOpened).toBe(result.audit.connectionsClosed);
+  });
+
+  test('100. close failure log has no connection string or password', async () => {
+    const compiled = compileFixtureSelect();
+    const adapter = createFakeOracleAdapter({
+      selectResult: fixtureSelectResult(compiled, sampleBusinessRows()),
+      closeError: new Error('password=hunter2 connectString=(DESCRIPTION=(ADDRESS=...))'),
+    });
+    const result = await executor.execute({
+      compiled,
+      approval: fullApproval(),
+      adapter,
+      expectedSqlSha256: compiled.sqlSha256,
+    });
+    const message = result.rejection?.message ?? '';
+    expect(message).not.toMatch(/password|connectString|DESCRIPTION/i);
+    expect(message).toContain('redacted');
+  });
+});

@@ -23,15 +23,25 @@ export type FakeOracleAdapterOptions = {
   openError?: Error | null;
   preflightError?: Error | null;
   selectError?: Error | null;
+  /** Thrown from closeConnection — used to prove close failures fail strict audits. */
+  closeError?: Error | null;
+  /** Thrown from closeResultSet. */
+  closeResultSetError?: Error | null;
   /** Artificial delay for the business SELECT; used with the executor deadline. */
   selectDelayMs?: number;
   /** When true, hanging select never resolves unless broken / timed out. */
   hangSelect?: boolean;
+  /**
+   * When true, executeSelect leaves a logical result set open until closeResultSet() —
+   * mirrors a driver ResultSet that must be closed before the connection.
+   */
+  holdResultSetOpen?: boolean;
 };
 
 export type Stage3fFakeOracleAdapter = Stage3fOracleAdapter & {
   counters: Stage3fAdapterCounters;
   opened: boolean;
+  resultSetOpen: boolean;
   lastSql: string | null;
   lastBinds: unknown[] | null;
   breakCalls: number;
@@ -48,9 +58,12 @@ export function createFakeOracleAdapter(
     preflightStatements: 0,
     businessStatements: 0,
     breaks: 0,
+    resultSetsOpened: 0,
+    resultSetsClosed: 0,
   };
 
   let opened = false;
+  let resultSetOpen = false;
   let lastSql: string | null = null;
   let lastBinds: unknown[] | null = null;
   let breakCalls = 0;
@@ -61,6 +74,9 @@ export function createFakeOracleAdapter(
     counters,
     get opened() {
       return opened;
+    },
+    get resultSetOpen() {
+      return resultSetOpen;
     },
     get lastSql() {
       return lastSql;
@@ -75,6 +91,14 @@ export function createFakeOracleAdapter(
       return statements;
     },
 
+    isConnectionOpen(): boolean {
+      return opened;
+    },
+
+    hasOpenResultSet(): boolean {
+      return resultSetOpen;
+    },
+
     async openConnection(): Promise<void> {
       if (options.openError) throw options.openError;
       opened = true;
@@ -82,12 +106,23 @@ export function createFakeOracleAdapter(
     },
 
     async closeConnection(): Promise<void> {
+      if (options.closeError) throw options.closeError;
       opened = false;
       counters.connectionsClosed += 1;
       if (hangingReject) {
         hangingReject(new Stage3fTimeoutError(0));
         hangingReject = null;
       }
+    },
+
+    async closeResultSet(): Promise<void> {
+      if (options.closeResultSetError) throw options.closeResultSetError;
+      if (!resultSetOpen) {
+        // Already closed inside executeSelect when holdResultSetOpen is false.
+        return;
+      }
+      resultSetOpen = false;
+      counters.resultSetsClosed += 1;
     },
 
     async executePreflightSessionUser(): Promise<string> {
@@ -108,36 +143,46 @@ export function createFakeOracleAdapter(
       lastBinds = binds;
       statements.push(sql);
       counters.businessStatements += 1;
+      counters.resultSetsOpened += 1;
+      resultSetOpen = true;
 
-      if (options.selectError) throw options.selectError;
+      try {
+        if (options.selectError) throw options.selectError;
 
-      if (options.hangSelect) {
-        return await new Promise<Stage3fAdapterSelectResult>((_resolve, reject) => {
-          hangingReject = reject;
-        });
-      }
+        if (options.hangSelect) {
+          return await new Promise<Stage3fAdapterSelectResult>((_resolve, reject) => {
+            hangingReject = reject;
+          });
+        }
 
-      if (options.selectDelayMs && options.selectDelayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, options.selectDelayMs));
-        if (options.selectDelayMs > selectOptions.timeoutMs) {
-          throw new Stage3fTimeoutError(selectOptions.timeoutMs);
+        if (options.selectDelayMs && options.selectDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, options.selectDelayMs));
+          if (options.selectDelayMs > selectOptions.timeoutMs) {
+            throw new Stage3fTimeoutError(selectOptions.timeoutMs);
+          }
+        }
+
+        if (options.selectFactory) {
+          return await options.selectFactory(sql, binds, selectOptions);
+        }
+
+        const base =
+          options.selectResult ??
+          ({
+            columns: [],
+            rows: [],
+            metaData: [],
+          } satisfies Stage3fAdapterSelectResult);
+
+        const cappedRows = base.rows.slice(0, selectOptions.maxRows);
+        return { ...base, rows: cappedRows };
+      } finally {
+        if (!options.holdResultSetOpen) {
+          // Mimic drivers that fully materialize rows and release the cursor before return.
+          resultSetOpen = false;
+          counters.resultSetsClosed += 1;
         }
       }
-
-      if (options.selectFactory) {
-        return await options.selectFactory(sql, binds, selectOptions);
-      }
-
-      const base =
-        options.selectResult ??
-        ({
-          columns: [],
-          rows: [],
-          metaData: [],
-        } satisfies Stage3fAdapterSelectResult);
-
-      const cappedRows = base.rows.slice(0, selectOptions.maxRows);
-      return { ...base, rows: cappedRows };
     },
 
     async break(): Promise<void> {
