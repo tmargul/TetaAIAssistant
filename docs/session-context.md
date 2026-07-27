@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-27** (Stage 3H offline+live OK — niezacommitowany; Stage 3G w `603a0d5`)
+> Ostatnia aktualizacja: **2026-07-27** (Stage 3H w `921c640`; host Oracle w SQLite: **`172.29.48.145`**)
 
 ---
 
@@ -11,10 +11,12 @@
 |---------|---------|
 | Dev | `pnpm dev` — API `:3000`, web `:5173` |
 | VM Oracle | `WIN-PDDJCBNU8LI` (Hyper-V **Default Switch**) |
-| IP VM | **`172.27.16.145`** — statyczne `/20`, brama `172.27.16.1` (Default Switch; skrypty w `scripts/teta-vm-network/`). Stare IP nie używać: `172.22.240.145`, `172.26.228.145`, `172.20.23.182` |
-| Port / SID | `1521` / **`TETAHR`** — **OK 2026-07-22** (PA_WTYCZKI: 3561 rekordów) |
+| Host Oracle w SQLite (aktualnie działający) | **`172.29.48.145`** — port **`1521`**, SID **`TETAHR`**. Ostatni pełny live audit Stage 3H korzystał z tego hosta. |
+| IP docelowe VM | **`172.27.16.145`** — po ponownym `Set-TetaVmNetwork.ps1` (brama `172.27.16.1`, `/20`). **Nie** traktować jako potwierdzonego, dopóki `Test-NetConnection 172.27.16.145 -Port 1521` nie przejdzie; potem zsynchronizować host w SQLite. |
+| Stare IP (historyczne) | `172.22.240.145`, `172.26.228.145`, `172.20.23.182` — nie używać |
+| Port / SID | `1521` / **`TETAHR`** |
 | Firewall VM | Reguła TCP 1521 z podsieci hosta (`Set-TetaVmNetwork.ps1`) |
-| Teta na VM (share) | `\\172.27.16.145\teta` — mapuj `A:` przez `Connect-TetaHost.ps1` (**2026-07-22:** Oracle OK, share trzeba ponowić jeśli `net use` puste) |
+| Teta na VM (share) | mapuj `A:` przez `Connect-TetaHost.ps1` na aktualny host VM (obecnie w praktyce zgodny z SQLite / Default Switch) |
 | Ustawienia ścieżek | **Ustawienia → Aplikacja Teta** — `clientDirectory` + `serverDirectory` (zmapowany dysk lub UNC); zapis w SQLite ✅ działa |
 | Tryb Oracle w `.env` | `TETA_ORACLE_MODE=real` (na dev; fake tylko do symulacji) |
 | `oracledb` | Wersja 7.x, domyślnie **Thin** — Instant Client nie jest wymagany na start |
@@ -44,7 +46,7 @@ W trybie **real** logujesz się **prawdziwym kontem Oracle** — `teta_admin` ni
 1. **Edycja połączenia z UI** — zakładka **Ustawienia → Połączenie Oracle** (tylko admin). Hasło przy edycji można zostawić puste (zachowuje poprzednie).
 2. **Recovery bez logowania** — na ekranie logowania link *„Problemy z logowaniem? Zmień parametry połączenia Oracle”*; zapis z nagłówkiem `X-Teta-Oracle-Recovery: 1`.
 3. **`POST /api/oracle/config`** — bez auth przy pierwszym setupie lub recovery; po skonfigurowaniu wymaga JWT admina.
-4. Stara konfiguracja fake (`192.168.1.10`, SID `TETA`) w SQLite powodowała timeout — aktualny host Oracle: **`172.27.16.145`** / `TETAHR`. NJS-510 = VM nieosiągalna (brak trasy / VM wyłączona), nie błąd aplikacji.
+4. Stara konfiguracja fake (`192.168.1.10`, SID `TETA`) w SQLite powodowała timeout. **Aktualnie działający** host w SQLite: **`172.29.48.145`** / `TETAHR` (port 1521). `172.27.16.145` = adres docelowy po `Set-TetaVmNetwork.ps1` — po zmianie IP VM trzeba zsynchronizować konfigurację Oracle w SQLite. NJS-510 = VM nieosiągalna (brak trasy / VM wyłączona), nie błąd aplikacji.
 5. Błędy Oracle (timeout, NJS-510) powinny wracać jako czytelny komunikat (`BadRequestException`), nie HTTP 500.
 
 ### Panel aktualizacji (z repo, ten komputer)
@@ -146,28 +148,27 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Oracle opened/closed: 1 / 1; business SELECT: 1; download: 1/1; strictErrors: []
 - testy: Stage 3G **139**, Stage 3F **89**
 - uiAudit: `not_measured`
-- Oracle w SQLite: host **`172.27.16.145`**, port 1521, SID `TETAHR`, user `teta_admin`, `TETA_ORACLE_MODE=real`
-- IP VM: `172.27.16.145` (nie używać starych: `172.29.48.145`, `172.22.240.145`, …)
+- Oracle w SQLite (live 3G/3H): host **`172.29.48.145`**, port 1521, SID `TETAHR`, user `teta_admin`, `TETA_ORACLE_MODE=real`
+- Docelowe IP po `Set-TetaVmNetwork.ps1`: `172.27.16.145` — potwierdzić `Test-NetConnection`, potem zaktualizować SQLite
 - Stage 3G v1: admin/vendor only; **zacommitowany**
 
-### Stage 3H — 2026-07-27 (niezacommitowany)
+### Stage 3H — 2026-07-27 ✅ (`921c640`)
 
 - Period kinds: `current_month` | `next_month` | `next_n_days` | `explicit_date_range`
 - Bindy: current/next month **0**; next_n_days **1×NUMBER `:P001`**; explicit range **2×VARCHAR2 `:P001/:P002`**
 - Wartości użytkownika nigdy w `sqlText`; `executionFingerprintSha256` obok `sqlSha256`
-- Live A current_month: `completed_empty` 0×8; binds 0; sqlSha256=`7b86576c…c691` (regresja 3F/3G); fingerprint=`c3c2bdb1…240eb`; Oracle **1/1**; download SHA OK
+- Live A current_month (host SQLite **`172.29.48.145`**): `completed_empty` 0×8; binds 0; sqlSha256=`7b86576c…c691`; fingerprint=`c3c2bdb1…240eb`; Oracle **1/1**; download SHA OK
 - Live B date range 01.07–31.07.2026: `completed_empty` 0×8; binds 2 validated; parameterizedStatementsExecuted=1; sqlSha256=`b62ab1e5…72ab`; fingerprint=`67a4edb3…5933`; Oracle **1/1**; download SHA OK
 - Offline audit: 21/21 refs; strictErrors=[]
 - Testy: Stage 3H **85**; 3B–3G regresja OK; API+web build OK
 - CLI: `pnpm --filter @teta/api run chat-report:stage3h [-- --execute-real-oracle --confirm-readonly-execution]`
-- Artefakty: `docs/AIA_PARAMETERIZED_BHP_REPORT_STAGE3H.*`, `.local/AIA_PARAMETERIZED_BHP_REPORT_STAGE3H*.json`
-- **Czeka na decyzję o commit** — bez nowych domen / bez innych raportów
+- Artefakty: `docs/AIA_PARAMETERIZED_BHP_REPORT_STAGE3H.*` (`.local/*` nie w git)
 
 
 ## Otwarte / do sprawdzenia
 
 - [ ] **RAG smoke test:** `_temp/zu1/zu1.jsonl` rozpakowany (44 chunki, `trainings/zu1.mp4`) — import + chat po uruchomieniu Qdrant
-- [x] VM Oracle: Default Switch, statyczne IP **`172.27.16.145`**, port 1521 OK (nie używać starych IP: `172.22.240.145`, `172.26.228.145`, `172.20.23.182`)
+- [ ] VM Oracle: docelowe IP **`172.27.16.145`** po `Set-TetaVmNetwork.ps1` — potwierdzić `Test-NetConnection` i zsynchronizować host w SQLite (obecnie działa **`172.29.48.145`**)
 - [x] Ścieżki Teta (vendor): share VM + mapowanie dysku na hoście — **Ustawienia → Aplikacja Teta** zapisuje poprawnie
 - [ ] Admin zarejestrowany na real Oracle (nie fake `teta_admin`)
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
