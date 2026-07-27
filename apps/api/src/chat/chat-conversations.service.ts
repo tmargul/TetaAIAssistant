@@ -17,6 +17,7 @@ import {
 import { DatabaseService } from '../database/database.service';
 import { getBuildAppMode } from '../rag/app-mode';
 import { SchemaEntityLearningService } from '../schema/schema-entity-learning.service';
+import { redactChatMessagesForHistory } from '../teta-chat-reports/teta-chat-report-persistence';
 
 const MAX_CONVERSATIONS_PER_USER = 40;
 
@@ -241,7 +242,10 @@ export class ChatConversationsService {
       throw new BadRequestException('Nieprawidłowy format wiadomości.');
     }
 
-    const normalized = messages.map((message) => ({
+    // Stage 3G: always strip rows + download tokens before SQLite (even for vendor).
+    const withoutPii = redactChatMessagesForHistory(messages);
+
+    const normalized = withoutPii.map((message) => ({
       ...message,
       streaming: false,
     }));

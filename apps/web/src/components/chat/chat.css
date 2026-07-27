@@ -929,3 +929,69 @@
   font-size: 0.75rem;
   color: var(--accent);
 }
+
+.chat__canonical-report {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.chat__canonical-report-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.chat__canonical-report-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.chat__canonical-report-meta,
+.chat__canonical-report-expires {
+  font-size: 0.8rem;
+  color: var(--muted, #6b7280);
+}
+
+.chat__canonical-report-warning,
+.chat__canonical-report-expired {
+  font-size: 0.85rem;
+  margin: 0.35rem 0 0.6rem;
+}
+
+.chat__canonical-report-warning {
+  color: #b45309;
+}
+
+.chat__canonical-report-expired {
+  color: var(--muted, #6b7280);
+}
+
+.chat__canonical-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.chat__canonical-download {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.chat__canonical-download:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.chat__canonical-download:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+

@@ -3,6 +3,7 @@ import { AuthModule } from '../auth/auth.module';
 import { RagCoreModule } from '../rag/rag-core.module';
 import { SchemaLearningModule } from '../schema/schema-learning.module';
 import { SchemaModule } from '../schema/schema.module';
+import { TetaChatReportsModule } from '../teta-chat-reports/teta-chat-reports.module';
 import { ChatConversationsController } from './chat-conversations.controller';
 import { ChatConversationsService } from './chat-conversations.service';
 import { ChatController } from './chat.controller';
@@ -19,6 +20,7 @@ import { OllamaModule } from './ollama.module';
     ChatQueryTimeoutModule,
     SchemaLearningModule,
     forwardRef(() => SchemaModule),
+    TetaChatReportsModule,
   ],
   controllers: [ChatController, ChatConversationsController],
   providers: [ChatService, ChatConversationsService, ChatOrchestratorService],

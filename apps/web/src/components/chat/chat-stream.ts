@@ -1,5 +1,5 @@
 import type { ChatCompletionRequest, ChatStreamEvent } from '@teta/shared';
-import { getAccessToken } from '../../lib/auth-storage';
+import { buildApiHeaders } from '../../lib/api-headers';
 
 const DEFAULT_CHAT_STREAM_TIMEOUT_MS = 195_000;
 
@@ -8,11 +8,10 @@ export async function streamChatCompletion(
   onEvent: (event: ChatStreamEvent) => void,
   streamTimeoutMs = DEFAULT_CHAT_STREAM_TIMEOUT_MS,
 ): Promise<void> {
-  const headers = new Headers({ 'Content-Type': 'application/json' });
-  const token = getAccessToken();
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
+  const headers = buildApiHeaders({
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
 
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), streamTimeoutMs);

@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-27** (Stage 3F pre-commit patch: close/audit split — **niezacommitowany**; baza 3F w `978a770`)
+> Ostatnia aktualizacja: **2026-07-27** (Stage 3G live audit OK — gotowy do commita; Stage 3F w `f957dd2`)
 
 ---
 
@@ -124,9 +124,9 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 
-### Stage 3F — 2026-07-27
+### Stage 3F — 2026-07-27 ✅ (`f957dd2`)
 
-- Status: `completed_empty` (**pre-commit patch niezacommitowany**)
+- Status: `completed_empty`
 - rowCount / columnCount: 0 / 8
 - sqlSha256: `7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691`
 - connections opened/closed: **1 / 1**; openAfterRun=0; resultSets 1/1
@@ -135,13 +135,26 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - parseback: true; liveXlsx 0 rows / 8 cols / 2 sheets
 - Oracle writes/commits: 0 / 0 (Stage 3F policy)
 - Live wymaga flag: `--execute-real-oracle` + `--confirm-readonly-execution`
-- Patch: counters snapshotted **po** `finally` close; offline/live audit rozdzielone
+- Moduł: `apps/api/src/teta-oracle-executor/`; CLI `executor:stage3f`
+
+### Stage 3G — 2026-07-27
+
+- routeId: `occupational_health_examinations_current_month`
+- audit v2 + trace patch: offline/live/download/ui sections, invarianty `noDirect*`
+- status (live): `completed_empty` 0×8
+- fileSha256 (live download): `4c67a880647961eb89a7d82b41d232bd119460ef57e88fdcef2e1e05552b850e`
+- Oracle opened/closed: 1 / 1; business SELECT: 1; download: 1/1; strictErrors: []
+- testy: Stage 3G **139**, Stage 3F **89**
+- uiAudit: `not_measured`
+- Oracle w SQLite: host **`172.29.48.145`**, port 1521, SID `TETAHR`, user `teta_admin`, `TETA_ORACLE_MODE=real`
+- Docelowe IP w docs: `172.27.16.145` — po `Set-TetaVmNetwork.ps1` na VM
+- Stage 3G v1: admin/vendor only; **gotowy do commita** (czeka na decyzję)
 
 
 ## Otwarte / do sprawdzenia
 
 - [ ] **RAG smoke test:** `_temp/zu1/zu1.jsonl` rozpakowany (44 chunki, `trainings/zu1.mp4`) — import + chat po uruchomieniu Qdrant
-- [x] VM Oracle: Default Switch, statyczne IP `172.22.240.145`, port 1521 OK
+- [x] VM Oracle: Default Switch, statyczne IP **`172.27.16.145`**, port 1521 OK (nie używać starych IP: `172.22.240.145`, `172.26.228.145`, `172.20.23.182`)
 - [x] Ścieżki Teta (vendor): share VM + mapowanie dysku na hoście — **Ustawienia → Aplikacja Teta** zapisuje poprawnie
 - [ ] Admin zarejestrowany na real Oracle (nie fake `teta_admin`)
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
@@ -160,14 +173,12 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Live BHP `sqlSha256` = `7b86576c4228e4858d4edfbac0d98c59c4d5f8f1d2aa3e7ed678cbb98c1bc691` (bez trailing newline w `sqlText`).
 - `filter_only` + skorelowany `EXISTS` dla `active_employment`; `reportGrain=health_examination`.
 
-### 2026-07-25 — Etap 3F Controlled Read-Only Executor + XLSX ⚠️ (pre-commit patch 2026-07-27)
+### 2026-07-25 — Etap 3F Controlled Read-Only Executor + XLSX ✅ (`f957dd2`)
 
-- Moduł `apps/api/src/teta-oracle-executor/` + CLI `executor:stage3f` (w `978a770`, potem patch lokalny).
-- **Patch zasobów:** `finish()` dopiero po centralnym `finally` (RS → connection); `connectionsClosed` rośnie tylko po udanym close; close failure → `oracle_connection_close_failed` (bez haseł/connection string).
-- **Audyt:** osobne `offlineAudit` / `liveAudit` — fixture XLSX nie wchodzi w live strict.
+- Moduł `apps/api/src/teta-oracle-executor/` + CLI `executor:stage3f`.
 - Live: `completed_empty`, 0×8, opened/closed **1/1**, resultSets **1/1**, liveXlsx **1** (0/8/2), parseback OK.
-- Testy Stage 3F: **89**; build EXIT 0; oba audyty `--strict` EXIT 0.
-- Następne: commit patcha; **nie** chat/UI/endpoint.
+- Testy Stage 3F: **89**; trusted Stage 3G chat approval path w `evaluateExecutionPolicy`.
+- Następne: **Stage 3G** (chat report delivery) — w toku lokalnie, niezacommitowany.
 
 ### 2026-07-25 — Etap 3E (szczegóły techniczne, skrót)
 

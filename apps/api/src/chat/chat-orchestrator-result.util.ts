@@ -25,6 +25,11 @@ export function isFailedChatAttempt(events: ChatStreamEvent[], error: string | n
     return true;
   }
 
+  // Stage 3G canonical report is a successful attempt even for completed_empty.
+  if (events.some((event) => event.type === 'canonical_report')) {
+    return false;
+  }
+
   const done = extractDoneEvent(events);
   const content = done?.content?.trim() ?? '';
   if (!content) {

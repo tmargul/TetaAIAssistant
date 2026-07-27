@@ -13,6 +13,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { ChatModule } from './chat/chat.module';
 import { DoctorModule } from './doctor/doctor.module';
 import { RagModule } from './rag/rag.module';
+import { TetaChatReportsModule } from './teta-chat-reports/teta-chat-reports.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RagModule } from './rag/rag.module';
     DocumentsModule,
     ChatModule,
     DoctorModule,
+    TetaChatReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

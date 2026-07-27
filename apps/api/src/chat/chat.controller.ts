@@ -55,6 +55,22 @@ export class ChatController {
     @Req() req: AuthenticatedRequest,
     @Res({ passthrough: false }) res: Response,
   ): Promise<void> {
-    return this.orchestrator.streamComplete(body, res, req.user.id, getRequestWorkMode(req));
+    const abort = new AbortController();
+    req.on('close', () => {
+      if (!res.writableEnded) {
+        abort.abort();
+      }
+    });
+    return this.orchestrator.streamComplete(
+      body,
+      res,
+      req.user.id,
+      getRequestWorkMode(req),
+      {
+        role: req.user.role,
+        signal: abort.signal,
+        conversationId: body.conversationId ?? null,
+      },
+    );
   }
 }

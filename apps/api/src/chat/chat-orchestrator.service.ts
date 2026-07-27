@@ -41,9 +41,22 @@ export class ChatOrchestratorService {
     res: Response,
     userId?: number,
     workMode = getBuildAppMode(),
+    streamOptions?: {
+      role?: string;
+      signal?: AbortSignal;
+      conversationId?: string | null;
+      sessionId?: string | null;
+    },
   ): Promise<void> {
     if (input.source === 'oracle') {
-      return this.oracleAgent.streamComplete(input, res, userId, workMode);
+      return this.oracleAgent.streamComplete(
+        input,
+        res,
+        userId,
+        workMode,
+        undefined,
+        streamOptions,
+      );
     }
     if (input.source === 'docs') {
       return this.chat.streamComplete(input, res, workMode);
@@ -119,6 +132,7 @@ export class ChatOrchestratorService {
             userId,
             workMode,
             orchestratorDeadline,
+            streamOptions,
           );
         } else {
           await this.chat.streamComplete({ ...input, source: 'docs' }, collector.res, workMode);

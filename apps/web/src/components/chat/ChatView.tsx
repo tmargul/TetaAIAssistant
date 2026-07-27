@@ -9,6 +9,7 @@ import {
   type OracleReport,
   type RagSearchFilter,
   type SubmitChatMessageFeedbackResponse,
+  type TetaCanonicalChatReportResponse,
   DEFAULT_CHAT_QUALITY,
   KNOWLEDGE_SOURCE_TYPES,
   oracleProgressHint,
@@ -30,6 +31,7 @@ import { historyClientLimit, historyOracleLimit } from './chat-quality-preferenc
 import { formatChatTiming } from './format-duration';
 import { ModelSelect } from './ModelSelect';
 import { ReportTable } from './ReportTable';
+import { CanonicalOracleReportCard } from './CanonicalOracleReportCard';
 import './chat.css';
 
 const SUGGESTIONS = [
@@ -155,6 +157,9 @@ function ChatBubble({
                 <ReportTable key={`report-${index}`} report={report} showSql={showOracleDebug} />
               ))}
           </div>
+        )}
+        {!isUser && displayMessage.canonicalReport && (
+          <CanonicalOracleReportCard report={displayMessage.canonicalReport} />
         )}
       </div>
     </div>
@@ -475,6 +480,7 @@ export function ChatView({
     let streamError: string | null = null;
     let oracleSql: OracleAgentSqlStep[] = [];
     let oracleReports: OracleReport[] = [];
+    let canonicalReport: TetaCanonicalChatReportResponse | null = null;
 
     try {
       const historyLimit = Math.max(historyOracleLimit(), historyClientLimit());
@@ -514,6 +520,43 @@ export function ChatView({
 
           if (event.type === 'oracle_step') {
             setTypingHint(oracleProgressHint(event.step.tool));
+            return;
+          }
+
+          if (event.type === 'canonical_report_progress') {
+            setTypingHint(event.message);
+            return;
+          }
+
+          if (event.type === 'canonical_report') {
+            canonicalReport = event.report;
+            setTypingHint('Przygotowuję wyniki…');
+            if (!assistantId) {
+              assistantId = createId();
+              setStreamingMessageId(assistantId);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: assistantId,
+                  role: 'assistant',
+                  content: '',
+                  createdAt: new Date().toISOString(),
+                  streaming: true,
+                  canonicalReport,
+                },
+              ]);
+            } else {
+              setMessages((prev) =>
+                prev.map((item) =>
+                  item.id === assistantId
+                    ? {
+                        ...item,
+                        canonicalReport,
+                      }
+                    : item,
+                ),
+              );
+            }
             return;
           }
 
@@ -597,6 +640,7 @@ export function ChatView({
               timing: event.timing,
               streaming: false,
               oracleReports: event.oracleReports ?? oracleReports,
+              canonicalReport: event.canonicalReport ?? canonicalReport,
               oracleThreadContext: event.oracleThreadContext,
               ...(showOracleDebug
                 ? {

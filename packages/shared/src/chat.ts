@@ -2,6 +2,10 @@ import type { KnowledgeSourceType } from './rag.js';
 import type { RagSearchFilter } from './rag-search.js';
 import type { ChatQualityMode } from './chat-quality.js';
 import type { ChatOracleStep, ChatSourceMode, OracleAgentDomain, OracleAgentSqlStep, OracleReport } from './schema.js';
+import type {
+  CanonicalReportProgressStage,
+  TetaCanonicalChatReportResponse,
+} from './canonical-chat-report.js';
 
 export const CHAT_MODELS = ['qwen3', 'deepseek-r1'] as const;
 export type ChatModel = (typeof CHAT_MODELS)[number];
@@ -22,6 +26,11 @@ export interface ChatMessage {
   oracleSql?: OracleAgentSqlStep[];
   /** Raporty tabelaryczne z wykonanego SQL (tryb Baza Oracle). */
   oracleReports?: OracleReport[];
+  /**
+   * Stage 3G canonical report (live may include rows + download token;
+   * history must be redacted: rows=null, token=null, dataExpired=true).
+   */
+  canonicalReport?: TetaCanonicalChatReportResponse | null;
   /** Kontekst wątku dla agenta (tabela/kolumny) — niewidoczny w UI, zachowany w historii. */
   oracleThreadContext?: string;
   /** Ocena odpowiedzi (Oracle + vendor) — zapis do RAG po 👍. */
@@ -125,6 +134,12 @@ export type ChatStreamEvent =
   | { type: 'oracle_step'; step: ChatOracleStep }
   | { type: 'oracle_sql'; sql: string; rowCount: number; preview: string[] }
   | { type: 'oracle_report'; report: OracleReport }
+  | {
+      type: 'canonical_report_progress';
+      stage: CanonicalReportProgressStage;
+      message: string;
+    }
+  | { type: 'canonical_report'; report: TetaCanonicalChatReportResponse }
   | { type: 'token'; delta: string }
   | {
       type: 'done';
@@ -135,6 +150,7 @@ export type ChatStreamEvent =
       oracleSteps?: ChatOracleStep[];
       oracleSql?: OracleAgentSqlStep[];
       oracleReports?: OracleReport[];
+      canonicalReport?: TetaCanonicalChatReportResponse | null;
       oracleThreadContext?: string;
     }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string; code?: string };

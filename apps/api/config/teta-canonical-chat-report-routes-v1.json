@@ -1,0 +1,15 @@
+{
+  "contractVersion": "teta-aia-chat-report-routes-v1",
+  "routes": [
+    {
+      "routeId": "occupational_health_examinations_current_month",
+      "intent": "build_employee_report",
+      "subject": "occupational_health_examinations",
+      "enabled": true,
+      "allowedWorkModes": ["vendor"],
+      "allowedRoles": ["admin"],
+      "resultPresentation": "table_and_xlsx",
+      "pipeline": "canonical_stage3b_to_stage3f"
+    }
+  ]
+}

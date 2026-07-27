@@ -984,9 +984,32 @@ describe('Stage 3F — resource close + audit split', () => {
       }).liveOracleAllowed,
     ).toBe(false);
     expect(fullApproval()).toEqual({
+      approvalSource: 'cli_flags',
       executeRealOracle: true,
       confirmReadonlyExecution: true,
     });
+    expect(
+      evaluateExecutionPolicy({
+        approvalSource: 'trusted_chat_report_route',
+        routeId: 'occupational_health_examinations_current_month',
+        authenticatedUserId: '1',
+        workMode: 'vendor',
+        role: 'admin',
+        expectedSqlSha256: 'abc',
+        purpose: 'occupational_health_examinations_report',
+      }).liveOracleAllowed,
+    ).toBe(true);
+    expect(
+      evaluateExecutionPolicy({
+        approvalSource: 'trusted_chat_report_route',
+        routeId: 'occupational_health_examinations_current_month',
+        authenticatedUserId: '1',
+        workMode: 'client',
+        role: 'user',
+        expectedSqlSha256: 'abc',
+        purpose: 'occupational_health_examinations_report',
+      }).liveOracleAllowed,
+    ).toBe(false);
   });
 
   test('99. live success requires opened = closed', async () => {

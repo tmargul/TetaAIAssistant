@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import type { Response } from 'express';
 import type {
   ChatCompletionRequest,
@@ -9,6 +9,7 @@ import type {
   OracleAgentSqlStep,
   OracleReport,
   SchemaTableInfo,
+  TetaCanonicalChatReportResponse,
 } from '@teta/shared';
 import { isOracleVendorDebug, sanitizeOracleStepForClient, sanitizeOracleStreamEventForClient } from '@teta/shared';
 import { OllamaChatService } from '../chat/ollama-chat.service';
@@ -70,6 +71,8 @@ import {
   looksLikeAgentJson,
   parseAgentAction,
 } from './oracle-agent-parse.util';
+import { TetaCanonicalReportOrchestratorService } from '../teta-chat-reports/teta-canonical-report-orchestrator.service';
+import type { Stage3gChatReportResponse } from '../teta-chat-reports/teta-chat-report.types';
 
 const DOMAIN_PROMPTS: Record<OracleAgentDomain, string> = {
   general: 'Jesteś asystentem bazy Teta — ogólny kontekst schematu.',
@@ -77,6 +80,13 @@ const DOMAIN_PROMPTS: Record<OracleAgentDomain, string> = {
   hr: 'Jesteś agentem domeny Kadry — etaty, umowy, dane osobowe pracowników.',
   attendance: 'Jesteś agentem domeny Czasy pracy — absencje, obecności, grafiki.',
   config: 'Jesteś agentem konfiguracji — słowniki SL_, parametry systemowe.',
+};
+
+export type OracleAgentStreamOptions = {
+  role?: string;
+  signal?: AbortSignal;
+  conversationId?: string | null;
+  sessionId?: string | null;
 };
 
 @Injectable()
@@ -94,6 +104,7 @@ export class OracleAgentService {
     private readonly pluginHints: TetaPluginHintsService,
     private readonly graph: SchemaGraphService,
     private readonly queryTimeout: ChatQueryTimeoutService,
+    @Optional() private readonly canonicalReports?: TetaCanonicalReportOrchestratorService,
   ) {}
 
   async streamComplete(
@@ -102,6 +113,7 @@ export class OracleAgentService {
     userId?: number,
     workMode = getBuildAppMode(),
     parentDeadline?: RequestDeadline,
+    streamOptions?: OracleAgentStreamOptions,
   ): Promise<void> {
     res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -135,6 +147,26 @@ export class OracleAgentService {
       if (!message) {
         throw new BadRequestException('Wiadomość nie może być pusta.');
       }
+
+      if (this.canonicalReports && userId != null) {
+        const canonicalHandled = await this.tryCanonicalReport({
+          message,
+          input,
+          res,
+          writeEvent,
+          startedAt,
+          userId,
+          workMode,
+          role: streamOptions?.role ?? 'user',
+          signal: streamOptions?.signal,
+          conversationId: streamOptions?.conversationId ?? input.conversationId ?? null,
+          sessionId: streamOptions?.sessionId ?? null,
+        });
+        if (canonicalHandled) {
+          return;
+        }
+      }
+
       includeTimeInDates = userAsksForDateTime(message);
 
       const profile = resolveChatQualityProfile(input.quality, this.config);
@@ -617,6 +649,72 @@ export class OracleAgentService {
       writeEvent({ type: 'error', message });
       res.end();
     }
+  }
+
+  private async tryCanonicalReport(args: {
+    message: string;
+    input: ChatCompletionRequest;
+    res: Response;
+    writeEvent: (event: ChatStreamEvent) => void;
+    startedAt: number;
+    userId: number;
+    workMode: string;
+    role: string;
+    signal?: AbortSignal;
+    conversationId?: string | null;
+    sessionId?: string | null;
+  }): Promise<boolean> {
+    if (!this.canonicalReports) return false;
+
+    const outcome = await this.canonicalReports.tryHandle(
+      args.message,
+      {
+        authenticatedUserId: String(args.userId),
+        role: args.role,
+        workMode: args.workMode,
+        sessionId: args.sessionId,
+        conversationId: args.conversationId,
+        signal: args.signal,
+      },
+      (stage, message) => {
+        args.writeEvent({ type: 'canonical_report_progress', stage, message });
+      },
+    );
+
+    if (!outcome.handled) {
+      return false;
+    }
+
+    // Matched canonical route — never fall through to legacy Oracle agent / LLM SQL.
+    const report = outcome.response as Stage3gChatReportResponse;
+    const clientReport = report as unknown as TetaCanonicalChatReportResponse;
+
+    if (report.errorCode === 'canonical_report_not_authorized') {
+      args.writeEvent({
+        type: 'error',
+        message: report.message,
+        code: report.errorCode,
+      });
+      args.res.end();
+      return true;
+    }
+
+    args.writeEvent({ type: 'canonical_report', report: clientReport });
+    args.writeEvent({ type: 'token', delta: report.message });
+    args.writeEvent({
+      type: 'done',
+      content: report.message,
+      model: args.input.model,
+      createdAt: new Date().toISOString(),
+      timing: {
+        totalMs: Date.now() - args.startedAt,
+        ragMs: 0,
+        llmMs: 0,
+      },
+      canonicalReport: clientReport,
+    });
+    args.res.end();
+    return true;
   }
 
   private createAgentDeadline(startedAt: number): RequestDeadline {

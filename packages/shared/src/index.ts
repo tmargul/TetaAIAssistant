@@ -77,6 +77,26 @@ export type {
 
 export { CHAT_MODELS } from './chat.js';
 
+export type {
+  CanonicalChatReportColumn,
+  CanonicalChatReportDownload,
+  CanonicalChatReportMetadata,
+  CanonicalChatReportStatus,
+  CanonicalChatReportTable,
+  CanonicalReportProgressStage,
+  TetaCanonicalChatReportResponse,
+} from './canonical-chat-report.js';
+
+export { TETA_CANONICAL_CHAT_REPORT_RESPONSE_VERSION } from './canonical-chat-report.js';
+
+export {
+  canonicalReportDownloadButtonLabel,
+  formatCanonicalReportExpiresAt,
+  isCanonicalReportDownloadEnabled,
+  parseContentDispositionFilename,
+} from './canonical-report-card-ui.js';
+export type { CanonicalReportDownloadUiState } from './canonical-report-card-ui.js';
+
 export {
   CHAT_QUALITY_HINTS,
   CHAT_QUALITY_LABELS,

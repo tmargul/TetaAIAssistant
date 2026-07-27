@@ -47,12 +47,32 @@ export const STAGE3F_ALLOWED_DEFINED_NAMES = ['_xlnm._FilterDatabase'] as const;
  * Live Oracle needs both operator flags. One flag alone (or neither) keeps Stage 3F fully offline;
  * the connection is never opened.
  */
-export type Stage3fExecutionApproval = {
+export type Stage3fCliExecutionApproval = {
+  /** Implicit / CLI channel (default when flags are present). */
+  approvalSource?: 'cli_flags';
   /** CLI `--execute-real-oracle`. */
   executeRealOracle: boolean;
   /** CLI `--confirm-readonly-execution`. */
   confirmReadonlyExecution: boolean;
 };
+
+/**
+ * Trusted internal Stage 3G chat route. Never accepted from browser request bodies —
+ * constructed only by the server-side canonical report orchestrator.
+ */
+export type Stage3fTrustedChatReportApproval = {
+  approvalSource: 'trusted_chat_report_route';
+  routeId: string;
+  authenticatedUserId: string;
+  workMode: string;
+  role: string;
+  expectedSqlSha256: string;
+  purpose: string;
+};
+
+export type Stage3fExecutionApproval =
+  | Stage3fCliExecutionApproval
+  | Stage3fTrustedChatReportApproval;
 
 export type Stage3fPolicyDecision = {
   liveOracleAllowed: boolean;

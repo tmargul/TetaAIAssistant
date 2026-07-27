@@ -44,6 +44,8 @@ export function sanitizeChatMessageOracleForClient(message: ChatMessage): ChatMe
     oracleSql: undefined,
     oracleSteps: undefined,
     oracleReports: message.oracleReports?.map(sanitizeOracleReportForClient),
+    // Live canonical report keeps rows for the current session; token stays for download button.
+    // History redaction is a separate server-side step (never trust the client to strip it).
   };
 }
 
@@ -68,6 +70,10 @@ export function sanitizeOracleStreamEventForClient(
         type: 'oracle_report',
         report: sanitizeOracleReportForClient(event.report),
       };
+    case 'canonical_report_progress':
+      return event;
+    case 'canonical_report':
+      return event;
     case 'done':
       return {
         ...event,
