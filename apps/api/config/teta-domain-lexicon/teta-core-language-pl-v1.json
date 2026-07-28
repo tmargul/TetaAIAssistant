@@ -1,0 +1,91 @@
+{
+  "domainPackId": "teta-core-language-pl-v1",
+  "domainId": "core",
+  "normalizationProfile": "teta-polish-text-normalization-v1",
+  "entries": [],
+  "operationRules": [
+    {
+      "ruleId": "neutral_explain",
+      "domain": "core",
+      "requiredConcepts": [],
+      "patterns": [
+        { "phrase": "wyjaśnij", "matchMode": "contains_phrase" },
+        { "phrase": "wytłumacz", "matchMode": "contains_phrase" },
+        { "phrase": "opisz", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "explain",
+        "capabilityStatus": "not_available_yet",
+        "scope": "recognized_but_not_routed"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "neutral_inspect",
+      "domain": "core",
+      "requiredConcepts": [],
+      "patterns": [
+        { "phrase": "pokaż", "matchMode": "contains_phrase" },
+        { "phrase": "wyświetl", "matchMode": "contains_phrase" },
+        { "phrase": "sprawdź", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "inspect",
+        "capabilityStatus": "not_available_yet",
+        "scope": "recognized_but_not_routed"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "neutral_find_expiring",
+      "domain": "core",
+      "requiredConcepts": [],
+      "patterns": [
+        { "phrase": "kończą się", "matchMode": "contains_phrase" },
+        { "phrase": "koncza sie", "matchMode": "contains_phrase" },
+        { "phrase": "kończy się", "matchMode": "contains_phrase" },
+        { "phrase": "konczy sie", "matchMode": "contains_phrase" },
+        { "phrase": "wygasają", "matchMode": "contains_phrase" },
+        { "phrase": "termin ważności", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "find_expiring",
+        "capabilityStatus": "not_available_yet",
+        "scope": "recognized_but_not_routed"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "neutral_create",
+      "domain": "core",
+      "requiredConcepts": [],
+      "patterns": [
+        { "phrase": "utwórz", "matchMode": "contains_phrase" },
+        { "phrase": "dodaj", "matchMode": "contains_phrase" },
+        { "phrase": "wprowadź", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "create",
+        "capabilityStatus": "not_available_yet",
+        "scope": "recognized_but_not_routed"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "neutral_modify",
+      "domain": "core",
+      "requiredConcepts": [],
+      "patterns": [
+        { "phrase": "zmień", "matchMode": "contains_phrase" },
+        { "phrase": "modyfikuj", "matchMode": "contains_phrase" },
+        { "phrase": "edytuj", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "modify",
+        "capabilityStatus": "not_available_yet",
+        "scope": "recognized_but_not_routed"
+      },
+      "status": "approved"
+    }
+  ]
+}

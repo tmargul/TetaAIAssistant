@@ -1,6 +1,6 @@
 # AIA — Stage 3J Payroll Component Explanation
 
-> Generated 2026-07-28T13:42:27.671Z. Metadata only — no formulas, SQL, or customer names.
+> Generated 2026-07-28T17:49:39.040Z. Metadata only — no formulas, SQL, or customer names.
 
 ## Scope
 

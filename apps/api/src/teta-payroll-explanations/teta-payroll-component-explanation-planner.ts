@@ -1,5 +1,6 @@
 /**
  * Stage 3J — intent/focus planning from natural language query.
+ * Stage 3J.1: lexicon-only for migrated focus/unsupported/capability scope.
  */
 import type { PlannerIntentType } from '../teta-planner/teta-stage3b.types';
 import type {
@@ -14,6 +15,11 @@ import {
   extractComponentCodeCandidate,
   extractTitleCandidate,
 } from './teta-payroll-component-selector';
+import {
+  detectStage3jFocusViaLexicon,
+  detectUnsupportedCapabilityViaLexicon,
+} from '../teta-domain-lexicon/teta-domain-lexicon-stage3j-adapter';
+import { resolveDomainLexicon } from '../teta-domain-lexicon/teta-domain-lexicon-resolver';
 
 const UNSUPPORTED_INTENTS: PlannerIntentType[] = [
   'compare_payroll_components',
@@ -24,43 +30,21 @@ const UNSUPPORTED_INTENTS: PlannerIntentType[] = [
   'create_payroll_component',
 ];
 
-const UNSUPPORTED_PATTERNS: Array<{ intent: PlannerIntentType; re: RegExp }> = [
-  { intent: 'compare_payroll_components', re: /por[óo]wnaj|vs|versus|r[óo]żnic/i },
-  {
-    intent: 'design_analogous_payroll_component',
-    re: /analogiczn|podobn|utw[óo]rz|stw[óo]rz|zaprojektuj|nowy sk[łl]adnik/i,
-  },
-  { intent: 'calculate_payroll_component', re: /oblicz|nalicz|wylicz/i },
-  {
-    intent: 'explain_employee_payroll_value',
-    re: /dlaczego.*(?:wyni[óo]s[łl]|ma\s+\d|warto[śs][ćc])|dla pracownika|pracownik/i,
-  },
-  { intent: 'modify_payroll_component', re: /zmie[nń]|modyfikuj|edytuj/i },
-  { intent: 'create_payroll_component', re: /dodaj sk[łl]adnik|nowy sk[łl]adnik/i },
-];
-
-const INSPECT_SIGNALS = [
-  /jak zbudowany/i,
-  /od czego zale[żz]/i,
-  /zale[żz]no[śs]ci/i,
-  /sprawd[źz]|poka[żz]/i,
-  /inspect/i,
-];
-
-const EXPLAIN_SIGNALS = [
-  /konfigurac/i,
-  /parametr/i,
-  /ustawien/i,
-  /wzor|formu[łl]/i,
-  /tryb korekty/i,
-  /jak dzia[łl]a/i,
-];
-
 export function detectUnsupportedPayrollIntent(
   query: string,
 ): PlannerIntentType | null {
-  for (const p of UNSUPPORTED_PATTERNS) {
-    if (p.re.test(query)) return p.intent;
+  const lexiconCapability = detectUnsupportedCapabilityViaLexicon(query);
+  if (lexiconCapability) {
+    if (lexiconCapability.includes('analog')) return 'design_analogous_payroll_component';
+    if (lexiconCapability.includes('create')) return 'create_payroll_component';
+    if (lexiconCapability.includes('modify')) return 'modify_payroll_component';
+    if (lexiconCapability.includes('compare')) return 'compare_payroll_components';
+    if (lexiconCapability.includes('calculate')) return 'calculate_payroll_component';
+    if (lexiconCapability.includes('employee')) return 'explain_employee_payroll_value';
+  }
+  const lexicon = resolveDomainLexicon(query);
+  if (lexicon.mapping.intent && UNSUPPORTED_INTENTS.includes(lexicon.mapping.intent)) {
+    return lexicon.mapping.intent;
   }
   return null;
 }
@@ -68,23 +52,22 @@ export function detectUnsupportedPayrollIntent(
 export function detectPayrollExplanationIntent(query: string): PlannerIntentType {
   const unsupported = detectUnsupportedPayrollIntent(query);
   if (unsupported) return unsupported;
-  if (EXPLAIN_SIGNALS.some((re) => re.test(query))) {
-    return 'explain_payroll_component_configuration';
-  }
-  if (INSPECT_SIGNALS.some((re) => re.test(query))) {
+  const lexicon = resolveDomainLexicon(query);
+  if (lexicon.mapping.intent === 'inspect_payroll_component') {
     return 'inspect_payroll_component';
   }
-  if (/sk[łl]adnik/i.test(query)) {
+  if (lexicon.mapping.intent === 'explain_payroll_component_configuration') {
+    return 'explain_payroll_component_configuration';
+  }
+  if (lexicon.concepts.some((c) => c.conceptId === 'payroll_component')) {
     return 'explain_payroll_component_configuration';
   }
   return 'inspect_payroll_component';
 }
 
 export function detectPayrollExplanationFocus(query: string): PayrollExplanationFocus {
-  if (/zale[żz]no[śs]|od czego zale/i.test(query)) return 'dependencies';
-  if (/wp[łl]yw|u[żz]ywany|wykorzyst|zale[żz][ąa]/i.test(query)) return 'impact';
-  if (/wzor|formu[łl]|jak dzia[łl]a/i.test(query)) return 'formula';
-  if (/konfigurac|parametr|ustawien|overview/i.test(query)) return 'overview';
+  const lexiconFocus = detectStage3jFocusViaLexicon(query);
+  if (lexiconFocus) return lexiconFocus;
   return 'full';
 }
 

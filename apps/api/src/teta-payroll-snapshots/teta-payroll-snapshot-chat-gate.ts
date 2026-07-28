@@ -1,38 +1,25 @@
 /**
  * Stage 3I — chat gate for payroll configuration questions.
+ * Stage 3J.1: lexicon-only scope for migrated payroll gate paths.
  * No DOMAN fallback, no Oracle/LLM/Qdrant.
  */
 import type { PayrollChatGateResult } from './teta-payroll-snapshot.types';
 import type { TetaPayrollSnapshotQueryService } from './teta-payroll-snapshot-query.service';
-
-const CLIENT_PATTERNS: RegExp[] = [
-  /\bsk[łl]adnik\b/i,
-  /\bwz[oó]r\b/i,
-  /\bprem\b/i,
-  /\bm0[_-]?\d+/i,
-  /\b\d{3,5}\b/,
-];
-
-const GENERIC_PATTERNS: RegExp[] = [
-  /co oznacza sk[łl]adnik typu/i,
-  /typ(?:u)?\s+obliczany/i,
-  /jak dzia[łl]aj[aą] sk[łl]adniki/i,
-  /j[eę]zyk wzor[oó]w/i,
-];
+import { resolveDomainLexicon } from '../teta-domain-lexicon/teta-domain-lexicon-resolver';
 
 const CODE_RE = /\b(\d{3,5})\b/;
 
 export function isGenericPayrollKnowledgeQuestion(question: string): boolean {
-  return GENERIC_PATTERNS.some((re) => re.test(question));
+  const lexicon = resolveDomainLexicon(question);
+  return lexicon.mapping.scope === 'generic_payroll_knowledge';
 }
 
 export function isClientPayrollConfigurationQuestion(question: string): boolean {
+  const lexicon = resolveDomainLexicon(question);
+  if (lexicon.mapping.scope === 'client_payroll_configuration') return true;
+  if (lexicon.mapping.scope === 'recognized_but_not_routed') return false;
   if (isGenericPayrollKnowledgeQuestion(question)) return false;
-  const q = question.toLowerCase();
-  const hasPayrollWord =
-    /sk[łl]adnik|placow|p[łl]ac|prem|wz[oó]r|nalicz/i.test(q) ||
-    CLIENT_PATTERNS.some((re) => re.test(question));
-  return hasPayrollWord;
+  return false;
 }
 
 export function extractPayrollComponentCode(question: string): string | null {
@@ -147,7 +134,6 @@ export function formatPayrollChatGateMessage(result: PayrollChatGateResult): str
     return result.response.message;
   }
 
-  // component_summary — technical minimum only (full business explanation is later stages)
   if (!result.code) {
     return 'Aktywny raport parametrów płacowych jest załadowany. Podaj kod składnika, aby zobaczyć szczegóły konfiguracji.';
   }

@@ -40,6 +40,7 @@ import {
 } from './teta-stage3b.types';
 import { resolveReportPeriod } from '../teta-report-period/teta-report-period-parser';
 import { buildPayrollComponentRequest, isStage3jSupportedIntent } from '../teta-payroll-explanations/teta-payroll-component-explanation-planner';
+import { attachLanguageResolutionToStage3bPlan } from '../teta-domain-lexicon/teta-domain-lexicon-stage3b-adapter';
 
 /** Minimal Stage 3A client surface used by the planner. */
 export type Stage3aResolverClient = {
@@ -735,7 +736,7 @@ export class TetaEvidencePlannerService {
       ? buildPayrollComponentRequest(request.question)
       : undefined;
 
-    return {
+    return attachLanguageResolutionToStage3bPlan({
       contractVersion: STAGE3B_CONTRACT_VERSION,
       planningStatus,
       intent: {
@@ -782,7 +783,7 @@ export class TetaEvidencePlannerService {
         filesRead: 0,
         oracleWrites: 0,
       },
-    };
+    });
   }
 
   /**

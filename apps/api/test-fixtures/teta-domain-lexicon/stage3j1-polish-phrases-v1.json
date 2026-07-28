@@ -1,0 +1,1370 @@
+[
+  {
+    "query": "Z czego liczy się składnik 1353?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1350?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Pokaż wzór 1353.",
+    "expected": {
+      "focus": "formula",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Opisz składnik 1353.",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co to jest składnik płacowy?",
+    "expected": {
+      "focus": null,
+      "scope": "generic_payroll_knowledge"
+    }
+  },
+  {
+    "query": "Numer pracownika 00122",
+    "expected": {
+      "focus": null,
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Komu kończy się szkolenie BHP?",
+    "expected": {
+      "focus": null,
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Komu kończą się badania?",
+    "expected": {
+      "focus": null,
+      "scope": "unresolved"
+    }
+  },
+  {
+    "query": "Stawka",
+    "expected": {
+      "focus": null,
+      "scope": null
+    }
+  },
+  {
+    "query": "Lista",
+    "expected": {
+      "focus": null,
+      "scope": null
+    }
+  },
+  {
+    "query": "Utwórz składnik analogiczny do 1353.",
+    "expected": {
+      "focus": null,
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Jak jest liczony i gdzie jest używany składnik 1353?",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Proszę z czego jest liczony składnik 1353?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Proszę gdzie używany jest składnik 1350?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Proszę jaka jest formuła składnika 1353?",
+    "expected": {
+      "focus": "formula",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Proszę pokaż konfigurację składnika 1353?",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Czy możesz z czego jest liczony składnik 1353?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Czy możesz gdzie używany jest składnik 1350?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Czy możesz jaka jest formuła składnika 1353?",
+    "expected": {
+      "focus": "formula",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Czy możesz pokaż konfigurację składnika 1353?",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Poproszę z czego jest liczony składnik 1353?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Poproszę gdzie używany jest składnik 1350?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Poproszę jaka jest formuła składnika 1353?",
+    "expected": {
+      "focus": "formula",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Poproszę pokaż konfigurację składnika 1353?",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Hej, z czego jest liczony składnik 1353?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Hej, gdzie używany jest składnik 1350?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Hej, jaka jest formuła składnika 1353?",
+    "expected": {
+      "focus": "formula",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Hej, pokaż konfigurację składnika 1353?",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Dzień dobry, z czego jest liczony składnik 1353?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Dzień dobry, gdzie używany jest składnik 1350?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Dzień dobry, jaka jest formuła składnika 1353?",
+    "expected": {
+      "focus": "formula",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Dzień dobry, pokaż konfigurację składnika 1353?",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1301?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1302?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1303?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1304?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1305?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1306?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1307?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1308?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1309?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1310?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1311?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1312?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1313?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1314?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1315?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1316?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1317?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1318?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1319?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1320?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1321?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1322?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1323?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1324?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1325?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1326?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1327?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1328?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1329?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1330?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1331?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1332?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1333?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1334?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1335?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1336?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1337?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1338?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1339?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1340?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1341?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1342?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1343?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1344?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1345?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1346?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1347?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1348?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1349?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1350?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1351?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1352?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1353?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1354?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1355?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1356?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1357?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1358?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1359?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1360?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1361?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1362?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy sie skladnik 1363?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Wyjaśnij fakturę VAT",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Pokaż środki trwałe",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Sprawdź rozrachunki z kontrahentem",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Zmień plan kont",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Dodaj nową fakturę",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Utwórz dokument księgowy",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Komu kończą się szkolenia BHP?",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Kiedy wygasają badania lekarskie?",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Pokaż ewidencję czasu pracy",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Wyświetl strukturę organizacyjną",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Opisz moduł Teta ME",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Pracownik i składnik płacowy 1350",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Kod",
+    "expected": {
+      "scope": null
+    }
+  },
+  {
+    "query": "Nazwa",
+    "expected": {
+      "scope": null
+    }
+  },
+  {
+    "query": "Data",
+    "expected": {
+      "scope": null
+    }
+  },
+  {
+    "query": "Pokaż konfigurację składnika 1400",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Jak jest liczony składnik 1400 i gdzie jest używany?",
+    "expected": {
+      "focus": "full",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Na co wpływa składnik 1401?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Od czego zależy składnik 1402?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Jaka jest formuła składnika 1403?",
+    "expected": {
+      "focus": "formula",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co to jest lista płac?",
+    "expected": {
+      "scope": "generic_payroll_knowledge"
+    }
+  },
+  {
+    "query": "Wyjaśnij pracownika 00123",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Pokaż numer ewidencyjny 00456",
+    "expected": {
+      "scope": "recognized_but_not_routed"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1500?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1501?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1502?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1503?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1504?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1505?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1506?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1507?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1508?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1509?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1510?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1511?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1512?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1513?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1514?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1515?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1516?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1517?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1518?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1519?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1520?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1521?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1522?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1523?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1524?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1525?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1526?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1527?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1528?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1529?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1530?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1531?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1532?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1533?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1534?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1535?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1536?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1537?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1538?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1539?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1540?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1541?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1542?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1543?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1544?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1545?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1546?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1547?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1548?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1549?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1550?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1551?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1552?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1553?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1554?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1555?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1556?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1557?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1558?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Z czego liczy się składnik 1559?",
+    "expected": {
+      "focus": "dependencies",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1600?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1601?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1602?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1603?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1604?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1605?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1606?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1607?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1608?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1609?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1610?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1611?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1612?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1613?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1614?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1615?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1616?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1617?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1618?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  },
+  {
+    "query": "Co zależy od 1619?",
+    "expected": {
+      "focus": "impact",
+      "scope": "client_payroll_configuration"
+    }
+  }
+]

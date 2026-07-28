@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-28** (Stage 3I `032a6a6`; Stage 3J pre-commit audit patch lokalnie, **niezacommitowany**)
+> Ostatnia aktualizacja: **2026-07-28** (Stage 3J `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`; Stage 3J.1 multidomain + Help discovery, lokalnie, niezacommitowany)
 
 ---
 
@@ -175,8 +175,20 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [ ] **Oracle agent + wtyczki:** przetestować w czacie (źródło „Baza Oracle”) pytanie o dane z formularza np. wykształcenie → tabela w wyniku
 - [ ] **Pipeline Oracle (standard 2026-07-17):** wdrożony w kodzie (probe widoki→tabele→pakiety→LLM); smoke: Beata Styś → KDR → „SPECJALISTA DS. KADR” — potwierdzić w UI
 - [x] **Stage 3I:** zacommitowany `032a6a6fee90fe657043e7898b3cce2c68dbff2b`
-- [ ] **Stage 3J:** funkcjonalnie gotowy + **pre-commit audit patch** (referencje A–J, runtime/reference split) — **niezacommitowany**
-- [ ] **Stage 3J.1 — Polish Teta Domain Lexicon** (patrz notatki poniżej; nie implementować w 3J)
+- [x] **Stage 3J:** zacommitowany `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
+- [ ] **Stage 3J.1 — Polish Teta Domain Lexicon:** multidomain framework + Help discovery, lokalnie, niezacommitowany
+- [ ] **Stage 3J.2:** nierozpoczęty (zatwierdzanie pojęć z dokumentacji modułowej)
+- [ ] **Stage 3K:** nierozpoczęty
+
+### Stan Stage 3J / 3J.1 (jednoznaczny)
+
+- **Stage 3J** zacommitowany: `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
+- **Stage 3J.1:** multidomain framework + Help discovery, lokalnie, niezacommitowany
+- **Routing Stage 3J (migrated scope):** lexicon-only
+- **hardcoded/legacy fallbacks:** 0
+- **approved bootstrap packs:** hr + payroll
+- **pozostałe domeny:** registered + Help candidates only (bez auto-approve)
+- **Stage 3J.2 / Stage 3K:** nierozpoczęte
 
 ---
 
@@ -199,14 +211,14 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Oracle/LLM/Qdrant/formula execution/DOMAN fallback: **0**
 - DOMAN = `customer_example` only — bez pełnych formuł/SQL/nazwy klienta w docs/session-context
 - Stage 3I commit: `032a6a6fee90fe657043e7898b3cce2c68dbff2b`
-- Stage 3J: **lokalnie gotowy**, niezacommitowany
+- Stage 3J: **zacommitowany** `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
 
 ### 2026-07-28 — Stage 3J pre-commit audit patch (lokalnie)
 
 - **Audit:** `runtimeAudit` vs `referenceAudit` rozdzielone; strict invariants A–J; fingerprint determinism (identyczny input / zmiana depth)
 - **Referencje A–J:** wszystkie wykonane na rzeczywistych ścieżkach Stage 3J (golden DOMAN + syntetyczne fixture)
 - **0010 leading zero:** fixture `payroll-parameters-polish-encoding.rtf` (golden ma 0010 tylko w zależnościach, nie jako wiersz składnika)
-- Stage 3J tests (Jest JSON): **158/158**; regresja 3B+3I (audit): **781/781**
+- Stage 3J tests (Jest JSON): **161/161**; regresja 3B+3I (audit): **781/781**
 - **Privacy patch:** golden-impact-1350 detail zredagowany w docs/json; pełna lista tylko w `.local/reference-1350-impact.json` (gitignored)
 - `ambiguousSelections` instrumentowany z resolvera; `customerConfigurationCodesExposedInRepoArtifacts=0`
 - API build + web build: EXIT 0
@@ -215,34 +227,28 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Side effects Oracle/LLM/Qdrant/formula execution/DOMAN/legacy fallback: **0**
 - Artefakty: `docs/AIA_PAYROLL_COMPONENT_EXPLANATION_STAGE3J.*`, `.local/AIA_PAYROLL_COMPONENT_EXPLANATION_STAGE3J.audit.json`, `.local/...reference-1353.json`, `.local/...reference-1350-impact.json`
 
-#### Stage 3J.1 — Polish Teta Domain Lexicon (TODO przyszły)
+#### ~~Stage 3J.1 — Polish Teta Domain Lexicon (TODO przyszły)~~ — HISTORYCZNE
 
-Zakres: kontrolowane pojęcia biznesowe, synonimy kontekstowe, mapowanie intent/subject/focus — **bez** mapowania do Oracle i **bez** ogólnego słownika PL.
+> Zastąpione lokalną implementacją Stage 3J.1 (patrz notatka poniżej). Planner/gate Stage 3J są lexicon-only dla migrated scope; hardcoded fallbacks = 0.
 
-Gdzie dziś rozpoznawane frazy (nie przenosić jeszcze do lexiconu):
+### 2026-07-28 — Stage 3J payroll component explanation — HISTORYCZNE (commit `2eea12a`)
 
-| Obszar | Lokalizacja | Typ |
-|--------|-------------|-----|
-| Intent `inspect_payroll_component` / `explain_payroll_component_configuration` | `apps/api/config/teta-intent-catalog-v1.json` | konfiguracja |
-| Intent payroll employee value (`explain_payroll_component`) | `teta-intent-catalog.ts` + `teta-entity-extractor.ts` | kod |
-| Focus: dependencies / impact / formula / overview / full | `teta-payroll-component-explanation-planner.ts` (`detectPayrollExplanationFocus`) | kod |
-| Intent z query (inspect vs explain configuration) | `teta-payroll-component-explanation-planner.ts` (`INSPECT_SIGNALS`, `EXPLAIN_SIGNALS`) | kod |
-| Unsupported intents (create/analog/compare/calculate) | `teta-payroll-component-explanation-planner.ts` (`UNSUPPORTED_PATTERNS`) | kod |
-| Chat gate client vs generic knowledge | `teta-payroll-snapshot-chat-gate.ts` (`CLIENT_PATTERNS`, `GENERIC_PATTERNS`) | kod |
-| Stage 3B → payrollComponentRequest attach | `teta-evidence-planner.service.ts` | kod |
+- Moduł `apps/api/src/teta-payroll-explanations/` zacommitowany jako Stage 3J
+- Stage 3J tests: **161/161**; `audit --strict`: EXIT 0
 
-Do późniejszej migracji do wersjonowanego **Polish Teta Domain Lexicon**: regex/sygnały z plannera i chat-gate (focus + unsupported + client/generic), ewentualnie rozszerzenie intent-catalog o synonimy kontekstowe.
+### 2026-07-28 — Stage 3J.1 Polish Domain Lexicon (multidomain, lokalnie, niezacommitowany)
 
-### 2026-07-28 — Stage 3J static payroll component explanation (lokalnie)
-
-- Moduł `apps/api/src/teta-payroll-explanations/` + CLI `payroll-explanation:stage3j` + UI `PayrollComponentExplanationCard`
-- contractVersion: `teta-aia-payroll-component-explanation-v1`
-- semanticsCatalogVersion: `teta-payroll-component-semantics-v1`
-- Golden (lokalny DOMAN): 1353 direct **1350/1351/1352**, transitive **1346/1348**; 1350 impact direct zawiera **1353/1355**
-- Stage 3J tests: **158/158** (po audit patch); regresja 3B+3I (audit): **781/781**
-- `audit --strict`: EXIT 0; strictErrors: []
-- Oracle/LLM/Qdrant/formula execution/DOMAN fallback/legacy fallback: **0**
-- raw formula w historii/logach/audycie: **0** (live response może zawierać raw wzór)
+- Framework multidomain: rejestr 11 domen, manifest, pakiety `core` / `hr` / `payroll`
+- Help discovery read-only ze Stage 3A + reconciliation (1771 Help docs = formsWithValidHelpEdge)
+- Domain registry alias matching + HR recognition rule (`umowa o pracę`) bez approved `employment_contract`
+- `resolutionKind`: single_domain | multi_domain | ambiguous | unresolved — multi-domain ≠ ambiguity
+- Safety probes: expected vs actual; domain-specific wymaga rzeczywistych `domainIds`
+- Unresolved: `capabilityStatus=null` (nigdy `not_available_yet`); scope leak counters = 0
+- Help: `helpActionCount=152`; `helpDocumentsWithActions=null` + unavailable reason (brak ścieżki field→document w 3A)
+- Fixture: **198/198**; safety probes **9/9**; testy Stage 3J.1: **271/271**; Stage 3J: **161/161**; 3B+3I: **174/174**
+- Routing migrated Stage 3J scope: **lexicon-only**; migration counters = 0
+- `domain-lexicon:stage3j1 audit --strict` + Stage 3J audit strict: EXIT 0
+- Stage 3J.2 / Stage 3K: nierozpoczęte
 
 ### 2026-07-25 — Etap 3E Deterministic Oracle SELECT Compiler ✅ (commit `1751a40`)
 

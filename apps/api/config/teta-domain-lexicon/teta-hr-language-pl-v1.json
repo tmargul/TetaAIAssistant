@@ -1,0 +1,59 @@
+{
+  "domainPackId": "teta-hr-language-pl-v1",
+  "domainId": "hr",
+  "normalizationProfile": "teta-polish-text-normalization-v1",
+  "entries": [
+    {
+      "entryId": "concept-employee",
+      "conceptId": "employee",
+      "domainId": "hr",
+      "domainPackId": "teta-hr-language-pl-v1",
+      "canonicalLabel": "pracownik",
+      "conceptKind": "entity",
+      "aliases": [
+        { "text": "pracownik", "matchMode": "exact_or_phrase", "confidence": "exact" },
+        { "text": "osoba zatrudniona", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "zatrudniony", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "pracobiorca", "matchMode": "exact_or_phrase", "confidence": "verified_alias" }
+      ],
+      "status": "approved",
+      "ambiguityPolicy": "context_required",
+      "provenance": { "type": "teta_business_language", "sourceId": "stage3j1-approved" }
+    },
+    {
+      "entryId": "concept-employee-number",
+      "conceptId": "employee_number",
+      "domainId": "hr",
+      "domainPackId": "teta-hr-language-pl-v1",
+      "canonicalLabel": "numer ewidencyjny",
+      "conceptKind": "attribute",
+      "aliases": [
+        { "text": "numer ewidencyjny", "matchMode": "exact_or_phrase", "confidence": "exact" },
+        { "text": "nr ewidencyjny", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "nr ew", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "nr ew.", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "numer pracownika", "matchMode": "exact_or_phrase", "confidence": "verified_alias" }
+      ],
+      "status": "approved",
+      "ambiguityPolicy": "context_required",
+      "provenance": { "type": "teta_business_language", "sourceId": "stage3j1-approved" }
+    }
+  ],
+  "operationRules": [
+    {
+      "ruleId": "hr_domain_recognition_employment_contract_phrase",
+      "domain": "hr",
+      "requiredConcepts": [],
+      "patterns": [
+        { "phrase": "umowa o pracę", "matchMode": "contains_phrase" },
+        { "phrase": "umowy o pracę", "matchMode": "contains_phrase" },
+        { "phrase": "umowa o prace", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capabilityStatus": "recognized_but_not_routed",
+        "scope": "recognized_but_not_routed"
+      },
+      "status": "approved"
+    }
+  ]
+}

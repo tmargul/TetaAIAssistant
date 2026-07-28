@@ -1,0 +1,14 @@
+{
+  "manifestVersion": "teta-domain-lexicon-manifest-v1",
+  "lexiconVersion": "teta-polish-domain-lexicon-v1",
+  "normalizationProfile": "teta-polish-text-normalization-v1",
+  "registryFile": "teta-domain-registry-v1.json",
+  "domainPacks": [
+    { "domainPackId": "teta-core-language-pl-v1", "file": "teta-core-language-pl-v1.json", "status": "approved" },
+    { "domainPackId": "teta-hr-language-pl-v1", "file": "teta-hr-language-pl-v1.json", "status": "approved" },
+    { "domainPackId": "teta-payroll-language-pl-v1", "file": "teta-payroll-language-pl-v1.json", "status": "approved" }
+  ],
+  "candidateStores": [],
+  "knowledgeSourceManifest": "teta-domain-knowledge-sources-v1.json",
+  "provenance": { "type": "teta_domain_lexicon_manifest", "sourceId": "stage3j1-manifest-v1" }
+}

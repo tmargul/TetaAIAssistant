@@ -43,7 +43,8 @@
     "chat-report:stage3g": "ts-node -r tsconfig-paths/register src/scripts/canonical-chat-report-stage3g.ts",
     "chat-report:stage3h": "ts-node -r tsconfig-paths/register src/scripts/parameterized-bhp-report-stage3h.ts",
     "payroll-snapshot:stage3i": "ts-node -r tsconfig-paths/register src/scripts/payroll-snapshot-stage3i.ts",
-    "payroll-explanation:stage3j": "ts-node -r tsconfig-paths/register src/scripts/payroll-explanation-stage3j.ts"
+    "payroll-explanation:stage3j": "ts-node -r tsconfig-paths/register src/scripts/payroll-explanation-stage3j.ts",
+    "domain-lexicon:stage3j1": "ts-node -r tsconfig-paths/register src/scripts/domain-lexicon-stage3j1.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

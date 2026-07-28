@@ -219,6 +219,15 @@ export type TetaEvidencePlan = {
   };
   /** Stage 3J — payroll component explanation request (inspect/explain configuration). */
   payrollComponentRequest?: import('../teta-payroll-explanations/teta-payroll-explanation.types').PayrollComponentRequest;
+  /** Stage 3J.1 — optional language resolution details from lexicon. */
+  languageResolution?: {
+    lexiconVersion: string;
+    status: 'resolved' | 'resolved_with_warnings' | 'ambiguous' | 'unresolved';
+    conceptIds: string[];
+    ruleIds: string[];
+    confidence: string;
+    fingerprintSha256: string;
+  };
   executionPolicy: ExecutionPolicy;
   audit: {
     deterministic: true;

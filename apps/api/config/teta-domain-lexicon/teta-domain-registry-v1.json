@@ -1,0 +1,149 @@
+{
+  "registryVersion": "teta-domain-registry-v1",
+  "domains": [
+    {
+      "domainId": "core",
+      "canonicalLabel": "Rdzeń języka",
+      "aliases": ["rdzeń", "operacje ogólne", "język wspólny"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": false,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": false
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "organization",
+      "canonicalLabel": "Organizacja",
+      "aliases": ["organizacja", "struktura organizacyjna", "jednostki organizacyjne"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "hr",
+      "canonicalLabel": "Kadry",
+      "aliases": [
+        "kadry",
+        "hr",
+        "personel",
+        "pracownicy",
+        "umowa o pracę",
+        "umowy o pracę",
+        "umowa o prace",
+        "szkolenia bhp",
+        "szkolenie bhp",
+        "badania bhp",
+        "badania lekarskie"
+      ],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "payroll",
+      "canonicalLabel": "Płace",
+      "aliases": ["płace", "place", "wynagrodzenia", "payroll"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "time_and_attendance",
+      "canonicalLabel": "Czas pracy",
+      "aliases": ["czas pracy", "ewidencja czasu", "rcp", "obecność"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "finance",
+      "canonicalLabel": "Finanse",
+      "aliases": ["finanse", "finance", "planowanie finansowe"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "accounting",
+      "canonicalLabel": "Księgowość",
+      "aliases": ["księgowość", "ksiegowosc", "accounting", "konta księgowe", "plan kont"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "invoicing",
+      "canonicalLabel": "Fakturowanie",
+      "aliases": ["fakturowanie", "faktury", "faktura", "invoicing", "vat"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "receivables_payables",
+      "canonicalLabel": "Należności i zobowiązania",
+      "aliases": ["należności", "zobowiązania", "rozrachunki", "receivables", "payables"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "fixed_assets",
+      "canonicalLabel": "Majątek trwały",
+      "aliases": ["majątek trwały", "środki trwałe", "fixed assets"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    },
+    {
+      "domainId": "teta_me",
+      "canonicalLabel": "Teta ME",
+      "aliases": ["teta me", "tetame", "me"],
+      "status": "approved",
+      "sourcePolicy": {
+        "helpDiscoveryAllowed": true,
+        "knowledgeDocumentEnrichmentAllowed": true,
+        "clientOverlayAllowed": true
+      },
+      "provenance": { "type": "teta_module_registry", "sourceId": "stage3j1-domain-registry-v1" }
+    }
+  ]
+}

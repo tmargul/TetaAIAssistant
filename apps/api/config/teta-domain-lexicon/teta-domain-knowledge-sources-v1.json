@@ -1,0 +1,5 @@
+{
+  "manifestVersion": "teta-domain-knowledge-sources-v1",
+  "sources": [],
+  "provenance": { "type": "teta_knowledge_source_manifest", "sourceId": "stage3j1-knowledge-manifest-v1" }
+}

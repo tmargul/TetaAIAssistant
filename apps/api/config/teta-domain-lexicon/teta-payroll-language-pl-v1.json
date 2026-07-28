@@ -1,0 +1,227 @@
+{
+  "domainPackId": "teta-payroll-language-pl-v1",
+  "domainId": "payroll",
+  "normalizationProfile": "teta-polish-text-normalization-v1",
+  "entries": [
+    {
+      "entryId": "concept-payroll-component",
+      "conceptId": "payroll_component",
+      "domainId": "payroll",
+      "domainPackId": "teta-payroll-language-pl-v1",
+      "canonicalLabel": "składnik płacowy",
+      "conceptKind": "entity",
+      "aliases": [
+        { "text": "składnik", "matchMode": "exact_or_phrase", "confidence": "context_required" },
+        { "text": "składnik płacowy", "matchMode": "exact_or_phrase", "confidence": "exact" },
+        { "text": "element wynagrodzenia", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "pozycja płacowa", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "kod płacowy", "matchMode": "exact_or_phrase", "confidence": "verified_alias" }
+      ],
+      "status": "approved",
+      "ambiguityPolicy": "context_required",
+      "provenance": { "type": "teta_business_language", "sourceId": "stage3j1-approved" }
+    },
+    {
+      "entryId": "concept-payroll-list",
+      "conceptId": "payroll_list",
+      "domainId": "payroll",
+      "domainPackId": "teta-payroll-language-pl-v1",
+      "canonicalLabel": "lista płac",
+      "conceptKind": "document",
+      "aliases": [
+        { "text": "lista płac", "matchMode": "exact_or_phrase", "confidence": "exact" },
+        { "text": "lista wynagrodzeń", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "naliczenie listy", "matchMode": "exact_or_phrase", "confidence": "verified_alias" },
+        { "text": "wypłata miesięczna", "matchMode": "exact_or_phrase", "confidence": "verified_alias" }
+      ],
+      "status": "approved",
+      "ambiguityPolicy": "context_required",
+      "provenance": { "type": "teta_business_language", "sourceId": "stage3j1-approved" }
+    }
+  ],
+  "operationRules": [
+    {
+      "ruleId": "payroll_component_dependencies",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "orderedTerms": ["z czego", "liczy"] },
+        { "orderedTerms": ["z czego", "liczy sie"] },
+        { "orderedTerms": ["od czego", "zależy"] },
+        { "orderedTerms": ["od czego", "zalezy"] },
+        { "orderedTerms": ["z czego", "liczony"] },
+        { "orderedTerms": ["co wchodzi", "składnik"] },
+        { "orderedTerms": ["na czym", "bazuje"] },
+        { "phrase": "pokaż zależności", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "intent": "explain_payroll_component_configuration",
+        "subject": "payroll_component",
+        "focus": "dependencies",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_component_impact",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "phrase": "gdzie jest używany", "matchMode": "contains_phrase" },
+        { "phrase": "gdzie używany jest", "matchMode": "contains_phrase" },
+        { "phrase": "co zależy od", "matchMode": "contains_phrase" },
+        { "phrase": "co od niego zależy", "matchMode": "contains_phrase" },
+        { "phrase": "na co wpływa", "matchMode": "contains_phrase" },
+        { "phrase": "pokaż wpływ", "matchMode": "contains_phrase" },
+        { "phrase": "wpływ ma", "matchMode": "contains_phrase" },
+        { "phrase": "jaki wpływ", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "intent": "explain_payroll_component_configuration",
+        "subject": "payroll_component",
+        "focus": "impact",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_component_formula",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "phrase": "pokaż wzór", "matchMode": "contains_phrase" },
+        { "phrase": "jak działa wzór", "matchMode": "contains_phrase" },
+        { "phrase": "jaka jest formuła", "matchMode": "contains_phrase" },
+        { "phrase": "jak jest liczony", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "intent": "explain_payroll_component_configuration",
+        "subject": "payroll_component",
+        "focus": "formula",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_component_full",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "phrase": "opisz składnik", "matchMode": "contains_phrase" },
+        { "phrase": "wyjaśnij składnik", "matchMode": "contains_phrase" },
+        { "phrase": "jak jest zbudowany", "matchMode": "contains_phrase" },
+        { "phrase": "pokaż wszystko", "matchMode": "contains_phrase" },
+        { "phrase": "sprawdź składnik", "matchMode": "contains_phrase" },
+        { "phrase": "sprawdz skladnik", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "intent": "inspect_payroll_component",
+        "subject": "payroll_component",
+        "focus": "full",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_generic_knowledge",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "phrase": "co to jest składnik płacowy", "matchMode": "contains_phrase" },
+        { "phrase": "jak działają składniki płacowe", "matchMode": "contains_phrase" },
+        { "phrase": "czym jest formuła składnika", "matchMode": "contains_phrase" },
+        { "phrase": "co oznacza korekta składnika", "matchMode": "contains_phrase" },
+        { "phrase": "co oznacza składnik typu", "matchMode": "contains_phrase" },
+        { "phrase": "język wzorów", "matchMode": "contains_phrase" },
+        { "phrase": "jezyk wzorow", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "subject": "payroll_component",
+        "scope": "generic_payroll_knowledge"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_unsupported_create_analogous",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "phrase": "utwórz składnik", "matchMode": "contains_phrase" },
+        { "phrase": "dodaj składnik", "matchMode": "contains_phrase" },
+        { "phrase": "zbuduj analogiczny", "matchMode": "contains_phrase" },
+        { "phrase": "skopiuj składnik", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "create_analogous_payroll_component",
+        "capabilityStatus": "not_available_yet",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_unsupported_compare",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "phrase": "porównaj", "matchMode": "contains_phrase" },
+        { "phrase": "porownaj", "matchMode": "contains_phrase" },
+        { "phrase": "versus", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "compare_payroll_components",
+        "capabilityStatus": "not_available_yet",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_unsupported_calculate",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "phrase": "oblicz", "matchMode": "contains_phrase" },
+        { "phrase": "nalicz", "matchMode": "contains_phrase" },
+        { "phrase": "wylicz", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "calculate_payroll_component",
+        "capabilityStatus": "not_available_yet",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_unsupported_modify",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component"],
+      "patterns": [
+        { "phrase": "zmień składnik", "matchMode": "contains_phrase" },
+        { "phrase": "zmien skladnik", "matchMode": "contains_phrase" },
+        { "phrase": "modyfikuj składnik", "matchMode": "contains_phrase" },
+        { "phrase": "edytuj składnik", "matchMode": "contains_phrase" }
+      ],
+      "mapsTo": {
+        "capability": "modify_payroll_component",
+        "capabilityStatus": "not_available_yet",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    },
+    {
+      "ruleId": "payroll_unsupported_employee_value",
+      "domain": "payroll",
+      "requiredConcepts": ["payroll_component", "employee"],
+      "patterns": [
+        { "phrase": "dlaczego pracownik", "matchMode": "contains_phrase" },
+        { "phrase": "dla pracownika", "matchMode": "contains_phrase" },
+        { "orderedTerms": ["dlaczego", "pracownik", "składnik"] }
+      ],
+      "mapsTo": {
+        "capability": "explain_employee_payroll_value",
+        "capabilityStatus": "not_available_yet",
+        "scope": "client_payroll_configuration"
+      },
+      "status": "approved"
+    }
+  ]
+}
