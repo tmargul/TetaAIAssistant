@@ -1588,4 +1588,44 @@ describe('Stage 3J — pre-commit audit patch', () => {
     expect(localPayload.directDependentCodes).toContain('2380');
     expect(localPayload.directDependentCodes.length).toBe(3);
   });
+
+  test('159. goldenMeta uses directDependencyCount key', () => {
+    const stage3jDoc = JSON.parse(
+      readFileSync(
+        path.resolve(__dirname, '../../../../docs/AIA_PAYROLL_COMPONENT_EXPLANATION_STAGE3J.json'),
+        'utf8',
+      ),
+    ) as {
+      goldenMeta?: { directDependencyCount?: number; directDependentCount?: number };
+    };
+    expect(stage3jDoc.goldenMeta?.directDependencyCount).toBe(2136);
+  });
+
+  test('160. goldenMeta does not expose directDependentCount key', () => {
+    const stage3jDoc = JSON.parse(
+      readFileSync(
+        path.resolve(__dirname, '../../../../docs/AIA_PAYROLL_COMPONENT_EXPLANATION_STAGE3J.json'),
+        'utf8',
+      ),
+    ) as {
+      goldenMeta?: { directDependencyCount?: number; directDependentCount?: number };
+    };
+    expect(stage3jDoc.goldenMeta?.directDependentCount).toBeUndefined();
+  });
+
+  test('161. impactSummary keeps directDependentCount equals 14', () => {
+    const stage3jDoc = JSON.parse(
+      readFileSync(
+        path.resolve(__dirname, '../../../../docs/AIA_PAYROLL_COMPONENT_EXPLANATION_STAGE3J.json'),
+        'utf8',
+      ),
+    ) as {
+      references?: Array<{
+        id: string;
+        impactSummary?: { directDependentCount?: number };
+      }>;
+    };
+    const impactRef = stage3jDoc.references?.find((r) => r.id === 'golden-impact-1350');
+    expect(impactRef?.impactSummary?.directDependentCount).toBe(14);
+  });
 });

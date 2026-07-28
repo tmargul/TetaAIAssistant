@@ -1,6 +1,6 @@
 # AIA — Stage 3J Payroll Component Explanation
 
-> Generated 2026-07-28T12:25:30.397Z. Metadata only — no formulas, SQL, or customer names.
+> Generated 2026-07-28T13:42:27.671Z. Metadata only — no formulas, SQL, or customer names.
 
 ## Scope
 
@@ -39,7 +39,7 @@
 
 ### verification (jest runner)
 
-| stage3jTests | 158/158 (failed 0) |
+| stage3jTests | 161/161 (failed 0) |
 | regression 3B–3I | 781/781 (failed 0) |
 | referenceAudit passed | 13/13 |
 
@@ -64,7 +64,7 @@
 - **stage3j-ambiguous-component-title**: OK — status=ambiguous_component;candidates=2
 - **stage3j-dependency-cycle**: OK — cycles=1;truncated=false
 - **stage3j-unknown-function**: OK — unknownCalls=1;diag=true
-- **stage3j-jest**: OK — 158/158 passed, failed=0
+- **stage3j-jest**: OK — 161/161 passed, failed=0
 
 ## Side effects (strict)
 

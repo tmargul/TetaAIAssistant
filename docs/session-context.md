@@ -239,7 +239,7 @@ Do późniejszej migracji do wersjonowanego **Polish Teta Domain Lexicon**: rege
 - contractVersion: `teta-aia-payroll-component-explanation-v1`
 - semanticsCatalogVersion: `teta-payroll-component-semantics-v1`
 - Golden (lokalny DOMAN): 1353 direct **1350/1351/1352**, transitive **1346/1348**; 1350 impact direct zawiera **1353/1355**
-- Stage 3J tests: **150/150** (po audit patch); regresja 3B+3I (audit): **781/781**
+- Stage 3J tests: **158/158** (po audit patch); regresja 3B+3I (audit): **781/781**
 - `audit --strict`: EXIT 0; strictErrors: []
 - Oracle/LLM/Qdrant/formula execution/DOMAN fallback/legacy fallback: **0**
 - raw formula w historii/logach/audycie: **0** (live response może zawierać raw wzór)

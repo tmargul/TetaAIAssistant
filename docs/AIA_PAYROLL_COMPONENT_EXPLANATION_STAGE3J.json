@@ -1,7 +1,7 @@
 {
   "contractVersion": "teta-aia-payroll-component-explanation-v1",
   "auditContractVersion": "teta-aia-payroll-component-explanation-audit-v1",
-  "generatedAt": "2026-07-28T12:25:30.397Z",
+  "generatedAt": "2026-07-28T13:42:27.671Z",
   "explanationContractVersion": "teta-aia-payroll-component-explanation-v1",
   "semanticsCatalogVersion": "teta-payroll-component-semantics-v1",
   "semanticsCatalogSha256Prefix": "a5f1d2512bff…",
@@ -93,7 +93,7 @@
     "kpVersion": "27.61.099494",
     "paVersion": "27.61.099393",
     "componentCount": 1037,
-    "directDependentCount": 2136
+    "directDependencyCount": 2136
   },
   "references": [
     {
@@ -163,7 +163,7 @@
     {
       "id": "stage3j-jest",
       "ok": true,
-      "detail": "158/158 passed, failed=0"
+      "detail": "161/161 passed, failed=0"
     },
     {
       "id": "regression-jest-3b-i",
@@ -172,8 +172,8 @@
     }
   ],
   "verification": {
-    "stage3jTestsExecuted": 158,
-    "stage3jTestsPassed": 158,
+    "stage3jTestsExecuted": 161,
+    "stage3jTestsPassed": 161,
     "stage3jTestsFailed": 0,
     "regressionTestsExecuted": 781,
     "regressionTestsPassed": 781,

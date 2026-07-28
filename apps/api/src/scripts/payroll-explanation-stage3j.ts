@@ -844,7 +844,7 @@ function runAudit(root: string, strict: boolean): number {
           kpVersion: goldenMeta.kpVersion,
           paVersion: goldenMeta.paVersion,
           componentCount: goldenMeta.componentCount,
-          directDependentCount: goldenMeta.directDependencyCount,
+          directDependencyCount: goldenMeta.directDependencyCount,
         }
       : null,
     references: repoReferences,
