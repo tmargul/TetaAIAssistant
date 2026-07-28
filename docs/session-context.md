@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-27** (Stage 3I patch kompletności sekcji — lokalnie, **niezacommitowany**; 3H w `921c640`)
+> Ostatnia aktualizacja: **2026-07-28** (Stage 3I + patch kompletności zaakceptowany; Stage 3J nierozpoczęty)
 
 ---
 
@@ -174,30 +174,29 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [ ] Produkcyjne `TETA_ADMIN_CHECK_SQL` od zespołu Teta
 - [ ] **Oracle agent + wtyczki:** przetestować w czacie (źródło „Baza Oracle”) pytanie o dane z formularza np. wykształcenie → tabela w wyniku
 - [ ] **Pipeline Oracle (standard 2026-07-17):** wdrożony w kodzie (probe widoki→tabele→pakiety→LLM); smoke: Beata Styś → KDR → „SPECJALISTA DS. KADR” — potwierdzić w UI
-- [ ] **Stage 3I:** lokalnie **gotowy** (RTF import, SQLite snapshot, chat gate, UI, audit `--strict` EXIT 0) — **niezacommitowany**; nie zaczynać 3J bez decyzji
+- [x] **Stage 3I:** gotowy i przeznaczony do commita; Stage 3J nie został rozpoczęty
 
 ---
 
 ## Notatki sesji
 
-### 2026-07-27 — Stage 3I pre-commit patch (sekcje + audit, niezacommitowane)
-
-- Katalog `teta-payroll-report-sections-v1.json` (26 sekcji + aliasy, m.in. **FORMUŁY KLAKULACYJNE** → `calculation_formulas`)
-- TOC/body reconciliation: **26/26/26**; `calculationFormulaCount` **81**; metadata exact: date **2020-05-22**, KP **27.61.099494**, PA **27.61.099393**
-- Audyt: `apiUploadAudit` vs `validationReferenceAudit`; testy z Jest JSON reporter (nie hardcode)
-- Stage 3I testy **136**; regresja 3B–3H **645**; `audit --strict` EXIT 0
-- Nadal **bez** Stage 3J / commit
-
-### 2026-07-27 — Stage 3I Payroll Parameter Snapshot (working tree, niezacommitowane)
+### 2026-07-27 / 2026-07-28 — Stage 3I final (stan aktualny)
 
 - Moduł `apps/api/src/teta-payroll-snapshots/` + CLI `payroll-snapshot:stage3i` + UI **Ustawienia → Parametryzacja płac**
-- Parser: `teta-payroll-report-parser-v1`; kontrakt `teta-aia-payroll-parameter-snapshot-v1`
-- Golden local audit (metadata only): detection **valid**; components **1037**; formulas **776**; deps **2136**; SQL formulas **142**; sections **18**
-- SHA `434d8ba4e870…`; znane deps: 1350→1346/1348; 1353→1350/1351/1352 (+transitive 1346/1348); 1355→0010/0300/1338/1350
-- Idempotencja `already_imported`; chat refs A–D OK; testy Stage 3I **111**; regresja 3B–3H **756**; API+web build OK; `audit --strict` EXIT 0
-- DOMAN = `customer_example` only — nie w git/docs formułach/SQL/nazwie firmy
-- Gate w oracle-agent **przed** canonical: brak snapshotu → instrukcja Wydruki→Płace→Wydruk parametrów płacowych; bez Oracle/LLM/Qdrant/DOMAN fallback
-- Stage 3B (+additive intents): inspect / explain_configuration / compare / design_analogous — bez pełnej realizacji 3J
+- parserVersion: `teta-payroll-report-parser-v1`
+- detectionStatus: `valid_payroll_parameters_report`
+- reportGeneratedAt: **2020-05-22** (exact), KP **27.61.099494**, PA **27.61.099393**
+- TOC/body/matched: **26/26/26**; core/generic/unknown: **4/22/0**
+- componentCount: **1037**; componentFormulaCount: **776**
+- sqlFormulaCount: **60**; calculationFormulaCount: **81**
+- calculationFormulaComponentReferences: **345**
+- directDependencyCount: **2136**; unparsedRecordCount: **1**
+- Znane zależności: 1350→1346/1348; 1353→1350/1351/1352 (+transitive 1346/1348); 1355→0010/0300/1338/1350
+- Stage 3I tests: **136/136**; regresja 3B–3H: **645/645**
+- `audit --strict`: EXIT 0; strictErrors: []
+- Oracle/LLM/Qdrant/formula execution/DOMAN fallback: **0**
+- DOMAN = `customer_example` only — bez pełnych formuł/SQL/nazwy klienta w docs/session-context
+- Stage 3J: **nierozpoczęty**
 
 ### 2026-07-25 — Etap 3E Deterministic Oracle SELECT Compiler ✅ (commit `1751a40`)
 

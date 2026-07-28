@@ -1,6 +1,6 @@
 # AIA — Stage 3I Payroll Parameter Snapshot
 
-> Generated 2026-07-27T20:18:35.510Z. Metadata only — no formulas, SQL, or customer names.
+> Generated 2026-07-28T09:54:10.170Z. Metadata only — no formulas, SQL, or customer names.
 
 ## Scope
 
