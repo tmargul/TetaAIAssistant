@@ -1,0 +1,13 @@
+{
+  "contractVersion": "teta-video-frames-manifest-v1",
+  "frames": [
+    {
+      "relativePath": "frame_0001.png",
+      "timestampSeconds": 0
+    },
+    {
+      "relativePath": "frame_0002.png",
+      "timestampSeconds": 5
+    }
+  ]
+}

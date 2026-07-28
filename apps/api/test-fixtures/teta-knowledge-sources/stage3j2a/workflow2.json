@@ -1,0 +1,22 @@
+{
+  "text": "Synthetic training workflow2",
+  "language": "pl",
+  "segments": [
+    {
+      "start": 0,
+      "end": 1.5,
+      "text": "Synthetic training workflow2",
+      "avg_logprob": -0.2,
+      "compression_ratio": 1.1,
+      "no_speech_prob": 0.01
+    },
+    {
+      "start": 1.5,
+      "end": 3,
+      "text": "Synthetic training workflow2 cont",
+      "avg_logprob": -0.25,
+      "compression_ratio": 1.2,
+      "no_speech_prob": 0.02
+    }
+  ]
+}

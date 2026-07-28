@@ -1,0 +1,42 @@
+{
+  "registryVersion": "teta-product-family-registry-v1",
+  "productFamilies": [
+    {
+      "productFamilyId": "teta_hr",
+      "canonicalLabel": "Teta HR",
+      "aliases": ["teta hr", "hr", "kadry place"],
+      "platformId": "teta_platform",
+      "status": "approved",
+      "provenance": {
+        "type": "project_approved_registry",
+        "sourceId": "stage3j2a-product-family-v1"
+      }
+    },
+    {
+      "productFamilyId": "teta_edu",
+      "canonicalLabel": "Teta Edu",
+      "aliases": ["teta edu", "edu", "uczelnia"],
+      "platformId": "teta_platform",
+      "status": "approved",
+      "provenance": {
+        "type": "project_approved_registry",
+        "sourceId": "stage3j2a-product-family-v1"
+      }
+    },
+    {
+      "productFamilyId": "unclassified",
+      "canonicalLabel": "Niesklasyfikowana rodzina produktu",
+      "aliases": [],
+      "platformId": "teta_platform",
+      "status": "approved",
+      "provenance": {
+        "type": "project_approved_registry",
+        "sourceId": "stage3j2a-product-family-v1"
+      }
+    }
+  ],
+  "provenance": {
+    "type": "project_approved_registry",
+    "sourceId": "stage3j2a-product-family-v1"
+  }
+}

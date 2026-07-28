@@ -1,0 +1,69 @@
+{
+  "registryVersion": "teta-knowledge-area-registry-v1",
+  "knowledgeAreas": [
+    {
+      "knowledgeAreaId": "application_usage",
+      "canonicalLabel": "Obsługa aplikacji",
+      "aliases": ["użytkowanie", "poruszanie się po aplikacji"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    },
+    {
+      "knowledgeAreaId": "technical_architecture",
+      "canonicalLabel": "Architektura techniczna",
+      "aliases": ["architektura", "datasets", "gridy"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    },
+    {
+      "knowledgeAreaId": "form_design",
+      "canonicalLabel": "Projektowanie formularzy",
+      "aliases": ["projektowanie", "modyfikacja formularzy"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    },
+    {
+      "knowledgeAreaId": "reporting_genrap",
+      "canonicalLabel": "Raporty GenRap",
+      "aliases": ["genrap", "raporty"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    },
+    {
+      "knowledgeAreaId": "accessibility",
+      "canonicalLabel": "Dostępność WCAG",
+      "aliases": ["wcag", "dostępność"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    },
+    {
+      "knowledgeAreaId": "plugin_configuration",
+      "canonicalLabel": "Konfiguracja wtyczek",
+      "aliases": ["wtyczki", "pluginy"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    },
+    {
+      "knowledgeAreaId": "filtering_and_views",
+      "canonicalLabel": "Filtry i widoki",
+      "aliases": ["filtry", "widoki"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    },
+    {
+      "knowledgeAreaId": "developer_training",
+      "canonicalLabel": "Szkolenia developerskie",
+      "aliases": ["zu", "szkolenie programistyczne"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    },
+    {
+      "knowledgeAreaId": "consultant_training",
+      "canonicalLabel": "Szkolenia konsultanckie",
+      "aliases": ["szkolenie konsultanta"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+    }
+  ],
+  "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-knowledge-area-v1" }
+}

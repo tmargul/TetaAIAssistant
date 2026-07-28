@@ -1,0 +1,19 @@
+{
+  "registryVersion": "teta-product-platform-registry-v1",
+  "platforms": [
+    {
+      "platformId": "teta_platform",
+      "canonicalLabel": "Platforma Teta",
+      "aliases": ["teta", "platforma teta", "teta platform"],
+      "status": "approved",
+      "provenance": {
+        "type": "project_approved_registry",
+        "sourceId": "stage3j2a-product-platform-v1"
+      }
+    }
+  ],
+  "provenance": {
+    "type": "project_approved_registry",
+    "sourceId": "stage3j2a-product-platform-v1"
+  }
+}

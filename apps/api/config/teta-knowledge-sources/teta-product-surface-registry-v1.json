@@ -1,0 +1,51 @@
+{
+  "registryVersion": "teta-product-surface-registry-v1",
+  "productSurfaces": [
+    {
+      "productSurfaceId": "teta_desktop",
+      "canonicalLabel": "Teta Desktop",
+      "aliases": ["desktop", "teta desktop", "klient desktop"],
+      "productFamilyIds": ["teta_hr", "teta_edu"],
+      "platformId": "teta_platform",
+      "surfaceKind": "desktop_application",
+      "databaseRelationship": "product_family_database",
+      "status": "approved",
+      "provenance": {
+        "type": "project_approved_registry",
+        "sourceId": "stage3j2a-product-surface-v1"
+      }
+    },
+    {
+      "productSurfaceId": "teta_me",
+      "canonicalLabel": "Teta ME",
+      "aliases": ["me", "teta me", "employee portal"],
+      "productFamilyIds": ["teta_hr"],
+      "platformId": "teta_platform",
+      "surfaceKind": "web_application",
+      "databaseRelationship": "shared_teta_hr_database",
+      "status": "approved",
+      "provenance": {
+        "type": "project_approved_registry",
+        "sourceId": "stage3j2a-product-surface-v1"
+      }
+    },
+    {
+      "productSurfaceId": "unclassified",
+      "canonicalLabel": "Niesklasyfikowana powierzchnia produktu",
+      "aliases": [],
+      "productFamilyIds": [],
+      "platformId": "teta_platform",
+      "surfaceKind": "unclassified",
+      "databaseRelationship": "unknown",
+      "status": "approved",
+      "provenance": {
+        "type": "project_approved_registry",
+        "sourceId": "stage3j2a-product-surface-v1"
+      }
+    }
+  ],
+  "provenance": {
+    "type": "project_approved_registry",
+    "sourceId": "stage3j2a-product-surface-v1"
+  }
+}

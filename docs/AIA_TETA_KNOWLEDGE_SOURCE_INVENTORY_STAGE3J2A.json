@@ -1,0 +1,289 @@
+{
+  "stage": "3J.2A",
+  "title": "Teta Knowledge Source Registry & Bulk Inventory",
+  "integrityPatch": "fingerprint-identity-fixture-completeness",
+  "verification": {
+    "stage3j2aTestsExecuted": 180,
+    "stage3j2aTestsPassed": 180,
+    "stage3j2aTestsFailed": 0,
+    "fixtureSourcesExamined": 29,
+    "fixtureSourcesPassed": 29,
+    "apiBuildExitCode": 0,
+    "webBuildExitCode": 0,
+    "stage3j1RegressionExecuted": 271,
+    "stage3j1RegressionPassed": 271,
+    "stage3jRegressionExecuted": 161,
+    "stage3jRegressionPassed": 161
+  },
+  "registry": {
+    "platformRegistryVersion": "teta-product-platform-registry-v1",
+    "productFamilyRegistryVersion": "teta-product-family-registry-v1",
+    "productSurfaceRegistryVersion": "teta-product-surface-registry-v1",
+    "businessAreaRegistryVersion": "teta-business-area-registry-v1",
+    "knowledgeAreaRegistryVersion": "teta-knowledge-area-registry-v1",
+    "sourceSeriesRegistryVersion": "teta-training-source-series-v1",
+    "registeredSeries": [
+      "DS",
+      "EDU",
+      "KADRY",
+      "ME",
+      "OBD",
+      "PIT",
+      "PLACE",
+      "PPK",
+      "PROJ",
+      "RAP",
+      "RCP",
+      "WCAG",
+      "WORKFLOW",
+      "WSTEP",
+      "ZU"
+    ],
+    "unknownRegistryReferences": [],
+    "duplicateRegistryIds": []
+  },
+  "discovery": {
+    "filesExamined": 38,
+    "transcriptJsonFiles": 29,
+    "frameDirectories": 29,
+    "supportedDocuments": 37,
+    "unsupportedFiles": 1,
+    "transcriptAssets": 29,
+    "documentSources": 8,
+    "videoAssets": 1,
+    "frameAssets": 51,
+    "existingChunkFiles": 0,
+    "exactPairs": 1,
+    "caseInsensitiveExactPairs": 26,
+    "fuzzyPairSuggestions": 1,
+    "fuzzyPairsAutomaticallyAccepted": 0,
+    "transcriptsWithoutFrames": 2,
+    "frameDirectoriesWithoutTranscript": 2,
+    "ambiguousPairings": 0
+  },
+  "seriesClassification": {
+    "sourcesBySeries": {
+      "DS": 1,
+      "EDU": 1,
+      "KADRY": 2,
+      "ME": 1,
+      "OBD": 1,
+      "PIT": 1,
+      "PLACE": 1,
+      "PPK": 1,
+      "PROJ": 1,
+      "RAP": 1,
+      "RCP": 1,
+      "WCAG": 1,
+      "WORKFLOW": 2,
+      "WSTEP": 1,
+      "ZU": 2
+    },
+    "unknownSeries": [],
+    "sourcesWithoutSeries": 11,
+    "sequenceNumbersParsed": 16,
+    "seriesClassificationFailures": 11,
+    "sourceSeriesMappingsHardcodedInCode": 0
+  },
+  "productClassification": {
+    "sourcesByPlatform": {
+      "teta_platform": 18
+    },
+    "sourcesByProductFamily": {
+      "teta_hr": 8,
+      "teta_edu": 1
+    },
+    "sourcesByProductSurface": {
+      "teta_me": 1
+    },
+    "sourcesByBusinessArea": {
+      "social_benefits": 1,
+      "university_administration": 1,
+      "document_workflow": 3,
+      "hr_tax_reporting": 1,
+      "employee_capital_plans": 1
+    },
+    "sourcesByKnowledgeArea": {
+      "form_design": 1,
+      "plugin_configuration": 3,
+      "technical_architecture": 4,
+      "reporting_genrap": 1,
+      "accessibility": 1,
+      "application_usage": 1,
+      "filtering_and_views": 1,
+      "developer_training": 2
+    },
+    "sourcesByAudience": {
+      "unknown": 11,
+      "hr_specialist": 6,
+      "consultant": 18,
+      "administrator": 6,
+      "end_user": 2,
+      "payroll_specialist": 3,
+      "developer": 5
+    },
+    "sourcesWithoutProductClassification": 14,
+    "tetaMeClassifiedAsStandaloneBusinessDomain": 0,
+    "tetaMeSourcesWithoutProductSurface": 0,
+    "tetaMeSourcesWrongProductFamily": 0,
+    "legacyTetaMeDomainAssignmentsCreated": 0,
+    "tetaEduClassifiedAsTetaHr": 0,
+    "tetaEduInheritedHrConceptsWithoutEvidence": 0
+  },
+  "transcriptValidation": {
+    "whisperTranscriptFiles": 29,
+    "validWhisperTranscripts": 26,
+    "validWithWarningsTranscripts": 1,
+    "invalidTranscripts": 2,
+    "transcriptSegments": 54,
+    "emptySegments": 0,
+    "nonMonotonicSegments": 1,
+    "invalidSegmentTimes": 0,
+    "unsupportedJsonFormats": 2
+  },
+  "frames": {
+    "frameFiles": 51,
+    "frameDirectories": 29,
+    "pairedFrameDirectories": 27,
+    "emptyFrameDirectories": 1,
+    "unsupportedFrameFiles": 0,
+    "frameDirectoriesByNamingScheme": {
+      "timestamp_seconds": 21,
+      "timestamp_milliseconds": 1,
+      "hh_mm_ss": 1,
+      "sequential_index": 1,
+      "existing_manifest": 1,
+      "unknown": 2
+    },
+    "framesWithoutTimeline": 2,
+    "framesWithExistingManifest": 2,
+    "duplicateFrameNames": 0,
+    "contentHashedFrameFiles": 51,
+    "metadataHashedFrameFiles": 0,
+    "contentHashedFrameDirectories": 27,
+    "metadataHashedFrameDirectories": 0,
+    "invalidFrameManifests": 1,
+    "orphanManifestEntries": 0,
+    "frameFilesMissingFromManifest": 0,
+    "manifestEntriesMissingFile": 0,
+    "frameNamingSchemeUnclassified": 2,
+    "frameNamingSchemeReconciled": true
+  },
+  "documents": {
+    "documentsByType": {
+      "pdf": 1,
+      "docx": 1,
+      "rtf": 1,
+      "txt": 1,
+      "html": 1,
+      "json": 1,
+      "jsonl": 1,
+      "mp4": 1
+    },
+    "supportedDocumentFiles": 8,
+    "supportedTrainingAssets": 80,
+    "invalidDocumentSignatures": 0,
+    "unsupportedFiles": 1
+  },
+  "identityAndDuplicates": {
+    "sourceRecords": 29,
+    "uniqueLogicalSources": 28,
+    "logicalSources": 29,
+    "sourceRevisions": 29,
+    "duplicateLogicalSourceIds": [
+      "training-video:KADRY:1"
+    ],
+    "expectedDuplicateLogicalSourceIds": [
+      "training-video:KADRY:1"
+    ],
+    "unexpectedLogicalSourceCollisions": 0,
+    "unclassifiedLogicalSourceCollisions": 0,
+    "duplicateTranscriptContent": 0,
+    "duplicateSourceRevisions": 0,
+    "unstableFingerprints": 0,
+    "absolutePathsIncludedInFingerprint": 0,
+    "generatedAtIncludedInFingerprint": 0
+  },
+  "fixtureExpectations": {
+    "fixtureCasesEvaluated": 29,
+    "fixtureExpectationsPassed": 29,
+    "fixtureExpectationsFailed": 0,
+    "expectedValidSources": 0,
+    "expectedInvalidSources": 2,
+    "expectedWarningSources": 27,
+    "actualValidSources": 0,
+    "actualInvalidSources": 2,
+    "actualWarningSources": 27,
+    "unexpectedFixtureFailures": 0,
+    "fixtureSourcesExamined": 29,
+    "fixtureSourcesPassed": 29
+  },
+  "scopeAndPrivacy": {
+    "globalSourcesConfirmed": 0,
+    "versionSpecificSourcesConfirmed": 0,
+    "clientSpecificSourcesConfirmed": 0,
+    "mixedSourcesRequiringReview": 3,
+    "unclassifiedScopeSources": 29,
+    "clientSpecificRiskHighSources": 3,
+    "scopeAutoApprovedFromSeriesName": 0,
+    "customerNamesWrittenToRepoDocs": 0,
+    "absoluteLocalPathsWrittenToRepoDocs": 0,
+    "rawTranscriptsWrittenToRepoDocs": 0,
+    "rawFramesWrittenToRepo": 0
+  },
+  "stageBoundaries": {
+    "conceptsExtracted": 0,
+    "processesExtracted": 0,
+    "rulesExtracted": 0,
+    "lexiconEntriesApproved": 0,
+    "sourceDomainHintsPromotedToApprovedLexicon": 0,
+    "ragChunksGenerated": 0,
+    "qdrantCalls": 0,
+    "embeddingCalls": 0,
+    "llmCalls": 0,
+    "ocrCalls": 0,
+    "imageAnalysisCalls": 0,
+    "oracleConnectionsOpened": 0,
+    "oracleStatementsExecuted": 0,
+    "sqlCompiled": 0,
+    "sqlExecuted": 0
+  },
+  "encoding": {
+    "utf8Artifacts": 1,
+    "bomDetected": 0,
+    "nulBytesDetected": 0,
+    "invalidJsonArtifacts": 0,
+    "invalidJsonlLines": 0
+  },
+  "determinism": {
+    "identicalInventoryFingerprintMatches": 1,
+    "changedTranscriptFingerprintDiffers": 1,
+    "changedTranscriptSha256Differs": 1,
+    "changedTranscriptSourceRevisionDiffers": 1,
+    "unchangedTranscriptSourceRevisionMatches": 1,
+    "changedFrameManifestFingerprintDiffers": 1,
+    "generatedAtExcludedFromFingerprint": 1,
+    "absoluteRootExcludedFromFingerprint": 1,
+    "filesystemOrderExcludedFromFingerprint": 1,
+    "deterministicFingerprintCheckOk": true
+  },
+  "strictErrors": [],
+  "inventoryFingerprintSha256": "2204905dfda31d4501afd95b20e841c3529e01089e80f8e20c783cc9c4813767",
+  "unclassifiedLogicalSourceIds": [
+    "training-video:unclassified:badmanif1",
+    "training-video:unclassified:emptyframes1",
+    "training-video:unclassified:generic1",
+    "training-video:unclassified:hms1",
+    "training-video:unclassified:invalid1",
+    "training-video:unclassified:manif1",
+    "training-video:unclassified:missingframes",
+    "training-video:unclassified:ms1",
+    "training-video:unclassified:nonmono1",
+    "training-video:unclassified:seq1",
+    "training-video:unclassified:unk1"
+  ],
+  "knownSeriesLogicalIdExamples": {
+    "KADRY": "training-video:KADRY:1",
+    "EDU": "training-video:EDU:base"
+  }
+}

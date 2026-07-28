@@ -1,0 +1,48 @@
+{
+  "registryVersion": "teta-business-area-registry-v1",
+  "businessAreas": [
+    {
+      "businessAreaId": "social_benefits",
+      "canonicalLabel": "Działalność socjalna",
+      "aliases": ["ds", "socjal", "świadczenia socjalne"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-business-area-v1" }
+    },
+    {
+      "businessAreaId": "employee_capital_plans",
+      "canonicalLabel": "Pracownicze Plany Kapitałowe",
+      "aliases": ["ppk"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-business-area-v1" }
+    },
+    {
+      "businessAreaId": "hr_tax_reporting",
+      "canonicalLabel": "Raportowanie podatkowe HR",
+      "aliases": ["pit", "deklaracje podatkowe"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-business-area-v1" }
+    },
+    {
+      "businessAreaId": "document_workflow",
+      "canonicalLabel": "Obieg dokumentów",
+      "aliases": ["obd", "workflow dokumentów", "mailing"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-business-area-v1" }
+    },
+    {
+      "businessAreaId": "university_administration",
+      "canonicalLabel": "Administracja uczelni",
+      "aliases": ["edu", "uczelnia"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-business-area-v1" }
+    },
+    {
+      "businessAreaId": "application_administration",
+      "canonicalLabel": "Administracja aplikacji",
+      "aliases": ["admin aplikacji"],
+      "status": "approved",
+      "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-business-area-v1" }
+    }
+  ],
+  "provenance": { "type": "project_approved_registry", "sourceId": "stage3j2a-business-area-v1" }
+}
