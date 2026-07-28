@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-28** (Stage 3J.2A integrity patch — lokalnie, niezacommitowany; Stage 3J.1 zakończony)
+> Ostatnia aktualizacja: **2026-07-28** (Stage 3J.2A zakończony — Knowledge Source Registry & Bulk Inventory; Stage 3J.2B / 3K nierozpoczęte)
 
 ---
 
@@ -177,7 +177,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3I:** zacommitowany `032a6a6fee90fe657043e7898b3cce2c68dbff2b`
 - [x] **Stage 3J:** zacommitowany `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
 - [x] **Stage 3J.1 — Polish Teta Domain Lexicon:** zakończony (`e08f020`; docs status `832fa99`)
-- [ ] **Stage 3J.2A — Knowledge Source Registry & Bulk Inventory:** lokalnie, niezacommitowany (integrity patch: fingerprint/identity/fixture/frames/docs; 180/180; czekaj na decyzję o commit)
+- [x] **Stage 3J.2A — Knowledge Source Registry & Bulk Inventory:** zakończony (`7465934`)
 - [ ] **Stage 3J.2B:** nierozpoczęty
 - [ ] **Stage 3K:** nierozpoczęty
 
@@ -185,14 +185,14 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 - **Stage 3J** zacommitowany: `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
 - **Stage 3J.1:** zakończony (`e08f020`) + docs status (`832fa99`) — multidomain lexicon + Help discovery
-- **Stage 3J.2A:** Knowledge Source Registry & Bulk Inventory — lokalnie, niezacommitowany; integrity patch gotowy do decyzji
+- **Stage 3J.2A:** zakończony — Knowledge Source Registry & Bulk Inventory (`7465934`)
 - **Pairing:** transcript JSON ↔ frames directory przez exact case-insensitive basename; fuzzy nigdy nie auto-pairuje
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
 - **logicalSourceId:** znane `training-video:<SERIES>:<seq|base>`; nieznane `training-video:unclassified:<basename>`
 - **Scope / client-specific:** wymaga jawnej klasyfikacji (nie zgadywane z nazwy serii)
-- **Stage 3J.2A nie analizuje treści** (brak ekstrakcji pojęć/procesów/reguł/RAG)
+- **Stage 3J.2A nie analizuje treści** (brak ekstrakcji pojęć/procesów/reguł/RAG); prawdziwe źródła poza repo
 - **Stage 3J.2B / Stage 3K:** nierozpoczęte
 
 ---
@@ -241,17 +241,17 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Moduł `apps/api/src/teta-payroll-explanations/` zacommitowany jako Stage 3J
 - Stage 3J tests: **161/161**; `audit --strict`: EXIT 0
 
-### 2026-07-28 — Stage 3J.2A Knowledge Source Registry & Bulk Inventory (lokalnie, niezacommitowany)
+### 2026-07-28 — Stage 3J.2A Knowledge Source Registry & Bulk Inventory (zakończony)
 
 - Moduł `apps/api/src/teta-knowledge-sources/` + CLI `knowledge-sources:stage3j2a`
 - Registry: platform / product family / product surface / business area / knowledge area / training series
 - Pairing JSON↔frames: exact + case-insensitive; fuzzy tylko `requires_confirmation` (auto=0)
 - Whisper transcript validation + frames inventory (bez OCR/timeline guess dla sequential)
 - logicalSourceId + sourceRevisionId; scope zawsze requires_review (nie auto global)
-- **Integrity patch:** changed transcript fingerprint=1; unclassified=`…:basename`; fixture expectations 29/29; frame schemes + manifest v1; document samples; revision contract
+- Integrity: changed transcript fingerprint=1; unclassified=`…:basename`; fixture expectations 29/29; frame schemes + manifest v1; document samples; revision contract
 - Testy **180/180**; Stage 3J.1 **271/271**; Stage 3J **161/161**; ekstrakcja treści = 0
+- Commit Stage 3J.2A: `7465934` („STAGE 3J.2A”)
 - Stage 3J.2B / Stage 3K: nierozpoczęte
-- **Commit:** czeka na decyzję
 ### 2026-07-28 — Stage 3J.1 Polish Domain Lexicon (zakończony)
 
 - Framework multidomain: rejestr 11 domen, manifest, pakiety `core` / `hr` / `payroll`
