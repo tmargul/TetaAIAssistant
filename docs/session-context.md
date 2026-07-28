@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-28** (Stage 3J `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`; Stage 3J.1 multidomain + Help discovery, lokalnie, niezacommitowany)
+> Ostatnia aktualizacja: **2026-07-28** (Stage 3J `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`; Stage 3J.1 zakończony — multidomain lexicon + Help discovery)
 
 ---
 
@@ -176,18 +176,19 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [ ] **Pipeline Oracle (standard 2026-07-17):** wdrożony w kodzie (probe widoki→tabele→pakiety→LLM); smoke: Beata Styś → KDR → „SPECJALISTA DS. KADR” — potwierdzić w UI
 - [x] **Stage 3I:** zacommitowany `032a6a6fee90fe657043e7898b3cce2c68dbff2b`
 - [x] **Stage 3J:** zacommitowany `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
-- [ ] **Stage 3J.1 — Polish Teta Domain Lexicon:** multidomain framework + Help discovery, lokalnie, niezacommitowany
+- [x] **Stage 3J.1 — Polish Teta Domain Lexicon:** zakończony (stabilny multidomain lexicon framework + Help discovery)
 - [ ] **Stage 3J.2:** nierozpoczęty (zatwierdzanie pojęć z dokumentacji modułowej)
 - [ ] **Stage 3K:** nierozpoczęty
 
 ### Stan Stage 3J / 3J.1 (jednoznaczny)
 
 - **Stage 3J** zacommitowany: `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
-- **Stage 3J.1:** multidomain framework + Help discovery, lokalnie, niezacommitowany
+- **Stage 3J.1:** zakończony i gotowy jako stabilny multidomain lexicon framework + Help discovery
 - **Routing Stage 3J (migrated scope):** lexicon-only
 - **hardcoded/legacy fallbacks:** 0
-- **approved bootstrap packs:** hr + payroll
-- **pozostałe domeny:** registered + Help candidates only (bez auto-approve)
+- **approved bootstrap packs:** hr + payroll (pozostałe domeny: registered + Help candidates only, bez auto-approve)
+- **kandydaci Help:** nie sterują routingiem (`candidatesUsedForRouting=0`, `helpAutoApprovedConcepts=0`)
+- **help document → action correlation:** niedostępne w obecnym Stage 3A (`helpDocumentsWithActions=null` + unavailable reason); do rozwoju w Stage 3J.2
 - **Stage 3J.2 / Stage 3K:** nierozpoczęte
 
 ---
@@ -236,7 +237,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Moduł `apps/api/src/teta-payroll-explanations/` zacommitowany jako Stage 3J
 - Stage 3J tests: **161/161**; `audit --strict`: EXIT 0
 
-### 2026-07-28 — Stage 3J.1 Polish Domain Lexicon (multidomain, lokalnie, niezacommitowany)
+### 2026-07-28 — Stage 3J.1 Polish Domain Lexicon (zakończony)
 
 - Framework multidomain: rejestr 11 domen, manifest, pakiety `core` / `hr` / `payroll`
 - Help discovery read-only ze Stage 3A + reconciliation (1771 Help docs = formsWithValidHelpEdge)
@@ -244,10 +245,11 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - `resolutionKind`: single_domain | multi_domain | ambiguous | unresolved — multi-domain ≠ ambiguity
 - Safety probes: expected vs actual; domain-specific wymaga rzeczywistych `domainIds`
 - Unresolved: `capabilityStatus=null` (nigdy `not_available_yet`); scope leak counters = 0
-- Help: `helpActionCount=152`; `helpDocumentsWithActions=null` + unavailable reason (brak ścieżki field→document w 3A)
+- Help: `helpActionCount=152`; `helpDocumentsWithActions=null` + unavailable reason (brak ścieżki field→document w 3A; Stage 3J.2)
 - Fixture: **198/198**; safety probes **9/9**; testy Stage 3J.1: **271/271**; Stage 3J: **161/161**; 3B+3I: **174/174**
 - Routing migrated Stage 3J scope: **lexicon-only**; migration counters = 0
-- `domain-lexicon:stage3j1 audit --strict` + Stage 3J audit strict: EXIT 0
+- Kandydaci Help nie sterują routingiem; auto-approve = 0
+- Commit Stage 3J.1: `e08f020` („Stage 3J.1”)
 - Stage 3J.2 / Stage 3K: nierozpoczęte
 
 ### 2026-07-25 — Etap 3E Deterministic Oracle SELECT Compiler ✅ (commit `1751a40`)
