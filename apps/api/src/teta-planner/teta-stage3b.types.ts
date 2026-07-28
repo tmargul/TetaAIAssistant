@@ -12,6 +12,10 @@ export type PlannerIntentType =
   | 'explain_payroll_component_configuration'
   | 'compare_payroll_components'
   | 'design_analogous_payroll_component'
+  | 'calculate_payroll_component'
+  | 'explain_employee_payroll_value'
+  | 'modify_payroll_component'
+  | 'create_payroll_component'
   | 'validate_import_file'
   | 'build_employee_report'
   | 'explain_application_field'
@@ -213,6 +217,8 @@ export type TetaEvidencePlan = {
   reportParameters?: {
     period: import('../teta-report-period/teta-report-period.types').TetaReportPeriodResolution;
   };
+  /** Stage 3J — payroll component explanation request (inspect/explain configuration). */
+  payrollComponentRequest?: import('../teta-payroll-explanations/teta-payroll-explanation.types').PayrollComponentRequest;
   executionPolicy: ExecutionPolicy;
   audit: {
     deterministic: true;

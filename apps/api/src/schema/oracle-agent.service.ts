@@ -73,11 +73,9 @@ import {
 } from './oracle-agent-parse.util';
 import { TetaCanonicalReportOrchestratorService } from '../teta-chat-reports/teta-canonical-report-orchestrator.service';
 import type { Stage3gChatReportResponse } from '../teta-chat-reports/teta-chat-report.types';
-import {
-  evaluatePayrollChatGate,
-  formatPayrollChatGateMessage,
-} from '../teta-payroll-snapshots/teta-payroll-snapshot-chat-gate';
 import { TetaPayrollSnapshotQueryService } from '../teta-payroll-snapshots/teta-payroll-snapshot-query.service';
+import { TetaPayrollComponentExplanationService } from '../teta-payroll-explanations/teta-payroll-component-explanation.service';
+import { routePayrollChatQuestion } from '../teta-payroll-explanations/teta-payroll-explanation-chat-route';
 
 const DOMAIN_PROMPTS: Record<OracleAgentDomain, string> = {
   general: 'Jesteś asystentem bazy Teta — ogólny kontekst schematu.',
@@ -111,6 +109,7 @@ export class OracleAgentService {
     private readonly queryTimeout: ChatQueryTimeoutService,
     @Optional() private readonly canonicalReports?: TetaCanonicalReportOrchestratorService,
     @Optional() private readonly payrollSnapshots?: TetaPayrollSnapshotQueryService,
+    @Optional() private readonly payrollExplanations?: TetaPayrollComponentExplanationService,
   ) {}
 
   async streamComplete(
@@ -154,21 +153,25 @@ export class OracleAgentService {
         throw new BadRequestException('Wiadomość nie może być pusta.');
       }
 
-      // Stage 3I — client payroll configuration gate (before canonical reports / Oracle / LLM / Qdrant)
-      if (this.payrollSnapshots) {
+      // Stage 3J — payroll component explanation (before canonical reports / Oracle / LLM / Qdrant)
+      if (this.payrollExplanations && this.payrollSnapshots) {
         const role = streamOptions?.role ?? 'user';
         const uploadAllowed = role === 'admin' || workMode === 'vendor';
-        const gate = evaluatePayrollChatGate({
+        const routed = routePayrollChatQuestion({
           question: message,
+          explanationService: this.payrollExplanations,
           queryService: this.payrollSnapshots,
           uploadAllowed,
         });
-        if (gate.kind !== 'generic_payroll_knowledge') {
-          const content = formatPayrollChatGateMessage(gate) ?? '';
-          writeEvent({ type: 'token', delta: content });
+        if (routed.handled) {
+          writeEvent({ type: 'token', delta: routed.content });
+          writeEvent({
+            type: 'payroll_explanation',
+            payrollExplanation: routed.chatResponse,
+          });
           writeEvent({
             type: 'done',
-            content,
+            content: routed.content,
             model: input.model,
             createdAt: new Date().toISOString(),
             timing: {
@@ -176,6 +179,7 @@ export class OracleAgentService {
               ragMs: 0,
               llmMs: 0,
             },
+            payrollExplanation: routed.historyChatResponse,
           });
           res.end();
           return;

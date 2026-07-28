@@ -15,6 +15,7 @@ import { DoctorModule } from './doctor/doctor.module';
 import { RagModule } from './rag/rag.module';
 import { TetaChatReportsModule } from './teta-chat-reports/teta-chat-reports.module';
 import { TetaPayrollSnapshotsModule } from './teta-payroll-snapshots/teta-payroll-snapshots.module';
+import { TetaPayrollExplanationsModule } from './teta-payroll-explanations/teta-payroll-explanations.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { TetaPayrollSnapshotsModule } from './teta-payroll-snapshots/teta-payrol
     DoctorModule,
     TetaChatReportsModule,
     TetaPayrollSnapshotsModule,
+    TetaPayrollExplanationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

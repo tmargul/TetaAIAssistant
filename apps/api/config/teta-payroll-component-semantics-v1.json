@@ -1,0 +1,180 @@
+{
+  "catalogVersion": "teta-payroll-component-semantics-v1",
+  "componentTypes": [
+    {
+      "typeCode": "P",
+      "status": "verified",
+      "meaning": "Składnik obliczany według wzoru na liście płac.",
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-types"
+      }
+    },
+    {
+      "typeCode": "S",
+      "status": "verified",
+      "meaning": "Składnik stały lub wpisywany ręcznie.",
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-types"
+      }
+    },
+    {
+      "typeCode": "W",
+      "status": "verified",
+      "meaning": "Składnik warunkowy — wynik zależy od spełnienia warunku w wzorze.",
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-types"
+      }
+    }
+  ],
+  "correctionModes": [
+    {
+      "modeCode": "DMK",
+      "status": "verified",
+      "meaning": "Korekta do miesiąca — składnik uwzględniany przy korekcie listy do wskazanego miesiąca.",
+      "source": {
+        "type": "training_material",
+        "documentId": "KP_14-Korekta-list-plac",
+        "sectionId": "correction-modes"
+      }
+    },
+    {
+      "modeCode": "DMB",
+      "status": "verified",
+      "meaning": "Korekta do bieżącej listy — składnik korygowany w ramach bieżącego naliczenia.",
+      "source": {
+        "type": "training_material",
+        "documentId": "KP_14-Korekta-list-plac",
+        "sectionId": "correction-modes"
+      }
+    },
+    {
+      "modeCode": "OBL",
+      "status": "verified",
+      "meaning": "Obliczany przy korekcie — składnik przeliczany w procesie korekty listy płac.",
+      "source": {
+        "type": "training_material",
+        "documentId": "KP_14-Korekta-list-plac",
+        "sectionId": "correction-modes"
+      }
+    }
+  ],
+  "formulaFunctions": [
+    {
+      "functionId": "m0",
+      "status": "verified",
+      "meaning": "Pobiera wartość wcześniej obliczonego składnika z bieżącej listy.",
+      "argumentRoles": ["component_code"],
+      "constraints": ["Składnik wskazany w odwołaniu powinien być liczony wcześniej."],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-references"
+      }
+    },
+    {
+      "functionId": "s",
+      "status": "verified",
+      "meaning": "Odwołanie do wartości składnika z bieżącej listy (składniki stałe).",
+      "argumentRoles": ["component_code"],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-references"
+      }
+    },
+    {
+      "functionId": "mz",
+      "status": "verified",
+      "meaning": "Odwołanie historyczne do wartości składnika z poprzednich list.",
+      "argumentRoles": ["component_code"],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-references"
+      }
+    },
+    {
+      "functionId": "m1",
+      "status": "verified",
+      "meaning": "Odwołanie do wartości składnika z poprzedniej listy płac.",
+      "argumentRoles": ["component_code"],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-references"
+      }
+    },
+    {
+      "functionId": "mm",
+      "status": "verified",
+      "meaning": "Odwołanie do wartości składnika z bieżącego miesiąca (wariant kontekstowy).",
+      "argumentRoles": ["component_code"],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-references"
+      }
+    },
+    {
+      "functionId": "mr",
+      "status": "verified",
+      "meaning": "Odwołanie do wartości składnika z raportu lub rejestru pomocniczego.",
+      "argumentRoles": ["component_code"],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "component-references"
+      }
+    },
+    {
+      "functionId": "e",
+      "status": "verified",
+      "meaning": "Funkcja płacowa wbudowana w język wzorów Teta.",
+      "argumentRoles": ["unknown"],
+      "source": {
+        "type": "training_material",
+        "documentId": "Place",
+        "sectionId": "formula-functions"
+      }
+    },
+    {
+      "functionId": "wartosc_formuly_sql",
+      "status": "verified",
+      "meaning": "Pobiera wynik formuły SQL zdefiniowanej w parametryzacji płacowej (bez wykonywania w AIA).",
+      "argumentRoles": ["formula_code"],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "sql-formulas"
+      }
+    },
+    {
+      "functionId": "p_oblicz",
+      "status": "verified",
+      "meaning": "Kontekst pakietu obliczeniowego listy płac.",
+      "argumentRoles": ["unknown"],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "calculation-context"
+      }
+    },
+    {
+      "functionId": "tab_l_skl_obl_war",
+      "status": "verified",
+      "meaning": "Odwołanie do tabeli składników obliczanych w kontekście.",
+      "argumentRoles": ["unknown"],
+      "source": {
+        "type": "training_material",
+        "documentId": "payroll-component-parameterization",
+        "sectionId": "context-components"
+      }
+    }
+  ]
+}

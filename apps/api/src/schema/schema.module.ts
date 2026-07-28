@@ -5,6 +5,7 @@ import { OllamaModule } from '../chat/ollama.module';
 import { OracleModule } from '../oracle/oracle.module';
 import { TetaChatReportsModule } from '../teta-chat-reports/teta-chat-reports.module';
 import { TetaPayrollSnapshotsModule } from '../teta-payroll-snapshots/teta-payroll-snapshots.module';
+import { TetaPayrollExplanationsModule } from '../teta-payroll-explanations/teta-payroll-explanations.module';
 import { SchemaController } from './schema.controller';
 import { SchemaCrawlService } from './schema-crawl.service';
 import { SchemaExplorerService } from './schema-explorer.service';
@@ -27,6 +28,7 @@ import { TetaPluginsCoreModule } from '../teta-plugins/teta-plugins-core.module'
     TetaPluginsCoreModule,
     forwardRef(() => TetaChatReportsModule),
     forwardRef(() => TetaPayrollSnapshotsModule),
+    forwardRef(() => TetaPayrollExplanationsModule),
   ],
   controllers: [SchemaController],
   providers: [

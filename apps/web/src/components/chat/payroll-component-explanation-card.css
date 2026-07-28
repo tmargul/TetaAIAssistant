@@ -1,0 +1,135 @@
+.payroll-card {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 8px;
+  background: var(--surface-elevated, #f8fafc);
+  font-size: 0.9rem;
+}
+
+.payroll-card__title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.payroll-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.payroll-card__date {
+  color: var(--text-muted, #64748b);
+  font-size: 0.8rem;
+}
+
+.payroll-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.payroll-card__badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.payroll-card__badge--muted {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.payroll-card__badge--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.payroll-card__summary {
+  margin: 0 0 0.75rem;
+}
+
+.payroll-card__section {
+  margin-top: 0.75rem;
+}
+
+.payroll-card__section h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+}
+
+.payroll-card__formula {
+  margin: 0;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.payroll-card__list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.payroll-card__more {
+  margin-top: 0.35rem;
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+.payroll-card__details {
+  margin-top: 0.75rem;
+}
+
+.payroll-card__instructions {
+  margin: 0.5rem 0;
+  padding-left: 1.2rem;
+}
+
+.payroll-card__link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: #2563eb;
+}
+
+.payroll-card__expired-note {
+  color: #64748b;
+  font-style: italic;
+}
+
+.payroll-card--required {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.payroll-card--ambiguous {
+  border-color: #93c5fd;
+}
+
+.payroll-card--expired {
+  border-color: #cbd5e1;
+}
+
+.payroll-card__section--warn {
+  color: #92400e;
+}
+
+.payroll-card__text {
+  margin: 0.35rem 0 0;
+  color: #334155;
+}

@@ -6,6 +6,7 @@ import type {
   CanonicalReportProgressStage,
   TetaCanonicalChatReportResponse,
 } from './canonical-chat-report.js';
+import type { TetaPayrollComponentChatResponse } from './payroll-component-explanation.js';
 
 export const CHAT_MODELS = ['qwen3', 'deepseek-r1'] as const;
 export type ChatModel = (typeof CHAT_MODELS)[number];
@@ -31,6 +32,8 @@ export interface ChatMessage {
    * history must be redacted: rows=null, token=null, dataExpired=true).
    */
   canonicalReport?: TetaCanonicalChatReportResponse | null;
+  /** Stage 3J payroll component explanation card. */
+  payrollExplanation?: TetaPayrollComponentChatResponse | null;
   /** Kontekst wątku dla agenta (tabela/kolumny) — niewidoczny w UI, zachowany w historii. */
   oracleThreadContext?: string;
   /** Ocena odpowiedzi (Oracle + vendor) — zapis do RAG po 👍. */
@@ -140,6 +143,7 @@ export type ChatStreamEvent =
       message: string;
     }
   | { type: 'canonical_report'; report: TetaCanonicalChatReportResponse }
+  | { type: 'payroll_explanation'; payrollExplanation: TetaPayrollComponentChatResponse }
   | { type: 'token'; delta: string }
   | {
       type: 'done';
@@ -151,6 +155,7 @@ export type ChatStreamEvent =
       oracleSql?: OracleAgentSqlStep[];
       oracleReports?: OracleReport[];
       canonicalReport?: TetaCanonicalChatReportResponse | null;
+      payrollExplanation?: TetaPayrollComponentChatResponse | null;
       oracleThreadContext?: string;
     }
   | { type: 'error'; message: string; code?: string };

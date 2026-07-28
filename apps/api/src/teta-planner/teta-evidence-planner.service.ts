@@ -39,6 +39,7 @@ import {
   type TetaPlanningRequest,
 } from './teta-stage3b.types';
 import { resolveReportPeriod } from '../teta-report-period/teta-report-period-parser';
+import { buildPayrollComponentRequest, isStage3jSupportedIntent } from '../teta-payroll-explanations/teta-payroll-component-explanation-planner';
 
 /** Minimal Stage 3A client surface used by the planner. */
 export type Stage3aResolverClient = {
@@ -730,6 +731,10 @@ export class TetaEvidencePlannerService {
       (e) => e.status === 'not_applicable',
     ).length;
 
+    const payrollComponentRequest = isStage3jSupportedIntent(intentResult.type)
+      ? buildPayrollComponentRequest(request.question)
+      : undefined;
+
     return {
       contractVersion: STAGE3B_CONTRACT_VERSION,
       planningStatus,
@@ -747,6 +752,7 @@ export class TetaEvidencePlannerService {
       clarificationQuestions,
       selectionRequiredBeforeExecution,
       ...(reportParameters ? { reportParameters } : {}),
+      ...(payrollComponentRequest ? { payrollComponentRequest } : {}),
       executionPolicy: {
         sqlGenerationAllowed: false,
         sqlExecutionAllowed: false,

@@ -109,6 +109,65 @@ export class TetaPayrollSnapshotRepository {
     return rows.map((r) => this.mapDependency(r));
   }
 
+  listComponentSummaries(snapshotId: string): Array<{
+    code: string;
+    title: string | null;
+    typeCode: string | null;
+  }> {
+    const rows = this.db.connection
+      .prepare(
+        `SELECT code, title, type_code FROM teta_payroll_components
+         WHERE snapshot_id = ? ORDER BY code`,
+      )
+      .all(snapshotId) as Array<{ code: string; title: string | null; type_code: string | null }>;
+    return rows.map((r) => ({
+      code: String(r.code),
+      title: r.title,
+      typeCode: r.type_code,
+    }));
+  }
+
+  listCalculationFormulaRefsByComponent(
+    snapshotId: string,
+    componentCode: string,
+  ): Array<{
+    calculationFormulaId: string;
+    internalId: string;
+    title: string | null;
+    formulaTypeRaw: string | null;
+    componentCode: string;
+    sourceFunction: string | null;
+    confidence: string;
+  }> {
+    const rows = this.db.connection
+      .prepare(
+        `SELECT r.calculation_formula_id, r.component_code, r.source_function, r.confidence,
+                f.internal_id, f.title, f.formula_type_raw
+         FROM teta_payroll_calculation_formula_component_refs r
+         JOIN teta_payroll_calculation_formulas f
+           ON f.snapshot_id = r.snapshot_id AND f.formula_id = r.calculation_formula_id
+         WHERE r.snapshot_id = ? AND r.component_code = ?
+         ORDER BY f.internal_id`,
+      )
+      .all(snapshotId, componentCode) as Array<Record<string, unknown>>;
+    return rows.map((r) => ({
+      calculationFormulaId: String(r.calculation_formula_id),
+      internalId: String(r.internal_id),
+      title: (r.title as string | null) ?? null,
+      formulaTypeRaw: (r.formula_type_raw as string | null) ?? null,
+      componentCode: String(r.component_code),
+      sourceFunction: (r.source_function as string | null) ?? null,
+      confidence: String(r.confidence),
+    }));
+  }
+
+  countSqlFormulas(snapshotId: string): number {
+    const row = this.db.connection
+      .prepare(`SELECT COUNT(*) AS c FROM teta_payroll_sql_formulas WHERE snapshot_id = ?`)
+      .get(snapshotId) as { c: number };
+    return Number(row.c ?? 0);
+  }
+
   /**
    * Transactional insert. On activate=true, supersedes previous active for scope.
    */

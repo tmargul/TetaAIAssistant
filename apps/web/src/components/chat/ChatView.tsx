@@ -10,6 +10,7 @@ import {
   type RagSearchFilter,
   type SubmitChatMessageFeedbackResponse,
   type TetaCanonicalChatReportResponse,
+  type TetaPayrollComponentChatResponse,
   DEFAULT_CHAT_QUALITY,
   KNOWLEDGE_SOURCE_TYPES,
   oracleProgressHint,
@@ -32,6 +33,7 @@ import { formatChatTiming } from './format-duration';
 import { ModelSelect } from './ModelSelect';
 import { ReportTable } from './ReportTable';
 import { CanonicalOracleReportCard } from './CanonicalOracleReportCard';
+import { PayrollComponentExplanationCard } from './PayrollComponentExplanationCard';
 import './chat.css';
 
 const SUGGESTIONS = [
@@ -160,6 +162,9 @@ function ChatBubble({
         )}
         {!isUser && displayMessage.canonicalReport && (
           <CanonicalOracleReportCard report={displayMessage.canonicalReport} />
+        )}
+        {!isUser && displayMessage.payrollExplanation && (
+          <PayrollComponentExplanationCard response={displayMessage.payrollExplanation} />
         )}
       </div>
     </div>
@@ -481,6 +486,7 @@ export function ChatView({
     let oracleSql: OracleAgentSqlStep[] = [];
     let oracleReports: OracleReport[] = [];
     let canonicalReport: TetaCanonicalChatReportResponse | null = null;
+    let payrollExplanation: TetaPayrollComponentChatResponse | null = null;
 
     try {
       const historyLimit = Math.max(historyOracleLimit(), historyClientLimit());
@@ -552,6 +558,38 @@ export function ChatView({
                     ? {
                         ...item,
                         canonicalReport,
+                      }
+                    : item,
+                ),
+              );
+            }
+            return;
+          }
+
+          if (event.type === 'payroll_explanation') {
+            payrollExplanation = event.payrollExplanation;
+            setTypingHint('Analizuję składnik płacowy…');
+            if (!assistantId) {
+              assistantId = createId();
+              setStreamingMessageId(assistantId);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: assistantId,
+                  role: 'assistant',
+                  content: '',
+                  createdAt: new Date().toISOString(),
+                  streaming: true,
+                  payrollExplanation,
+                },
+              ]);
+            } else {
+              setMessages((prev) =>
+                prev.map((item) =>
+                  item.id === assistantId
+                    ? {
+                        ...item,
+                        payrollExplanation,
                       }
                     : item,
                 ),
@@ -641,6 +679,7 @@ export function ChatView({
               streaming: false,
               oracleReports: event.oracleReports ?? oracleReports,
               canonicalReport: event.canonicalReport ?? canonicalReport,
+              payrollExplanation: event.payrollExplanation ?? payrollExplanation,
               oracleThreadContext: event.oracleThreadContext,
               ...(showOracleDebug
                 ? {

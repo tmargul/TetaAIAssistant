@@ -88,6 +88,13 @@ export type {
 } from './canonical-chat-report.js';
 
 export { TETA_CANONICAL_CHAT_REPORT_RESPONSE_VERSION } from './canonical-chat-report.js';
+export type {
+  PayrollComponentCandidateView,
+  PayrollComponentExplanationStatus,
+  PayrollComponentExplanationView,
+  TetaPayrollComponentChatResponse,
+} from './payroll-component-explanation.js';
+export { TETA_PAYROLL_COMPONENT_CHAT_RESPONSE_VERSION } from './payroll-component-explanation.js';
 
 export {
   canonicalReportDownloadButtonLabel,

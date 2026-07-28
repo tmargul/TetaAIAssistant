@@ -1,0 +1,229 @@
+{
+  "contractVersion": "teta-aia-payroll-component-explanation-v1",
+  "auditContractVersion": "teta-aia-payroll-component-explanation-audit-v1",
+  "generatedAt": "2026-07-28T12:25:30.397Z",
+  "explanationContractVersion": "teta-aia-payroll-component-explanation-v1",
+  "semanticsCatalogVersion": "teta-payroll-component-semantics-v1",
+  "semanticsCatalogSha256Prefix": "a5f1d2512bff…",
+  "runtimeAudit": {
+    "explanationRequests": 7,
+    "dependencyTraceRequests": 0,
+    "impactTraceRequests": 4,
+    "searchRequests": 0,
+    "snapshotRequiredResponses": 1,
+    "componentNotFoundResponses": 1,
+    "ambiguousComponentResponses": 1,
+    "capabilityNotAvailableResponses": 1,
+    "explanationsCompleted": 6,
+    "explanationsCompletedWithWarnings": 5,
+    "directDependenciesReturned": 12,
+    "transitiveDependenciesReturned": 6,
+    "directDependentsReturned": 19,
+    "transitiveDependentsReturned": 206,
+    "dependencyPathsReturned": 6,
+    "cyclesDetected": 1,
+    "selfReferencesDetected": 0,
+    "missingDependencyTargets": 0,
+    "graphTraversalsTruncated": 0,
+    "maximumDepthObserved": 5,
+    "exactCodeSelections": 1,
+    "exactTitleSelections": 0,
+    "normalizedTitleSelections": 0,
+    "ambiguousSelections": 1,
+    "unresolvedSelections": 0,
+    "leadingZeroCodesPreserved": 1,
+    "selectorAutoPaddingApplied": 0,
+    "autoResolvedPaddedCodes": 0,
+    "componentValuesCalculated": 0,
+    "formulasExecuted": 0,
+    "sqlFormulasExecuted": 0,
+    "unknownFunctionsPreserved": 2,
+    "unknownMeaningsInvented": 0,
+    "guaranteedImpactClaimsMade": 0,
+    "calculationFormulaUsesReturned": 5,
+    "sqlFormulaUsesConfirmed": 0,
+    "sqlFormulaUsesProbable": 0,
+    "sqlFormulaIndexesUnavailable": 0,
+    "rawComponentFormulasPersisted": 0,
+    "dependencyFragmentsPersisted": 0,
+    "rawFormulaTokensPersisted": 0,
+    "calculationFormulasPersisted": 0,
+    "sqlFormulasPersisted": 0,
+    "rawFormulasLogged": 0,
+    "calculationFormulasLogged": 0,
+    "customerNamesLogged": 0,
+    "fingerprintsComputed": 7,
+    "chatRouteHandled": 4,
+    "chatRouteNotHandled": 0,
+    "historyRedactionsApplied": 1,
+    "identicalInputFingerprintMatches": 1,
+    "changedDepthFingerprintDiffers": 1,
+    "generatedAtExcludedFromFingerprint": 1,
+    "deterministicFingerprintCheckOk": 1
+  },
+  "referenceAudit": {
+    "referencesTested": 13,
+    "referencesPassed": 13,
+    "referencesFailed": 0,
+    "goldenReferencesExecuted": 5,
+    "syntheticReferencesExecuted": 5
+  },
+  "sideEffects": {
+    "oracleConnectionsOpened": 0,
+    "oracleStatementsExecuted": 0,
+    "oracleWrites": 0,
+    "llmCalls": 0,
+    "qdrantCalls": 0,
+    "embeddingCalls": 0,
+    "formulasExecuted": 0,
+    "sqlFormulasExecuted": 0,
+    "domanFallbacks": 0,
+    "legacyAgentFallbacks": 0,
+    "clientPayrollQuestionWithoutSnapshotFallbacks": 0,
+    "rawFormulaLogged": 0,
+    "dependencyFragmentsLogged": 0,
+    "sqlFormulasLogged": 0,
+    "customerNamesWrittenToDocs": 0,
+    "localFixturesAddedToGit": 0,
+    "customerConfigurationCodesExposedInRepoArtifacts": 0
+  },
+  "goldenMeta": {
+    "fileSha256Prefix": "434d8ba4e870…",
+    "reportGeneratedAt": "2020-05-22",
+    "kpVersion": "27.61.099494",
+    "paVersion": "27.61.099393",
+    "componentCount": 1037,
+    "directDependentCount": 2136
+  },
+  "references": [
+    {
+      "id": "stage3j-snapshot-required",
+      "ok": true,
+      "detail": "snapshot_required"
+    },
+    {
+      "id": "golden-full-explanation-1353",
+      "ok": true,
+      "detail": "status=completed_with_warnings;deps=1350,1351,1352;fp=02295edee307"
+    },
+    {
+      "id": "golden-impact-1350",
+      "ok": true,
+      "detail": "containsRequiredDependents=1353,1355;directDependentCount=14;impactTraceRequests=2",
+      "impactSummary": {
+        "containsRequiredDependents": [
+          "1353",
+          "1355"
+        ],
+        "directDependentCount": 14,
+        "additionalDependentsRedacted": true,
+        "impactTraceRequests": 2
+      }
+    },
+    {
+      "id": "golden-leading-zero-code-0010",
+      "ok": true,
+      "detail": "0010=0010;10=null;suggested=0010"
+    },
+    {
+      "id": "stage3j-component-not-found",
+      "ok": true,
+      "detail": "component_not_found"
+    },
+    {
+      "id": "stage3j-calculation-formula-use",
+      "ok": true,
+      "detail": "uses=5;refHash=76a50887d8f1"
+    },
+    {
+      "id": "stage3j-unsupported-capability",
+      "ok": true,
+      "detail": "capability_not_available"
+    },
+    {
+      "id": "history-redaction",
+      "ok": true,
+      "detail": "redacted"
+    },
+    {
+      "id": "stage3j-ambiguous-component-title",
+      "ok": true,
+      "detail": "status=ambiguous_component;candidates=2"
+    },
+    {
+      "id": "stage3j-dependency-cycle",
+      "ok": true,
+      "detail": "cycles=1;truncated=false"
+    },
+    {
+      "id": "stage3j-unknown-function",
+      "ok": true,
+      "detail": "unknownCalls=1;diag=true"
+    },
+    {
+      "id": "stage3j-jest",
+      "ok": true,
+      "detail": "158/158 passed, failed=0"
+    },
+    {
+      "id": "regression-jest-3b-i",
+      "ok": true,
+      "detail": "781/781 passed, failed=0"
+    }
+  ],
+  "verification": {
+    "stage3jTestsExecuted": 158,
+    "stage3jTestsPassed": 158,
+    "stage3jTestsFailed": 0,
+    "regressionTestsExecuted": 781,
+    "regressionTestsPassed": 781,
+    "regressionTestsFailed": 0
+  },
+  "invariants": {
+    "noSideEffects": true,
+    "noFormulaExecution": true,
+    "noRawFormulaInAuditOutput": true,
+    "noCustomerDataInDocs": true,
+    "fingerprintDeterministic": true,
+    "snapshotRequiredWithoutFallback": true,
+    "historyRedactionApplied": true,
+    "supportedIntentsOnlyWhenCompleted": true,
+    "stage3jTestsExecutedAtLeast150": true,
+    "stage3jTestsFailedZero": true,
+    "regressionTestsFailedZero": true,
+    "referencesAllPassed": true,
+    "runtimeCountersComeFromInstrumentedServices": true,
+    "referencesDoNotPretendToBeRuntimeCounters": true,
+    "everyRequiredReferenceExecuted": true,
+    "everyRequiredReferencePassed": true,
+    "golden1353DirectDependenciesCorrect": true,
+    "golden1353TransitiveDependenciesCorrect": true,
+    "golden1353PathsCorrect": true,
+    "golden1350ImpactContains1353And1355": true,
+    "exact0010Preserved": true,
+    "code10NotAutoResolvedTo0010": true,
+    "ambiguousTitleNotAutoResolved": true,
+    "cycleTraversalTerminates": true,
+    "unknownFunctionMeaningNotInvented": true,
+    "calculationFormulaUseProven": true,
+    "snapshotRequiredUsesStage3jRoute": true,
+    "missingComponentUsesStage3jRoute": true,
+    "unsupportedCapabilityDoesNotFallback": true,
+    "guaranteedImpactClaimsMadeZero": true,
+    "componentValuesCalculatedZero": true,
+    "rawComponentFormulasPersistedZero": true,
+    "dependencyFragmentsPersistedZero": true,
+    "calculationFormulasPersistedZero": true,
+    "sqlFormulasPersistedZero": true,
+    "deterministicFingerprintCheckOk": true,
+    "allRequiredReferencesPassed": true,
+    "goldenImpactAdditionalDependentsRedactedFromRepoArtifacts": true,
+    "ambiguousResponseHasAmbiguousSelectionEvidence": true
+  },
+  "auditSemantics": {
+    "runtimeCountersComeFromInstrumentedServices": "runtimeAudit counts instrumented service calls during audit execution",
+    "referencesDoNotPretendToBeRuntimeCounters": "referenceAudit counts audit scenario executions; reference pass/fail is separate from runtime totals",
+    "referenceExecutionMayAlsoIncrementRuntime": "When a reference invokes a real service, runtimeAudit may increase alongside referenceAudit"
+  },
+  "strictErrors": []
+}
