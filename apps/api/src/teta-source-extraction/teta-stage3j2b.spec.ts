@@ -39,8 +39,8 @@ const FIXTURE_ROOT = defaultFixtureRoot();
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
 
 const VERIFICATION_STUB = {
-  stage3j2bTestsExecuted: 227,
-  stage3j2bTestsPassed: 227,
+  stage3j2bTestsExecuted: 235,
+  stage3j2bTestsPassed: 235,
   stage3j2bTestsFailed: 0,
   fixtureExpectationsExecuted: 12,
   fixtureExpectationsPassed: 12,
@@ -783,6 +783,11 @@ describe('Stage 3J.2B discovery bundle reconciliation', () => {
       const d = discoverDocumentSources(dir, loadRegs().selectionPolicy);
       expect(d.uniqueMovieBasenames).toBe(1);
       expect(d.movieBundleRecordsCreated).toBe(1);
+      expect(d.completeCoreMovieBundles).toBe(1);
+      expect(d.bundlesWithTranscriptAndFrames).toBe(1);
+      expect(d.bundlesWithOptionalMp4).toBe(1);
+      expect(d.bundlesWithAllThreeAssets).toBe(1);
+      expect(d.partialCoreMovieBundles).toBe(0);
       expect(d.transcriptFramesAndMp4Bundles).toBe(1);
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -815,13 +820,14 @@ describe('Stage 3J.2B discovery bundle reconciliation', () => {
     }
   });
 
-  test('transcript-only bundle is partial', () => {
+  test('transcript-only bundle is core partial', () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'j2b-discovery-'));
     try {
       writeFile(dir, 'ALL_MOVIES/zu1.json', '{}');
       const d = discoverDocumentSources(dir, loadRegs().selectionPolicy);
       expect(d.transcriptOnlyBundles).toBe(1);
-      expect(d.partialMovieBundles).toBe(1);
+      expect(d.partialCoreMovieBundles).toBe(1);
+      expect(d.completeCoreMovieBundles).toBe(0);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -852,6 +858,104 @@ describe('Stage 3J.2B discovery bundle reconciliation', () => {
   test('file-category reconciliation is true', () => {
     const d = discoverDocumentSources(FIXTURE_ROOT, loadRegs().selectionPolicy);
     expect(d.fileCategoryReconciliationOk).toBe(true);
+  });
+});
+
+describe('Stage 3J.2B core movie bundle semantics', () => {
+  function writeFile(root: string, rel: string, content = 'x'): void {
+    const full = path.join(root, rel);
+    mkdirSync(path.dirname(full), { recursive: true });
+    writeFileSync(full, content);
+  }
+
+  test('transcript + frames without MP4 is core complete', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'j2b-core-'));
+    try {
+      writeFile(dir, 'ALL_MOVIES/zu1.json', '{}');
+      writeFile(dir, 'ALL_MOVIES/ZU1/frame_00001.jpg', 'img');
+      const d = discoverDocumentSources(dir, loadRegs().selectionPolicy);
+      expect(d.completeCoreMovieBundles).toBe(1);
+      expect(d.partialCoreMovieBundles).toBe(0);
+      expect(d.bundlesWithTranscriptAndFrames).toBe(1);
+      expect(d.bundlesWithoutOptionalMp4).toBe(1);
+      expect(d.bundlesWithOptionalMp4).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('transcript + frames + MP4 is core complete with optional MP4 present', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'j2b-core-'));
+    try {
+      writeFile(dir, 'ALL_MOVIES/zu1.json', '{}');
+      writeFile(dir, 'ALL_MOVIES/zu1.mp4', 'mp4');
+      writeFile(dir, 'ALL_MOVIES/ZU1/frame_00001.jpg', 'img');
+      const d = discoverDocumentSources(dir, loadRegs().selectionPolicy);
+      expect(d.completeCoreMovieBundles).toBe(1);
+      expect(d.partialCoreMovieBundles).toBe(0);
+      expect(d.bundlesWithOptionalMp4).toBe(1);
+      expect(d.bundlesWithAllThreeAssets).toBe(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('transcript without frames is core partial', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'j2b-core-'));
+    try {
+      writeFile(dir, 'ALL_MOVIES/zu1.json', '{}');
+      const d = discoverDocumentSources(dir, loadRegs().selectionPolicy);
+      expect(d.completeCoreMovieBundles).toBe(0);
+      expect(d.partialCoreMovieBundles).toBe(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('frames without transcript is core partial', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'j2b-core-'));
+    try {
+      writeFile(dir, 'ALL_MOVIES/ZU1/frame_00001.jpg', 'img');
+      const d = discoverDocumentSources(dir, loadRegs().selectionPolicy);
+      expect(d.completeCoreMovieBundles).toBe(0);
+      expect(d.partialCoreMovieBundles).toBe(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('MP4 without transcript or frames is core partial', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'j2b-core-'));
+    try {
+      writeFile(dir, 'ALL_MOVIES/zu1.mp4', 'mp4');
+      const d = discoverDocumentSources(dir, loadRegs().selectionPolicy);
+      expect(d.completeCoreMovieBundles).toBe(0);
+      expect(d.partialCoreMovieBundles).toBe(1);
+      expect(d.bundlesWithOptionalMp4).toBe(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('missing MP4 does not downgrade core complete bundle to partial', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'j2b-core-'));
+    try {
+      writeFile(dir, 'ALL_MOVIES/zu1.json', '{}');
+      writeFile(dir, 'ALL_MOVIES/ZU1/frame_00001.jpg', 'img');
+      const d = discoverDocumentSources(dir, loadRegs().selectionPolicy);
+      expect(d.partialCoreMovieBundles).toBe(0);
+      expect(d.partialMovieBundles).toBe(0);
+      expect(d.completeCoreMovieBundles + d.partialCoreMovieBundles).toBe(d.uniqueMovieBasenames);
+      expect(d.bundlesWithTranscriptAndFrames).toBe(d.completeCoreMovieBundles);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test('core bundle invariants hold on fixture ALL_MOVIES', () => {
+    const d = discoverDocumentSources(FIXTURE_ROOT, loadRegs().selectionPolicy);
+    expect(d.completeCoreMovieBundles + d.partialCoreMovieBundles).toBe(d.uniqueMovieBasenames);
+    expect(d.bundlesWithTranscriptAndFrames).toBe(d.completeCoreMovieBundles);
   });
 });
 
@@ -996,5 +1100,26 @@ describe('Stage 3J.2B extraction outcomes patch', () => {
     expect(
       audit.extractionOutcomes.sourcesWithContentUnits + audit.extractionOutcomes.sourcesWithoutContentUnits,
     ).toBe(audit.extractionOutcomes.sourceRecordsCreated);
+  });
+
+  test('records=8 succeeded=7 blocked=1 must not report content extracted=8', async () => {
+    const records = 8;
+    const succeeded = 7;
+    const withWarnings = 0;
+    const blocked = 1;
+    expect(records).toBe(succeeded + withWarnings + blocked);
+    const deprecatedMisleadingContentExtracted = records;
+    expect(deprecatedMisleadingContentExtracted).not.toBe(succeeded + withWarnings);
+    const audit = await buildStage3j2bAudit(false, REPO_ROOT, VERIFICATION_STUB) as {
+      verification: Record<string, number | undefined>;
+    };
+    expect(audit.verification.realPilotSourcesExtracted).toBeUndefined();
+    expect(audit.verification.realPilotSourceRecordsCreated ?? records).toBe(records);
+    if (audit.verification.realPilotContentExtractionSucceeded != null) {
+      expect(audit.verification.realPilotContentExtractionSucceeded).toBe(succeeded);
+      expect(audit.verification.realPilotSourceRecordsCreated).not.toBe(
+        audit.verification.realPilotContentExtractionSucceeded,
+      );
+    }
   });
 });

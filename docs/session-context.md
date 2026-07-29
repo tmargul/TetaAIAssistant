@@ -178,7 +178,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J:** zacommitowany `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
 - [x] **Stage 3J.1 — Polish Teta Domain Lexicon:** zakończony (`e08f020`; docs status `832fa99`)
 - [x] **Stage 3J.2A — Knowledge Source Registry & Bulk Inventory:** zakończony (`7465934`)
-- [ ] **Stage 3J.2B — Canonical Source Extraction & Portable Offline Asset Store:** lokalnie, niezacommitowany
+- [x] **Stage 3J.2B — Canonical Source Extraction & Portable Offline Asset Store:** zakończony (semantyka raportów: core bundle + pilot outcome)
 - [ ] **Stage 3J.2C:** nierozpoczęty
 - [ ] **Stage 3J.2D:** nierozpoczęty
 - [ ] **Stage 3K:** nierozpoczęty
@@ -188,7 +188,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J** zacommitowany: `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
 - **Stage 3J.1:** zakończony (`e08f020`) + docs status (`832fa99`) — multidomain lexicon + Help discovery
 - **Stage 3J.2A:** zakończony — Knowledge Source Registry & Bulk Inventory (`7465934`; docs status `859bbf6`)
-- **Stage 3J.2B:** lokalnie — Canonical Source Extraction & Portable Offline Asset Store (niezacommitowany)
+- **Stage 3J.2B:** zakończony — Canonical Source Extraction & Portable Offline Asset Store (core bundle vs optional MP4, pilot outcome counters)
 - **Stage 3J.2C / 3J.2D / Stage 3K:** nierozpoczęte
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
@@ -209,10 +209,14 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Folder path = hint (registry), nie approved domain
 - Raw sources vendor-only; portable extracted store niezależny od dysku źródłowego
 - Finalny client knowledge pack — później (Stage 3K+)
-- Stage 3J.2B: testy **227/227**; regresja 3J.2A **180**, 3J.1 **271**, 3J **161**; audit strict EXIT 0
+- Stage 3J.2B: testy **235/235**; regresja 3J.2A **180**, 3J.1 **271**, 3J **161**; audit strict EXIT 0
 - Discovery reconciliation patch: wcześniejsze `realCatalogMovieBundles=1492` wynikało z błędnego traktowania technicznych wpisów frame; po patchu bundle = unikalne basename i metryka wynosi **51**
-- Real pilot rozszerzony do **8** źródeł (w tym 1 PDF); outcome split: records=8, content success=7, blocked=1 (legacy DOC bez konwertera)
-- Real pilot: 7/7 requested/found/extracted; legacy DOC `requires_conversion_tool` (brak LibreOffice na hoście)
+- Core movie bundle = transcript JSON + frames directory; **MP4 opcjonalne** (walidacja duration) — brak MP4 nie oznacza partial core bundle
+- Real catalog (discovery): **51** complete core bundles (transcript+frames), **0** partial core, **0** optional MP4 w wybranym katalogu
+- Real pilot **8** źródeł: requested=8, found=8, source records=8, content success=7, blocked=1, review=1
+- Blocked: legacy DOC bez konwertera (LibreOffice niedostępny) — metadata-only, nie liczony jako content success
+- PDF uwzględniony w pilocie; transcript i frames video przetworzone
+- MP4 nie znaleziony w wybranym katalogu bundle; walidacja duration unavailable (ffprobe niedostępny)
 - **Pairing:** transcript JSON ↔ frames directory przez exact case-insensitive basename; fuzzy nigdy nie auto-pairuje
 
 ---

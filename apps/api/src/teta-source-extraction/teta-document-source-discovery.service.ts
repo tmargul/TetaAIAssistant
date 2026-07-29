@@ -209,6 +209,17 @@ export function discoverDocumentSources(root: string, policy: SourceSelectionPol
 
   const bundles = [...movieBundlesMap.values()];
   const uniqueMovieBasenames = bundles.length;
+  const hasTranscript = (b: MovieSourceBundle) => Boolean(b.transcriptRelativePath);
+  const hasFrames = (b: MovieSourceBundle) => Boolean(b.framesRelativeDirectory);
+  const hasMp4 = (b: MovieSourceBundle) => Boolean(b.videoRelativePath);
+  const bundlesWithTranscript = bundles.filter(hasTranscript).length;
+  const bundlesWithFrames = bundles.filter(hasFrames).length;
+  const bundlesWithTranscriptAndFrames = bundles.filter((b) => hasTranscript(b) && hasFrames(b)).length;
+  const completeCoreMovieBundles = bundlesWithTranscriptAndFrames;
+  const partialCoreMovieBundles = uniqueMovieBasenames - completeCoreMovieBundles;
+  const bundlesWithOptionalMp4 = bundles.filter(hasMp4).length;
+  const bundlesWithoutOptionalMp4 = uniqueMovieBasenames - bundlesWithOptionalMp4;
+  const bundlesWithAllThreeAssets = bundles.filter((b) => hasTranscript(b) && hasFrames(b) && hasMp4(b)).length;
   const transcriptAndFramesBundles = bundles.filter((b) => b.pairingStatus === 'transcript_and_frames').length;
   const transcriptFramesAndMp4Bundles = bundles.filter((b) => b.pairingStatus === 'transcript_and_frames_and_mp4').length;
   const transcriptOnlyBundles = bundles.filter((b) => b.pairingStatus === 'transcript_only').length;
@@ -216,14 +227,8 @@ export function discoverDocumentSources(root: string, policy: SourceSelectionPol
   const mp4OnlyBundles = bundles.filter((b) => b.pairingStatus === 'mp4_only').length;
   const transcriptAndMp4WithoutFramesBundles = bundles.filter((b) => b.pairingStatus === 'transcript_and_mp4_without_frames').length;
   const framesAndMp4WithoutTranscriptBundles = bundles.filter((b) => b.pairingStatus === 'frames_and_mp4_without_transcript').length;
-  const completeMovieBundles = transcriptFramesAndMp4Bundles;
-  const partialMovieBundles =
-    transcriptAndFramesBundles
-    + transcriptOnlyBundles
-    + framesOnlyBundles
-    + mp4OnlyBundles
-    + transcriptAndMp4WithoutFramesBundles
-    + framesAndMp4WithoutTranscriptBundles;
+  const completeMovieBundles = completeCoreMovieBundles;
+  const partialMovieBundles = partialCoreMovieBundles;
   const movieBundleRecordsCreated = uniqueMovieBasenames;
   const frameDirectoriesSelected = movieFrameDirectories.length;
   const frameFilesIncorrectlyCountedAsMovieBundles = 0;
@@ -259,6 +264,14 @@ export function discoverDocumentSources(root: string, policy: SourceSelectionPol
     uniqueMovieBasenames,
     frameDirectoriesSelected,
     movieBundleRecordsCreated,
+    completeCoreMovieBundles,
+    partialCoreMovieBundles,
+    bundlesWithTranscript,
+    bundlesWithFrames,
+    bundlesWithTranscriptAndFrames,
+    bundlesWithOptionalMp4,
+    bundlesWithoutOptionalMp4,
+    bundlesWithAllThreeAssets,
     completeMovieBundles,
     transcriptAndFramesBundles,
     transcriptFramesAndMp4Bundles,

@@ -4,8 +4,8 @@
   "contractVersion": "teta-canonical-source-v1",
   "extractionVersion": "stage3j2b-v1",
   "verification": {
-    "stage3j2bTestsExecuted": 227,
-    "stage3j2bTestsPassed": 227,
+    "stage3j2bTestsExecuted": 235,
+    "stage3j2bTestsPassed": 235,
     "stage3j2bTestsFailed": 0,
     "fixtureExpectationsExecuted": 12,
     "fixtureExpectationsPassed": 12,
@@ -20,7 +20,11 @@
     "webBuildExitCode": 0,
     "realPilotSourcesRequested": 8,
     "realPilotSourcesFound": 8,
-    "realPilotSourcesExtracted": 8,
+    "realPilotSourceRecordsCreated": 8,
+    "realPilotContentExtractionSucceeded": 7,
+    "realPilotContentExtractionWithWarnings": 0,
+    "realPilotContentExtractionBlocked": 1,
+    "realPilotMetadataOnlySources": 1,
     "realPilotSourcesRequiringReview": 1
   },
   "registry": {
@@ -45,6 +49,12 @@
     "realCatalogOtherFilesIgnored": 51,
     "realCatalogFileCategoryReconciliationOk": true,
     "realCatalogMovieBundleRecordsCreated": 51,
+    "realCatalogCompleteCoreMovieBundles": 51,
+    "realCatalogPartialCoreMovieBundles": 0,
+    "realCatalogBundlesWithTranscriptAndFrames": 51,
+    "realCatalogBundlesWithOptionalMp4": 0,
+    "realCatalogBundlesWithoutOptionalMp4": 51,
+    "realCatalogBundlesWithAllThreeAssets": 0,
     "frameFilesIncorrectlyCountedAsMovieBundles": 0
   },
   "extraction": {

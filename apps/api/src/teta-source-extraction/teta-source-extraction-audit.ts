@@ -90,7 +90,6 @@ export async function buildStage3j2bAudit(
   const pilotReportPath = path.join(root, '.local', 'AIA_TETA_CANONICAL_SOURCE_EXTRACTION_STAGE3J2B.pilot.json');
   let realPilotSourcesRequested = 0;
   let realPilotSourcesFound = 0;
-  let realPilotSourcesExtracted = 0;
   let realPilotSourcesRequiringReview = 0;
   let pilotSourceRecordsCreated = 0;
   let pilotContentExtractionSucceeded = 0;
@@ -117,8 +116,18 @@ export async function buildStage3j2bAudit(
       frameDirectoriesSelected: realDiscovery.frameDirectoriesSelected ?? 0,
       uniqueMovieBasenames: realDiscovery.uniqueMovieBasenames ?? 0,
       movieBundleRecordsCreated: realDiscovery.movieBundleRecordsCreated ?? 0,
-      completeMovieBundles: realDiscovery.completeMovieBundles ?? 0,
-      partialMovieBundles: realDiscovery.partialMovieBundles ?? 0,
+      completeCoreMovieBundles: realDiscovery.completeCoreMovieBundles ?? realDiscovery.completeMovieBundles ?? 0,
+      partialCoreMovieBundles: realDiscovery.partialCoreMovieBundles ?? realDiscovery.partialMovieBundles ?? 0,
+      bundlesWithTranscript: realDiscovery.bundlesWithTranscript ?? 0,
+      bundlesWithFrames: realDiscovery.bundlesWithFrames ?? 0,
+      bundlesWithTranscriptAndFrames: realDiscovery.bundlesWithTranscriptAndFrames ?? 0,
+      bundlesWithOptionalMp4: realDiscovery.bundlesWithOptionalMp4 ?? 0,
+      bundlesWithoutOptionalMp4: realDiscovery.bundlesWithoutOptionalMp4 ?? 0,
+      bundlesWithAllThreeAssets: realDiscovery.bundlesWithAllThreeAssets ?? 0,
+      /** @deprecated core bundle metrics supersede completeMovieBundles */
+      completeMovieBundles: realDiscovery.completeCoreMovieBundles ?? realDiscovery.completeMovieBundles ?? 0,
+      /** @deprecated core bundle metrics supersede partialMovieBundles */
+      partialMovieBundles: realDiscovery.partialCoreMovieBundles ?? realDiscovery.partialMovieBundles ?? 0,
       frameFilesIncorrectlyCountedAsMovieBundles: realDiscovery.frameFilesIncorrectlyCountedAsMovieBundles ?? 0,
     };
   }
@@ -129,7 +138,6 @@ export async function buildStage3j2bAudit(
     const resolutions = pilotReport.resolutions ?? [];
     realPilotSourcesRequested = resolutions.length;
     realPilotSourcesFound = resolutions.filter((r) => r.status === 'found').length;
-    realPilotSourcesExtracted = realPilotSourcesFound;
     realPilotSourcesRequiringReview = resolutions.filter(
       (r) => r.status === 'ambiguous_source_selection' || r.status === 'requires_review',
     ).length;
@@ -197,7 +205,23 @@ export async function buildStage3j2bAudit(
     ...(manifestContainsAbsolutePaths(JSON.stringify(manifest)) ? ['portableManifestContainsAbsolutePaths'] : []),
     ...(discovery.fileCategoryReconciliationOk ? [] : ['fileCategoryReconciliation']),
     ...(discovery.uniqueMovieBasenames !== discovery.movieBundleRecordsCreated ? ['movieBundleRecordMismatch'] : []),
+    ...(discovery.completeCoreMovieBundles + discovery.partialCoreMovieBundles !== discovery.uniqueMovieBasenames
+      ? ['coreBundleReconciliation']
+      : []),
+    ...(discovery.bundlesWithTranscriptAndFrames !== discovery.completeCoreMovieBundles
+      ? ['coreBundleTranscriptFramesMismatch']
+      : []),
     ...(discovery.frameFilesIncorrectlyCountedAsMovieBundles ? ['frameFilesIncorrectlyCountedAsMovieBundles'] : []),
+    ...(pilotSourceRecordsCreated > 0
+      && pilotSourceRecordsCreated
+        !== pilotContentExtractionSucceeded + pilotContentExtractionWithWarnings + pilotContentExtractionBlocked
+      ? ['pilotOutcomeReconciliation']
+      : []),
+    ...(pilotSourceRecordsCreated > 0
+      && pilotSourcesWithContentUnits
+        !== pilotContentExtractionSucceeded + pilotContentExtractionWithWarnings
+      ? ['pilotContentUnitsReconciliation']
+      : []),
     ...(run.stats.sourcesIncorrectlyReportedAsContentExtracted ? ['sourcesIncorrectlyReportedAsContentExtracted'] : []),
     ...(legacyRequiresToolViolations ? ['legacyRequiresToolOutcomeMismatch'] : []),
     ...(Object.values(stageBoundaries).some((v) => v !== 0) ? ['stageBoundaryCounters'] : []),
@@ -222,6 +246,14 @@ export async function buildStage3j2bAudit(
       nonFrameDirectoriesExamined: discovery.nonFrameDirectoriesExamined,
       uniqueMovieBasenames: discovery.uniqueMovieBasenames,
       movieBundleRecordsCreated: discovery.movieBundleRecordsCreated,
+      completeCoreMovieBundles: discovery.completeCoreMovieBundles,
+      partialCoreMovieBundles: discovery.partialCoreMovieBundles,
+      bundlesWithTranscript: discovery.bundlesWithTranscript,
+      bundlesWithFrames: discovery.bundlesWithFrames,
+      bundlesWithTranscriptAndFrames: discovery.bundlesWithTranscriptAndFrames,
+      bundlesWithOptionalMp4: discovery.bundlesWithOptionalMp4,
+      bundlesWithoutOptionalMp4: discovery.bundlesWithoutOptionalMp4,
+      bundlesWithAllThreeAssets: discovery.bundlesWithAllThreeAssets,
       completeMovieBundles: discovery.completeMovieBundles,
       transcriptAndFramesBundles: discovery.transcriptAndFramesBundles,
       transcriptFramesAndMp4Bundles: discovery.transcriptFramesAndMp4Bundles,
@@ -324,7 +356,11 @@ export async function buildStage3j2bAudit(
       ...verification,
       realPilotSourcesRequested,
       realPilotSourcesFound,
-      realPilotSourcesExtracted: pilotSourceRecordsCreated || realPilotSourcesExtracted,
+      realPilotSourceRecordsCreated: pilotSourceRecordsCreated,
+      realPilotContentExtractionSucceeded: pilotContentExtractionSucceeded,
+      realPilotContentExtractionWithWarnings: pilotContentExtractionWithWarnings,
+      realPilotContentExtractionBlocked: pilotContentExtractionBlocked,
+      realPilotMetadataOnlySources: pilotMetadataOnlySources,
       realPilotSourcesRequiringReview,
       pilotSourceRecordsCreated,
       pilotContentExtractionSucceeded,

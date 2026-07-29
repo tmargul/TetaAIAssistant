@@ -245,6 +245,15 @@ export type DocumentDiscoveryResult = {
   uniqueMovieBasenames: number;
   frameDirectoriesSelected: number;
   movieBundleRecordsCreated: number;
+  completeCoreMovieBundles: number;
+  partialCoreMovieBundles: number;
+  bundlesWithTranscript: number;
+  bundlesWithFrames: number;
+  bundlesWithTranscriptAndFrames: number;
+  bundlesWithOptionalMp4: number;
+  bundlesWithoutOptionalMp4: number;
+  bundlesWithAllThreeAssets: number;
+  /** @deprecated use completeCoreMovieBundles — core means transcript+frames, not MP4 */
   completeMovieBundles: number;
   transcriptAndFramesBundles: number;
   transcriptFramesAndMp4Bundles: number;
@@ -254,6 +263,7 @@ export type DocumentDiscoveryResult = {
   transcriptAndMp4WithoutFramesBundles: number;
   framesAndMp4WithoutTranscriptBundles: number;
   ambiguousMovieBundles: number;
+  /** @deprecated use partialCoreMovieBundles */
   partialMovieBundles: number;
   frameFilesIncorrectlyCountedAsMovieBundles: number;
   docxCandidates: number;

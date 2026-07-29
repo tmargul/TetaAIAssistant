@@ -65,8 +65,8 @@ References A–G w `apps/api/test-fixtures/teta-source-extraction/stage3j2b/`:
 
 ```json
 {
-  "stage3j2bTestsExecuted": 227,
-  "stage3j2bTestsPassed": 227,
+  "stage3j2bTestsExecuted": 235,
+  "stage3j2bTestsPassed": 235,
   "stage3j2bTestsFailed": 0,
   "fixtureExpectationsExecuted": 12,
   "fixtureExpectationsPassed": 12,
@@ -99,9 +99,17 @@ Fixture extraction fingerprint: `7d1ee09c924653b07477df805eb51d669cedc84062bf4c9
 | uniqueMovieBasenames | 51 |
 | movieBundleRecordsCreated | 51 |
 | frameDirectoriesSelected | 51 |
-| completeMovieBundles | 0 |
-| partialMovieBundles | 51 |
+| completeCoreMovieBundles | 51 |
+| partialCoreMovieBundles | 0 |
+| bundlesWithTranscriptAndFrames | 51 |
+| bundlesWithOptionalMp4 | 0 |
+| bundlesWithoutOptionalMp4 | 51 |
+| bundlesWithAllThreeAssets | 0 |
+| completeMovieBundles (deprecated, = core) | 51 |
+| partialMovieBundles (deprecated, = core partial) | 0 |
 | frameFilesIncorrectlyCountedAsMovieBundles | 0 |
+
+**Core movie bundle** = transcript JSON + frames directory (case-insensitive basename pairing). **MP4** is optional validation-only; absence does not make a core bundle partial.
 
 Wyjaśnienie wartości **1492** z poprzedniej iteracji:
 - poprzednia metryka `realCatalogMovieBundles` była zawyżona przez techniczne naliczanie katalogów/plików frame jako osobnych bundle records;
@@ -120,9 +128,8 @@ Wyjaśnienie wartości **1492** z poprzedniej iteracji:
 | contentExtractionBlocked | 1 |
 | metadataOnlySources | 1 |
 | sourcesRequiringReview | 1 |
-| sourcesWithContentUnits | 7 |
-| sourcesWithoutContentUnits | 1 |
-| sourcesIncorrectlyReportedAsContentExtracted | 0 |
+
+Invariant: `sourceRecordsCreated = contentExtractionSucceeded + contentExtractionWithWarnings + contentExtractionBlocked`. Blocked legacy DOC is **not** counted as content success. Deprecated metric `realPilotSourcesExtracted` removed — use explicit counters above.
 | formats | docx×5, pdf×1, legacy_doc×1, whisper×1 |
 | contentUnits (total) | 2734 |
 | portable assets (total refs) | 813 |
