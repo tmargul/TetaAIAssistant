@@ -1,0 +1,1880 @@
+{
+  "contractVersion": "teta-canonical-source-v1",
+  "extractionVersion": "stage3j2b-v1",
+  "rootLabel": "synthetic-fixtures",
+  "fingerprintSha256": "ebec38dfdb5fd77881b66a06c3577d75bf13fc2ec271ad6798b69f43850ceabf",
+  "sources": [
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-a-payroll",
+      "sourceRevisionId": "sha256:29d89928b0941960d80dbe79d5477f7ce2db848a95b22d5a09e27e40d9041fb4",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-a-payroll",
+      "originalRelativePath": "SCENARIUSZE/fixture-a-payroll.docx",
+      "normalizedRelativePath": "SCENARIUSZE/fixture-a-payroll.docx",
+      "relativeDirectorySegments": [
+        "SCENARIUSZE"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [
+        "payroll"
+      ],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "a-h1",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Scenariusz: składnik okresowy"
+          ],
+          "text": "Scenariusz: składnik okresowy",
+          "normalizedTextSha256": "bd877e83a60fe69b8337a14347d10597e30c0572358bb19fa823d8f469c32610",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "05595fabdb73b96caa2dc560c1fe4ea5",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-def",
+          "unitKind": "paragraph",
+          "order": 2,
+          "headingPath": [],
+          "text": "Składnik okresowy oznacza składnik naliczany w zadanym okresie rozliczeniowym",
+          "normalizedTextSha256": "8823fd72058b1ed0627d5660d396e53eb05c82d05d5f8a062ddcda0968b0ecf4",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "3f4fa7abf67eb4d3e54a5139b8bf6ec1",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-pre",
+          "unitKind": "paragraph",
+          "order": 3,
+          "headingPath": [],
+          "text": "Warunki wstępne: składnik 00123 aktywny",
+          "normalizedTextSha256": "e5db8353aab18de9b578edae41d516381093803ca0222aaafe51cecbd1ca4bdd",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "cb65b42ba0d46eed368d2edfdccba9cc",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-cfg",
+          "unitKind": "paragraph",
+          "order": 4,
+          "headingPath": [],
+          "text": "Konfiguracja parametru LIMIT_GODZ",
+          "normalizedTextSha256": "b516d95d3403e0d980b39fae7e65f67765646c9fe00893bd79c9d93e1b848d47",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 4,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "e741467d7b0f1b018137dc6db1f76cc5",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-proc",
+          "unitKind": "heading",
+          "order": 5,
+          "headingPath": [
+            "Scenariusz: składnik okresowy",
+            "Procedura"
+          ],
+          "text": "Procedura",
+          "normalizedTextSha256": "f2965d93d43d8595276805d6ee0f81f2426a0d71416a2c83429c4128777ba1e7",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 5,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "ff5e89cdc3b23b23c14de17b2b44cfc3",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-step1",
+          "unitKind": "list_item",
+          "order": 6,
+          "headingPath": [],
+          "text": "1. Otwórz formularz składników",
+          "normalizedTextSha256": "466e8cf7dbc404d60b21cc78f3d4af1632fa969c3accb48777fc691a82d64874",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 6,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "9a48b32a7146cd6972f7c3f3c3ce44ae",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-step2",
+          "unitKind": "list_item",
+          "order": 7,
+          "headingPath": [],
+          "text": "2. Ustaw wartość 160",
+          "normalizedTextSha256": "e29e4089ea4da9390e2f0aec8a043fcf863f5d815e27d3fd5ff0d6ba5814c9be",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 7,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "7e99fede62699bc34f4bfa0cc09d2aa8",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-step3",
+          "unitKind": "list_item",
+          "order": 8,
+          "headingPath": [],
+          "text": "3. Zatwierdź konfigurację",
+          "normalizedTextSha256": "121f237658fb45e62ac3bddddbaee6331eb1cfe6c3d9b896684d8d650d34cd9f",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 8,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "c17d8ea41bd795d7d6815e7610109e8b",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-out",
+          "unitKind": "paragraph",
+          "order": 9,
+          "headingPath": [],
+          "text": "Oczekiwany wynik: naliczenie SKL_OKRES",
+          "normalizedTextSha256": "ffa70bbdaca96980ef04d150e6ea839bc80bf17035441daf60f7a95e89c16519",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 9,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "7219eec9aac0e9d4b2d981ddf43d3d4d",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-form",
+          "unitKind": "paragraph",
+          "order": 10,
+          "headingPath": [],
+          "text": "Formuła: SKL_OKRES = SUM(A, B)",
+          "normalizedTextSha256": "45b25be0f17d1987752b383b0fa516c3623db0499d88ecba248927ac6e1f9180",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 10,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "17972841025d2101f7ec7141bd5ce4b3",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-temp",
+          "unitKind": "paragraph",
+          "order": 11,
+          "headingPath": [],
+          "text": "Obowiązuje od 2025-01-01 do końca miesiąca",
+          "normalizedTextSha256": "51b966a96608ab74d2171c4f42d5781a3f649cb24b240d0d5f3978c90db98dac",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 11,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "2684683f761973ea9a701a101aa0c30c",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-test",
+          "unitKind": "paragraph",
+          "order": 12,
+          "headingPath": [],
+          "text": "Przypadek testowy: dane wejściowe LIMIT_GODZ=160; kroki jak w procedurze; oczekiwany wynik SKL_OKRES",
+          "normalizedTextSha256": "588fd10bb9f930d61b0d11ab466d4b9b5c170f44e6716f2a5263390b2a9d366b",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 12,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "af36c932c33245ede216cd478237b0a7",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "a-fix",
+          "unitKind": "paragraph",
+          "order": 13,
+          "headingPath": [],
+          "text": "Korekta: zmień kod 00123 na 00124",
+          "normalizedTextSha256": "96f095f7baed613ccdbe895e3efaac391b636c4a6a3474c5338222476cf1c153",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 13,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "0651a27cead49a8ceff32815a75ce971",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [
+        "scenario_or_test_case"
+      ],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-b-edu",
+      "sourceRevisionId": "sha256:e7094a9fbc17413c480e8e1045a3cb11649c1cbfc41631c9bb559f7151a45d38",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-b-edu",
+      "originalRelativePath": "EDU/fixture-b-edu.docx",
+      "normalizedRelativePath": "EDU/fixture-b-edu.docx",
+      "relativeDirectorySegments": [
+        "EDU"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [
+        "teta_edu"
+      ],
+      "productSurfaceHints": [],
+      "domainHints": [],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "b-h",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Proces przyjęcia pracownika Edu"
+          ],
+          "text": "Proces przyjęcia pracownika Edu",
+          "normalizedTextSha256": "39bc5b5e98b9a23dba2e37c0129c8dc5b99bd15a682b209ffc3367dca461fb63",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "b7134a9ad991e242cdd0d6d596788312",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "b-in",
+          "unitKind": "paragraph",
+          "order": 2,
+          "headingPath": [],
+          "text": "Wejście: kandydat z kompletem dokumentów; warunek: status rekrutacji Otwarty",
+          "normalizedTextSha256": "bf679315ef9c246e17567e5a14f81613b968f168395f1eb350eb17e4a6194b62",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "8dadf86bb6f7325f2bada27ddff178df",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "b-s1",
+          "unitKind": "list_item",
+          "order": 3,
+          "headingPath": [],
+          "text": "1. Utwórz kartotekę kandydata",
+          "normalizedTextSha256": "9dc1c6af3b96f1a92ccc8b42c619bcd332cc8141240ba974de8c72ac9bd0af76",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "57f1ea7a4839cf052667c9023e3bc983",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "b-s2",
+          "unitKind": "list_item",
+          "order": 4,
+          "headingPath": [],
+          "text": "2. Status: Oczekujący",
+          "normalizedTextSha256": "2f0cc63d79f370217af89ce0afcd45ce8743640d0efc4d6fa6d392f20ab4d68b",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 4,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "c8eecef4e029401846eecae39e5e16ed",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "b-s3",
+          "unitKind": "paragraph",
+          "order": 5,
+          "headingPath": [],
+          "text": "Po zatwierdzeniu status zmienia się na Zatrudniony",
+          "normalizedTextSha256": "c84989bf5e8df3d0bd13c6cb83213a92d0dde7d05cb00d5c32fd6ee275c49079",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 5,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "343880290533144c48e1ace232e5e248",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "b-out",
+          "unitKind": "paragraph",
+          "order": 6,
+          "headingPath": [],
+          "text": "Wynik procesu: pracownik aktywny w Teta Edu",
+          "normalizedTextSha256": "a0ae5e9a840bed7bb161218ec7bdd89da08dfcecb4281e9fe690f925e1049023",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 6,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "95656c0b48f8d5373100468895602b10",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-c-year",
+      "sourceRevisionId": "sha256:1468c0d6c2d63d7483d5a3535cb23a6f3431587fa1f54ce6955764efb6bb7c06",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-c-year",
+      "originalRelativePath": "PRZELOM ROKU/fixture-c-year.docx",
+      "normalizedRelativePath": "PRZELOM ROKU/fixture-c-year.docx",
+      "relativeDirectorySegments": [
+        "PRZELOM ROKU"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [
+        "payroll",
+        "hr"
+      ],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": true,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "c-h",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Procedura przełomu roku"
+          ],
+          "text": "Procedura przełomu roku",
+          "normalizedTextSha256": "5155482ba297c0ccabb929ab6c31f09d0c488b2110e8f30fe3e2fce1f81b5ecb",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "6239a3d554799550ad435e1b202d81f8",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "c-s1",
+          "unitKind": "list_item",
+          "order": 2,
+          "headingPath": [],
+          "text": "1. Zamknij okres rozliczeniowy",
+          "normalizedTextSha256": "1fe2922ce9bbf451637598fb6c5b10b1f19f062490db3f31ca1c7da3683fc297",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "4c733e26d5ac03090b95459e2f2b382b",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "c-s2",
+          "unitKind": "list_item",
+          "order": 3,
+          "headingPath": [],
+          "text": "2. Przekaż nadgodziny na listę płac",
+          "normalizedTextSha256": "f19d4893f77030c3241bd5e49454867d120a467c4abb5e19d97e35e7ff562162",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "4317f809f6da31c19cc3bc1676e784aa",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "c-t",
+          "unitKind": "paragraph",
+          "order": 4,
+          "headingPath": [],
+          "text": "Przekazanie nadgodzin na listę płac wymaga RCP i płac",
+          "normalizedTextSha256": "ff4ab229e6470252b3d0899912a9d227f32e97d4b8e90a69e2ea49b87604a56e",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 4,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "c5d42187e6c0339efc142c52eebe509a",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "c-d",
+          "unitKind": "paragraph",
+          "order": 5,
+          "headingPath": [],
+          "text": "Obowiązuje od 2025-01-01",
+          "normalizedTextSha256": "8b3ae7660d28813b0d4fa55f3dc696a96552bdf3ca1d3916018c6eaf9945dbae",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 5,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "5f26c30d91b4978476619cc30e49d522",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "c-v",
+          "unitKind": "paragraph",
+          "order": 6,
+          "headingPath": [],
+          "text": "Nie można otworzyć nowego roku przed zamknięciem poprzedniego okresu",
+          "normalizedTextSha256": "328eb3484b24f14349010ac2f1e418856e71d3e0872d81b4b6f5901fa791298b",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 6,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "732aa3b0b129068da79e1a91ae353d5e",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-d-ksef",
+      "sourceRevisionId": "sha256:50265b440807cc119849713c8272263369ad5deecab90157b8404f3b4d538b69",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-d-ksef",
+      "originalRelativePath": "FINANSE/KSEF/fixture-d-ksef.docx",
+      "normalizedRelativePath": "FINANSE/KSEF/fixture-d-ksef.docx",
+      "relativeDirectorySegments": [
+        "FINANSE",
+        "KSEF"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [
+        "invoicing",
+        "accounting"
+      ],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "d-h",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Integracja KSeF"
+          ],
+          "text": "Integracja KSeF",
+          "normalizedTextSha256": "84cea4ca61816a14fd95610ecc969c36c0da32948a599b7912284c4232d6482e",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "2486dfac93f67d3cc6f4818ad1ec657d",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "d-doc",
+          "unitKind": "paragraph",
+          "order": 2,
+          "headingPath": [],
+          "text": "Dokument faktury KSeF wymaga weryfikacji aktualności przepisów",
+          "normalizedTextSha256": "f4886ee503960cc881b8012f59a34068daf487c899ce42216d70d3c500f2fe8f",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "1418ee1b3f255583adad3bf63f7c7807",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "d-i",
+          "unitKind": "paragraph",
+          "order": 3,
+          "headingPath": [],
+          "text": "Integracja z systemem e-faktur",
+          "normalizedTextSha256": "24d7b01289920d0385d94468dc7038d788ce21b4c95428e21e487199600a930c",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "897da67284a1897c0139dde77debb704",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "d-p",
+          "unitKind": "heading",
+          "order": 4,
+          "headingPath": [
+            "Integracja KSeF",
+            "Procedura"
+          ],
+          "text": "Procedura",
+          "normalizedTextSha256": "f2965d93d43d8595276805d6ee0f81f2426a0d71416a2c83429c4128777ba1e7",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 4,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "78e8f284a034dc2a0602ce9b7e38d4de",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "d-s1",
+          "unitKind": "list_item",
+          "order": 5,
+          "headingPath": [],
+          "text": "1. Wygeneruj plik e-faktury",
+          "normalizedTextSha256": "f9ecdf2a1bc79abc762c7c9138703ecc5457ea9a7a761066e05ef0d2d55bb82d",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 5,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "fc7d9f79672ef71c717cf48ffff83c58",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "d-s2",
+          "unitKind": "list_item",
+          "order": 6,
+          "headingPath": [],
+          "text": "2. Zarejestruj wysyłkę do KSeF",
+          "normalizedTextSha256": "453d75f44caf13075b28dc36e5682aeba44dedae2b8e1f17d6d39d28afb8d703",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 6,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "2e6cd730e6686959c857bf07c5e58e4f",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "d-w",
+          "unitKind": "paragraph",
+          "order": 7,
+          "headingPath": [],
+          "text": "Uwaga: wartość nie może przekraczać limitu ustawowego bez weryfikacji",
+          "normalizedTextSha256": "c0febdfee0602684d8af4c534dff7c5361e812be1dbeae762c78a53a3b4c2471",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 7,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "83b6e424786fda0e8b341091ea121a13",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "training-video:ALL_MOVIES:fixture-e-zu",
+      "sourceRevisionId": "sha256:1be92a1f835fbf78a5b8eec26bcb02af68f46a800b2016d986dc73aace083597",
+      "sourceType": "video_training",
+      "format": "whisper_segments_json",
+      "sourceLabel": "training-video:ALL_MOVIES:fixture-e-zu",
+      "originalRelativePath": "ALL_MOVIES/fixture-e-zu.json",
+      "normalizedRelativePath": "ALL_MOVIES/fixture-e-zu.json",
+      "relativeDirectorySegments": [
+        "ALL_MOVIES"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [
+        "developer_training"
+      ],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "e-s1",
+          "unitKind": "transcript_segment",
+          "order": 1,
+          "headingPath": [],
+          "text": "DatasetPlugin jest obiektem biznesowym w warstwie danych",
+          "normalizedTextSha256": "4bbbd52b228d3a0eec98b95345a8ed513d869477bfb5ea08ceeeb697ad558193",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 0,
+            "startSeconds": 0,
+            "endSeconds": 55
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "3bf4466f406df1253dade0a514baf6bd",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "e-s2",
+          "unitKind": "transcript_segment",
+          "order": 2,
+          "headingPath": [],
+          "text": "Formularz korzysta z obiektu DatasetPlugin; pole jest mapowane na kolumnę datasetu",
+          "normalizedTextSha256": "fd662ec15a49b1456bd665b703a82c99011de3cf4fefdf7664926ca8db91157e",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 1,
+            "startSeconds": 56,
+            "endSeconds": 110
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "f8ac20a597c46a18dc2458b0b17a58cc",
+          "classificationStatus": "unclassified",
+          "frameRefs": {
+            "precedingFrameRef": {
+              "assetId": "sha256:frame1",
+              "relativePortablePath": "assets/sha256/ab/ab.jpg",
+              "timestampSeconds": 1,
+              "frameIndex": 1
+            },
+            "nearestFrameRef": null,
+            "followingFrameRef": null
+          }
+        },
+        {
+          "contentUnitId": "e-s3",
+          "unitKind": "transcript_segment",
+          "order": 3,
+          "headingPath": [],
+          "text": "Procedura: 1. Otwórz edytor wtyczek 2. Dodaj DatasetPlugin 3. Zatwierdź publikację",
+          "normalizedTextSha256": "289c82ce9a31ffc5fb041d7be47f656543ce6ed427b91ec97e597c3bdccc3c51",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 2,
+            "startSeconds": 111,
+            "endSeconds": 170
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "3731e8f10a2aabdcaa7f492f8e1bc346",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [
+        {
+          "assetId": "sha256:frame1",
+          "relativePortablePath": "assets/sha256/ab/ab.jpg",
+          "mimeType": "image/jpeg",
+          "sourceOccurrences": []
+        }
+      ],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "training-video:ALL_MOVIES:fixture-f-noise",
+      "sourceRevisionId": "sha256:227e4539fe7a39888192b852e71fff4a8b41dd21ba6320a377e0fd606d9c0cf7",
+      "sourceType": "video_training",
+      "format": "whisper_segments_json",
+      "sourceLabel": "training-video:ALL_MOVIES:fixture-f-noise",
+      "originalRelativePath": "ALL_MOVIES/fixture-f-noise.json",
+      "normalizedRelativePath": "ALL_MOVIES/fixture-f-noise.json",
+      "relativeDirectorySegments": [
+        "ALL_MOVIES"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "f-s1",
+          "unitKind": "transcript_segment",
+          "order": 1,
+          "headingPath": [],
+          "text": "Czy widać ekran?",
+          "normalizedTextSha256": "967db2bf9c2db3371d982d8cf81365f6b148da3645aa1da83dbbc2a6f3dcf3db",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 0,
+            "startSeconds": 0,
+            "endSeconds": 5
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "9de40d15dad9844855e5cd9b0015585a",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "f-s2",
+          "unitKind": "transcript_segment",
+          "order": 2,
+          "headingPath": [],
+          "text": "Sprawdźcie mikrofon, czy mnie słychać",
+          "normalizedTextSha256": "e25cf4d273fa8351f91c14daa79b3634bd47f6a8f6b09586a8748a99acd84e95",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 1,
+            "startSeconds": 6,
+            "endSeconds": 12
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "5ef30d4f50d4fe5ffb4b984cf043855a",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "f-s3",
+          "unitKind": "transcript_segment",
+          "order": 3,
+          "headingPath": [],
+          "text": "Robimy przerwę na kawę",
+          "normalizedTextSha256": "e640ee7db77721b07a95f7e6af2f04f4f426da7d74250d64b6f511c58be5582c",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 2,
+            "startSeconds": 13,
+            "endSeconds": 25
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "e26854c60cf22a413f917d42e1879e2b",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "f-s4",
+          "unitKind": "transcript_segment",
+          "order": 4,
+          "headingPath": [],
+          "text": "Dziękuję za obecność, zaraz wracamy",
+          "normalizedTextSha256": "6144efc1ed9e496a31e2922063a691873db5deecd3c7eb54fb640ae0756d1a5a",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 4,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 3,
+            "startSeconds": 26,
+            "endSeconds": 35
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "7df1d385129407b679c73a4b32142c74",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "f-s5",
+          "unitKind": "transcript_segment",
+          "order": 5,
+          "headingPath": [],
+          "text": "Wracamy do konfiguracji list płac",
+          "normalizedTextSha256": "6163444ceb564f664205ad413e6eefdc6b2527dcc9448aee7b9aada7f11f0c67",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 5,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 4,
+            "startSeconds": 36,
+            "endSeconds": 90
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "313337bea3504eade5ec5a4498ca1153",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "f-s6",
+          "unitKind": "transcript_segment",
+          "order": 6,
+          "headingPath": [],
+          "text": "Na ekranie formularza ustaw parametr LIMIT_GODZ",
+          "normalizedTextSha256": "2308b5b002f0005dcf9bdea26eaa49e5760f975358582115d838ee973319095a",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 6,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 5,
+            "startSeconds": 91,
+            "endSeconds": 140
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "ed44eb0a18a7769a170c0ad00145d59b",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "f-s7",
+          "unitKind": "transcript_segment",
+          "order": 7,
+          "headingPath": [],
+          "text": "Przerwa w rozumieniu RCP to okres nieobecności",
+          "normalizedTextSha256": "2625e0a454f4b6e5e4567afc2c85d338e43bc63492fbe18b9447d20bc9cee8df",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 7,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": 6,
+            "startSeconds": 141,
+            "endSeconds": 190
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "91fd7afb88126d69966ff8225f880e9c",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-g-dup",
+      "sourceRevisionId": "sha256:b1334f5ca6d04d3ff2bd8ea215c10ccc42febf8eb62ab5f2588367ed99129ab7",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-g-dup",
+      "originalRelativePath": "SCENARIUSZE/fixture-g-dup.docx",
+      "normalizedRelativePath": "SCENARIUSZE/fixture-g-dup.docx",
+      "relativeDirectorySegments": [
+        "SCENARIUSZE"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "g-h",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Duplikat"
+          ],
+          "text": "Duplikat",
+          "normalizedTextSha256": "257179a4b9f2d73a6440266d8d0d663f38279ac757db86ccc4d625836605b290",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "1183a3922e40d6f50d8967c07ad154f1",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "g-p1",
+          "unitKind": "paragraph",
+          "order": 2,
+          "headingPath": [],
+          "text": "Warunki wstępne: aktywny składnik",
+          "normalizedTextSha256": "f660b6b244428e8635d3bb93d86b99e27532721af9dd0b1b83165ba15eb44db5",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "baa195e1a4b417da071ccaf07f374f32",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "g-p2",
+          "unitKind": "paragraph",
+          "order": 3,
+          "headingPath": [],
+          "text": "Warunki wstępne: aktywny składnik",
+          "normalizedTextSha256": "f660b6b244428e8635d3bb93d86b99e27532721af9dd0b1b83165ba15eb44db5",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "b42e842773527a2b7e4e2e881e7095c3",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [
+        "scenario_or_test_case"
+      ],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-h-samesig",
+      "sourceRevisionId": "sha256:e56c03b1b61d1e8ceeda4bf7648dbf1bb2ac797d8c8ad60c0fc7d42aa7f08396",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-h-samesig",
+      "originalRelativePath": "SCENARIUSZE/fixture-h-samesig.docx",
+      "normalizedRelativePath": "SCENARIUSZE/fixture-h-samesig.docx",
+      "relativeDirectorySegments": [
+        "SCENARIUSZE"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [
+        "payroll"
+      ],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "h-h",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Inny dokument"
+          ],
+          "text": "Inny dokument",
+          "normalizedTextSha256": "a172bc990a0893d3c2ba70e221a64f88b354085a19073157f1ed6d57de066c7d",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "d4bb5fe390965b2f744d410eb0e36bc3",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "h-pre",
+          "unitKind": "paragraph",
+          "order": 2,
+          "headingPath": [],
+          "text": "Warunki wstępne: składnik 00123 aktywny",
+          "normalizedTextSha256": "e5db8353aab18de9b578edae41d516381093803ca0222aaafe51cecbd1ca4bdd",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "7e1a82341092ec71ffb035e2afefd7b2",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [
+        "scenario_or_test_case"
+      ],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-i-workflow",
+      "sourceRevisionId": "sha256:f049d05b798eb280dae0d6101c30e098ce25e09e03050f081c371783406a7c7b",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-i-workflow",
+      "originalRelativePath": "WORKFLOW/fixture-i-workflow.docx",
+      "normalizedRelativePath": "WORKFLOW/fixture-i-workflow.docx",
+      "relativeDirectorySegments": [
+        "WORKFLOW"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [
+        "document_workflow"
+      ],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "i-h",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Workflow klienta OBD"
+          ],
+          "text": "Workflow klienta OBD",
+          "normalizedTextSha256": "0cc11303632af3b928e18fa3a2cbc686b53efc21b062dc73b48b26dad959df8c",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "7562b70348cbaabd7a917bd6f192e936",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "i-proc",
+          "unitKind": "heading",
+          "order": 2,
+          "headingPath": [
+            "Workflow klienta OBD",
+            "Procedura"
+          ],
+          "text": "Procedura",
+          "normalizedTextSha256": "f2965d93d43d8595276805d6ee0f81f2426a0d71416a2c83429c4128777ba1e7",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "adcf362607ba891531e0fac5d6ffc030",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "i-s1",
+          "unitKind": "list_item",
+          "order": 3,
+          "headingPath": [],
+          "text": "1. Otwórz dokument klienta X",
+          "normalizedTextSha256": "3a845d36470ab18acb5c9c07446d5849a96bbfce046bc8fd7ddaecc5f646f56f",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "eefb8bc54910941bc7f312e2f9fa6c36",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "i-s2",
+          "unitKind": "list_item",
+          "order": 4,
+          "headingPath": [],
+          "text": "2. Zatwierdź akceptację workflow",
+          "normalizedTextSha256": "5d82560ae7ff6c2f3c4c311b11de28448a53440bc679cbd974ce3e8a42fc81a2",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 4,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "0e5176da6b637af18849f6f488165985",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "i-t",
+          "unitKind": "paragraph",
+          "order": 5,
+          "headingPath": [],
+          "text": "Procedura akceptacji dokumentu klienta X nie jest promocją globalną",
+          "normalizedTextSha256": "ade8847d4a73df28e336731573957190536119cff73939c99ac8304be38946d2",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 5,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "d6efdf174f29e7a8498f5dd52c02ba57",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-j-legal",
+      "sourceRevisionId": "sha256:9952913aa462dce3958077fb4bfcd105cda0559b71cba99159c61e1faa846ab0",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-j-legal",
+      "originalRelativePath": "FINANSE/fixture-j-legal.docx",
+      "normalizedRelativePath": "FINANSE/fixture-j-legal.docx",
+      "relativeDirectorySegments": [
+        "FINANSE"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [
+        "invoicing"
+      ],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "j-h",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Instrukcja prawna"
+          ],
+          "text": "Instrukcja prawna",
+          "normalizedTextSha256": "1f874c9e85c2e86b1e39e5cafc105054ebeed85daee54d33a7e9544633906d17",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "37d69e754501430403571eb95fcaf933",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "j-t",
+          "unitKind": "paragraph",
+          "order": 2,
+          "headingPath": [],
+          "text": "Przepisy obowiązują od 2024-06-01 dla wersji 33.5",
+          "normalizedTextSha256": "01c13551ab0da2814c8f7b5200c80810b16ec28878f63729953e550f48c746f1",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "fa0935e1e977633e5197282a4e5834a6",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "j-p",
+          "unitKind": "paragraph",
+          "order": 3,
+          "headingPath": [],
+          "text": "Procedura: 1. Sprawdź wersję produktu 2. Zweryfikuj datę obowiązywania",
+          "normalizedTextSha256": "4e47017dca31b0e49679c119d6691b5c6b52841241d239f4d85b4a2bfa60bb8e",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "77b90f471560e8b8748faff98c34174e",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [],
+      "productVersionHints": [
+        "Teta HR 33.5"
+      ],
+      "documentDateHints": [
+        "2024-06-01"
+      ],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-blocked-legacy",
+      "sourceRevisionId": "sha256:b0ae334b71328bdcc30f7d2345a6b681d9a39527a7fd5012f6b97b0dc760ea56",
+      "sourceType": "document",
+      "format": "legacy_doc",
+      "sourceLabel": "document:fixture-blocked-legacy",
+      "originalRelativePath": "reference-c/doc/legacy-sample.doc",
+      "normalizedRelativePath": "reference-c/doc/legacy-sample.doc",
+      "relativeDirectorySegments": [
+        "reference-c",
+        "doc"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "blocked",
+      "blockReason": "requires_conversion_tool",
+      "metadataOnly": true,
+      "requiresReview": true,
+      "sourcePurposeHints": [],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    },
+    {
+      "contractVersion": "teta-canonical-source-v1",
+      "logicalSourceId": "document:fixture-table",
+      "sourceRevisionId": "sha256:549baa249a18b42b70af2cefe89f312da2e898fac3ed05166af8fe05eff657ee",
+      "sourceType": "document",
+      "format": "docx",
+      "sourceLabel": "document:fixture-table",
+      "originalRelativePath": "KADRY/fixture-table.docx",
+      "normalizedRelativePath": "KADRY/fixture-table.docx",
+      "relativeDirectorySegments": [
+        "KADRY"
+      ],
+      "fileName": "fixture.docx",
+      "extension": ".docx",
+      "folderHints": [],
+      "platformId": "teta_platform",
+      "productFamilyHints": [],
+      "productSurfaceHints": [],
+      "domainHints": [
+        "hr"
+      ],
+      "businessAreaHints": [],
+      "knowledgeAreaHints": [],
+      "scopeClassificationStatus": "requires_review",
+      "sectionLevelClassificationRequired": false,
+      "applicabilityReviewRequired": true,
+      "contentUnits": [
+        {
+          "contentUnitId": "t-h",
+          "unitKind": "heading",
+          "order": 1,
+          "headingPath": [
+            "Parametry"
+          ],
+          "text": "Parametry",
+          "normalizedTextSha256": "fbbf5b560ff9101287b7efc623169a698575db53b6af55b61c0bda23dc9dd7de",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 1,
+            "tableIndex": null,
+            "rowIndex": null,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "dbdab9868a9d05712eb0b8af3e4507c2",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "t-r1",
+          "unitKind": "table_row",
+          "order": 2,
+          "headingPath": [],
+          "text": "Kod | Nazwa | Wartość",
+          "normalizedTextSha256": "61c6e7931f81b626aca32f69b0a1324e7f353da307b845d3927a682d535d8c3b",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 2,
+            "tableIndex": 0,
+            "rowIndex": 0,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "d56b52673cca699ae1619719281feaff",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "t-r2",
+          "unitKind": "table_row",
+          "order": 3,
+          "headingPath": [],
+          "text": "00123 | LIMIT | 160",
+          "normalizedTextSha256": "12b543dbe13af61cbecfd4978e1ddfcf50480df3b017db5797d5d35710a7d5e5",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 3,
+            "tableIndex": 0,
+            "rowIndex": 1,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "7dffbfa09e501a9046b5c812dc594796",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "t-def",
+          "unitKind": "table_row",
+          "order": 4,
+          "headingPath": [],
+          "text": "Termin | Definicja",
+          "normalizedTextSha256": "25835b5efbcaa326773280ab89ac3ac7f31f3d8e849efbd3134833ac9484b2f4",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 4,
+            "tableIndex": 1,
+            "rowIndex": 0,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "408d2dad99bcec2753f10c32fa77722d",
+          "classificationStatus": "unclassified"
+        },
+        {
+          "contentUnitId": "t-def2",
+          "unitKind": "table_row",
+          "order": 5,
+          "headingPath": [],
+          "text": "Składnik | przez Składnik rozumie się jednostkę naliczenia",
+          "normalizedTextSha256": "ee48e38906d8917f0e1d10fb952b5b720f46b412960afb69ecd2d4c43f00af27",
+          "location": {
+            "pageNumber": null,
+            "paragraphIndex": 5,
+            "tableIndex": 1,
+            "rowIndex": 1,
+            "segmentIndex": null,
+            "startSeconds": null,
+            "endSeconds": null
+          },
+          "assetRefs": [],
+          "sourceOccurrenceId": "ac074cb9934617021a0e7f2bc869578f",
+          "classificationStatus": "unclassified"
+        }
+      ],
+      "assets": [],
+      "warnings": [],
+      "extractionStatus": "succeeded",
+      "blockReason": null,
+      "metadataOnly": false,
+      "requiresReview": false,
+      "sourcePurposeHints": [],
+      "productVersionHints": [],
+      "documentDateHints": [],
+      "sourcePolicy": {
+        "rawSourceRetention": "vendor_only",
+        "portableExtractedContent": true,
+        "clientDistributionStatus": "candidate_not_selected"
+      },
+      "provenance": {
+        "inventorySourceRevisionId": null,
+        "extractorVersion": "stage3j2b-v1",
+        "registryVersions": [
+          "teta-source-selection-policy-v1"
+        ],
+        "conversion": null
+      }
+    }
+  ],
+  "exactDuplicates": [],
+  "policies": {
+    "rawDocumentClientDistributionDefault": "exclude",
+    "rawVideoClientDistributionDefault": "exclude",
+    "extractedTextClientDistributionStatus": "candidate",
+    "extractedImageClientDistributionStatus": "candidate",
+    "videoFrameClientDistributionStatus": "candidate",
+    "clientAssetsSelected": 0
+  }
+}

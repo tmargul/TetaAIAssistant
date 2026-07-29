@@ -1,0 +1,69 @@
+{
+  "stage": "3J.2C",
+  "title": "Canonical Topic Segmentation & Candidate Knowledge Extraction",
+  "status": "complete_ready_with_review",
+  "headCommitBase": "367f00e",
+  "verification": {
+    "stage3j2cTests": "382/382",
+    "fixtureExpectations": "12/12",
+    "fixtureRecallPassed": true,
+    "fixturePrecisionPassed": true,
+    "requiredFixtureCandidatesMissing": 0,
+    "forbiddenFixtureCandidatesProduced": 0,
+    "stage3j2bRegression": "235/235",
+    "stage3j2aRegression": "180/180",
+    "stage3j1Regression": "271/271",
+    "stage3jRegression": "161/161",
+    "apiBuildExitCode": 0,
+    "webBuildExitCode": 0,
+    "auditContractCompletenessOk": true,
+    "mandatoryAuditSections": 18,
+    "strictErrors": []
+  },
+  "proposalLifecycle": {
+    "candidateProposalsCreated": 85,
+    "candidateProposalsRejectedByQualityGate": 0,
+    "candidateProposalsDowngraded": 0,
+    "candidateProposalsAcceptedBeforeExactCollapse": 85,
+    "exactCandidateDuplicatesCollapsedWithinSection": 3,
+    "candidateOccurrencesExpectedForPersistence": 82,
+    "candidateOccurrencesPersisted": 82,
+    "candidateOccurrencesMissingFromStore": 0,
+    "candidateOccurrencesUnexpectedInStore": 0,
+    "occurrencesLostBecauseOfSharedSignature": 0,
+    "occurrenceIdCollisions": 0,
+    "proposalLifecycleReconciliationOk": true,
+    "note": "Prior 82-vs-77 gap was cross-section signature collapse; fixed to sectionId|signature only."
+  },
+  "realDeterministicPilot": {
+    "sourcesRead": 8,
+    "sections": 98,
+    "persistedOccurrences": 82,
+    "blockedSkipped": 1,
+    "transcriptSegmentsTotal": 2421,
+    "assignedToNoise": 2,
+    "noiseRecallStatus": "accepted",
+    "noiseRecallReviewReasons": [],
+    "realPilotRecallStatus": "requires_review",
+    "persistedCandidatesByKindSum": 82
+  },
+  "localModelPilot": {
+    "modelPilotStatus": "completed_with_timeouts",
+    "selected": 10,
+    "attempted": 10,
+    "succeeded": 1,
+    "timedOut": 9,
+    "acceptedBySchema": 0,
+    "selectedByFilesystemOrder": 0,
+    "selectedByArbitraryFirstN": 0,
+    "modelUsefulnessStatus": "insufficient_signal"
+  },
+  "stage3j2dReadiness": {
+    "status": "ready_with_review",
+    "reasons": [
+      "real_pilot_requires_review",
+      "model_usefulness_insufficient_signal_documented"
+    ]
+  },
+  "stageBoundariesAllZero": true
+}

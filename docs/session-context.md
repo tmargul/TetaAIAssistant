@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-29** (Stage 3J.2B lokalnie — Canonical Source Extraction; Stage 3J.2C / 3J.2D / 3K nierozpoczęte)
+> Ostatnia aktualizacja: **2026-07-29** (Stage 3J.2C zakończony — ready_with_review; 3J.2D/3K nierozpoczęte)
 
 ---
 
@@ -178,8 +178,8 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J:** zacommitowany `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
 - [x] **Stage 3J.1 — Polish Teta Domain Lexicon:** zakończony (`e08f020`; docs status `832fa99`)
 - [x] **Stage 3J.2A — Knowledge Source Registry & Bulk Inventory:** zakończony (`7465934`)
-- [x] **Stage 3J.2B — Canonical Source Extraction & Portable Offline Asset Store:** zakończony (semantyka raportów: core bundle + pilot outcome)
-- [ ] **Stage 3J.2C:** nierozpoczęty
+- [x] **Stage 3J.2B — Canonical Source Extraction & Portable Offline Asset Store:** zakończony (`367f00e`)
+- [x] **Stage 3J.2C — Canonical Topic Segmentation & Candidate Knowledge Extraction:** zakończony (`ready_with_review`)
 - [ ] **Stage 3J.2D:** nierozpoczęty
 - [ ] **Stage 3K:** nierozpoczęty
 
@@ -188,8 +188,9 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J** zacommitowany: `2eea12a99f7f4cef0f5375bf9fe76ad4bf82c497`
 - **Stage 3J.1:** zakończony (`e08f020`) + docs status (`832fa99`) — multidomain lexicon + Help discovery
 - **Stage 3J.2A:** zakończony — Knowledge Source Registry & Bulk Inventory (`7465934`; docs status `859bbf6`)
-- **Stage 3J.2B:** zakończony — Canonical Source Extraction & Portable Offline Asset Store (core bundle vs optional MP4, pilot outcome counters)
-- **Stage 3J.2C / 3J.2D / Stage 3K:** nierozpoczęte
+- **Stage 3J.2B:** zakończony — commit `367f00e`
+- **Stage 3J.2C:** zakończony — Candidate Knowledge Extraction (`ready_with_review`)
+- **Stage 3J.2D / Stage 3K:** nierozpoczęte
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
@@ -197,7 +198,8 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Scope / client-specific:** wymaga jawnej klasyfikacji (nie zgadywane z nazwy serii)
 - **Stage 3J.2A nie analizuje treści** (brak ekstrakcji pojęć/procesów/reguł/RAG); prawdziwe źródła poza repo
 - **Stage 3J.2B:** deterministyczna ekstrakcja DOC/DOCX/PDF + ALL_MOVIES (JSON/frames/MP4 validation); portable store content-addressed w `.local/`; bez semantic/RAG
-- **Stage 3J.2C / 3J.2D / Stage 3K:** nierozpoczęte
+- **Stage 3J.2C:** candidate batches + sectioning + proposal lifecycle; exact collapse tylko w sekcji
+- **Stage 3J.2D / Stage 3K:** nierozpoczęte
 
 ### Stage 3J.2B ustalenia (2026-07-29)
 
@@ -219,6 +221,17 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - MP4 nie znaleziony w wybranym katalogu bundle; walidacja duration unavailable (ffprobe niedostępny)
 - **Pairing:** transcript JSON ↔ frames directory przez exact case-insensitive basename; fuzzy nigdy nie auto-pairuje
 
+### Stage 3J.2C ustalenia (2026-07-29)
+
+- Wejście wyłącznie ze Stage 3J.2B portable store (brak re-parsowania raw sources)
+- Exact collapse tylko w tej samej sekcji (`sectionId|signature`); cross-section/source signature ≠ utrata occurrence
+- Lifecycle: created → rejected/downgraded/acceptedBeforeCollapse → within-section collapse → persisted
+- Real pilot: created **85**, acceptedBefore **85**, collapsed **3**, persisted **82**; missingFromStore=0; lostSharedSig=0
+- noiseRecallStatus=**accepted** (cues 7: noise 2 + topic_with_context 5; unresolved 0)
+- modelUsefulnessStatus=**insufficient_signal** (completed_with_timeouts; 0 accepted model candidates)
+- stage3j2dReadiness=**ready_with_review** (real_pilot_requires_review + model_usefulness_insufficient_signal_documented)
+- Testy **382/382**; fixture recall/precision OK; regresje OK; audit strict EXIT 0
+- Stage 3J.2D / 3K: nierozpoczęte
 ---
 
 ## Notatki sesji

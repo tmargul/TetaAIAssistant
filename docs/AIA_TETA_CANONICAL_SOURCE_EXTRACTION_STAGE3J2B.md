@@ -128,8 +128,6 @@ Wyjaśnienie wartości **1492** z poprzedniej iteracji:
 | contentExtractionBlocked | 1 |
 | metadataOnlySources | 1 |
 | sourcesRequiringReview | 1 |
-
-Invariant: `sourceRecordsCreated = contentExtractionSucceeded + contentExtractionWithWarnings + contentExtractionBlocked`. Blocked legacy DOC is **not** counted as content success. Deprecated metric `realPilotSourcesExtracted` removed — use explicit counters above.
 | formats | docx×5, pdf×1, legacy_doc×1, whisper×1 |
 | contentUnits (total) | 2734 |
 | portable assets (total refs) | 813 |
@@ -138,6 +136,8 @@ Invariant: `sourceRecordsCreated = contentExtractionSucceeded + contentExtractio
 | MP4 frameIndexingStatus | succeeded |
 | MP4 mp4AssetStatus | missing_vendor_only |
 | MP4 mp4DurationValidationStatus | unavailable (ffprobe not confirmed) |
+
+Invariant: `sourceRecordsCreated = contentExtractionSucceeded + contentExtractionWithWarnings + contentExtractionBlocked`. Blocked legacy DOC is **not** counted as content success. Deprecated metric `realPilotSourcesExtracted` removed — use explicit counters above.
 
 Pilot resolution + pełne ścieżki: `.local/AIA_TETA_CANONICAL_SOURCE_EXTRACTION_STAGE3J2B.pilot.json` (gitignored).
 
