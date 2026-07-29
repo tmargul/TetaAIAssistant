@@ -1,0 +1,23 @@
+{
+  "contractVersion": "teta-source-selection-policy-v1",
+  "registryVersion": "teta-source-selection-policy-v1",
+  "documentExtensions": [".docx", ".doc", ".pdf"],
+  "allMoviesRelativeDirectory": "ALL_MOVIES",
+  "allMoviesAllowedExtensions": {
+    "transcript": [".json"],
+    "video": [".mp4"],
+    "framesDirectory": true
+  },
+  "ignoredFilePatterns": ["~$*", ".*", "*.tmp", "*.bak"],
+  "ignoredDirectoryNames": [".local", "node_modules", ".git"],
+  "ignoredExtensionsOutsideAllMovies": [
+    ".xlsx", ".xls", ".zip", ".rar", ".tcpkg", ".txt", ".html", ".jsonl",
+    ".jpg", ".jpeg", ".png", ".webp", ".gif", ".exe", ".dll", ".bin"
+  ],
+  "jsonOutsideAllMoviesPolicy": "ignore",
+  "pipelineOutputDirectoryNames": ["output", "dist", "build"],
+  "provenance": {
+    "sourceId": "stage3j2b-selection-policy-v1",
+    "status": "approved"
+  }
+}

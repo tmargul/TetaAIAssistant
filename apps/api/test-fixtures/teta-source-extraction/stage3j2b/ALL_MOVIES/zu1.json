@@ -1,0 +1,21 @@
+{
+  "language": "pl",
+  "segments": [
+    {
+      "start": 0,
+      "end": 5,
+      "text": "Synthetic zu1 segment one",
+      "avg_logprob": -0.2,
+      "compression_ratio": 1.1,
+      "no_speech_prob": 0.01
+    },
+    {
+      "start": 5,
+      "end": 12,
+      "text": "Synthetic zu1 segment two",
+      "avg_logprob": -0.25,
+      "compression_ratio": 1.2,
+      "no_speech_prob": 0.02
+    }
+  ]
+}

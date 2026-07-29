@@ -45,7 +45,8 @@
     "payroll-snapshot:stage3i": "ts-node -r tsconfig-paths/register src/scripts/payroll-snapshot-stage3i.ts",
     "payroll-explanation:stage3j": "ts-node -r tsconfig-paths/register src/scripts/payroll-explanation-stage3j.ts",
     "domain-lexicon:stage3j1": "ts-node -r tsconfig-paths/register src/scripts/domain-lexicon-stage3j1.ts",
-    "knowledge-sources:stage3j2a": "ts-node -r tsconfig-paths/register src/scripts/knowledge-sources-stage3j2a.ts"
+    "knowledge-sources:stage3j2a": "ts-node -r tsconfig-paths/register src/scripts/knowledge-sources-stage3j2a.ts",
+    "source-extraction:stage3j2b": "ts-node -r tsconfig-paths/register src/scripts/source-extraction-stage3j2b.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

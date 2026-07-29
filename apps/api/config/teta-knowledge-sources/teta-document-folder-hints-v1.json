@@ -1,0 +1,210 @@
+{
+  "contractVersion": "teta-document-folder-hints-v1",
+  "registryVersion": "teta-document-folder-hints-v1",
+  "hintKinds": [
+    "product_family_hint",
+    "product_surface_hint",
+    "business_domain_hint",
+    "business_area_hint",
+    "knowledge_area_hint",
+    "source_purpose_hint",
+    "regulatory_hint",
+    "cross_domain_hint",
+    "client_specific_risk_hint",
+    "topic_hint"
+  ],
+  "folders": [
+    {
+      "folderLabel": "ADMIN",
+      "normalizedKey": "admin",
+      "hints": [{ "hintKind": "business_area_hint", "value": "administration" }]
+    },
+    {
+      "folderLabel": "API",
+      "normalizedKey": "api",
+      "hints": [{ "hintKind": "topic_hint", "value": "api_integration" }]
+    },
+    {
+      "folderLabel": "E-DEKLARACJE",
+      "normalizedKey": "e-deklaracje",
+      "hints": [{ "hintKind": "topic_hint", "value": "e_declarations" }]
+    },
+    {
+      "folderLabel": "EDU",
+      "normalizedKey": "edu",
+      "hints": [
+        { "hintKind": "product_family_hint", "value": "teta_edu" },
+        { "hintKind": "source_purpose_hint", "value": "education_training" }
+      ]
+    },
+    {
+      "folderLabel": "E-TECZKA",
+      "normalizedKey": "e-teczka",
+      "hints": [{ "hintKind": "topic_hint", "value": "e_personnel_file" }]
+    },
+    {
+      "folderLabel": "E-ZLA",
+      "normalizedKey": "e-zla",
+      "hints": [{ "hintKind": "topic_hint", "value": "e_sick_leave" }]
+    },
+    {
+      "folderLabel": "FINANSE",
+      "normalizedKey": "finanse",
+      "hints": [
+        { "hintKind": "business_domain_hint", "value": "finance" },
+        { "hintKind": "business_domain_hint", "value": "accounting" },
+        { "hintKind": "business_domain_hint", "value": "invoicing" },
+        { "hintKind": "business_domain_hint", "value": "receivables_payables" },
+        { "hintKind": "business_domain_hint", "value": "fixed_assets" },
+        { "hintKind": "cross_domain_hint", "value": "requires_section_classification" }
+      ],
+      "classificationStatus": "requires_section_classification"
+    },
+    {
+      "folderLabel": "GUS",
+      "normalizedKey": "gus",
+      "hints": [{ "hintKind": "regulatory_hint", "value": "statistical_reporting" }]
+    },
+    {
+      "folderLabel": "INSTRUKCJE_UZYTKOWNIKA",
+      "normalizedKey": "instrukcje_uzytkownika",
+      "hints": [{ "hintKind": "source_purpose_hint", "value": "user_manual" }]
+    },
+    {
+      "folderLabel": "KADRY",
+      "normalizedKey": "kadry",
+      "hints": [{ "hintKind": "business_domain_hint", "value": "hr" }]
+    },
+    {
+      "folderLabel": "KSEF",
+      "normalizedKey": "ksef",
+      "hints": [{ "hintKind": "topic_hint", "value": "ksef_e_invoicing" }]
+    },
+    {
+      "folderLabel": "LOGISTYKA",
+      "normalizedKey": "logistyka",
+      "hints": [{ "hintKind": "business_area_hint", "value": "logistics" }]
+    },
+    {
+      "folderLabel": "OBIEG DOKUMENTOW",
+      "normalizedKey": "obieg dokumentow",
+      "hints": [
+        { "hintKind": "client_specific_risk_hint", "value": "high" },
+        { "hintKind": "source_purpose_hint", "value": "document_workflow" }
+      ],
+      "scopeClassificationRequired": true
+    },
+    {
+      "folderLabel": "PIT",
+      "normalizedKey": "pit",
+      "hints": [{ "hintKind": "business_domain_hint", "value": "payroll" }]
+    },
+    {
+      "folderLabel": "PLACE",
+      "normalizedKey": "place",
+      "hints": [{ "hintKind": "business_domain_hint", "value": "payroll" }]
+    },
+    {
+      "folderLabel": "PPK",
+      "normalizedKey": "ppk",
+      "hints": [{ "hintKind": "business_domain_hint", "value": "payroll" }]
+    },
+    {
+      "folderLabel": "PRACA ZDALNA",
+      "normalizedKey": "praca zdalna",
+      "hints": [{ "hintKind": "topic_hint", "value": "remote_work" }]
+    },
+    {
+      "folderLabel": "PROCESY",
+      "normalizedKey": "procesy",
+      "hints": [
+        { "hintKind": "source_purpose_hint", "value": "business_process_description" },
+        { "hintKind": "cross_domain_hint", "value": "requires_section_classification" }
+      ],
+      "sectionLevelClassificationRequired": true
+    },
+    {
+      "folderLabel": "PRZELOM ROKU",
+      "normalizedKey": "przelom roku",
+      "hints": [
+        { "hintKind": "source_purpose_hint", "value": "cross_domain_operational_procedure" },
+        { "hintKind": "cross_domain_hint", "value": "calendar_year_transition" }
+      ],
+      "sectionLevelClassificationRequired": true
+    },
+    {
+      "folderLabel": "RAPORTY",
+      "normalizedKey": "raporty",
+      "hints": [{ "hintKind": "source_purpose_hint", "value": "reporting" }]
+    },
+    {
+      "folderLabel": "RCP",
+      "normalizedKey": "rcp",
+      "hints": [{ "hintKind": "business_domain_hint", "value": "time_and_attendance" }]
+    },
+    {
+      "folderLabel": "RODO",
+      "normalizedKey": "rodo",
+      "hints": [{ "hintKind": "regulatory_hint", "value": "gdpr" }]
+    },
+    {
+      "folderLabel": "SaaS",
+      "normalizedKey": "saas",
+      "hints": [{ "hintKind": "product_surface_hint", "value": "teta_me" }]
+    },
+    {
+      "folderLabel": "SCENARIUSZE",
+      "normalizedKey": "scenariusze",
+      "hints": [
+        { "hintKind": "source_purpose_hint", "value": "scenario_or_test_case" },
+        { "hintKind": "cross_domain_hint", "value": "requires_section_classification" }
+      ],
+      "sectionLevelClassificationRequired": true
+    },
+    {
+      "folderLabel": "SPOJNOSC Z PRZEPISAMI",
+      "normalizedKey": "spojnosc z przepisami",
+      "hints": [
+        { "hintKind": "regulatory_hint", "value": "legal_compliance" },
+        { "hintKind": "cross_domain_hint", "value": "applicability_review_required" }
+      ],
+      "applicabilityReviewRequired": true
+    },
+    {
+      "folderLabel": "TETA ME",
+      "normalizedKey": "teta me",
+      "hints": [
+        { "hintKind": "product_family_hint", "value": "teta_hr" },
+        { "hintKind": "product_surface_hint", "value": "teta_me" }
+      ]
+    },
+    {
+      "folderLabel": "TRYB PROJEKTOWANIA",
+      "normalizedKey": "tryb projektowania",
+      "hints": [{ "hintKind": "knowledge_area_hint", "value": "form_design" }]
+    },
+    {
+      "folderLabel": "WCAG",
+      "normalizedKey": "wcag",
+      "hints": [{ "hintKind": "knowledge_area_hint", "value": "accessibility" }]
+    },
+    {
+      "folderLabel": "WORKFLOW",
+      "normalizedKey": "workflow",
+      "hints": [
+        { "hintKind": "client_specific_risk_hint", "value": "high" },
+        { "hintKind": "source_purpose_hint", "value": "workflow_configuration" }
+      ],
+      "scopeClassificationRequired": true
+    },
+    {
+      "folderLabel": "ZARZADZANIE USERAMI",
+      "normalizedKey": "zarzadzanie userami",
+      "hints": [{ "hintKind": "business_area_hint", "value": "user_administration" }]
+    }
+  ],
+  "provenance": {
+    "sourceId": "stage3j2b-folder-hints-v1",
+    "status": "approved"
+  }
+}

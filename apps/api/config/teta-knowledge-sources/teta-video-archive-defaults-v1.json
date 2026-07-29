@@ -1,0 +1,27 @@
+{
+  "contractVersion": "teta-video-archive-defaults-v1",
+  "scope": {
+    "relativeDirectory": "ALL_MOVIES"
+  },
+  "transcription": {
+    "tool": "whisper",
+    "model": "turbo",
+    "language": "Polish",
+    "device": "cuda",
+    "outputFormat": "json",
+    "provenanceStatus": "user_confirmed_recipe"
+  },
+  "frames": {
+    "namingScheme": "sequential_index",
+    "fileNamePattern": "^frame_(\\d{5})\\.(jpg|jpeg|png|webp)$",
+    "frameIndexBase": 1,
+    "firstFrameTimestampSeconds": 1,
+    "frameIntervalSeconds": 10,
+    "timestampFormula": "1 + (frameIndex - 1) * 10",
+    "timelineSource": "user_confirmed_generation_recipe"
+  },
+  "provenance": {
+    "sourceId": "stage3j2b-video-archive-defaults-v1",
+    "status": "approved"
+  }
+}
