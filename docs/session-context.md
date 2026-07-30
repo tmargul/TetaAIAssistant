@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2C `ee8a108` zakończony; Stage 3J.2D zakończony `demonstrated_with_review` / `ready_with_review` w commicie `d77f213`; Stage 3J.2E ready_with_review, nierozpoczęty; 3K nierozpoczęty)
+> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2C `ee8a108` zakończony; Stage 3J.2D zakończony `demonstrated_with_review` / `ready_with_review` w commitach `d77f213` + `d56c130`; push wykonany, `HEAD=origin/main`; Stage 3J.2E ready_with_review, nierozpoczęty; 3K nierozpoczęty)
 
 ---
 
@@ -180,7 +180,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2A — Knowledge Source Registry & Bulk Inventory:** zakończony (`7465934`)
 - [x] **Stage 3J.2B — Canonical Source Extraction & Portable Offline Asset Store:** zakończony (`367f00e`)
 - [x] **Stage 3J.2C — Canonical Topic Segmentation & Candidate Knowledge Extraction:** zakończony (`ee8a108`, ready_with_review)
-- [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** funkcjonalnie zakończony lokalnie (`demonstrated_with_review`, `ready_with_review`), oczekuje na commit
+- [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`, `ready_with_review`; feature `d77f213`, docs status `d56c130`)
 - [ ] **Stage 3J.2E:** ready_with_review, nierozpoczęty
 - [ ] **Stage 3K:** nierozpoczęty
 
@@ -191,7 +191,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2A:** zakończony — Knowledge Source Registry & Bulk Inventory (`7465934`; docs status `859bbf6`)
 - **Stage 3J.2B:** zakończony — commit `367f00e`
 - **Stage 3J.2C:** zakończony — commit `ee8a108`, ready_with_review
-- **Stage 3J.2D:** zakończony (`demonstrated_with_review`, `ready_with_review`), feature commit: `d77f2132a567f243692f27ddc2d039f988e2e4ca`
+- **Stage 3J.2D:** zakończony (`demonstrated_with_review`, `ready_with_review`), feature commit: `d77f2132a567f243692f27ddc2d039f988e2e4ca`, docs status commit: `d56c1301ac5fbc98552327ecd97330a76c0793c3`, `HEAD=origin/main`
 - **Stage 3J.2E / Stage 3K:** nierozpoczęte
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
@@ -235,7 +235,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - stage3j2dReadiness=**ready_with_review** (real_pilot_requires_review + model_usefulness_insufficient_signal_documented)
 - Testy **382/382**; fixture recall/precision OK; regresje OK; audit strict EXIT 0
 - Commit: `ee8a108`
-- Stage 3J.2D / 3J.2E / 3K: nierozpoczęte (3J.2D lokalnie w toku)
+- [HISTORYCZNE] Stage 3J.2D / 3J.2E / 3K: nierozpoczęte (3J.2D lokalnie w toku)
 
 ### Stage 3J.2D ustalenia (2026-07-30)
 
@@ -265,7 +265,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
   - `multiOccurrenceClustersCreated=11`, `proposedRecordsWithMultipleOccurrences=33`.
 - Q21 ma wsparcie z registry anchor (`registry_surface_anchor`) i nie jest już `unsupported`.
 - Q14 pozostaje `unsupported` gdy brak matching evidence KSeF; jeśli evidence KSeF pojawi się, status ma być `requires_currentness_verification`.
-- Stage 3J.2E i Stage 3K nadal nierozpoczęte; brak commita.
+- [HISTORYCZNE] Stage 3J.2E i Stage 3K nadal nierozpoczęte; brak commita.
 
 ### Stage 3J.2D final patch kompletności (2026-07-30)
 

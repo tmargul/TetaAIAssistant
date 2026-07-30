@@ -3868,6 +3868,16 @@ describe('Stage 3J.2D pre-commit cleanup metrics', () => {
       Number(r.stats.multiOccurrenceRecordsRequiresReviewBeforeMerge ?? 0);
     expect(total).toBe(sum);
   });
+  test('merge-support accounting separates review groups from invalid merged records', () => {
+    const r = runStage3j2dCorrelation(combinedFixtureManifest());
+    const total = Number(r.stats.proposedRecordsWithMultipleOccurrences);
+    const withSupport = Number(r.stats.multiOccurrenceRecordsWithMergeSupportingRelation ?? 0);
+    const reviewOnly = Number(r.stats.multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation ?? 0);
+    const invalidMerged = Number(r.stats.invalidMergedRecordsWithoutMergeSupportingRelation ?? 0);
+    expect(total).toBe(withSupport + reviewOnly);
+    expect(invalidMerged).toBe(0);
+    expect(reviewOnly).toBeGreaterThanOrEqual(0);
+  });
   test('requires_review_before_merge records are not reported as merged', () => {
     const r = runStage3j2dCorrelation(combinedFixtureManifest());
     expect(r.stats.reviewGroupProposalsIncorrectlyReportedAsMerged ?? 0).toBe(0);

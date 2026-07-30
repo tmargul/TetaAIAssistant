@@ -289,6 +289,26 @@ export function runStage3j2dCorrelation(
   });
 
   const relationKindCounts = (kind: string) => classified.decisions.filter((d) => d.relationKind === kind).length;
+  const multiOccurrenceRecordList = records.filter((r) => r.candidateOccurrenceRefs.length > 1);
+  const multiOccurrenceRecordsWithMergeSupportingRelation = multiOccurrenceRecordList.filter((r) =>
+    ['exact_collapsed', 'semantically_grouped', 'enriched', 'variant_partitioned', 'conflict_partitioned'].includes(
+      r.mergeStatus,
+    ),
+  ).length;
+  const multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation = multiOccurrenceRecordList.filter(
+    (r) => r.mergeStatus === 'requires_review_before_merge',
+  ).length;
+  const invalidMergedRecordsWithoutMergeSupportingRelation = multiOccurrenceRecordList.filter(
+    (r) =>
+      ![
+        'exact_collapsed',
+        'semantically_grouped',
+        'enriched',
+        'variant_partitioned',
+        'conflict_partitioned',
+        'requires_review_before_merge',
+      ].includes(r.mergeStatus),
+  ).length;
 
   const stageBoundaries = emptyStageBoundaryCounters();
 
@@ -380,7 +400,7 @@ export function runStage3j2dCorrelation(
     ),
     proposedRecordsSplitByApplicability: records.filter((r) => r.status.includes('variant')).length,
     proposedRecordsIncorrectlyMergedAcrossApplicability: 0,
-    multiOccurrenceProposedRecords: records.filter((r) => r.candidateOccurrenceRefs.length > 1).length,
+    multiOccurrenceProposedRecords: multiOccurrenceRecordList.length,
     multiOccurrenceRecordsExactCollapsed: records.filter(
       (r) => r.candidateOccurrenceRefs.length > 1 && r.mergeStatus === 'exact_collapsed',
     ).length,
@@ -399,12 +419,13 @@ export function runStage3j2dCorrelation(
     multiOccurrenceRecordsRequiresReviewBeforeMerge: records.filter(
       (r) => r.candidateOccurrenceRefs.length > 1 && r.mergeStatus === 'requires_review_before_merge',
     ).length,
-    multiOccurrenceProposedRecordsWithMergeSupportingRelation: records.filter(
-      (r) =>
-        r.candidateOccurrenceRefs.length > 1 &&
-        ['exact_collapsed', 'semantically_grouped', 'enriched'].includes(r.mergeStatus),
-    ).length,
-    multiOccurrenceProposedRecordsWithoutMergeSupportingRelation: 0,
+    multiOccurrenceProposedRecordsWithMergeSupportingRelation: multiOccurrenceRecordsWithMergeSupportingRelation,
+    multiOccurrenceRecordsWithMergeSupportingRelation: multiOccurrenceRecordsWithMergeSupportingRelation,
+    multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation:
+      multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation,
+    invalidMergedRecordsWithoutMergeSupportingRelation: invalidMergedRecordsWithoutMergeSupportingRelation,
+    // DEPRECATED: historical name kept for contract compatibility; previously mixed review groups with invalid merges.
+    multiOccurrenceProposedRecordsWithoutMergeSupportingRelation: invalidMergedRecordsWithoutMergeSupportingRelation,
     requiresReviewClustersIncorrectlyMaterializedAsMergedRecord: records.filter(
       (r) =>
         r.candidateOccurrenceRefs.length > 1 &&
@@ -415,19 +436,9 @@ export function runStage3j2dCorrelation(
     reviewGroupProposalsIncorrectlyReportedAsMerged: 0,
     occurrencesMergedOnlyBecauseOfClusterMembership: 0,
     multiOccurrenceRecordAccountingOk:
-      records.filter((r) => r.candidateOccurrenceRefs.length > 1).length ===
-      records.filter(
-        (r) =>
-          r.candidateOccurrenceRefs.length > 1 &&
-          [
-            'exact_collapsed',
-            'semantically_grouped',
-            'enriched',
-            'variant_partitioned',
-            'conflict_partitioned',
-            'requires_review_before_merge',
-          ].includes(r.mergeStatus),
-      ).length,
+      multiOccurrenceRecordList.length ===
+      multiOccurrenceRecordsWithMergeSupportingRelation +
+        multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation,
 
     tetaEduMergedIntoTetaHr: classified.safeguards.tetaEduMergedIntoTetaHr,
     tetaMeTreatedAsStandaloneDomain: classified.safeguards.tetaMeTreatedAsStandaloneDomain,

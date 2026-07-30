@@ -1,7 +1,13 @@
 {
   "stage": "3J.2D",
   "title": "Candidate Correlation, Deduplication, Variants, Conflicts & Golden Question Coverage",
-  "status": "local_uncommitted_demonstrated_with_review",
+  "status": "completed_demonstrated_with_review",
+  "featureCommit": "d77f2132a567f243692f27ddc2d039f988e2e4ca",
+  "docsStatusCommit": "d56c1301ac5fbc98552327ecd97330a76c0793c3",
+  "pushedToOriginMain": true,
+  "stage3j2eReadiness": "ready_with_review",
+  "stage3j2eStarted": false,
+  "stage3kStarted": false,
   "input": "stage3j2c_portable_candidate_manifest",
   "verification": {
     "tests": "811/811",
@@ -68,7 +74,9 @@
     "multiOccurrenceRecordsVariantPartitioned": 0,
     "multiOccurrenceRecordsConflictPartitioned": 0,
     "multiOccurrenceRecordsRequiresReviewBeforeMerge": 80,
-    "multiOccurrenceRecordsWithAtLeastOneMergeSupportingRelation": 85,
+    "multiOccurrenceRecordsWithMergeSupportingRelation": 85,
+    "multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation": 80,
+    "invalidMergedRecordsWithoutMergeSupportingRelation": 0,
     "multiOccurrenceRecordsWithoutMergeSupportingRelation": 0,
     "candidateCorrelationClusters": 360,
     "multiOccurrenceClusters": 152,
@@ -96,6 +104,14 @@
     "contentUnitEvidenceRefsRead": "sum of contentUnitRefs across all evidence entries",
     "assetEvidenceRefsRead": "sum of assetRefs across all evidence entries",
     "uniqueEvidenceRefsRead": "unique sectionId+contentUnitRef tuples"
+  },
+  "mergeSupportMetricSemantics": {
+    "multiOccurrenceRecordsWithMergeSupportingRelation": "multi-occurrence proposed records with at least one merge-supporting relation (exact/semantic/enrichment)",
+    "multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation": "multi-occurrence proposed records with mergeStatus=requires_review_before_merge (group proposal, not merged record)",
+    "invalidMergedRecordsWithoutMergeSupportingRelation": "invalid merged records missing supporting relation; strict invariant requires 0",
+    "deprecated": {
+      "multiOccurrenceRecordsWithoutMergeSupportingRelation": "deprecated compatibility field; use invalidMergedRecordsWithoutMergeSupportingRelation for strict invalid-merge accounting"
+    }
   },
   "boundaries": {
     "approvesRecords": false,

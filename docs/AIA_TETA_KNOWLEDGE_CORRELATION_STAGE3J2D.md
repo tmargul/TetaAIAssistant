@@ -2,6 +2,8 @@
 
 Deterministyczna korelacja na immutable candidate batches Stage 3J.2C. Wynik to wyłącznie proposed relations, proposed records, clusters, review tasks i Q01–Q21 coverage.
 
+Status etapu: **completed_demonstrated_with_review** (feature commit `d77f213`, docs status commit `d56c130`, pushed do `origin/main`).
+
 ## Patch użyteczności (real correlation)
 
 - Dodano kontrakt `teta-candidate-correlation-cluster-v1` i budowę klastrów korelacji.
@@ -41,7 +43,12 @@ Deterministyczna korelacja na immutable candidate batches Stage 3J.2C. Wynik to 
 - Pair eligibility (acceptance): `pairsEnteringBlocking=161492`, `pairsPassingPairEligibility=19115`, `pairsSkippedByPairEligibility=142377`.
 - Relation decisions (acceptance): **19115** (`exact=108`, `semantic=41`, `requires_review=18966`).
 - Proposed records / clusters (acceptance): `474` records (`165` multi-occurrence), `360` clusters (`152` multi-occurrence).
-- mergeStatus accounting (acceptance, multi-occurrence=165): `exact=78`, `semantic=7`, `enriched=0`, `variant=0`, `conflict=0`, `requires_review_before_merge=80`; with merge-supporting relation=`85`, without merge-supporting relation=`0`.
+- mergeStatus accounting (acceptance, multi-occurrence=165): `exact=78`, `semantic=7`, `enriched=0`, `variant=0`, `conflict=0`, `requires_review_before_merge=80`.
+- merge-support accounting (acceptance): `165 = 85 + 80`, gdzie:
+  - `multiOccurrenceRecordsWithMergeSupportingRelation=85`,
+  - `multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation=80`,
+  - `invalidMergedRecordsWithoutMergeSupportingRelation=0`.
+- Pole `multiOccurrenceRecordsWithoutMergeSupportingRelation` jest utrzymane wyłącznie kompatybilnościowo (deprecated) i nie jest główną metryką raportową.
 - Review compression (acceptance): `reviewTasksCreated=100`, `reviewTaskCompressionRatio=189.66`.
 - Review task reconciliation (primary grouping, rozłączne): `cluster=98`, `question=2`, pozostałe `0`; suma = `100`, `reviewTaskCountReconciliationOk=true`.
 - Q21: **supported** (`registry_surface_anchor`) w debug i acceptance.
@@ -56,4 +63,4 @@ Deterministyczna korelacja na immutable candidate batches Stage 3J.2C. Wynik to 
 
 ## Stage 3J.2E readiness
 
-`ready_with_review` tylko dla acceptance/full-input run (`acceptanceRunInputComplete=true`) — real correlation demonstrated, review tasks skompresowane, ale pozostają luki dowodowe. Stage 3J.2E nadal nierozpoczęty.
+`ready_with_review` tylko dla acceptance/full-input run (`acceptanceRunInputComplete=true`) — real correlation demonstrated, review tasks skompresowane, ale pozostają luki dowodowe. Stage 3J.2E nadal nierozpoczęty (nie rozpoczęto Stage 3J.2E ani Stage 3K).

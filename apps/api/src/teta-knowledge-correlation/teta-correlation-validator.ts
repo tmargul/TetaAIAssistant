@@ -105,8 +105,15 @@ export function collectStrictErrors(
   if (String(stats.reviewTaskCountReconciliationOk ?? 'false') !== 'true') {
     errors.push('reviewTaskCountReconciliationOk');
   }
-  if (n('multiOccurrenceProposedRecordsWithoutMergeSupportingRelation') !== 0) {
-    errors.push('multiOccurrenceProposedRecordsWithoutMergeSupportingRelation');
+  if (n('invalidMergedRecordsWithoutMergeSupportingRelation') !== 0) {
+    errors.push('invalidMergedRecordsWithoutMergeSupportingRelation');
+  }
+  if (
+    n('proposedRecordsWithMultipleOccurrences') !==
+    n('multiOccurrenceRecordsWithMergeSupportingRelation') +
+      n('multiOccurrenceReviewGroupProposalsWithoutMergeSupportingRelation')
+  ) {
+    errors.push('multiOccurrenceRecordAccountingInvariant');
   }
   if (n('reviewGroupProposalsIncorrectlyReportedAsMerged') !== 0) {
     errors.push('reviewGroupProposalsIncorrectlyReportedAsMerged');
