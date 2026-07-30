@@ -1,0 +1,18 @@
+{
+  "policyVersion": "teta-review-pack-policy-v1",
+  "maxExcerptChars": 800,
+  "preferRefsWithoutFullSourceForAcceptancePilot": true,
+  "allowSyntheticExcerptsInFixtures": true,
+  "requireStaleGuard": true,
+  "requireAllowedDecisionKinds": true,
+  "evidenceGapAllowsEmptyEvidence": true,
+  "defaultAllowedByPackKind": {
+    "record_approval": ["approve", "approve_with_scope", "reject", "defer"],
+    "merge_review": ["approve_merged_record", "reject", "defer", "request_more_evidence"],
+    "variant_review": ["approve_as_variants", "request_more_evidence", "defer", "reject"],
+    "conflict_review": ["defer", "request_more_evidence", "reject", "approve_as_variants"],
+    "scope_review": ["approve_with_scope", "reject", "defer"],
+    "evidence_gap": ["request_more_evidence", "defer", "close_gap_as_no_evidence"],
+    "currentness_review": ["approve_with_scope", "defer", "request_more_evidence", "reject"]
+  }
+}

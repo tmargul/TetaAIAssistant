@@ -8,9 +8,10 @@
   "stage3j2eReadiness": "ready_with_review",
   "stage3j2eStarted": false,
   "stage3kStarted": false,
+  "finalizationCommit": "1e57e2de6e74930e1e9e5ebb4891663563621990",
   "input": "stage3j2c_portable_candidate_manifest",
   "verification": {
-    "tests": "811/811",
+    "tests": "812/812",
     "fixturePacks": "22/22",
     "regressions": {
       "stage3j2c": "382/382",

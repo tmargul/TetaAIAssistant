@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2C `ee8a108` zakończony; Stage 3J.2D zakończony `demonstrated_with_review` / `ready_with_review` w commitach `d77f213` + `d56c130`; push wykonany, `HEAD=origin/main`; Stage 3J.2E ready_with_review, nierozpoczęty; 3K nierozpoczęty)
+> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2D zakończony `1e57e2d` / tests 812/812; Stage 3J.2E Review/Approval + **human decisionability patch** — lokalnie, niezacommitowany, `ready_for_human_pilot_decision`, tests 923/923, real packs=7, templates=7, decisions=0, approved=0; Stage 3K not_ready)
 
 ---
 
@@ -180,9 +180,9 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2A — Knowledge Source Registry & Bulk Inventory:** zakończony (`7465934`)
 - [x] **Stage 3J.2B — Canonical Source Extraction & Portable Offline Asset Store:** zakończony (`367f00e`)
 - [x] **Stage 3J.2C — Canonical Topic Segmentation & Candidate Knowledge Extraction:** zakończony (`ee8a108`, ready_with_review)
-- [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`, `ready_with_review`; feature `d77f213`, docs status `d56c130`)
-- [ ] **Stage 3J.2E:** ready_with_review, nierozpoczęty
-- [ ] **Stage 3K:** nierozpoczęty
+- [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`; feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests 812/812)
+- [ ] **Stage 3J.2E — Review, Approval & Evidence Governance:** lokalnie, niezacommitowany, `ready_for_human_pilot_decision`; real packs=7, templates=7, decisions=0, approved=0
+- [ ] **Stage 3K:** nierozpoczęty (`not_ready` — `no_real_approved_records_yet`)
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
 
@@ -191,8 +191,9 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2A:** zakończony — Knowledge Source Registry & Bulk Inventory (`7465934`; docs status `859bbf6`)
 - **Stage 3J.2B:** zakończony — commit `367f00e`
 - **Stage 3J.2C:** zakończony — commit `ee8a108`, ready_with_review
-- **Stage 3J.2D:** zakończony (`demonstrated_with_review`, `ready_with_review`), feature commit: `d77f2132a567f243692f27ddc2d039f988e2e4ca`, docs status commit: `d56c1301ac5fbc98552327ecd97330a76c0793c3`, `HEAD=origin/main`
-- **Stage 3J.2E / Stage 3K:** nierozpoczęte
+- **Stage 3J.2D:** zakończony (`demonstrated_with_review`), feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests **812/812**, `HEAD=origin/main`
+- **Stage 3J.2E:** lokalnie, niezacommitowany, `ready_for_human_pilot_decision` + human decisionability patch; tests **923/923**; real packs=7, templates=7, decisions=0, approved=0; registry evidence on RP01; RP02 narrowed; RP03 single-product → requires_more_evidence
+- **Stage 3K:** nierozpoczęty (`not_ready` — `no_real_approved_records_yet`)
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
@@ -202,7 +203,8 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2B:** deterministyczna ekstrakcja DOC/DOCX/PDF + ALL_MOVIES (JSON/frames/MP4 validation); portable store content-addressed w `.local/`; bez semantic/RAG
 - **Stage 3J.2C:** candidate batches + sectioning + proposal lifecycle; exact collapse tylko w sekcji
 - **Stage 3J.2D:** relation decisions nie usuwają occurrences; applicability przed merge; conflicts bez auto-resolve; golden questions = coverage, nie final answers; bez modelu; approval w 3J.2E
-- **Stage 3J.2E / Stage 3K:** nierozpoczęte
+- **Stage 3J.2E:** Cursor nie zatwierdza realnej wiedzy; decyzje podejmuje człowiek; decision template ≠ decyzja; `apply-decision` wymaga `--confirm-human-decision`; approved record nie usuwa provenance; Stage 3K dopiero po kontrolowanym real approval pilot
+- **Stage 3K:** nierozpoczęty
 
 ### Stage 3J.2B ustalenia (2026-07-29)
 
@@ -278,6 +280,18 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - Review task compression (acceptance): `requires_review=18966`, `reviewTasks=100`, `compressionRatio=189.66`.
 - Q21 pozostaje `supported` przez `registry_surface_anchor`; Q14 = `unsupported` z `no_matching_evidence` dla tego korpusu.
 - Stage boundaries i strict safety nadal bez naruszeń; Stage 3J.2E/3K bez zmian (nierozpoczęte).
+
+### Stage 3J.2E ustalenia (2026-07-30)
+
+- Moduł `apps/api/src/teta-knowledge-approval/` + CLI `knowledge-approval:stage3j2e`
+- Wejście: acceptance Stage 3J.2D overlap-full (1074 occurrences, 474 proposed, 100 review tasks)
+- Review queue: 100/100; priority critical/high/normal/low
+- Real pilot packs RP01–RP07 + decision templates w `.local/teta-knowledge/stage3j2e/`
+- realDecisionEventsApplied=0; realApprovedRecordsCreated=0
+- Synthetic fixtures A–T; ledger append-only; stale guard; supersede/revoke
+- Testy Stage 3J.2E: **886/886**; `audit --strict` EXIT 0; strictErrors=[]
+- Status: `ready_for_human_pilot_decision`; Stage 3K: `not_ready` (`no_real_approved_records_yet`)
+- Lokalnie, niezacommitowany — nie stosować `apply-decision` na real packs
 ---
 
 ## Notatki sesji

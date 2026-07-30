@@ -1,0 +1,27 @@
+{
+  "policyVersion": "teta-review-priority-policy-v1",
+  "priorityOrder": [
+    "unresolved_conflict",
+    "golden_question_relevant",
+    "requires_review_before_merge",
+    "exact_or_semantic_merge_candidate",
+    "product_version_client_scope",
+    "currentness_verification",
+    "normal_review"
+  ],
+  "priorityScores": {
+    "unresolved_conflict": 1000,
+    "golden_question_relevant": 800,
+    "requires_review_before_merge": 600,
+    "exact_or_semantic_merge_candidate": 400,
+    "product_version_client_scope": 300,
+    "currentness_verification": 200,
+    "normal_review": 100
+  },
+  "priorityBands": {
+    "critical": 900,
+    "high": 500,
+    "normal": 200,
+    "low": 0
+  }
+}

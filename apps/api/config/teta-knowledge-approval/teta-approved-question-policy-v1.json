@@ -1,0 +1,15 @@
+{
+  "policyVersion": "teta-approved-question-policy-v1",
+  "separateCandidateAndApprovedCoverage": true,
+  "forbidApprovedSupportedWithoutApprovedRecord": true,
+  "pilotCaseApprovedCoverageDefaults": {
+    "RP01": "pending_human_review",
+    "RP02": "pending_human_review",
+    "RP03": "requires_more_evidence",
+    "RP04": "pending_human_review",
+    "RP05": "pending_human_review",
+    "RP06": "requires_more_evidence",
+    "RP07": "requires_more_evidence"
+  },
+  "unsupportedCandidateWithoutEvidence": "unsupported"
+}

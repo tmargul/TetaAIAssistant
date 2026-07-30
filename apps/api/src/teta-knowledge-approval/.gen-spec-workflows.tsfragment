@@ -1,0 +1,716 @@
+describe('Stage 3J.2E decision workflows', () => {
+  test('A approve_merged_record creates approved record preserving occurrences', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve_merged_record', scopeDecision: baseScope() });
+    const v = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      { pack: fx.reviewPack, confirmHumanDecision: true, reviewerId: draft.reviewer.reviewerId, reviewerRole: draft.reviewer.reviewerRole },
+    );
+    expect(v.ok).toBe(true);
+    const dir = tmpDir('teta-3j2e-a-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    const records = buildApprovedRecordsFromDecision(event, fx.reviewPack);
+    expect(records.length).toBe(1);
+    expect(records[0]!.candidateOccurrenceRefs.length).toBeGreaterThanOrEqual(1);
+    expect(records[0]!.evidenceRefs.length).toBeGreaterThan(0);
+    expect(records[0]!.decisionEventRefs).toContain(event.decisionEventId);
+  });
+
+  test('B semantic approve_merged_record works', () => {
+    const fx = FIXTURES.find((f) => f.id === 'B')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve_merged_record' });
+    const v = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      { pack: fx.reviewPack, confirmHumanDecision: true, reviewerId: draft.reviewer.reviewerId, reviewerRole: draft.reviewer.reviewerRole },
+    );
+    expect(v.ok).toBe(true);
+  });
+
+  test('C approve without scope rejected; approve_with_scope accepted', () => {
+    const fx = FIXTURES.find((f) => f.id === 'C')!;
+    const bad = validateDecisionDraft(
+      {
+        reviewPackId: fx.reviewPack.reviewPackId,
+        reviewPackRevisionId: fx.reviewPack.reviewPackRevisionId,
+        decisionKind: 'approve',
+        rationale: 'missing scope intentionally',
+        staleGuard: fx.reviewPack.staleGuard,
+        confirmHumanDecision: true,
+        synthetic: true,
+      },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: 'fixture-reviewer',
+        reviewerRole: 'knowledge_reviewer',
+        isUnknownApplicability: true,
+      },
+    );
+    expect(bad.ok).toBe(false);
+    expect(bad.errors).toContain('unknown_applicability_without_explicit_scope');
+    const draft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'approve_with_scope',
+      scopeDecision: baseScope({ productFamilyIds: ['teta_hr'] }),
+    });
+    const ok = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+        isUnknownApplicability: true,
+      },
+    );
+    expect(ok.ok).toBe(true);
+  });
+
+  test('D approve_as_variants creates two records without universal merge', () => {
+    const fx = FIXTURES.find((f) => f.id === 'D')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'approve_as_variants',
+      scopeDecision: baseScope({ productFamilyIds: ['teta_hr', 'teta_edu'] }),
+    });
+    const dir = tmpDir('teta-3j2e-d-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    const records = buildApprovedRecordsFromDecision(event, fx.reviewPack, { variantSplit: true });
+    expect(records.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('E Teta ME approve_with_scope keeps product surface under teta_hr', () => {
+    const fx = FIXTURES.find((f) => f.id === 'E')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'approve_with_scope',
+      scopeDecision: baseScope({ productFamilyIds: ['teta_hr'], productSurfaceIds: ['teta_me'] }),
+      reviewerRole: 'product_expert',
+    });
+    const v = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+        isTetaMeStandaloneDomain: false,
+      },
+    );
+    expect(v.ok).toBe(true);
+    const bad = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+        isTetaMeStandaloneDomain: true,
+      },
+    );
+    expect(bad.errors).toContain('teta_me_approved_as_standalone_domain');
+  });
+
+  test('F client-specific global approval rejected', () => {
+    const fx = FIXTURES.find((f) => f.id === 'F')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'approve_with_scope',
+      scopeDecision: baseScope({ clientScope: 'global' }),
+    });
+    const bad = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+        isClientSpecific: true,
+      },
+    );
+    expect(bad.errors).toContain('client_specific_approved_as_global');
+    const okDraft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'approve_with_scope',
+      scopeDecision: baseScope({ clientScope: 'client_specific' }),
+    });
+    const ok = validateDecisionDraft(
+      { ...okDraft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: okDraft.reviewer.reviewerId,
+        reviewerRole: okDraft.reviewer.reviewerRole,
+        isClientSpecific: true,
+      },
+    );
+    expect(ok.ok).toBe(true);
+  });
+
+  test('G historical cannot be approved as current', () => {
+    const fx = FIXTURES.find((f) => f.id === 'G')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'approve_with_scope',
+      scopeDecision: baseScope({ currentnessStatus: 'verified_for_scope' }),
+    });
+    const bad = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+        isHistorical: true,
+      },
+    );
+    expect(bad.errors).toContain('historical_approved_as_current');
+  });
+
+  test('H regulatory currentness requires legal reviewer', () => {
+    const fx = FIXTURES.find((f) => f.id === 'H')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'approve_with_scope',
+      scopeDecision: baseScope({ currentnessStatus: 'verified_for_scope' }),
+      reviewerRole: 'knowledge_reviewer',
+    });
+    const bad = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: 'knowledge_reviewer',
+        isRegulatory: true,
+      },
+    );
+    expect(bad.errors).toContain('regulatory_current_without_legal_review');
+    const ok = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: 'legal_reviewer',
+        isRegulatory: true,
+      },
+    );
+    expect(ok.ok).toBe(true);
+  });
+
+  test('I reject creates event without approved record', () => {
+    const fx = FIXTURES.find((f) => f.id === 'I')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'reject' });
+    const dir = tmpDir('teta-3j2e-i-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    expect(buildApprovedRecordsFromDecision(event, fx.reviewPack)).toEqual([]);
+  });
+
+  test('J defer creates no approved record', () => {
+    const fx = FIXTURES.find((f) => f.id === 'J')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'defer' });
+    const dir = tmpDir('teta-3j2e-j-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    const view = materializeFromLedger({
+      events: [event],
+      packsById: { [fx.reviewPack.reviewPackId]: fx.reviewPack },
+      reviewTasks: fx.reviewTasks,
+    });
+    expect(view.approvedRecords.length).toBe(0);
+    expect(view.reviewTaskStates.some((t) => t.status === 'deferred')).toBe(true);
+  });
+
+  test('K request_more_evidence creates no approved record', () => {
+    const fx = FIXTURES.find((f) => f.id === 'K')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'request_more_evidence' });
+    const dir = tmpDir('teta-3j2e-k-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    expect(buildApprovedRecordsFromDecision(event, fx.reviewPack)).toEqual([]);
+  });
+
+  test('L conflict approve rejected; defer accepted', () => {
+    const fx = FIXTURES.find((f) => f.id === 'L')!;
+    const approve = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve' });
+    const pack = {
+      ...fx.reviewPack,
+      allowedDecisionKinds: [...fx.reviewPack.allowedDecisionKinds, 'approve'] as typeof fx.reviewPack.allowedDecisionKinds,
+    };
+    const bad = validateDecisionDraft(
+      { ...approve, confirmHumanDecision: true, synthetic: true },
+      {
+        pack,
+        confirmHumanDecision: true,
+        reviewerId: approve.reviewer.reviewerId,
+        reviewerRole: approve.reviewer.reviewerRole,
+        hasUnresolvedConflict: true,
+      },
+    );
+    expect(bad.errors).toContain('approval_with_unresolved_conflict');
+    const defer = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'defer' });
+    const ok = validateDecisionDraft(
+      { ...defer, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: defer.reviewer.reviewerId,
+        reviewerRole: defer.reviewer.reviewerRole,
+        hasUnresolvedConflict: true,
+      },
+    );
+    expect(ok.ok).toBe(true);
+  });
+
+  test('M stale pack decision rejected', () => {
+    const fx = FIXTURES.find((f) => f.id === 'M')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'approve_merged_record',
+      staleGuard: { ...fx.reviewPack.staleGuard, evidenceSetSha256: sha256('changed') },
+    });
+    const bad = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+      },
+    );
+    expect(bad.errors).toContain('stale_review_pack');
+  });
+
+  test('N ledger chain previous hash and tamper detection', () => {
+    const fx = FIXTURES.find((f) => f.id === 'N')!;
+    const dir = tmpDir('teta-3j2e-n-');
+    initEmptyLedger(dir);
+    const d1 = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'defer', rationale: 'first event rationale xx' });
+    const d2 = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'reject', rationale: 'second event rationale xx' });
+    const e1 = appendDecisionEvent(dir, d1).event;
+    const e2 = appendDecisionEvent(dir, d2).event;
+    expect(e2.ledger.previousEventSha256).toBe(e1.ledger.eventSha256);
+    expect(e1.ledger.sequenceNumber).toBe(1);
+    expect(e2.ledger.sequenceNumber).toBe(2);
+    const ledger = readLedger(dir);
+    expect(ledger.stats.ledgerHashChainValid).toBe(true);
+    const tampered = [...ledger.events];
+    tampered[0] = { ...tampered[0]!, rationale: 'tampered' };
+    const v = validateLedgerEvents(tampered);
+    expect(v.stats.tamperedLedgerDetected).toBe(true);
+  });
+
+  test('O idempotency: duplicate decision event not appended twice', () => {
+    const fx = FIXTURES.find((f) => f.id === 'O')!;
+    const dir = tmpDir('teta-3j2e-o-');
+    initEmptyLedger(dir);
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'reject', rationale: 'idempotency rationale' });
+    const a = appendDecisionEvent(dir, draft);
+    const b = appendDecisionEvent(dir, draft);
+    expect(a.appended).toBe(true);
+    expect(b.appended).toBe(false);
+    expect(readLedger(dir).events.length).toBe(1);
+  });
+
+  test('P supersede keeps history', () => {
+    const fx = FIXTURES.find((f) => f.id === 'P')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve_merged_record' });
+    const dir = tmpDir('teta-3j2e-p-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    const [rec] = buildApprovedRecordsFromDecision(event, fx.reviewPack);
+    const supersedeDraft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'supersede',
+      rationale: 'supersede with new revision rationale',
+    });
+    const pack = {
+      ...fx.reviewPack,
+      allowedDecisionKinds: [...fx.reviewPack.allowedDecisionKinds, 'supersede'] as typeof fx.reviewPack.allowedDecisionKinds,
+    };
+    const { event: event2 } = appendDecisionEvent(dir, supersedeDraft);
+    const [neu] = buildApprovedRecordsFromDecision(event2, pack);
+    const { previous, next } = applySupersession(rec!, neu!, event2);
+    expect(previous.status).toBe('superseded');
+    expect(next.status).toBe('active');
+    expect(next.supersession.supersedesRevisionId).toBe(previous.approvedRecordRevisionId);
+  });
+
+  test('Q revoke marks record revoked without deleting history', () => {
+    const fx = FIXTURES.find((f) => f.id === 'Q')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve_merged_record' });
+    const dir = tmpDir('teta-3j2e-q-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    const [rec] = buildApprovedRecordsFromDecision(event, fx.reviewPack);
+    const revokeDraft = makeSyntheticDecision(fx.reviewPack, {
+      decisionKind: 'revoke',
+      rationale: 'revoke rationale text here',
+    });
+    const { event: revEvent } = appendDecisionEvent(dir, revokeDraft);
+    const revoked = applyRevocation(rec!, revEvent);
+    expect(revoked.status).toBe('revoked');
+    expect(revoked.decisionEventRefs).toContain(revEvent.decisionEventId);
+    expect(revoked.approvedRecordRevisionId).toBe(rec!.approvedRecordRevisionId);
+  });
+
+  test('R unsupported question cannot create approved record without evidence', () => {
+    const fx = FIXTURES.find((f) => f.id === 'R')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'close_gap_as_no_evidence' });
+    const dir = tmpDir('teta-3j2e-r-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    expect(buildApprovedRecordsFromDecision(event, fx.reviewPack)).toEqual([]);
+  });
+
+  test('S approve_supported_subset creates record for supported fragment', () => {
+    const fx = FIXTURES.find((f) => f.id === 'S')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve_supported_subset' });
+    const v = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      { pack: fx.reviewPack, confirmHumanDecision: true, reviewerId: draft.reviewer.reviewerId, reviewerRole: draft.reviewer.reviewerRole },
+    );
+    expect(v.ok).toBe(true);
+    const dir = tmpDir('teta-3j2e-s-');
+    initEmptyLedger(dir);
+    const { event } = appendDecisionEvent(dir, draft);
+    expect(buildApprovedRecordsFromDecision(event, fx.reviewPack).length).toBe(1);
+  });
+
+  test('T missing confirmation rejects event write', () => {
+    const fx = FIXTURES.find((f) => f.id === 'T')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve_merged_record' });
+    const bad = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: false, synthetic: false },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: false,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+      },
+    );
+    expect(bad.errors).toContain('missing_confirm_human_decision');
+  });
+});
+
+describe('Stage 3J.2E review priority and identity', () => {
+  test('conflict scores critical', () => {
+    const fx = FIXTURES.find((f) => f.id === 'L')!;
+    const source = fx.correlationManifest.reviewTasks[0] ?? {
+      reviewTaskId: 'x',
+      reviewKind: 'resolve_conflict',
+      candidateOccurrenceRefs: [],
+      proposedRecordRefs: [],
+      questionRefs: [],
+      reasonCodes: ['conflict'],
+      requiredHumanDecision: 'resolve',
+    };
+    const scored = scoreReviewPriority(source as never, fx.correlationManifest, {
+      policyVersion: 't',
+      priorityOrder: [],
+      priorityScores: {
+        unresolved_conflict: 1000,
+        golden_question_relevant: 800,
+        requires_review_before_merge: 600,
+        exact_or_semantic_merge_candidate: 400,
+        product_version_client_scope: 300,
+        currentness_verification: 200,
+        normal_review: 100,
+      },
+      priorityBands: { critical: 900, high: 500, normal: 200, low: 0 },
+    });
+    expect(scored.priority).toBe('critical');
+    expect(scored.reasons).toContain('unresolved_conflict');
+  });
+
+  test('sortReviewQueue is stable for equal priority', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    const q = buildReviewQueue(fx.correlationManifest);
+    const sorted = sortReviewQueue(q.tasks);
+    const again = sortReviewQueue(q.tasks);
+    expect(sorted.map((t) => t.reviewTaskId)).toEqual(again.map((t) => t.reviewTaskId));
+  });
+
+  test('staleGuardsEqual true for same guard', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    expect(staleGuardsEqual(fx.reviewPack.staleGuard, fx.reviewPack.staleGuard)).toBe(true);
+  });
+
+  test('buildStaleGuard changes when evidence changes', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    const task = fx.reviewTasks[0]!;
+    const g1 = buildStaleGuard({
+      proposedRecordRevisionIds: ['r1'],
+      evidenceRefs: ['e1'],
+      relationDecisionIds: ['d1'],
+      reviewTask: task,
+    });
+    const g2 = buildStaleGuard({
+      proposedRecordRevisionIds: ['r1'],
+      evidenceRefs: ['e2'],
+      relationDecisionIds: ['d1'],
+      reviewTask: task,
+    });
+    expect(g1.evidenceSetSha256).not.toBe(g2.evidenceSetSha256);
+  });
+
+  test('missing reviewer rejected', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'defer' });
+    const bad = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      { pack: fx.reviewPack, confirmHumanDecision: true, reviewerId: '', reviewerRole: 'knowledge_reviewer' },
+    );
+    expect(bad.errors).toContain('missing_reviewer_id');
+  });
+
+  test('missing rationale rejected', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'defer', rationale: 'short' });
+    const bad = validateDecisionDraft(
+      { ...draft, rationale: 'x', confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+      },
+    );
+    expect(bad.errors).toContain('missing_or_short_rationale');
+  });
+
+  test('decision outside allowed kinds rejected', () => {
+    const fx = FIXTURES.find((f) => f.id === 'R')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve' });
+    const bad = validateDecisionDraft(
+      { ...draft, confirmHumanDecision: true, synthetic: true },
+      {
+        pack: fx.reviewPack,
+        confirmHumanDecision: true,
+        reviewerId: draft.reviewer.reviewerId,
+        reviewerRole: draft.reviewer.reviewerRole,
+      },
+    );
+    expect(bad.errors).toContain('decision_outside_allowed_kinds');
+  });
+
+  test('materialized view rebuild matches', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    const dir = tmpDir('teta-3j2e-mat-');
+    initEmptyLedger(dir);
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'approve_merged_record' });
+    const { event } = appendDecisionEvent(dir, draft);
+    const packsById = { [fx.reviewPack.reviewPackId]: fx.reviewPack };
+    const v1 = materializeFromLedger({ events: [event], packsById });
+    const v2 = materializeFromLedger({ events: [event], packsById });
+    expect(v1.viewHashSha256).toBe(v2.viewHashSha256);
+    expect(v1.approvedRecords.length).toBe(1);
+  });
+
+  test('createDecisionEventId is deterministic', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'defer', rationale: 'deterministic rationale' });
+    expect(createDecisionEventId(draft)).toBe(createDecisionEventId(draft));
+  });
+
+  test('computeEventSha256 stable for same payload', () => {
+    const fx = FIXTURES.find((f) => f.id === 'A')!;
+    const draft = makeSyntheticDecision(fx.reviewPack, { decisionKind: 'defer', rationale: 'hash rationale text' });
+    const h1 = computeEventSha256({ ...draft, ledger: { previousEventSha256: null, sequenceNumber: 1, ledgerId: 'l' } });
+    const h2 = computeEventSha256({ ...draft, ledger: { previousEventSha256: null, sequenceNumber: 1, ledgerId: 'l' } });
+    expect(h1).toBe(h2);
+  });
+});
+
+describe('Stage 3J.2E approved question coverage', () => {
+  test('separates candidate and approved coverage', () => {
+    const fx = FIXTURES.find((f) => f.id === 'E')!;
+    const { coverage, stats } = evaluateApprovedQuestionCoverage({
+      correlationManifest: {
+        ...fx.correlationManifest,
+        questionCoverage: [
+          {
+            questionId: 'Q21',
+            question: 'ME?',
+            coverageStatus: 'supported',
+            matchedProposedRecordIds: [],
+            matchedCandidateOccurrenceIds: [],
+            variantRefs: [],
+            conflictRefs: [],
+            requiredKnowledgeKinds: [],
+            knowledgeKindsFound: [],
+            knowledgeKindsMissing: [],
+            productFamilyCoverage: [],
+            domainCoverage: [],
+            sourceArchetypeCoverage: [],
+            evidenceCount: 0,
+            independentSourceCount: 0,
+            supportingEvidenceRefs: [],
+            warnings: [],
+          },
+        ],
+      },
+      reviewPacks: [{ ...fx.reviewPack, pilotCaseId: 'RP01', questionRefs: ['Q21'] }],
+      approvedRecords: [],
+    });
+    expect(coverage[0]!.candidateCoverageStatus).toBe('supported');
+    expect(coverage[0]!.approvedCoverageStatus).toBe('pending_human_review');
+    expect(stats.questionsIncorrectlyMarkedApprovedWithoutRecord).toBe(0);
+  });
+
+  test('RP07 evidence gap maps to requires_more_evidence', () => {
+    const fx = FIXTURES.find((f) => f.id === 'R')!;
+    const { coverage } = evaluateApprovedQuestionCoverage({
+      correlationManifest: {
+        ...fx.correlationManifest,
+        questionCoverage: [
+          {
+            questionId: 'Q14',
+            question: 'KSeF?',
+            coverageStatus: 'unsupported',
+            matchedProposedRecordIds: [],
+            matchedCandidateOccurrenceIds: [],
+            variantRefs: [],
+            conflictRefs: [],
+            requiredKnowledgeKinds: [],
+            knowledgeKindsFound: [],
+            knowledgeKindsMissing: [],
+            productFamilyCoverage: [],
+            domainCoverage: [],
+            sourceArchetypeCoverage: [],
+            evidenceCount: 0,
+            independentSourceCount: 0,
+            supportingEvidenceRefs: [],
+            warnings: [],
+          },
+        ],
+      },
+      reviewPacks: [{ ...fx.reviewPack, pilotCaseId: 'RP07', questionRefs: ['Q14'], packKind: 'evidence_gap' }],
+      approvedRecords: [],
+    });
+    expect(coverage[0]!.approvedCoverageStatus).toBe('requires_more_evidence');
+  });
+});
+
+describe('Stage 3J.2E strict collector and stage boundaries', () => {
+  test('collectStrictErrors empty for clean stats', () => {
+    const stats: Record<string, number | boolean | string> = {
+      ...emptyStageBoundaryCounters(),
+      reviewTasksWithoutPriorityReason: 0,
+      duplicateReviewTaskIds: 0,
+      reviewTaskOrderDeterministic: true,
+      reviewPacksMissingStaleGuard: 0,
+      reviewPacksWithoutAllowedDecision: 0,
+      excerptsHashMismatch: 0,
+      excerptsGeneratedByModel: 0,
+      fullSourceTextsCopiedToReviewPacks: 0,
+      templatesIncorrectlyWrittenAsLedgerEvents: 0,
+      templatesWithPrefilledReviewer: 0,
+      templatesWithPrefilledDecision: 0,
+      realDecisionEventsApplied: 0,
+      realApprovedRecordsCreated: 0,
+      autoApprovalDecisions: 0,
+      staleReviewPacksApplied: 0,
+      ledgerHashChainValid: true,
+      ledgerSequenceValid: true,
+      duplicateDecisionEventIds: 0,
+      decisionEventPayloadHashMismatches: 0,
+      decisionEventsModified: 0,
+      decisionEventsDeleted: 0,
+      approvedRecordsWithoutEvidence: 0,
+      approvedRecordsWithMissingOccurrence: 0,
+      approvedRecordsWithMissingDecisionEvent: 0,
+      evidenceEntriesLostDuringApproval: 0,
+      occurrenceRefsLostDuringApproval: 0,
+      evidenceExcerptUsedAsOnlyEvidence: 0,
+      questionsIncorrectlyMarkedApprovedWithoutRecord: 0,
+      materializedViewRebuildMatches: true,
+      materializedViewContainsUnknownEvent: 0,
+      realPilotCasesMissing: 0,
+      rp01Created: 1,
+      rp02Created: 1,
+      rp03Created: 1,
+      rp04Created: 1,
+      rp05Created: 1,
+      rp06Created: 1,
+      rp07Created: 1,
+      tetaEduApprovedAsTetaHr: 0,
+      tetaMeApprovedAsStandaloneDomain: 0,
+      clientSpecificApprovedAsGlobal: 0,
+      historicalApprovedAsCurrent: 0,
+      versionSpecificApprovedAsUniversal: 0,
+      unknownApplicabilityApprovedWithoutExplicitScope: 0,
+      regulatoryClaimApprovedCurrentWithoutLegalReview: 0,
+      customerExampleApprovedAsGlobal: 0,
+      approvalsWithUnresolvedConflict: 0,
+      conflictsAutoResolvedByApprovalWorkflow: 0,
+      conflictingEvidenceDiscarded: 0,
+      reviewerIdsWrittenToRepoDocs: 0,
+      realReviewPacksWrittenToRepo: 0,
+      realEvidenceExcerptsWrittenToRepo: 0,
+      realDecisionEventsWrittenToRepo: 0,
+      realApprovedRecordsWrittenToRepo: 0,
+      absolutePathsWrittenToRepoDocs: 0,
+      customerNamesWrittenToRepoDocs: 0,
+    };
+    expect(collectStrictErrors(stats)).toEqual([]);
+  });
+
+  test('collectStrictErrors catches realDecisionEventsApplied', () => {
+    expect(
+      collectStrictErrors({
+        ...emptyStageBoundaryCounters(),
+        realDecisionEventsApplied: 1,
+        rp01Created: 1,
+        rp02Created: 1,
+        rp03Created: 1,
+        rp04Created: 1,
+        rp05Created: 1,
+        rp06Created: 1,
+        rp07Created: 1,
+        reviewTaskOrderDeterministic: true,
+        ledgerHashChainValid: true,
+        ledgerSequenceValid: true,
+        materializedViewRebuildMatches: true,
+      }),
+    ).toContain('realDecisionEventsApplied');
+  });
+
+  test('HR/Edu merge safeguard error collected', () => {
+    expect(
+      collectStrictErrors({
+        ...emptyStageBoundaryCounters(),
+        tetaEduApprovedAsTetaHr: 1,
+        rp01Created: 1,
+        rp02Created: 1,
+        rp03Created: 1,
+        rp04Created: 1,
+        rp05Created: 1,
+        rp06Created: 1,
+        rp07Created: 1,
+        reviewTaskOrderDeterministic: true,
+        ledgerHashChainValid: true,
+        ledgerSequenceValid: true,
+        materializedViewRebuildMatches: true,
+      }),
+    ).toContain('tetaEduApprovedAsTetaHr');
+  });
+});
+
+describe('Stage 3J.2E privacy and templates', () => {
+  test('templates never prefilled', () => {
+    for (const fx of FIXTURES) {
+      const t = createDecisionTemplate(fx.reviewPack);
+      expect(t.reviewerId).toBeNull();
+      expect(t.reviewerRole).toBeNull();
+      expect(t.decisionKind).toBeNull();
+      expect(t.isDecisionEvent).toBe(false);
+    }
+  });
+
+  test('synthetic excerpts are marked via sha and length bound', () => {
+    for (const fx of FIXTURES) {
+      for (const e of fx.reviewPack.evidence) {
+        if (e.excerpt) {
+          expect(e.excerpt.length).toBeLessThanOrEqual(800);
+          expect(e.excerptSha256).toBe(sha256(e.excerpt));
+        }
+      }
+    }
+  });
+});

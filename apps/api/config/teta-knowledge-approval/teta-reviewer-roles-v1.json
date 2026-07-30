@@ -1,0 +1,19 @@
+{
+  "policyVersion": "teta-reviewer-roles-v1",
+  "roles": [
+    "knowledge_reviewer",
+    "product_expert",
+    "technical_expert",
+    "legal_reviewer",
+    "vendor_admin"
+  ],
+  "roleCapabilities": {
+    "knowledge_reviewer": ["approve", "approve_with_scope", "approve_merged_record", "approve_as_variants", "approve_supported_subset", "reject", "defer", "request_more_evidence", "supersede", "revoke", "close_gap_as_no_evidence"],
+    "product_expert": ["approve_with_scope", "approve_as_variants", "approve_supported_subset", "reject", "defer", "request_more_evidence"],
+    "technical_expert": ["approve_merged_record", "approve_supported_subset", "reject", "defer", "request_more_evidence"],
+    "legal_reviewer": ["approve_with_scope", "reject", "defer", "request_more_evidence", "close_gap_as_no_evidence"],
+    "vendor_admin": ["approve", "approve_with_scope", "approve_merged_record", "approve_as_variants", "approve_supported_subset", "reject", "defer", "request_more_evidence", "supersede", "revoke", "close_gap_as_no_evidence"]
+  },
+  "regulatoryCurrentnessRequiresLegalReviewer": true,
+  "forbidGitConfigIdentity": true
+}

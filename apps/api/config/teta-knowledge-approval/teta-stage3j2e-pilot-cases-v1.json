@@ -1,0 +1,79 @@
+{
+  "policyVersion": "teta-stage3j2e-pilot-cases-v1",
+  "cases": [
+    {
+      "pilotCaseId": "RP01",
+      "title": "Q21 Teta ME registry surface",
+      "packKind": "scope_review",
+      "selection": {
+        "questionId": "Q21",
+        "reasonCode": "registry_surface_anchor",
+        "preferRegistryAnchor": true
+      },
+      "allowedDecisionKinds": ["approve_with_scope", "reject", "defer"]
+    },
+    {
+      "pilotCaseId": "RP02",
+      "title": "Q07 Teta Edu partial employment process",
+      "packKind": "record_approval",
+      "selection": {
+        "questionId": "Q07",
+        "productFamilyHint": "teta_edu",
+        "preferPartialSupport": true
+      },
+      "allowedDecisionKinds": ["approve_supported_subset", "request_more_evidence", "defer", "reject"]
+    },
+    {
+      "pilotCaseId": "RP03",
+      "title": "Q08 HR vs Edu employment variants",
+      "packKind": "variant_review",
+      "selection": {
+        "questionId": "Q08",
+        "requireMultipleProductFamilies": true
+      },
+      "allowedDecisionKinds": ["approve_as_variants", "request_more_evidence", "defer", "reject"]
+    },
+    {
+      "pilotCaseId": "RP04",
+      "title": "Exact duplicate merge-supported cluster",
+      "packKind": "merge_review",
+      "selection": {
+        "mergeStatus": "exact_collapsed",
+        "minOccurrences": 2,
+        "requireExactDuplicateRelation": true
+      },
+      "allowedDecisionKinds": ["approve_merged_record", "reject", "defer"]
+    },
+    {
+      "pilotCaseId": "RP05",
+      "title": "Semantic duplicate merge-supported cluster",
+      "packKind": "merge_review",
+      "selection": {
+        "mergeStatus": "semantically_grouped",
+        "minOccurrences": 2,
+        "requireSemanticDuplicateRelation": true
+      },
+      "allowedDecisionKinds": ["approve_merged_record", "reject", "defer", "request_more_evidence"]
+    },
+    {
+      "pilotCaseId": "RP06",
+      "title": "Requires review before merge group",
+      "packKind": "variant_review",
+      "selection": {
+        "mergeStatus": "requires_review_before_merge",
+        "minOccurrences": 2
+      },
+      "allowedDecisionKinds": ["approve_as_variants", "approve_supported_subset", "request_more_evidence", "defer", "reject"]
+    },
+    {
+      "pilotCaseId": "RP07",
+      "title": "Q14 KSeF evidence gap",
+      "packKind": "evidence_gap",
+      "selection": {
+        "questionId": "Q14",
+        "reasonCode": "no_matching_evidence"
+      },
+      "allowedDecisionKinds": ["request_more_evidence", "defer", "close_gap_as_no_evidence"]
+    }
+  ]
+}
