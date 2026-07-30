@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2C `ee8a108` zakończony; Stage 3J.2D funkcjonalnie zakończony `demonstrated_with_review` / `ready_with_review`, oczekuje na feature commit; 3J.2E/3K nierozpoczęte)
+> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2C `ee8a108` zakończony; Stage 3J.2D zakończony `demonstrated_with_review` / `ready_with_review` w commicie `d77f213`; Stage 3J.2E ready_with_review, nierozpoczęty; 3K nierozpoczęty)
 
 ---
 
@@ -181,7 +181,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2B — Canonical Source Extraction & Portable Offline Asset Store:** zakończony (`367f00e`)
 - [x] **Stage 3J.2C — Canonical Topic Segmentation & Candidate Knowledge Extraction:** zakończony (`ee8a108`, ready_with_review)
 - [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** funkcjonalnie zakończony lokalnie (`demonstrated_with_review`, `ready_with_review`), oczekuje na commit
-- [ ] **Stage 3J.2E:** nierozpoczęty
+- [ ] **Stage 3J.2E:** ready_with_review, nierozpoczęty
 - [ ] **Stage 3K:** nierozpoczęty
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
@@ -191,7 +191,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2A:** zakończony — Knowledge Source Registry & Bulk Inventory (`7465934`; docs status `859bbf6`)
 - **Stage 3J.2B:** zakończony — commit `367f00e`
 - **Stage 3J.2C:** zakończony — commit `ee8a108`, ready_with_review
-- **Stage 3J.2D:** funkcjonalnie zakończony lokalnie (`demonstrated_with_review`, `ready_with_review`), commit hash: _do uzupełnienia po feature commicie_
+- **Stage 3J.2D:** zakończony (`demonstrated_with_review`, `ready_with_review`), feature commit: `d77f2132a567f243692f27ddc2d039f988e2e4ca`
 - **Stage 3J.2E / Stage 3K:** nierozpoczęte
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
