@@ -674,7 +674,7 @@ describe('Stage 3J.2E approved question coverage', () => {
       approvedRecords: [],
     });
     expect(coverage[0]!.candidateCoverageStatus).toBe('supported');
-    expect(coverage[0]!.approvedCoverageStatus).toBe('pending_human_review');
+    expect(coverage[0]!.approvedCoverageStatus).toBe('requires_more_evidence');
     expect(stats.questionsIncorrectlyMarkedApprovedWithoutRecord).toBe(0);
   });
 

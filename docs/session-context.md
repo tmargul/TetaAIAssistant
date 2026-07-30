@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2D zakończony `1e57e2d` / tests 812/812; Stage 3J.2E Review/Approval + **human decisionability patch** — lokalnie, niezacommitowany, `ready_for_human_pilot_decision`, tests 923/923, real packs=7, templates=7, decisions=0, approved=0; Stage 3K not_ready)
+> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2E feature `5db7a9a` + human pilot: decisions=7, approved=1 registry-only, Q21 approved_supported; status `human_pilot_completed_with_limited_approval`; Stage 3K not_ready — insufficient_content_based_approved_knowledge)
 
 ---
 
@@ -192,7 +192,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2B:** zakończony — commit `367f00e`
 - **Stage 3J.2C:** zakończony — commit `ee8a108`, ready_with_review
 - **Stage 3J.2D:** zakończony (`demonstrated_with_review`), feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests **812/812**, `HEAD=origin/main`
-- **Stage 3J.2E:** lokalnie, niezacommitowany, `ready_for_human_pilot_decision` + human decisionability patch; tests **923/923**; real packs=7, templates=7, decisions=0, approved=0; registry evidence on RP01; RP02 narrowed; RP03 single-product → requires_more_evidence
+- **Stage 3J.2E:** feature `5db7a9a`; human pilot completed with limited approval — decisions=7 (approve=1, request_more_evidence=5, defer=1); approved registry records=1; approved content=0; Q21=`approved_supported`; Stage 3K not_ready (`insufficient_content_based_approved_knowledge`)
 - **Stage 3K:** nierozpoczęty (`not_ready` — `no_real_approved_records_yet`)
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie

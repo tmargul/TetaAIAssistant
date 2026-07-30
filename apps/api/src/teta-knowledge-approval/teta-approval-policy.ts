@@ -16,10 +16,24 @@ export type ApprovalPolicyV1 = {
   allowRagChunkGeneration: boolean;
   allowQdrantCalls: boolean;
   allowStage3kStart: boolean;
+  humanPilotEnabled?: boolean;
   maxExcerptChars: number;
   requireRationaleMinLength: number;
   realPilotDecisionEventsAllowedThisIteration: number;
   realApprovedRecordsAllowedThisIteration: number;
+  expectedHumanPilot?: {
+    realDecisionEventsApplied: number;
+    realApprovedRecordsCreated: number;
+    approveEvents: number;
+    requestMoreEvidenceEvents: number;
+    deferEvents: number;
+    rejectEvents: number;
+    realApprovedRegistryRecords: number;
+    realApprovedContentRecords: number;
+    stage3j2eStatus: string;
+    stage3kReadiness: string;
+    stage3kReadinessReason: string;
+  };
   strict: Record<string, number>;
 };
 
@@ -133,11 +147,20 @@ export function validateApprovalConfigs(repoRoot?: string): { ok: boolean; error
     if (policy.allowEmbeddings) errors.push('policy_allows_embeddings');
     if (policy.allowConflictAutoResolve) errors.push('policy_allows_conflict_auto_resolve');
     if (policy.allowStage3kStart) errors.push('policy_allows_stage3k');
-    if (policy.realPilotDecisionEventsAllowedThisIteration !== 0) {
-      errors.push('policy_allows_real_decisions_this_iteration');
-    }
-    if (policy.realApprovedRecordsAllowedThisIteration !== 0) {
-      errors.push('policy_allows_real_approved_records_this_iteration');
+    if (policy.humanPilotEnabled) {
+      if (policy.realPilotDecisionEventsAllowedThisIteration < 0) {
+        errors.push('policy_invalid_real_pilot_decision_allowance');
+      }
+      if (policy.realApprovedRecordsAllowedThisIteration < 0) {
+        errors.push('policy_invalid_real_approved_record_allowance');
+      }
+    } else {
+      if (policy.realPilotDecisionEventsAllowedThisIteration !== 0) {
+        errors.push('policy_allows_real_decisions_this_iteration');
+      }
+      if (policy.realApprovedRecordsAllowedThisIteration !== 0) {
+        errors.push('policy_allows_real_approved_records_this_iteration');
+      }
     }
     const pilots = loadPilotCasesPolicy(repoRoot);
     if (pilots.cases.length !== 7) errors.push(`pilot_cases_count:${pilots.cases.length}`);

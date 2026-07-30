@@ -3,11 +3,11 @@
   "separateCandidateAndApprovedCoverage": true,
   "forbidApprovedSupportedWithoutApprovedRecord": true,
   "pilotCaseApprovedCoverageDefaults": {
-    "RP01": "pending_human_review",
-    "RP02": "pending_human_review",
+    "RP01": "approved_supported",
+    "RP02": "requires_more_evidence",
     "RP03": "requires_more_evidence",
     "RP04": "pending_human_review",
-    "RP05": "pending_human_review",
+    "RP05": "requires_more_evidence",
     "RP06": "requires_more_evidence",
     "RP07": "requires_more_evidence"
   },

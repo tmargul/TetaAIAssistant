@@ -152,14 +152,27 @@ export function buildApprovedRecordsFromDecision(
   }
 
   const applicability = defaultScope(pack, event.scopeDecision);
-  const label = opts?.label ?? String((pack.recordSummary as { subjects?: string[] }).subjects?.[0] ?? pack.reviewPackId);
+  const registryEvidence = pack.evidence.filter((e) => e.evidenceKind === 'authoritative_registry_anchor');
+  const label =
+    opts?.label ??
+    (pack.pilotCaseId === 'RP01'
+      ? 'Teta ME product surface registry fact'
+      : String((pack.recordSummary as { subjects?: string[] }).subjects?.[0] ?? pack.reviewPackId));
   const canonicalKey = sha256(label).slice(0, 24);
   const logicalId = buildApprovedRecordLogicalId({
-    recordKind: opts?.recordKind ?? 'concept',
+    recordKind: opts?.recordKind ?? (pack.pilotCaseId === 'RP01' ? 'registry_product_surface_fact' : 'concept'),
     canonicalKey,
     applicability,
   });
-  const payload = opts?.payload ?? { subject: label };
+  const payload =
+    opts?.payload ??
+    (pack.pilotCaseId === 'RP01'
+      ? {
+          subject: label,
+          supportedClaims: registryEvidence.flatMap((e) => e.supportedClaims ?? []),
+          registryEvidenceIds: registryEvidence.map((e) => e.evidenceEntryId),
+        }
+      : { subject: label });
   const evidence = evidenceRefs.length ? evidenceRefs : [`registry-anchor:${pack.reviewPackId}`];
   const revisionId = buildApprovedRecordRevisionId({
     logicalId,
@@ -174,7 +187,7 @@ export function buildApprovedRecordsFromDecision(
       contractVersion: TETA_APPROVED_KNOWLEDGE_RECORD_CONTRACT_VERSION,
       approvedRecordLogicalId: logicalId,
       approvedRecordRevisionId: revisionId,
-      recordKind: opts?.recordKind ?? 'concept',
+      recordKind: opts?.recordKind ?? (pack.pilotCaseId === 'RP01' ? 'registry_product_surface_fact' : 'concept'),
       status: 'active',
       canonicalSubject: { label, canonicalKey },
       approvedPayload: payload,
@@ -192,7 +205,7 @@ export function buildApprovedRecordsFromDecision(
         reasonCodes: event.reasonCodes,
       },
       supersession: { supersedesRevisionId: null, supersededByRevisionId: null },
-      warnings: [],
+      warnings: pack.pilotCaseId === 'RP01' ? ['registry_scoped_approval_only'] : [],
       synthetic: event.synthetic,
     },
   ];

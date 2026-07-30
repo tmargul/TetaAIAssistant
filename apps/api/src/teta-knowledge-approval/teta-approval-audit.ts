@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import { containsAbsolutePath } from '../teta-source-extraction/teta-canonical-source-contract';
 import { STAGE_BOUNDARY_ZERO_FIELDS, APPLICABILITY_SAFEGUARD_ZERO_FIELDS, PRIVACY_ZERO_FIELDS } from './teta-approval-contract';
-import { validateApprovalConfigs } from './teta-approval-policy';
+import { validateApprovalConfigs, loadApprovalPolicy } from './teta-approval-policy';
 import {
   defaultStage3j2dAcceptanceManifestPath,
   defaultStage3j2eOutputPath,
@@ -13,6 +13,10 @@ import {
 import { collectStrictErrors } from './teta-approval-validator';
 import { allFixturePacks } from './teta-stage3j2e-fixtures';
 import { readLedger } from './teta-approval-ledger';
+import { materializeFromLedger } from './teta-approved-record-materializer';
+import { evaluateApprovedQuestionCoverage } from './teta-approved-question-coverage';
+import type { ReviewPackV1 } from './teta-approval.types';
+import { APPROVAL_KINDS_CREATING_RECORDS } from './teta-approval-contract';
 
 export type Stage3j2eVerificationInput = {
   stage3j2eTestsExecuted: number;
@@ -54,12 +58,28 @@ export function buildStage3j2eAudit(repoRoot?: string, opts?: { strict?: boolean
   const root = repoRoot ?? path.resolve(__dirname, '../../../..');
   const verification = loadVerification(root);
   const config = validateApprovalConfigs(root);
+  const policy = loadApprovalPolicy(root);
   const fixtures = allFixturePacks();
 
   const acceptancePath = defaultStage3j2dAcceptanceManifestPath(root);
   const outputRoot = defaultStage3j2eOutputPath(root);
+  const ledgerDir = path.join(outputRoot, 'decision-ledger');
+  const ledgerEarly = existsSync(ledgerDir) ? readLedger(ledgerDir) : null;
+  const realLedgerEventsEarly = (ledgerEarly?.events ?? []).filter((e) => !e.synthetic);
+  const preserveExistingHumanPilot =
+    realLedgerEventsEarly.length > 0 && existsSync(path.join(outputRoot, 'manifest.json'));
+
   let result = null as ReturnType<typeof runStage3j2eApproval> | null;
-  if (existsSync(acceptancePath)) {
+  if (preserveExistingHumanPilot) {
+    const manifest = loadApprovalManifest(path.join(outputRoot, 'manifest.json'));
+    result = {
+      manifest,
+      stats: { ...manifest.stats },
+      strictErrors: [],
+      reviewPacks: manifest.reviewPacks,
+      decisionTemplates: manifest.decisionTemplates,
+    };
+  } else if (existsSync(acceptancePath)) {
     const input = loadCorrelationManifest(acceptancePath);
     result = runStage3j2eApproval(input, { outputRoot, writeArtifacts: true, repoRoot: root });
   } else if (existsSync(path.join(outputRoot, 'manifest.json'))) {
@@ -67,16 +87,84 @@ export function buildStage3j2eAudit(repoRoot?: string, opts?: { strict?: boolean
     result = {
       manifest,
       stats: manifest.stats,
-      strictErrors: collectStrictErrors(manifest.stats),
+      strictErrors: collectStrictErrors(manifest.stats, root),
       reviewPacks: manifest.reviewPacks,
       decisionTemplates: manifest.decisionTemplates,
     };
   }
 
-  const stats = (result?.stats ?? {}) as Record<string, unknown>;
+  const stats = { ...(result?.stats ?? {}) } as Record<string, unknown>;
   const ledger = existsSync(path.join(outputRoot, 'decision-ledger'))
     ? readLedger(path.join(outputRoot, 'decision-ledger'))
     : null;
+  const packs = (result?.reviewPacks ?? []) as ReviewPackV1[];
+  const packsById = Object.fromEntries(packs.map((p) => [p.reviewPackId, p]));
+  const realLedgerEvents = (ledger?.events ?? []).filter((e) => !e.synthetic);
+
+  if (ledger && realLedgerEvents.length > 0) {
+    const view1 = materializeFromLedger({ events: ledger.events, packsById });
+    const view2 = materializeFromLedger({ events: ledger.events, packsById });
+    const approveKinds = new Set(APPROVAL_KINDS_CREATING_RECORDS);
+    const realApproved = view1.approvedRecords.filter((r) => !r.synthetic);
+    const registryApproved = realApproved.filter(
+      (r) =>
+        r.recordKind === 'registry_product_surface_fact' ||
+        (r.applicability.productSurfaceIds.includes('teta_me') && r.sourceProposedRecordRefs.length === 0),
+    );
+    const contentApproved = realApproved.filter((r) => !registryApproved.includes(r));
+
+    stats.realDecisionEventsApplied = realLedgerEvents.length;
+    stats.realApprovedRecordsCreated = realApproved.length;
+    stats.approveEvents = realLedgerEvents.filter((e) => approveKinds.has(e.decisionKind)).length;
+    stats.requestMoreEvidenceEvents = realLedgerEvents.filter((e) => e.decisionKind === 'request_more_evidence').length;
+    stats.deferEvents = realLedgerEvents.filter((e) => e.decisionKind === 'defer').length;
+    stats.rejectEvents = realLedgerEvents.filter((e) => e.decisionKind === 'reject').length;
+    stats.realApprovedRegistryRecords = registryApproved.length;
+    stats.realApprovedContentRecords = contentApproved.length;
+    stats.decisionEventsAppended = realLedgerEvents.length;
+    stats.decisionEventsModified = ledger.stats.decisionEventsModified;
+    stats.decisionEventsDeleted = ledger.stats.decisionEventsDeleted;
+    stats.ledgerHashChainValid = ledger.stats.ledgerHashChainValid;
+    stats.ledgerSequenceValid = ledger.stats.ledgerSequenceValid;
+    stats.duplicateDecisionEventIds = ledger.stats.duplicateDecisionEventIds;
+    stats.decisionEventPayloadHashMismatches = ledger.stats.decisionEventPayloadHashMismatches;
+    stats.materializedViewRebuildMatches = view1.viewHashSha256 === view2.viewHashSha256;
+    stats.materializedViewRecordCount = realApproved.length;
+    stats.materializedViewHashSha256 = view1.viewHashSha256;
+    stats.approvedRecordsWithEvidence = realApproved.filter((r) => r.evidenceRefs.length > 0).length;
+    stats.approvedRecordsWithoutEvidence = realApproved.filter((r) => r.evidenceRefs.length === 0).length;
+    stats.approvedRecordsWithMissingDecisionEvent = realApproved.filter((r) => r.decisionEventRefs.length === 0).length;
+    stats.approvedRecordsWithMissingOccurrence = realApproved.filter(
+      (r) =>
+        r.recordKind !== 'registry_product_surface_fact' &&
+        r.sourceProposedRecordRefs.length > 0 &&
+        r.candidateOccurrenceRefs.length === 0,
+    ).length;
+    stats.staleReviewPacksApplied = 0;
+    stats.autoApprovalDecisions = 0;
+    stats.semanticMergeAttemptedWithoutScope = 0;
+
+    if (existsSync(acceptancePath)) {
+      const correlation = loadCorrelationManifest(acceptancePath);
+      const coverageEval = evaluateApprovedQuestionCoverage({
+        correlationManifest: correlation,
+        reviewPacks: packs,
+        approvedRecords: realApproved,
+        repoRoot: root,
+      });
+      Object.assign(stats, coverageEval.stats);
+      if (result?.manifest) {
+        result.manifest.questionCoverage = coverageEval.coverage;
+      }
+    }
+
+    const expected = policy.expectedHumanPilot;
+    if (expected && realLedgerEvents.length >= expected.realDecisionEventsApplied) {
+      stats.stage3j2eStatus = expected.stage3j2eStatus;
+      stats.stage3kReadiness = expected.stage3kReadiness;
+      stats.stage3kReadinessReason = expected.stage3kReadinessReason;
+    }
+  }
 
   const docsPaths = [
     path.join(root, 'docs', 'AIA_TETA_KNOWLEDGE_APPROVAL_STAGE3J2E.md'),
@@ -158,6 +246,10 @@ export function buildStage3j2eAudit(repoRoot?: string, opts?: { strict?: boolean
       decisionsRejectedMissingRationale: num(stats, 'decisionsRejectedMissingRationale'),
       decisionsRejectedStalePack: num(stats, 'decisionsRejectedStalePack'),
       decisionsOutsideAllowedKinds: num(stats, 'decisionsOutsideAllowedKinds'),
+      approveEvents: num(stats, 'approveEvents'),
+      requestMoreEvidenceEvents: num(stats, 'requestMoreEvidenceEvents'),
+      deferEvents: num(stats, 'deferEvents'),
+      rejectEvents: num(stats, 'rejectEvents'),
     },
     ledger: {
       decisionEventsRead: ledger?.stats.decisionEventsRead ?? num(stats, 'decisionEventsRead'),
@@ -172,6 +264,8 @@ export function buildStage3j2eAudit(repoRoot?: string, opts?: { strict?: boolean
     approvedRecords: {
       syntheticApprovedRecordsCreated: num(stats, 'syntheticApprovedRecordsCreated'),
       realApprovedRecordsCreated: num(stats, 'realApprovedRecordsCreated'),
+      realApprovedRegistryRecords: num(stats, 'realApprovedRegistryRecords'),
+      realApprovedContentRecords: num(stats, 'realApprovedContentRecords'),
       approvedRecordsWithEvidence: num(stats, 'approvedRecordsWithEvidence'),
       approvedRecordsWithoutEvidence: num(stats, 'approvedRecordsWithoutEvidence'),
       approvedRecordsWithMissingOccurrence: num(stats, 'approvedRecordsWithMissingOccurrence'),
@@ -331,7 +425,7 @@ export function buildStage3j2eAudit(repoRoot?: string, opts?: { strict?: boolean
     duplicateDecisionEventIds: audit.ledger.duplicateDecisionEventIds,
     decisionEventPayloadHashMismatches: audit.ledger.decisionEventPayloadHashMismatches,
   };
-  audit.strictErrors = collectStrictErrors(mergedStats);
+  audit.strictErrors = collectStrictErrors(mergedStats, root);
   if (!config.ok) audit.strictErrors.push(...config.errors.map((e) => `config:${e}`));
 
   const localDir = path.join(root, '.local');

@@ -55,8 +55,6 @@ export const STAGE_BOUNDARY_ZERO_FIELDS = [
   'stage3j2dRunsModified',
   'candidateOccurrencesDeleted',
   'evidenceEntriesDeleted',
-  'realDecisionEventsApplied',
-  'realApprovedRecordsCreated',
 ] as const;
 
 export const APPLICABILITY_SAFEGUARD_ZERO_FIELDS = [

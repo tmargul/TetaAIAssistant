@@ -235,7 +235,11 @@ export function runStage3j2eApproval(
   const pilotPacks = buildPilotReviewPacks(correlationManifest, queue.tasks, root);
   const templates = pilotPacks.map(createDecisionTemplate);
 
-  initEmptyLedger(path.join(outputRoot, 'decision-ledger'));
+  const ledgerDir = path.join(outputRoot, 'decision-ledger');
+  const ledgerJsonl = path.join(ledgerDir, 'approval-decisions.jsonl');
+  if (!existsSync(ledgerJsonl) || !readFileSync(ledgerJsonl, 'utf8').trim()) {
+    initEmptyLedger(ledgerDir);
+  }
 
   const fixtureLedgerDir = path.join(outputRoot, 'audits', 'synthetic-ledger');
   const synthetic = runSyntheticFixtureWorkflow(fixtureLedgerDir);

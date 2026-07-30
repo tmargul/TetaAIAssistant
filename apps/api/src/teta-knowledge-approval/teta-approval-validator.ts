@@ -3,6 +3,7 @@ import {
   PRIVACY_ZERO_FIELDS,
   STAGE_BOUNDARY_ZERO_FIELDS,
 } from './teta-approval-contract';
+import { loadApprovalPolicy } from './teta-approval-policy';
 
 function num(stats: Record<string, unknown>, key: string, fallback = 0): number {
   const v = stats[key];
@@ -11,8 +12,13 @@ function num(stats: Record<string, unknown>, key: string, fallback = 0): number 
   return fallback;
 }
 
-export function collectStrictErrors(stats: Record<string, unknown>): string[] {
+export function collectStrictErrors(stats: Record<string, unknown>, repoRoot?: string): string[] {
   const errors: string[] = [];
+  const policy = loadApprovalPolicy(repoRoot);
+  const expected = policy.expectedHumanPilot;
+  const humanPilotCompleted =
+    String(stats.stage3j2eStatus ?? '') === 'human_pilot_completed_with_limited_approval' ||
+    (policy.humanPilotEnabled === true && num(stats, 'realDecisionEventsApplied') > 0);
 
   for (const key of STAGE_BOUNDARY_ZERO_FIELDS) {
     if (num(stats, key) !== 0) errors.push(key);
@@ -40,8 +46,30 @@ export function collectStrictErrors(stats: Record<string, unknown>): string[] {
   if (num(stats, 'templatesWithPrefilledReviewer') !== 0) errors.push('templatesWithPrefilledReviewer');
   if (num(stats, 'templatesWithPrefilledDecision') !== 0) errors.push('templatesWithPrefilledDecision');
 
-  if (num(stats, 'realDecisionEventsApplied') !== 0) errors.push('realDecisionEventsApplied');
-  if (num(stats, 'realApprovedRecordsCreated') !== 0) errors.push('realApprovedRecordsCreated');
+  if (humanPilotCompleted && expected) {
+    if (num(stats, 'realDecisionEventsApplied') !== expected.realDecisionEventsApplied) {
+      errors.push('realDecisionEventsApplied');
+    }
+    if (num(stats, 'realApprovedRecordsCreated') !== expected.realApprovedRecordsCreated) {
+      errors.push('realApprovedRecordsCreated');
+    }
+    if (num(stats, 'approveEvents') !== expected.approveEvents) errors.push('approveEvents');
+    if (num(stats, 'requestMoreEvidenceEvents') !== expected.requestMoreEvidenceEvents) {
+      errors.push('requestMoreEvidenceEvents');
+    }
+    if (num(stats, 'deferEvents') !== expected.deferEvents) errors.push('deferEvents');
+    if (num(stats, 'rejectEvents') !== expected.rejectEvents) errors.push('rejectEvents');
+    if (num(stats, 'realApprovedRegistryRecords') !== expected.realApprovedRegistryRecords) {
+      errors.push('realApprovedRegistryRecords');
+    }
+    if (num(stats, 'realApprovedContentRecords') !== expected.realApprovedContentRecords) {
+      errors.push('realApprovedContentRecords');
+    }
+  } else {
+    if (num(stats, 'realDecisionEventsApplied') !== 0) errors.push('realDecisionEventsApplied');
+    if (num(stats, 'realApprovedRecordsCreated') !== 0) errors.push('realApprovedRecordsCreated');
+  }
+
   if (num(stats, 'autoApprovalDecisions') !== 0) errors.push('autoApprovalDecisions');
   if (num(stats, 'staleReviewPacksApplied') !== 0) errors.push('staleReviewPacksApplied');
 

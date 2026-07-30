@@ -1,108 +1,53 @@
 {
   "stage": "3J.2E",
   "title": "Review, Approval & Evidence Governance",
-  "status": "ready_for_human_pilot_decision",
+  "status": "human_pilot_completed_with_limited_approval",
   "patch": "human_decisionability",
-  "committed": false,
-  "pushedToOriginMain": false,
+  "featureCommit": "5db7a9a69ef0b62d4f91a84be95a190b197657f2",
+  "committed": true,
+  "pushedToOriginMain": true,
   "stage3kStarted": false,
   "stage3kReadiness": "not_ready",
-  "stage3kReadinessReason": "no_real_approved_records_yet",
+  "stage3kReadinessReason": "insufficient_content_based_approved_knowledge",
   "input": "stage3j2d_acceptance_overlap_manifest_aggregates",
   "module": "apps/api/src/teta-knowledge-approval",
   "cli": "knowledge-approval:stage3j2e",
-  "contracts": [
-    "teta-review-task-v1",
-    "teta-review-pack-v1",
-    "teta-approval-decision-event-v1",
-    "teta-approval-decision-template-v1",
-    "teta-approved-knowledge-record-v1",
-    "teta-approved-question-coverage-v1",
-    "teta-decision-ledger-manifest-v1",
-    "teta-approval-stage-manifest-v1"
-  ],
+  "humanPilot": {
+    "realDecisionEventsApplied": 7,
+    "realApprovedRecordsCreated": 1,
+    "approveEvents": 1,
+    "requestMoreEvidenceEvents": 5,
+    "deferEvents": 1,
+    "rejectEvents": 0,
+    "realApprovedRegistryRecords": 1,
+    "realApprovedContentRecords": 0,
+    "decisionsByCase": {
+      "RP01": "approve_with_scope",
+      "RP02": "request_more_evidence",
+      "RP03": "request_more_evidence",
+      "RP04": "defer",
+      "RP05": "request_more_evidence",
+      "RP06": "request_more_evidence",
+      "RP07": "request_more_evidence"
+    }
+  },
   "aggregates": {
     "reviewTasksRead": 100,
     "reviewTasksQueued": 100,
     "priority": { "critical": 5, "high": 83, "normal": 12, "low": 0 },
     "realReviewPacksCreated": 7,
     "realDecisionTemplatesCreated": 7,
-    "realDecisionEventsApplied": 0,
-    "realApprovedRecordsCreated": 0,
-    "syntheticDecisionEventsApplied": 2,
-    "syntheticApprovedRecordsCreated": 2,
     "syntheticFixturePacks": 20,
     "pilotCases": ["RP01", "RP02", "RP03", "RP04", "RP05", "RP06", "RP07"]
   },
-  "decisionability": {
-    "realPacksEvaluatedForDecisionability": 7,
-    "realPacksReadyForDecision": 1,
-    "realPacksReadyForScopedDecision": 3,
-    "realPacksRequiringNarrowing": 0,
-    "realPacksRequiringMoreEvidence": 3,
-    "realPacksInvalidForDecision": 0,
-    "packsWithExcessiveComplexity": 1,
-    "packsWithoutSingleHumanDecision": 0,
-    "packsWithMultipleUnrelatedSubjects": 0
-  },
-  "registryEvidence": {
-    "registryEvidenceEntries": 1,
-    "registryApprovalsWithoutRegistryEvidence": 0,
-    "registryClaimsBeyondEvidenceScope": 0,
-    "reviewPacksWithOnlyRegistryEvidence": 1
-  },
-  "productComparison": {
-    "productComparisonPacks": 1,
-    "productComparisonSidesPresent": 0,
-    "comparisonBasedOnSingleProductOnly": 1
-  },
-  "sourceIndependence": {
-    "sameSourceDuplicatePacks": 1,
-    "independentSourceDuplicatePacks": 0,
-    "duplicateClaimsIncorrectlyReportedAsIndependentlyCorroborated": 0
-  },
-  "decisionSafety": {
-    "mergeAllowedWithUnresolvedScope": 0,
-    "semanticMergeAttemptedWithoutScope": 0,
-    "approveAsVariantsAllowedWithoutBothProductSides": 0,
-    "approvalAllowedForEvidenceGap": 0
-  },
-  "safeguards": {
-    "tetaEduApprovedAsTetaHr": 0,
-    "tetaMeApprovedAsStandaloneDomain": 0,
-    "clientSpecificApprovedAsGlobal": 0,
-    "historicalApprovedAsCurrent": 0,
-    "versionSpecificApprovedAsUniversal": 0,
-    "unknownApplicabilityApprovedWithoutExplicitScope": 0,
-    "regulatoryClaimApprovedCurrentWithoutLegalReview": 0,
-    "customerExampleApprovedAsGlobal": 0,
-    "approvalsWithUnresolvedConflict": 0,
-    "conflictsAutoResolvedByApprovalWorkflow": 0,
-    "realAutoApprovals": 0
-  },
-  "stageBoundaries": {
-    "ragChunksGenerated": 0,
-    "qdrantCalls": 0,
-    "embeddingCalls": 0,
-    "localModelCalls": 0,
-    "remoteModelCalls": 0,
-    "ocrCalls": 0,
-    "oracleConnectionsOpened": 0,
-    "sqlExecuted": 0,
-    "clientKnowledgePacksBuilt": 0,
-    "finalChatAnswersGenerated": 0,
-    "stage3kStarted": 0
-  },
-  "privacy": {
-    "realExcerptsInRepoDocs": false,
-    "realReviewPacksInRepo": false,
-    "realDecisionEventsInRepo": false,
-    "reviewerIdsInRepoDocs": false,
-    "absolutePathsInRepoDocs": false
+  "approvedQuestionCoverage": {
+    "Q21": "approved_supported",
+    "Q07": "requires_more_evidence",
+    "Q08": "requires_more_evidence",
+    "Q14": "requires_more_evidence"
   },
   "verification": {
     "tests": "923/923",
-    "testsMinimum": 921,
     "fixturePacks": "20/20",
     "strictErrors": []
   },
