@@ -1,0 +1,44 @@
+{
+  "policyVersion": "teta-existing-knowledge-anchors-v1",
+  "lexicon": {
+    "enabled": true,
+    "autoApproveOnMatch": false,
+    "allowExactConceptMatch": true,
+    "allowAliasMatch": true
+  },
+  "payroll": {
+    "enabled": true,
+    "preserveLeadingZeros": true,
+    "customerExamplePromotionToGlobal": false,
+    "allowedIdentifierKinds": ["component_code", "function_name", "formula_fragment", "semantic_catalog_key"]
+  },
+  "helpGraph": {
+    "enabled": true,
+    "requireNodeAndPathForExact": true,
+    "autoResolveAmbiguous": false,
+    "oracleLiveConnectionAllowed": false,
+    "folderHintIsGraphEvidence": false
+  },
+  "syntheticAnchors": {
+    "concepts": {
+      "skladnik okresowy": ["concept:payroll:skladnik_okresowy"],
+      "dataset": ["concept:tech:dataset"]
+    },
+    "aliases": {
+      "skladnik cykliczny": ["concept:payroll:skladnik_okresowy"]
+    },
+    "payrollCodes": {
+      "0010": { "kind": "semantic", "semanticKey": "component:0010" }
+    },
+    "payrollFunctions": {
+      "F_PL_OKRES": { "kind": "semantic" }
+    },
+    "graphNodes": {
+      "formularz zatrudnienia": ["node:help:form_zatrudnienie"],
+      "pole data do": ["node:help:field_data_do", "node:help:field_data_do_alt"]
+    },
+    "graphPaths": {
+      "node:help:form_zatrudnienie": ["help:/kadry/zatrudnienie/formularz"]
+    }
+  }
+}

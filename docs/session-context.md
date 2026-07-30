@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-29** (Stage 3J.2C zakończony — ready_with_review; 3J.2D/3K nierozpoczęte)
+> Ostatnia aktualizacja: **2026-07-30** (Stage 3J.2C `ee8a108` zakończony; Stage 3J.2D funkcjonalnie zakończony `demonstrated_with_review` / `ready_with_review`, oczekuje na feature commit; 3J.2E/3K nierozpoczęte)
 
 ---
 
@@ -179,8 +179,9 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.1 — Polish Teta Domain Lexicon:** zakończony (`e08f020`; docs status `832fa99`)
 - [x] **Stage 3J.2A — Knowledge Source Registry & Bulk Inventory:** zakończony (`7465934`)
 - [x] **Stage 3J.2B — Canonical Source Extraction & Portable Offline Asset Store:** zakończony (`367f00e`)
-- [x] **Stage 3J.2C — Canonical Topic Segmentation & Candidate Knowledge Extraction:** zakończony (`ready_with_review`)
-- [ ] **Stage 3J.2D:** nierozpoczęty
+- [x] **Stage 3J.2C — Canonical Topic Segmentation & Candidate Knowledge Extraction:** zakończony (`ee8a108`, ready_with_review)
+- [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** funkcjonalnie zakończony lokalnie (`demonstrated_with_review`, `ready_with_review`), oczekuje na commit
+- [ ] **Stage 3J.2E:** nierozpoczęty
 - [ ] **Stage 3K:** nierozpoczęty
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
@@ -189,8 +190,9 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.1:** zakończony (`e08f020`) + docs status (`832fa99`) — multidomain lexicon + Help discovery
 - **Stage 3J.2A:** zakończony — Knowledge Source Registry & Bulk Inventory (`7465934`; docs status `859bbf6`)
 - **Stage 3J.2B:** zakończony — commit `367f00e`
-- **Stage 3J.2C:** zakończony — Candidate Knowledge Extraction (`ready_with_review`)
-- **Stage 3J.2D / Stage 3K:** nierozpoczęte
+- **Stage 3J.2C:** zakończony — commit `ee8a108`, ready_with_review
+- **Stage 3J.2D:** funkcjonalnie zakończony lokalnie (`demonstrated_with_review`, `ready_with_review`), commit hash: _do uzupełnienia po feature commicie_
+- **Stage 3J.2E / Stage 3K:** nierozpoczęte
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
@@ -199,7 +201,8 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2A nie analizuje treści** (brak ekstrakcji pojęć/procesów/reguł/RAG); prawdziwe źródła poza repo
 - **Stage 3J.2B:** deterministyczna ekstrakcja DOC/DOCX/PDF + ALL_MOVIES (JSON/frames/MP4 validation); portable store content-addressed w `.local/`; bez semantic/RAG
 - **Stage 3J.2C:** candidate batches + sectioning + proposal lifecycle; exact collapse tylko w sekcji
-- **Stage 3J.2D / Stage 3K:** nierozpoczęte
+- **Stage 3J.2D:** relation decisions nie usuwają occurrences; applicability przed merge; conflicts bez auto-resolve; golden questions = coverage, nie final answers; bez modelu; approval w 3J.2E
+- **Stage 3J.2E / Stage 3K:** nierozpoczęte
 
 ### Stage 3J.2B ustalenia (2026-07-29)
 
@@ -231,7 +234,50 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - modelUsefulnessStatus=**insufficient_signal** (completed_with_timeouts; 0 accepted model candidates)
 - stage3j2dReadiness=**ready_with_review** (real_pilot_requires_review + model_usefulness_insufficient_signal_documented)
 - Testy **382/382**; fixture recall/precision OK; regresje OK; audit strict EXIT 0
-- Stage 3J.2D / 3K: nierozpoczęte
+- Commit: `ee8a108`
+- Stage 3J.2D / 3J.2E / 3K: nierozpoczęte (3J.2D lokalnie w toku)
+
+### Stage 3J.2D ustalenia (2026-07-30)
+
+- Wejście wyłącznie: immutable candidate batches Stage 3J.2C (nie raw sources)
+- Relation decisions nie usuwają occurrences/evidence
+- Applicability partitioning przed deduplikacją
+- Teta HR ≠ Teta Edu merge; Teta ME = product surface
+- Client/version/temporal/regulatory variants nie stają się global
+- Conflicts bez auto-resolution
+- Golden questions Q01–Q21: coverage assessment, nie final chat answers
+- Brak lokalnego modelu, RAG, Qdrant, embeddings, OCR, Oracle, SQL
+- Final approval → Stage 3J.2E; runtime chat/RAG później
+- Lokalnie: testy **811/811**; real pilot 82/82 preserved; acceptance overlap 1074/1074 preserved; `exact=108`, `semantic=41`, review tasks `100`; Q01–Q21 coverage; `stage3j2eReadiness=ready_with_review`; strictErrors=[]
+- Golden coverage gaps (`unsupported/no_matching_evidence`) to luki candidate/source coverage, nie debug-limit ani błąd korelacji
+- Stage 3J.2D nie zatwierdza rekordów (`approval` dopiero Stage 3J.2E)
+
+### Stage 3J.2D patch użyteczności (2026-07-30, kontynuacja)
+
+- Dodano `candidate correlation cluster` (`teta-candidate-correlation-cluster-v1`) i grupowanie occurrences bez auto-approval.
+- `unknown_or_partial applicability` nie powoduje już automatycznie 1:1 proposed record; rekordy są grupowane i rozdzielane po partition key.
+- Real pilot (82 occurrences): proposed records **31** (wcześniej 82), multi-occurrence records **14**, multi-occurrence clusters **10**.
+- `stage3j2dRealCorrelationStatus=demonstrated_with_review`; strict audit nadal `strictErrors=[]`.
+- Overlap pilot uruchomiony end-to-end:
+  - Stage 3J.2B overlap store: `.local/teta-knowledge/stage3j2b-overlap-pilot/`
+  - Stage 3J.2C overlap store: `.local/teta-knowledge/stage3j2c-overlap-pilot/`
+  - Stage 3J.2D overlap store: `.local/teta-knowledge/stage3j2d-overlap-pilot/`
+  - `multiOccurrenceClustersCreated=11`, `proposedRecordsWithMultipleOccurrences=33`.
+- Q21 ma wsparcie z registry anchor (`registry_surface_anchor`) i nie jest już `unsupported`.
+- Q14 pozostaje `unsupported` gdy brak matching evidence KSeF; jeśli evidence KSeF pojawi się, status ma być `requires_currentness_verification`.
+- Stage 3J.2E i Stage 3K nadal nierozpoczęte; brak commita.
+
+### Stage 3J.2D final patch kompletności (2026-07-30)
+
+- Dodano `pair eligibility gate` (silny topic signal wymagany przed relation classification).
+- Dodano rozdzielenie runów:
+  - debug partial (`--max-candidates`) -> `debugRunInputPartial=true`, `readiness=not_ready`, strict celowo fail;
+  - acceptance full input (bez limitu) -> `acceptanceRunInputComplete=true`.
+- Acceptance overlap run na pełnym korpusie: **1074/1074** occurrences loaded/preserved.
+- Pair quality (acceptance): `pairsEnteringBlocking=161492`, `pairsPassingPairEligibility=19115`, `pairsSkippedByPairEligibility=142377`.
+- Review task compression (acceptance): `requires_review=18966`, `reviewTasks=100`, `compressionRatio=189.66`.
+- Q21 pozostaje `supported` przez `registry_surface_anchor`; Q14 = `unsupported` z `no_matching_evidence` dla tego korpusu.
+- Stage boundaries i strict safety nadal bez naruszeń; Stage 3J.2E/3K bez zmian (nierozpoczęte).
 ---
 
 ## Notatki sesji

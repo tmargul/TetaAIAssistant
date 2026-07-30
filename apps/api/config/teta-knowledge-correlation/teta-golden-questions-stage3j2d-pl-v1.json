@@ -1,0 +1,177 @@
+{
+  "suiteVersion": "teta-golden-questions-stage3j2d-pl-v1",
+  "questions": [
+    {
+      "questionId": "Q01",
+      "question": "Co to jest składnik okresowy?",
+      "requiredKnowledgeKinds": ["business_concept"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["place"],
+      "sourceArchetypeHints": ["instruction", "training"]
+    },
+    {
+      "questionId": "Q02",
+      "question": "Jak skonfigurować składnik okresowy?",
+      "requiredKnowledgeKinds": ["procedure", "parameter"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["place"],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q03",
+      "question": "Jak wykonać korektę składnika okresowego?",
+      "requiredKnowledgeKinds": ["procedure", "action"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["place"],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q04",
+      "question": "Jakie funkcje, składniki i parametry są używane przy obsłudze składnika okresowego?",
+      "requiredKnowledgeKinds": ["parameter", "technical_relation", "calculation_rule"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["place"],
+      "sourceArchetypeHints": ["instruction", "technical"]
+    },
+    {
+      "questionId": "Q05",
+      "question": "Czym różni się premia roczna, kwartalna i premia bez określonego charakteru wypłaty?",
+      "requiredKnowledgeKinds": ["business_concept", "scenario"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["place"],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q06",
+      "question": "Jak przyjąć pracownika z ofert pracy?",
+      "requiredKnowledgeKinds": ["procedure", "process_step"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["kadry"],
+      "sourceArchetypeHints": ["instruction", "training"]
+    },
+    {
+      "questionId": "Q07",
+      "question": "Jak przebiega zatrudnienie i autoryzacja umowy w Teta Edu?",
+      "requiredKnowledgeKinds": ["procedure", "business_process"],
+      "productFamilyHints": ["teta_edu"],
+      "domainHints": ["kadry"],
+      "sourceArchetypeHints": ["instruction", "training"]
+    },
+    {
+      "questionId": "Q08",
+      "question": "Które kroki zatrudnienia są wspólne dla Teta HR i Teta Edu, a które są wariantami produktowymi?",
+      "requiredKnowledgeKinds": ["process_step", "procedure"],
+      "productFamilyHints": ["teta_hr", "teta_edu"],
+      "domainHints": ["kadry"],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q09",
+      "question": "Jakie czynności trzeba wykonać przy zmianie roku?",
+      "requiredKnowledgeKinds": ["procedure", "temporal_rule"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": [],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q10",
+      "question": "Które czynności przy przełomie roku dotyczą Kadr, Płac, PIT, RCP i Finansów?",
+      "requiredKnowledgeKinds": ["procedure", "process_step"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["kadry", "place", "pit", "rcp", "finanse"],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q11",
+      "question": "Które instrukcje przełomu roku są zależne od konkretnego roku, wersji lub konfiguracji?",
+      "requiredKnowledgeKinds": ["temporal_rule", "parameter"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": [],
+      "sourceArchetypeHints": ["instruction"],
+      "expectsCurrentnessVerification": true
+    },
+    {
+      "questionId": "Q12",
+      "question": "Jak przebiega obsługa e-faktury lub KSeF?",
+      "requiredKnowledgeKinds": ["procedure", "integration"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["finanse"],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q13",
+      "question": "Jak faktura przechodzi do księgowości?",
+      "requiredKnowledgeKinds": ["procedure", "state_transition"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["finanse"],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q14",
+      "question": "Czy instrukcja dotycząca KSeF jest aktualna?",
+      "requiredKnowledgeKinds": ["document_type", "temporal_rule"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["finanse"],
+      "sourceArchetypeHints": ["instruction"],
+      "expectsCurrentnessVerification": true
+    },
+    {
+      "questionId": "Q15",
+      "question": "Co to jest dataset w Teta?",
+      "requiredKnowledgeKinds": ["business_concept", "technical_relation"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": [],
+      "sourceArchetypeHints": ["technical", "training"]
+    },
+    {
+      "questionId": "Q16",
+      "question": "Jak są powiązane formularz, plugin, dataset, gateway i obiekt Oracle?",
+      "requiredKnowledgeKinds": ["technical_relation"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": [],
+      "sourceArchetypeHints": ["technical"]
+    },
+    {
+      "questionId": "Q17",
+      "question": "Jak utworzyć i zarejestrować raport GenRap?",
+      "requiredKnowledgeKinds": ["procedure", "report"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": [],
+      "sourceArchetypeHints": ["technical", "instruction"]
+    },
+    {
+      "questionId": "Q18",
+      "question": "Jak działa tryb projektowania formularza?",
+      "requiredKnowledgeKinds": ["procedure", "parameter"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": [],
+      "sourceArchetypeHints": ["technical"]
+    },
+    {
+      "questionId": "Q19",
+      "question": "Jak dane RCP wpływają na listę płac?",
+      "requiredKnowledgeKinds": ["integration", "calculation_rule"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["rcp", "place"],
+      "sourceArchetypeHints": ["instruction"]
+    },
+    {
+      "questionId": "Q20",
+      "question": "Jak nadgodziny z RCP trafiają do Płac?",
+      "requiredKnowledgeKinds": ["procedure", "integration"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": ["rcp", "place"],
+      "sourceArchetypeHints": ["instruction", "training"]
+    },
+    {
+      "questionId": "Q21",
+      "question": "Czy Teta ME jest osobnym systemem z osobną bazą danych?",
+      "requiredKnowledgeKinds": ["business_concept", "technical_relation"],
+      "productFamilyHints": ["teta_hr"],
+      "domainHints": [],
+      "sourceArchetypeHints": ["technical", "training"],
+      "expectsProductSurface": "teta_me",
+      "expectsNotDomain": "teta_me"
+    }
+  ]
+}

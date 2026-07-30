@@ -1,0 +1,112 @@
+{
+  "stage": "3J.2D",
+  "title": "Candidate Correlation, Deduplication, Variants, Conflicts & Golden Question Coverage",
+  "status": "local_uncommitted_demonstrated_with_review",
+  "input": "stage3j2c_portable_candidate_manifest",
+  "verification": {
+    "tests": "811/811",
+    "fixturePacks": "22/22",
+    "regressions": {
+      "stage3j2c": "382/382",
+      "stage3j2b": "235/235",
+      "stage3j2a": "180/180",
+      "stage3j1": "271/271",
+      "stage3j": "161/161"
+    },
+    "builds": { "api": 0, "web": 0 },
+    "strictErrors": []
+  },
+  "realPilotAggregates": {
+    "occurrencesRead": 82,
+    "occurrencesPreserved": 82,
+    "evidenceEntriesRead": 82,
+    "evidenceEntriesPreserved": 82,
+    "pairsGenerated": 48,
+    "relationDecisions": 48,
+    "proposedRecords": 71,
+    "proposedRecordsWithMultipleOccurrences": 11,
+    "multiOccurrenceRecordsExactCollapsed": 0,
+    "multiOccurrenceRecordsSemanticallyGrouped": 0,
+    "multiOccurrenceRecordsEnriched": 0,
+    "multiOccurrenceRecordsVariantPartitioned": 0,
+    "multiOccurrenceRecordsConflictPartitioned": 0,
+    "multiOccurrenceRecordsRequiresReviewBeforeMerge": 11,
+    "candidateCorrelationClusters": 61,
+    "multiOccurrenceClusters": 9,
+    "conflicts": 0,
+    "goldenQuestions": 21,
+    "supported": 1,
+    "partiallySupported": 1,
+    "requiresReview": 0,
+    "unsupported": 19,
+    "q21Status": "supported",
+    "q14Status": "unsupported",
+    "localModelCalls": 0,
+    "stage3j2dRealCorrelationStatus": "demonstrated_with_review",
+    "stage3j2eReadiness": "ready_with_review",
+    "reviewTaskPrimaryGroupingCounts": {
+      "cluster": 10,
+      "question": 1
+    },
+    "reviewTaskCountReconciliationOk": true
+  },
+  "overlapPilotAggregates": {
+    "sourcesRequested": 20,
+    "sourcesExtracted": 20,
+    "sourcesBlocked": 0,
+    "candidateOccurrencesUsed": 1074,
+    "evidenceEntriesRead": 1074,
+    "evidenceEntriesPreserved": 1074,
+    "relationDecisions": 19115,
+    "exactDuplicateDecisions": 108,
+    "semanticDuplicateDecisions": 41,
+    "proposedRecords": 474,
+    "proposedRecordsWithMultipleOccurrences": 165,
+    "multiOccurrenceRecordsExactCollapsed": 78,
+    "multiOccurrenceRecordsSemanticallyGrouped": 7,
+    "multiOccurrenceRecordsEnriched": 0,
+    "multiOccurrenceRecordsVariantPartitioned": 0,
+    "multiOccurrenceRecordsConflictPartitioned": 0,
+    "multiOccurrenceRecordsRequiresReviewBeforeMerge": 80,
+    "multiOccurrenceRecordsWithAtLeastOneMergeSupportingRelation": 85,
+    "multiOccurrenceRecordsWithoutMergeSupportingRelation": 0,
+    "candidateCorrelationClusters": 360,
+    "multiOccurrenceClusters": 152,
+    "q21Status": "supported",
+    "q14Status": "unsupported",
+    "stage3j2dRealCorrelationStatus": "demonstrated_with_review",
+    "reviewTasksCreated": 100,
+    "reviewTaskPrimaryGroupingCounts": {
+      "cluster": 98,
+      "question": 2
+    },
+    "reviewTaskGroupingMembershipCounts": {
+      "cluster": 98,
+      "subject": 0,
+      "question": 2,
+      "source_conversion": 0,
+      "conflict": 0,
+      "other": 0
+    },
+    "reviewTaskCountReconciliationOk": true
+  },
+  "evidenceMetricSemantics": {
+    "candidateOccurrencesRead": "number of candidate occurrences loaded from Stage 3J.2C manifest",
+    "evidenceEntriesRead": "sum of candidate evidence entries attached to occurrences",
+    "contentUnitEvidenceRefsRead": "sum of contentUnitRefs across all evidence entries",
+    "assetEvidenceRefsRead": "sum of assetRefs across all evidence entries",
+    "uniqueEvidenceRefsRead": "unique sectionId+contentUnitRef tuples"
+  },
+  "boundaries": {
+    "approvesRecords": false,
+    "mutatesLexicon": false,
+    "deletesOccurrences": false,
+    "autoResolvesConflicts": false,
+    "usesLocalModel": false,
+    "ragQdrantEmbeddings": false,
+    "oracleSql": false,
+    "finalChatAnswers": false
+  },
+  "nextStage": "3J.2E_not_started",
+  "aggregatesOnly": true
+}

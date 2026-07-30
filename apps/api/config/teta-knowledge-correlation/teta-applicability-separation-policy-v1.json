@@ -1,0 +1,41 @@
+{
+  "policyVersion": "teta-applicability-separation-policy-v1",
+  "neverAutoMerge": {
+    "distinctProductFamilies": true,
+    "tetaHrVsTetaEdu": true,
+    "versionScopedVsUniversal": true,
+    "temporalOutsidePeriod": true,
+    "clientSpecificVsGlobal": true,
+    "regulatoryWithoutCurrentness": true,
+    "unknownApplicability": true
+  },
+  "productSurfaceRules": {
+    "teta_me": {
+      "isBusinessDomain": false,
+      "productFamily": "teta_hr",
+      "sharedDatabaseWith": "teta_hr"
+    }
+  },
+  "partitionFields": [
+    "platformId",
+    "productFamilyIds",
+    "productSurfaceIds",
+    "domainIds",
+    "businessAreaIds",
+    "productVersionHints",
+    "documentDateHints",
+    "temporalContextIds",
+    "clientSpecificRisk",
+    "scopeStatus",
+    "currentnessStatus"
+  ],
+  "invariants": {
+    "tetaEduMergedIntoTetaHr": 0,
+    "tetaMeTreatedAsStandaloneDomain": 0,
+    "versionScopedClaimsMergedAsUniversal": 0,
+    "temporalClaimsMergedOutsidePeriod": 0,
+    "clientSpecificClaimsMergedIntoGlobal": 0,
+    "regulatoryClaimsMarkedCurrent": 0,
+    "unknownApplicabilityAutoMerged": 0
+  }
+}
