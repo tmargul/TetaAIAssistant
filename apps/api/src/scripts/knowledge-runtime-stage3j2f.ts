@@ -15,8 +15,12 @@ import {
   runRenderFixtureAnswer,
   runRetrieve,
   validateConfig,
+  getLocalGroundedModelStatus,
+  runRuntimeModelSmoke,
+  ALL_SMOKE_CASES,
 } from '../teta-runtime-knowledge';
 import type { GroundedAnswerPlanV1 } from '../teta-runtime-knowledge';
+import type { SmokeCaseId } from '../teta-runtime-knowledge/teta-runtime-model-smoke';
 
 function getArg(name: string): string | null {
   const idx = process.argv.indexOf(name);
@@ -206,12 +210,107 @@ async function main(): Promise<void> {
     if (!hasFlag('--confirm-local-model-call')) {
       throw new Error('smoke-local-model requires --confirm-local-model-call');
     }
+    const status = await getLocalGroundedModelStatus();
+    const casesArg = getArg('--cases');
+    const cases = (casesArg
+      ? casesArg.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean)
+      : [...ALL_SMOKE_CASES]) as SmokeCaseId[];
+
+    const plannedModelCalls = cases.filter((c) =>
+      ['SM01', 'SM03', 'SM04', 'SM09', 'SM10'].includes(c),
+    ).length;
+    const plannedSkipped = cases.filter((c) =>
+      ['SM02', 'SM05', 'SM06', 'SM07', 'SM08'].includes(c),
+    );
+    const artifactVersion = hasFlag('--artifact-v2') || getArg('--artifact-version') === 'v2' ? 'v2' : 'v1';
+
     console.log(
       JSON.stringify(
         {
-          skipped: true,
-          reason: 'stage3j2f_iteration_forbids_real_local_model_calls',
-          realLocalModelCalls: 0,
+          phase: 'preflight',
+          model: status.modelName,
+          baseUrl: status.baseUrl,
+          available: status.available,
+          installedModels: status.installedModels,
+          artifactVersion,
+          plannedRealModelCalls: plannedModelCalls,
+          plannedSkippedModelCases: plannedSkipped,
+          note:
+            artifactVersion === 'v2'
+              ? 'SM02/SM08 use deterministic hidden-source disclosure (no model)'
+              : undefined,
+          localOnly: true,
+          qdrantDisabled: true,
+          oracleDisabled: true,
+          embeddingsDisabled: true,
+          remoteFallbackDisabled: true,
+        },
+        null,
+        2,
+      ),
+    );
+
+    if (!status.available) {
+      console.error(
+        JSON.stringify(
+          {
+            stopped: true,
+            expectedModel: status.modelName,
+            availableModels: status.installedModels,
+            reason: status.reason,
+          },
+          null,
+          2,
+        ),
+      );
+      process.exit(1);
+    }
+
+    const result = await runRuntimeModelSmoke({
+      repoRoot,
+      cases,
+      includeChat: artifactVersion === 'v1',
+      artifactVersion,
+      preserveV1HumanDecisions:
+        artifactVersion === 'v2'
+          ? {
+              SM01: 'PASS',
+              SM02: 'FAIL',
+              SM03: 'PASS_WITH_NOTE',
+              SM04: 'FAIL',
+              SM05: 'PASS',
+              SM06: 'PASS_WITH_NOTE',
+              SM07: 'PASS_WITH_NOTE',
+              SM08: 'FAIL',
+              SM09: 'FAIL',
+              SM10: 'FAIL',
+            }
+          : undefined,
+    });
+    console.log(
+      JSON.stringify(
+        {
+          status:
+            artifactVersion === 'v2'
+              ? 'runtime_model_smoke_v2_executed_awaiting_human_review'
+              : 'runtime_model_smoke_executed_awaiting_human_review',
+          model: result.modelStatus.modelName,
+          realLocalModelCalls: result.metrics.realLocalModelCalls,
+          modelRetries: result.metrics.modelRetries,
+          modelTimeouts: result.metrics.modelTimeouts,
+          modelFailures: result.metrics.modelFailures,
+          smokeRoot: result.smokeRoot,
+          humanReview: path.join(result.smokeRoot, 'HUMAN-REVIEW.md'),
+          cases: result.results.map((r) => ({
+            id: r.caseId,
+            modelCalled: r.modelCalled,
+            answerability: r.answerability,
+            coverage: r.coverageClassification,
+            leakGuardResult: r.leakGuardResult,
+            quoteVerbatimCheck: r.quoteVerbatimCheck,
+            legalExpansionCheck: r.legalExpansionCheck,
+            latencyMs: r.modelLatencyMs,
+          })),
         },
         null,
         2,

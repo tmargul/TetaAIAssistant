@@ -88,7 +88,7 @@ export function buildStage3j2fAudit(repoRoot?: string, opts?: { strict?: boolean
     'fragmentsWithoutSubjectUsedAtRuntime',
     'unknownScopeCandidatesUsedAtRuntime',
     'conflictedCandidatesUsedAtRuntime',
-    'realLocalModelCalls',
+    // realLocalModelCalls is allowed after confirmed smoke — checked via smoke metrics below
     'qdrantCalls',
     'embeddingCalls',
     'ocrCalls',
@@ -106,6 +106,154 @@ export function buildStage3j2fAudit(repoRoot?: string, opts?: { strict?: boolean
 
   for (const k of zeroKeys) {
     if (num(stats, k) !== 0) strictErrors.push(`nonzero:${k}=${num(stats, k)}`);
+  }
+
+  const smokeV2Path = path.join(root, '.local', 'AIA_TETA_RUNTIME_KNOWLEDGE_STAGE3J2F.model-smoke-v2.json');
+  const smokeV1Path = path.join(root, '.local', 'AIA_TETA_RUNTIME_KNOWLEDGE_STAGE3J2F.model-smoke.json');
+  const smokePath = existsSync(smokeV2Path) ? smokeV2Path : smokeV1Path;
+  const smokeData = existsSync(smokePath)
+    ? (JSON.parse(readFileSync(smokePath, 'utf8')) as {
+        metrics?: Record<string, number>;
+        results?: Array<{ id: string; modelCalled: boolean; answerability: string }>;
+      })
+    : null;
+  const smokeMetrics = smokeData?.metrics ?? {};
+  const smokeIsV2 = smokePath === smokeV2Path;
+
+  // Smoke-era strict invariants
+  if (num(smokeMetrics, 'blockedPlansSentToModel') !== 0) {
+    strictErrors.push(`nonzero:blockedPlansSentToModel=${num(smokeMetrics, 'blockedPlansSentToModel')}`);
+  }
+  if (num(smokeMetrics, 'insufficientPlansSentToModel') !== 0) {
+    strictErrors.push(`nonzero:insufficientPlansSentToModel=${num(smokeMetrics, 'insufficientPlansSentToModel')}`);
+  }
+  if (num(smokeMetrics, 'unknownClaimIdsReturned') !== 0) {
+    strictErrors.push(`nonzero:unknownClaimIdsReturned=${num(smokeMetrics, 'unknownClaimIdsReturned')}`);
+  }
+  if (num(smokeMetrics, 'unknownCitationPlaceholdersReturned') !== 0) {
+    strictErrors.push(
+      `nonzero:unknownCitationPlaceholdersReturned=${num(smokeMetrics, 'unknownCitationPlaceholdersReturned')}`,
+    );
+  }
+  if (num(smokeMetrics, 'hiddenMetadataSentInModelRequest') !== 0) {
+    strictErrors.push(
+      `nonzero:hiddenMetadataSentInModelRequest=${num(smokeMetrics, 'hiddenMetadataSentInModelRequest')}`,
+    );
+  }
+  if (num(smokeMetrics, 'hiddenMetadataReturnedToClient') !== 0) {
+    strictErrors.push(
+      `nonzero:hiddenMetadataReturnedToClient=${num(smokeMetrics, 'hiddenMetadataReturnedToClient')}`,
+    );
+  }
+  if (num(smokeMetrics, 'realModelVendorTitlesExposed') !== 0) {
+    strictErrors.push(`nonzero:realModelVendorTitlesExposed=${num(smokeMetrics, 'realModelVendorTitlesExposed')}`);
+  }
+  if (num(smokeMetrics, 'realModelVendorPathsExposed') !== 0) {
+    strictErrors.push(`nonzero:realModelVendorPathsExposed=${num(smokeMetrics, 'realModelVendorPathsExposed')}`);
+  }
+  if (num(smokeMetrics, 'realModelVendorEvidenceIdsExposed') !== 0) {
+    strictErrors.push(
+      `nonzero:realModelVendorEvidenceIdsExposed=${num(smokeMetrics, 'realModelVendorEvidenceIdsExposed')}`,
+    );
+  }
+  if (num(smokeMetrics, 'internalTechnicalTermsExposed') !== 0) {
+    strictErrors.push(`nonzero:internalTechnicalTermsExposed=${num(smokeMetrics, 'internalTechnicalTermsExposed')}`);
+  }
+  if (num(smokeMetrics, 'blockedRuntimeFellThroughToUngroundedModel') !== 0) {
+    strictErrors.push('nonzero:blockedRuntimeFellThroughToUngroundedModel');
+  }
+  if (num(smokeMetrics, 'insufficientRuntimeFellThroughToUngroundedModel') !== 0) {
+    strictErrors.push('nonzero:insufficientRuntimeFellThroughToUngroundedModel');
+  }
+  if (num(smokeMetrics, 'groundedRuntimeBypassedByGenericFallback') !== 0) {
+    strictErrors.push('nonzero:groundedRuntimeBypassedByGenericFallback');
+  }
+  if (num(smokeMetrics, 'remoteModelCalls') !== 0) strictErrors.push('nonzero:remoteModelCalls');
+  if (num(smokeMetrics, 'qdrantCalls') !== 0) strictErrors.push('nonzero:qdrantCalls');
+  if (num(smokeMetrics, 'embeddingCalls') !== 0) strictErrors.push('nonzero:embeddingCalls');
+  if (num(smokeMetrics, 'stage3kStarted') !== 0) strictErrors.push('nonzero:stage3kStarted');
+  if (num(smokeMetrics, 'hiddenSourceDisclosureModelCalls') !== 0) {
+    strictErrors.push(`nonzero:hiddenSourceDisclosureModelCalls=${num(smokeMetrics, 'hiddenSourceDisclosureModelCalls')}`);
+  }
+  if (num(smokeMetrics, 'hiddenSourceDisclosureFalseNoAccessClaims') !== 0) {
+    strictErrors.push(
+      `nonzero:hiddenSourceDisclosureFalseNoAccessClaims=${num(smokeMetrics, 'hiddenSourceDisclosureFalseNoAccessClaims')}`,
+    );
+  }
+  if (num(smokeMetrics, 'hiddenSourceDisclosureLeaks') !== 0) {
+    strictErrors.push(`nonzero:hiddenSourceDisclosureLeaks=${num(smokeMetrics, 'hiddenSourceDisclosureLeaks')}`);
+  }
+  if (num(smokeMetrics, 'queriesIncorrectlyMarkedAnswerable') !== 0) {
+    strictErrors.push(
+      `nonzero:queriesIncorrectlyMarkedAnswerable=${num(smokeMetrics, 'queriesIncorrectlyMarkedAnswerable')}`,
+    );
+  }
+  if (num(smokeMetrics, 'publicAuthorityAnswersWithUnsupportedExpansion') !== 0) {
+    strictErrors.push('nonzero:publicAuthorityAnswersWithUnsupportedExpansion');
+  }
+  if (num(smokeMetrics, 'publicAuthorityNewNumbersIntroduced') !== 0) {
+    strictErrors.push('nonzero:publicAuthorityNewNumbersIntroduced');
+  }
+  if (num(smokeMetrics, 'publicAuthorityNewLegalReferencesIntroduced') !== 0) {
+    strictErrors.push('nonzero:publicAuthorityNewLegalReferencesIntroduced');
+  }
+
+  const smokeExecuted = num(smokeMetrics, 'smokeCasesExecuted') > 0;
+
+  const acceptancePath = path.join(root, '.local', 'AIA_TETA_RUNTIME_KNOWLEDGE_STAGE3J2F.human-acceptance.json');
+  const acceptance = existsSync(acceptancePath)
+    ? (JSON.parse(readFileSync(acceptancePath, 'utf8')) as {
+        stage3j2fStatus?: string;
+        runtimeModelSmokeStatus?: string;
+        answersHumanReviewed?: number;
+        answersHumanPassed?: number;
+        answersHumanPassedWithNote?: number;
+        answersHumanFailed?: number;
+        realLocalModelCallsTotal?: number;
+        runtimeModelSmokeV1?: Record<string, unknown>;
+        runtimeModelSmokeV2?: Record<string, unknown>;
+        nextStage?: string;
+        stage3kReadiness?: string;
+      })
+    : null;
+  const humanAccepted =
+    acceptance?.runtimeModelSmokeStatus === 'completed_and_human_accepted' &&
+    Number(acceptance.answersHumanFailed ?? 1) === 0 &&
+    Number(acceptance.answersHumanReviewed ?? 0) >= 10;
+
+  let stageStatus: string;
+  let nextStage: string;
+  let stage3kReason: string;
+  let stage3kReadiness: string;
+  let runtimeModelSmokeStatus: string | null = null;
+
+  if (humanAccepted && strictErrors.length === 0) {
+    stageStatus = 'completed_with_runtime_model_smoke';
+    runtimeModelSmokeStatus = 'completed_and_human_accepted';
+    nextStage = 'stage3k_readiness_review';
+    stage3kReadiness = 'requires_separate_readiness_review';
+    stage3kReason = 'awaiting_separate_stage3k_readiness_review';
+  } else if (smokeExecuted) {
+    stageStatus =
+      strictErrors.length === 0
+        ? smokeIsV2
+          ? 'runtime_model_smoke_v2_executed_awaiting_human_review'
+          : 'runtime_model_smoke_executed_awaiting_human_review'
+        : smokeIsV2
+          ? 'runtime_model_smoke_v2_failed'
+          : 'runtime_model_smoke_failed';
+    nextStage = smokeIsV2
+      ? '3J.2F_runtime_model_smoke_v2_human_review'
+      : '3J.2F_runtime_model_smoke_human_review';
+    stage3kReadiness = 'not_ready';
+    stage3kReason = smokeIsV2
+      ? 'stage3j2f_runtime_model_smoke_v2_awaiting_human_review'
+      : 'stage3j2f_runtime_model_smoke_awaiting_human_review';
+  } else {
+    stageStatus = strictErrors.length === 0 ? 'ready_for_runtime_model_smoke' : 'implementation_in_progress';
+    nextStage = '3J.2F_runtime_model_smoke';
+    stage3kReadiness = 'not_ready';
+    stage3kReason = 'stage3j2f_runtime_model_smoke_not_completed';
   }
 
   const rf01 = pilot.find((p) => p.id === 'RF01');
@@ -139,11 +287,12 @@ export function buildStage3j2fAudit(repoRoot?: string, opts?: { strict?: boolean
   const audit = {
     contractVersion: 'teta-runtime-knowledge-stage3j2f-audit-v1',
     stageVersion: 'stage3j2f-v1',
-    stage3j2fStatus: strictErrors.length === 0 ? 'ready_for_runtime_model_smoke' : 'implementation_in_progress',
+    stage3j2fStatus: stageStatus,
+    runtimeModelSmokeStatus,
     stage3kStatus: 'not_started',
-    stage3kReadiness: 'not_ready',
-    stage3kReadinessReason: 'stage3j2f_runtime_model_smoke_not_completed',
-    nextStage: '3J.2F_runtime_model_smoke',
+    stage3kReadiness,
+    stage3kReadinessReason: stage3kReason,
+    nextStage,
     configOk: config.ok,
     input: {
       approvedRecordsRead: num(stats, 'approvedRecordsRead'),
@@ -193,24 +342,75 @@ export function buildStage3j2fAudit(repoRoot?: string, opts?: { strict?: boolean
       ids: fixtureIds(),
       count: fixtures.length,
     },
-    stageBoundaries: Object.fromEntries(
-      [
-        'autoApprovalEventsCreated',
-        'ragChunksGenerated',
-        'qdrantCalls',
-        'embeddingCalls',
-        'realLocalModelCalls',
-        'remoteModelCalls',
-        'ocrCalls',
-        'imageAnalysisCalls',
-        'oracleConnectionsOpened',
-        'oracleStatementsExecuted',
-        'sqlCompiled',
-        'sqlExecuted',
-        'formulasExecuted',
-        'stage3kStarted',
-      ].map((k) => [k, num(stats, k)]),
-    ),
+    runtimeModelSmoke: {
+      smokeCasesRequested: num(smokeMetrics, 'smokeCasesRequested'),
+      smokeCasesExecuted: num(smokeMetrics, 'smokeCasesExecuted'),
+      smokeCasesModelCalled: num(smokeMetrics, 'smokeCasesModelCalled'),
+      smokeCasesModelSkipped: num(smokeMetrics, 'smokeCasesModelSkipped'),
+      /** Latest smoke run calls (v2 when present). */
+      realLocalModelCallsLatestRun: num(smokeMetrics, 'realLocalModelCalls'),
+      realLocalModelCalls: num(smokeMetrics, 'realLocalModelCalls'),
+      modelRetries: num(smokeMetrics, 'modelRetries'),
+      modelFailures: num(smokeMetrics, 'modelFailures'),
+      modelTimeouts: num(smokeMetrics, 'modelTimeouts'),
+      invalidStructuredOutputs: num(smokeMetrics, 'invalidStructuredOutputs'),
+      blockedPlansSentToModel: num(smokeMetrics, 'blockedPlansSentToModel'),
+      insufficientPlansSentToModel: num(smokeMetrics, 'insufficientPlansSentToModel'),
+      unknownClaimIdsReturned: num(smokeMetrics, 'unknownClaimIdsReturned'),
+      unknownCitationPlaceholdersReturned: num(smokeMetrics, 'unknownCitationPlaceholdersReturned'),
+      hiddenMetadataSentInModelRequest: num(smokeMetrics, 'hiddenMetadataSentInModelRequest'),
+      hiddenMetadataReturnedToClient: num(smokeMetrics, 'hiddenMetadataReturnedToClient'),
+      vendorLeakDetections: num(smokeMetrics, 'vendorLeakDetections'),
+      vendorLeakBlocks: num(smokeMetrics, 'vendorLeakBlocks'),
+      vendorSourceExposure: num(smokeMetrics, 'vendorSourceExposure'),
+      ungroundedClaimsDetectedStructurally: 0,
+      chatSmokeCasesExecuted: num(smokeMetrics, 'chatSmokeCasesExecuted'),
+      chatSmokeGroundedRoutes: num(smokeMetrics, 'chatSmokeGroundedRoutes'),
+      genericFallbackLeaks: num(smokeMetrics, 'genericFallbackLeaks'),
+      humanReviewPending: humanAccepted ? 0 : num(smokeMetrics, 'humanReviewPending'),
+      answersHumanReviewed: humanAccepted
+        ? Number(acceptance?.answersHumanReviewed ?? 10)
+        : num(smokeMetrics, 'answersHumanReviewed'),
+      answersHumanPassed: humanAccepted ? Number(acceptance?.answersHumanPassed ?? 0) : 0,
+      answersHumanPassedWithNote: humanAccepted ? Number(acceptance?.answersHumanPassedWithNote ?? 0) : 0,
+      answersHumanFailed: humanAccepted ? Number(acceptance?.answersHumanFailed ?? 0) : 0,
+      hiddenSourceDisclosureRequests: num(smokeMetrics, 'hiddenSourceDisclosureRequests'),
+      hiddenSourceDisclosureModelCalls: num(smokeMetrics, 'hiddenSourceDisclosureModelCalls'),
+      hiddenSourceDisclosureDeterministicResponses: num(smokeMetrics, 'hiddenSourceDisclosureDeterministicResponses'),
+      hiddenSourceDisclosureFalseNoAccessClaims: num(smokeMetrics, 'hiddenSourceDisclosureFalseNoAccessClaims'),
+      hiddenSourceDisclosureLeaks: num(smokeMetrics, 'hiddenSourceDisclosureLeaks'),
+      vendorSourceBackedQuotedClaims: num(smokeMetrics, 'vendorSourceBackedQuotedClaims'),
+      vendorSourceBackedLongVerbatimMatches: num(smokeMetrics, 'vendorSourceBackedLongVerbatimMatches'),
+      claimsRelatedButNotAnswering: num(smokeMetrics, 'claimsRelatedButNotAnswering'),
+      queriesIncorrectlyMarkedAnswerable: num(smokeMetrics, 'queriesIncorrectlyMarkedAnswerable'),
+      answerabilityDowngradedByCoverage: num(smokeMetrics, 'answerabilityDowngradedByCoverage'),
+      publicAuthorityAnswersWithUnsupportedExpansion: num(smokeMetrics, 'publicAuthorityAnswersWithUnsupportedExpansion'),
+      publicAuthorityNewNumbersIntroduced: num(smokeMetrics, 'publicAuthorityNewNumbersIntroduced'),
+      publicAuthorityNewLegalReferencesIntroduced: num(smokeMetrics, 'publicAuthorityNewLegalReferencesIntroduced'),
+      runtimeModelSmokeV1: acceptance?.runtimeModelSmokeV1 ?? {
+        realLocalModelCalls: 9,
+      },
+      runtimeModelSmokeV2: acceptance?.runtimeModelSmokeV2 ?? {
+        realLocalModelCalls: num(smokeMetrics, 'realLocalModelCalls'),
+      },
+      realLocalModelCallsTotal: Number(acceptance?.realLocalModelCallsTotal ?? num(smokeMetrics, 'realLocalModelCalls')),
+    },
+    stageBoundaries: {
+      autoApprovalEventsCreated: num(stats, 'autoApprovalEventsCreated'),
+      ragChunksGenerated: num(stats, 'ragChunksGenerated'),
+      qdrantCalls: num(stats, 'qdrantCalls') + num(smokeMetrics, 'qdrantCalls'),
+      embeddingCalls: num(stats, 'embeddingCalls') + num(smokeMetrics, 'embeddingCalls'),
+      realLocalModelCalls: num(smokeMetrics, 'realLocalModelCalls'),
+      remoteModelCalls: num(stats, 'remoteModelCalls') + num(smokeMetrics, 'remoteModelCalls'),
+      ocrCalls: num(stats, 'ocrCalls') + num(smokeMetrics, 'ocrCalls'),
+      imageAnalysisCalls: num(stats, 'imageAnalysisCalls'),
+      oracleConnectionsOpened: num(stats, 'oracleConnectionsOpened') + num(smokeMetrics, 'oracleConnectionsOpened'),
+      oracleStatementsExecuted: num(stats, 'oracleStatementsExecuted'),
+      sqlCompiled: num(stats, 'sqlCompiled'),
+      sqlExecuted: num(stats, 'sqlExecuted') + num(smokeMetrics, 'sqlExecuted'),
+      formulasExecuted: num(stats, 'formulasExecuted'),
+      stage3kStarted: num(stats, 'stage3kStarted') + num(smokeMetrics, 'stage3kStarted'),
+    },
     verification: {
       stage3j2fTestsExecuted: verification.stage3j2fTestsExecuted ?? 0,
       stage3j2fTestsPassed: verification.stage3j2fTestsPassed ?? 0,

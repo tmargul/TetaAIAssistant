@@ -16,6 +16,10 @@ import { opaqueToken, sha256, stableStringify } from './teta-runtime-hash';
 import { fingerprintAccessContext } from './teta-source-access-policy';
 import { loadPresentationConfig } from './teta-runtime-source-policy.service';
 import type { TetaGroundedAnswerGenerator, GroundedAnswerGeneratorInput, GroundedAnswerGeneratorOutput } from './teta-runtime-knowledge.types';
+import {
+  downgradeAnswerabilityByCoverage,
+  evaluateClaimQueryCoverage,
+} from './teta-claim-query-coverage';
 
 export function buildModelContextEnvelope(claims: GroundedClaimV1[], unitsById: Map<string, RuntimeKnowledgeUnitV1>): ModelContextEnvelope {
   let cIdx = 0;
@@ -61,7 +65,18 @@ export class DeterministicFixtureAnswerGenerator implements TetaGroundedAnswerGe
     let answerText = texts.join(' ');
     const disclosures = [...input.requiredDisclosures];
     if (disclosures.includes('partiality')) {
-      answerText = `${answerText} Nie mam wystarczających informacji, aby potwierdzić dalszą część procesu.`.trim();
+      const pointer = input.sanitizedClaims.find((c) =>
+        /zasady\s+(s[aą]\s+)?okre[sś]lon|wed[lł]ug\s+zasad\s+okre[sś]lon/i.test(c.text),
+      );
+      if (pointer && input.visibleCitationPlaceholders.length) {
+        answerText =
+          'Nie mam wystarczających informacji, aby opisać konkretne zasady przyznawania premii. Reguluje je wskazany regulamin.';
+      } else if (pointer) {
+        answerText =
+          'Dostępna informacja wskazuje tylko, że zasady są określone w odpowiednim regulaminie. Nie mam wystarczających informacji, aby opisać ich treść.';
+      } else {
+        answerText = `${answerText} Nie mam wystarczających informacji, aby potwierdzić dalszą część procesu.`.trim();
+      }
     }
     if (disclosures.includes('conflict')) {
       answerText =
@@ -72,11 +87,11 @@ export class DeterministicFixtureAnswerGenerator implements TetaGroundedAnswerGe
     }
     if (disclosures.includes('blocked_currentness')) {
       answerText =
-        'Nie mogę potwierdzić aktualnego stanu wymagań prawnych wyłącznie na podstawie wiedzy produktowej.';
+        'Nie mogę potwierdzić zgodności z aktualnymi wymaganiami KSeF bez weryfikacji obowiązujących przepisów.';
     }
     if (disclosures.includes('blocked_scope')) {
       answerText =
-        'Nie mam wystarczających informacji, aby porównać te zakresy produktów. Brak dowodu w jednym zakresie nie jest dowodem różnicy.';
+        'Nie mam wystarczających informacji, aby wiarygodnie porównać Teta HR i Teta Edu. Brakuje informacji dotyczących Teta HR.';
     }
     // Never mention knowledge base by default.
     answerText = answerText
@@ -361,9 +376,42 @@ export function buildGroundedAnswerPlan(opts: {
   hits: RetrievalHit[];
   accessContext?: KnowledgeAccessContextV1 | null;
   productContext?: Record<string, unknown>;
-}): { plan: GroundedAnswerPlanV1; trace: InternalAnswerTraceV1; modelContext: ModelContextEnvelope } {
+}): {
+  plan: GroundedAnswerPlanV1;
+  trace: InternalAnswerTraceV1;
+  modelContext: ModelContextEnvelope;
+  coverage: ReturnType<typeof evaluateClaimQueryCoverage>;
+  answerabilityDowngradedByCoverage: number;
+} {
   const selected = selectClaimsFromHits(opts.hits, opts.query);
   const unitsById = new Map(opts.hits.map((h) => [h.unit.runtimeKnowledgeUnitId, h.unit]));
+  const coverage = evaluateClaimQueryCoverage({ query: opts.query, claims: selected.claims });
+  const downgraded = downgradeAnswerabilityByCoverage({
+    answerability: selected.answerability,
+    coverage: coverage.coverage,
+    hasVisibleCitation: selected.visibleCitations.length > 0,
+  });
+  if (downgraded.downgraded) {
+    selected.answerability = downgraded.answerability;
+    if (downgraded.answerability === 'partially_answerable') {
+      selected.disclosures.push('partiality');
+      for (const c of selected.claims) {
+        c.requiredDisclosure = [...new Set([...c.requiredDisclosure, 'partiality'])];
+        if (c.supportStrength === 'strong') c.supportStrength = 'partial';
+      }
+      if (selected.routingReason === 'source_backed_runtime_knowledge' || selected.routingReason === 'approved_runtime_knowledge') {
+        selected.routingReason = 'partial_runtime_knowledge';
+      }
+    }
+    if (downgraded.answerability === 'insufficient') {
+      selected.claims = [];
+      selected.visibleCitations = [];
+      selected.runtimeStatus = 'insufficient_knowledge';
+      selected.routingReason = 'insufficient_runtime_knowledge';
+      selected.disclosures = ['insufficient'];
+    }
+  }
+
   const modelContext = buildModelContextEnvelope(selected.claims, unitsById);
   const presentationCfg = loadPresentationConfig();
   const vendorOnly = selected.visibleCitations.length === 0;
@@ -431,16 +479,35 @@ export function buildGroundedAnswerPlan(opts: {
     renderFingerprintSha256: '',
   };
 
-  return { plan, trace, modelContext };
+  return {
+    plan,
+    trace,
+    modelContext,
+    coverage,
+    answerabilityDowngradedByCoverage: downgraded.downgraded ? 1 : 0,
+  };
+}
+
+/** Genitive-ish polish for "Zgodnie z … Regulaminu …" */
+export function polishCitationTitleForZgodnieZ(displayTitle: string): string {
+  // Common normative titles
+  if (/^Regulamin\b/i.test(displayTitle)) {
+    return displayTitle.replace(/^Regulamin\b/i, 'Regulaminu');
+  }
+  if (/^Kodeks\b/i.test(displayTitle)) {
+    return displayTitle.replace(/^Kodeks\b/i, 'Kodeksu');
+  }
+  return displayTitle;
 }
 
 export function renderVisibleCitationPrefix(citation: VisibleCitationV1): string {
+  const title = polishCitationTitleForZgodnieZ(citation.displayTitle);
   if (citation.sourceOwnership === 'public_authority') {
     const art = citation.articleLabel ? ` ${citation.articleLabel}` : '';
-    return `Zgodnie z${art} ${citation.displayTitle}`.replace(/\s+/g, ' ').trim();
+    return `Zgodnie z${art} ${title}`.replace(/\s+/g, ' ').trim();
   }
   const section = citation.sectionLabel ? ` ${citation.sectionLabel}` : '';
-  return `Zgodnie z${section} ${citation.displayTitle}`.replace(/\s+/g, ' ').trim();
+  return `Zgodnie z${section} ${title}`.replace(/\s+/g, ' ').trim();
 }
 
 export function applyCitationPlaceholders(
@@ -448,20 +515,29 @@ export function applyCitationPlaceholders(
   plan: GroundedAnswerPlanV1,
   placeholders: string[],
 ): string {
-  let out = answer;
-  for (let i = 0; i < placeholders.length; i++) {
-    const ph = placeholders[i];
-    const citation = plan.visibleCitations[i];
-    if (!citation) continue;
+  let out = answer.trim();
+  const usedPlaceholders = placeholders.length
+    ? placeholders
+    : plan.visibleCitations.map((_, i) =>
+        plan.visibleCitations[i]?.sourceOwnership === 'public_authority' ? `[P${i + 1}]` : `[C${i + 1}]`,
+      );
+
+  for (let i = 0; i < plan.visibleCitations.length; i++) {
+    const citation = plan.visibleCitations[i]!;
+    const ph = usedPlaceholders[i] ?? (citation.sourceOwnership === 'public_authority' ? `[P${i + 1}]` : `[C${i + 1}]`);
     const prefix = renderVisibleCitationPrefix(citation);
-    if (out.includes(ph)) {
-      out = out.replace(ph, prefix);
-    } else if (!out.includes(citation.displayTitle)) {
-      // Deterministic prepend for client/public claims when generator omitted placeholder.
-      out = `${prefix}: ${out}`;
+    const idx = out.indexOf(ph);
+    if (idx >= 0) {
+      const before = out.slice(0, idx).trimEnd();
+      const after = out.slice(idx + ph.length);
+      const needsSep = before.length > 0 && !/[.!?]$/.test(before);
+      out = `${before}${needsSep ? '.' : ''} ${prefix}${after}`.trim();
+    } else if (!out.toLowerCase().includes(citation.displayTitle.toLowerCase()) && !out.includes(prefix)) {
+      const needsSep = out.length > 0 && !/[.!?]$/.test(out);
+      out = `${out}${needsSep ? '.' : ''} ${prefix}`.trim();
     }
   }
-  return out.replace(/\s+/g, ' ').trim();
+  return out.replace(/\s+/g, ' ').replace(/\s+([.!?])/g, '$1').trim();
 }
 
 export function finalizeTraceRenderFingerprint(trace: InternalAnswerTraceV1, answer: string, payload: unknown): InternalAnswerTraceV1 {

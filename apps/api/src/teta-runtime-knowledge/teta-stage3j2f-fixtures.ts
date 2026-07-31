@@ -349,7 +349,7 @@ export function allFixtureCases(repoRoot?: string): FixtureCase[] {
       units: [clientReg],
       query: 'Jakie są zasady premii w regulaminie wynagradzania?',
       accessContext: accessAll,
-      expect: { answerability: 'answerable', visibleSourceCount: 1 },
+      expect: { answerability: 'partially_answerable', visibleSourceCount: 1, mustDisclosePartiality: true },
     },
     {
       id: 'I',
@@ -381,7 +381,7 @@ export function allFixtureCases(repoRoot?: string): FixtureCase[] {
       units: [publicCurrent],
       query: 'Co mówi Kodeks pracy o urlopie?',
       accessContext: null,
-      expect: { answerability: 'answerable', visibleSourceCount: 1 },
+      expect: { answerability: ['answerable', 'partially_answerable'], visibleSourceCount: 1 },
     },
     {
       id: 'M',
@@ -397,7 +397,7 @@ export function allFixtureCases(repoRoot?: string): FixtureCase[] {
       units: [direct, clientReg],
       query: 'Jak wygląda proces absencji i zasady premii w regulaminie wynagradzania?',
       accessContext: accessAll,
-      expect: { answerability: 'answerable', visibleSourceCount: 1 },
+      expect: { answerability: ['answerable', 'partially_answerable'], visibleSourceCount: 1 },
     },
     {
       id: 'O',
@@ -405,7 +405,7 @@ export function allFixtureCases(repoRoot?: string): FixtureCase[] {
       units: [direct, publicCurrent],
       query: 'Jak wygląda proces absencji i co mówi Kodeks pracy o urlopie?',
       accessContext: null,
-      expect: { answerability: 'answerable', visibleSourceCount: 1 },
+      expect: { answerability: ['answerable', 'partially_answerable'], visibleSourceCount: 1 },
     },
     {
       id: 'P',

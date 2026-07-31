@@ -32,12 +32,13 @@ No other question is `approved_supported` without an approved record.
 
 ## Stage 3K
 
-**not_started** / readiness **not_ready** — `stage3j2f_runtime_model_smoke_not_completed`
+**not_started** / readiness **requires_separate_readiness_review** — evaluated separately after Stage 3J.2F.
 
-Next stage after 3J.2E is **Stage 3J.2F** (runtime retrieval & source visibility), not 3K.
-Stage 3J.2F core is at `ready_for_runtime_model_smoke` (`nextStage=3J.2F_runtime_model_smoke`).
+Stage 3J.2F is **completed_with_runtime_model_smoke** (`runtimeModelSmokeStatus=completed_and_human_accepted`).
 
-One registry-scoped approved record is not enough to start Stage 3K client knowledge pack.
+Next roadmap step: **stage3k_readiness_review**. Stage 3K = Generic Ad-hoc Query Model (not a client knowledge pack). Runtime retrieval / runtime knowledge packs are delivered by 3J.2F.
+
+One registry-scoped approved record is not enough to start Stage 3K.
 
 ## Scope preserved
 

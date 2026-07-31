@@ -32,7 +32,7 @@ Stage 3J.2B odczytuje wybrane źródła lokalnie, wydobywa strukturę/tekst/obra
 |---------|-----------|-------------------|
 | Vendor raw archive | Oryginały DOC/DOCX/PDF/JSON/frames/MP4 | exclude |
 | Portable extracted store | Tekst, struktura, provenance, wydobyte obrazy/frames | candidate (nie selected) |
-| Client knowledge pack | Później (Stage 3K+) | — |
+| Runtime knowledge packs | Stage **3J.2F** (Vendor runtime + audit separation) | runtime-safe claims only |
 
 `clientAssetsSelected=0` — selekcja dowodów nastąpi później.
 
@@ -162,4 +162,4 @@ concepts/processes/rules/RAG/Qdrant/embeddings/LLM/OCR/image analysis/Oracle/SQL
 
 - **Stage 3J.2C** — semantic knowledge extraction
 - **Stage 3J.2D** — correlation / dedup semantyczna
-- **Stage 3K** — client knowledge pack
+- **Stage 3K** — Generic Ad-hoc Query Model (readiness review after 3J.2F; not a client knowledge pack)

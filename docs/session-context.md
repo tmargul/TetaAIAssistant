@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-31** (Stage 3J.2F core committed — `ready_for_runtime_model_smoke`; nextStage=`3J.2F_runtime_model_smoke`; tests 302/302; Stage 3J.2E completed `5db7a9a`/`613f929`; Stage 3K not_started / not_ready — `stage3j2f_runtime_model_smoke_not_completed`)
+> Ostatnia aktualizacja: **2026-07-31** (Stage 3J.2F **completed_with_runtime_model_smoke**; smoke human-accepted PASS=7 / PASS_WITH_NOTE=3 / FAIL=0; nextStage=`stage3k_readiness_review`; Stage 3K `not_started` / `requires_separate_readiness_review`; tests 394/394)
 
 ---
 
@@ -182,8 +182,8 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2C — Canonical Topic Segmentation & Candidate Knowledge Extraction:** zakończony (`ee8a108`, ready_with_review)
 - [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`; feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests 812/812)
 - [x] **Stage 3J.2E — Review, Approval & Evidence Governance:** zakończony i wypchnięty (feature `5db7a9a`, human pilot docs `613f929`); decisions=7; approved registry=1; approved content=0; status `human_pilot_completed_with_limited_approval`
-- [x] **Stage 3J.2F — Runtime Knowledge Retrieval, Source Visibility & Answer Grounding:** committed; `ready_for_runtime_model_smoke`; nextStage=`3J.2F_runtime_model_smoke`; Vendor sources hidden; client/public citations controlled; approved + source-backed runtime; `realLocalModelCalls=0`
-- [ ] **Stage 3K:** nierozpoczęty (`not_started` / readiness `not_ready` — `stage3j2f_runtime_model_smoke_not_completed`)
+- [x] **Stage 3J.2F — Runtime Knowledge Retrieval:** **completed_with_runtime_model_smoke**; `runtimeModelSmokeStatus=completed_and_human_accepted`; PASS=7, PASS_WITH_NOTE=3, FAIL=0; smoke v1 calls=9, v2=4, total=13; nextStage=`stage3k_readiness_review`
+- [ ] **Stage 3K:** nierozpoczęty (`not_started` / readiness `requires_separate_readiness_review` — Generic Ad-hoc Query Model; **nie** client knowledge pack)
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
 
@@ -194,8 +194,8 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2C:** zakończony — commit `ee8a108`, ready_with_review
 - **Stage 3J.2D:** zakończony (`demonstrated_with_review`), feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests **812/812**, `HEAD=origin/main`
 - **Stage 3J.2E:** zakończony — feature `5db7a9a`; human pilot docs `613f929`; decisions=7 (approve=1, request_more_evidence=5, defer=1); approved registry records=1; approved content=0; Q21=`approved_supported`; Q07/Q08/Q14=`requires_more_evidence`; status `human_pilot_completed_with_limited_approval`
-- **Stage 3J.2F:** Runtime Knowledge Retrieval, Source Visibility & Answer Grounding — committed; status `ready_for_runtime_model_smoke`; nextStage=`3J.2F_runtime_model_smoke`; Vendor provenance internal-only / never client-visible; Vendor answers natural without citations; client docs cited when authorized; public authority cited exactly; unauthorized client knowledge unused; internal provenance for Vendor audit; approved + source-backed runtime; `realLocalModelCalls=0`
-- **Stage 3K:** nierozpoczęty (`not_started` / `not_ready` — `stage3j2f_runtime_model_smoke_not_completed`)
+- **Stage 3J.2F:** **completed_with_runtime_model_smoke**; human-accepted; runtime retrieval + Vendor-hidden policy + coverage/disclosure/legal containment; source-backed ≠ approved
+- **Stage 3K:** nierozpoczęty (`not_started` / `requires_separate_readiness_review`) — Generic Ad-hoc Query Model; nextStage=`stage3k_readiness_review`
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
@@ -206,8 +206,8 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2C:** candidate batches + sectioning + proposal lifecycle; exact collapse tylko w sekcji
 - **Stage 3J.2D:** relation decisions nie usuwają occurrences; applicability przed merge; conflicts bez auto-resolve; golden questions = coverage, nie final answers; bez modelu; approval w 3J.2E
 - **Stage 3J.2E:** Cursor nie zatwierdza realnej wiedzy; decyzje podejmuje człowiek; decision template ≠ decyzja; `apply-decision` wymaga `--confirm-human-decision`; approved record nie usuwa provenance
-- **Stage 3J.2F:** Vendor provenance internal-only; Vendor source names never client-visible; Vendor answer natural without citations; client documents may be cited when authorized; public authority sources should be cited exactly; unauthorized client knowledge is not used; internal provenance remains available for Vendor audit; source-backed ≠ approved
-- **Stage 3K:** nierozpoczęty (`not_ready` — `stage3j2f_runtime_model_smoke_not_completed`)
+- **Stage 3J.2F:** Vendor provenance internal-only; Vendor source names never client-visible; Vendor answer natural without citations; client documents may be cited when authorized; public authority sources should be cited exactly; unauthorized client knowledge is not used; internal provenance remains available for Vendor audit; source-backed ≠ approved; **completed_with_runtime_model_smoke**
+- **Stage 3K:** nierozpoczęty (`requires_separate_readiness_review`) — Generic Ad-hoc Query Model (not a client knowledge pack; runtime packs already in 3J.2F)
 
 ### Stage 3J.2B ustalenia (2026-07-29)
 
@@ -218,7 +218,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - MP4 wyłącznie do walidacji ffprobe (duration/frame count/transcript end)
 - Folder path = hint (registry), nie approved domain
 - Raw sources vendor-only; portable extracted store niezależny od dysku źródłowego
-- Finalny client knowledge pack — później (Stage 3K+)
+- Runtime knowledge packs — Stage **3J.2F** (nie „client knowledge pack w Stage 3K+”)
 - Stage 3J.2B: testy **235/235**; regresja 3J.2A **180**, 3J.1 **271**, 3J **161**; audit strict EXIT 0
 - Discovery reconciliation patch: wcześniejsze `realCatalogMovieBundles=1492` wynikało z błędnego traktowania technicznych wpisów frame; po patchu bundle = unikalne basename i metryka wynosi **51**
 - Core movie bundle = transcript JSON + frames directory; **MP4 opcjonalne** (walidacja duration) — brak MP4 nie oznacza partial core bundle
@@ -298,6 +298,35 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-07-31 — Stage 3J.2F FINALIZATION (human-accepted)
+
+- Human v2: PASS=7, PASS_WITH_NOTE=3 (SM04/SM09/SM10), FAIL=0; decisions lokalnie w `.local/.../model-smoke-v2/HUMAN-DECISIONS-v2.json` (v1 nie nadpisane)
+- Status: `completed_with_runtime_model_smoke`; `runtimeModelSmokeStatus=completed_and_human_accepted`
+- Smoke calls: v1=9, v2=4, total=13 (rozdzielone; latest ≠ cumulative)
+- nextStage=`stage3k_readiness_review`; Stage 3K=`not_started` / `requires_separate_readiness_review`
+- Stage 3K = Generic Ad-hoc Query Model (nie client knowledge pack)
+- Bez smoke v3 / bez kolejnych real model calls / bez startu 3K
+
+### 2026-07-31 — Stage 3J.2F QUALITY PATCH + smoke v2 (historical; human-accepted → see FINALIZATION)
+
+- Human v1: SM01 PASS; SM02 FAIL; SM03 PASS_WITH_NOTE; SM04 FAIL; SM05 PASS; SM06/07 PASS_WITH_NOTE; SM08–10 FAIL (saved in `.local/.../model-smoke/HUMAN-DECISIONS-v1.json`)
+- Patch: hidden_source_disclosure_request (deterministic, no model); Vendor paraphrase/verbatim; claim_query_coverage; SM09 downgrade; public_authority strictClaimContainment; fallback wording SM06/07; citation grammar
+- Smoke v2 cases: SM02,03,04,06,07,08,09,10 → model calls=4; SM02/SM08 modelCalled=NO
+- Local artifacts only: `.local/.../model-smoke-v2/` (nie w repo)
+
+### 2026-07-31 — Stage 3J.2F REAL RUNTIME MODEL SMOKE (awaiting human review)
+
+- Preflight: `HEAD=origin/main=b9cb946`; working tree then dirty with smoke adapter (uncommitted)
+- Local model: Ollama `http://127.0.0.1:11434`, chat=`qwen3` (also deepseek-r1, nomic-embed-text); no pull/install/remote
+- CLI: `knowledge-runtime:stage3j2f -- smoke-local-model --confirm-local-model-call --cases SM01..SM10`
+- realLocalModelCalls=**9** (SM01–04, SM08–10 + CHAT01–02); SM05–07 skipped (insufficient/blocked gate)
+- retries=0; timeouts=0; failures=0; leak/hidden-metadata/tech-terms=0; blocked/insufficient sent to model=0
+- Status: `runtime_model_smoke_executed_awaiting_human_review`; nextStage=`3J.2F_runtime_model_smoke_human_review`
+- Stage 3K: still `not_started` / `not_ready` (`stage3j2f_runtime_model_smoke_awaiting_human_review`)
+- Human review: `.local/teta-knowledge/stage3j2f/model-smoke/HUMAN-REVIEW.md` — all decisions **PENDING**
+- Tests: Stage 3J.2F **359/359**; regressions 3J.2E→3J OK; audit `--strict` EXIT 0
+- **Nie commitować** do czasu oceny odpowiedzi przez człowieka; nie startować 3K
 
 ### 2026-07-27 / 2026-07-28 — Stage 3I final (stan aktualny)
 

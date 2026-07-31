@@ -1,14 +1,15 @@
 {
   "stage": "3J.2F",
   "title": "Runtime Knowledge Retrieval, Source Visibility & Answer Grounding",
-  "status": "ready_for_runtime_model_smoke",
+  "status": "completed_with_runtime_model_smoke",
+  "runtimeModelSmokeStatus": "completed_and_human_accepted",
   "committed": true,
   "pushedToOriginMain": true,
   "local": false,
-  "nextStage": "3J.2F_runtime_model_smoke",
+  "nextStage": "stage3k_readiness_review",
   "stage3kStatus": "not_started",
-  "stage3kReadiness": "not_ready",
-  "stage3kReadinessReason": "stage3j2f_runtime_model_smoke_not_completed",
+  "stage3kReadiness": "requires_separate_readiness_review",
+  "stage3kReadinessReason": "awaiting_separate_stage3k_readiness_review",
   "carryForward": {
     "stage3j2e": {
       "status": "human_pilot_completed_with_limited_approval",
@@ -58,32 +59,82 @@
     "RF02": "insufficient_knowledge",
     "RF03": "blocked_by_scope",
     "RF04": "blocked_by_currentness",
-    "RF05": "source_backed_direct",
-    "realLocalModelCalls": 0
+    "RF05": "source_backed_direct"
+  },
+  "runtimeModelSmokeV1": {
+    "realLocalModelCalls": 9,
+    "humanDecisionsPreserved": true,
+    "note": "Historical first smoke; decisions retained locally only"
+  },
+  "runtimeModelSmokeV2": {
+    "realLocalModelCalls": 4,
+    "modelRetries": 0,
+    "modelTimeouts": 0,
+    "modelFailures": 0,
+    "answersHumanReviewed": 10,
+    "answersHumanPassed": 7,
+    "answersHumanPassedWithNote": 3,
+    "answersHumanFailed": 0,
+    "model": "qwen3",
+    "provider": "ollama"
+  },
+  "realLocalModelCallsTotal": 13,
+  "humanReviewAggregates": {
+    "PASS": 7,
+    "PASS_WITH_NOTE": 3,
+    "FAIL": 0,
+    "notes": {
+      "SM04": "partiality/paraphrase accepted; naturalness may improve later",
+      "SM09": "coverage downgrade accepted; must not claim concrete bonus rules from pointer-only claim",
+      "SM10": "legal containment accepted; prefer exact Kodeks pracy wording over broader labour-law phrasing"
+    }
+  },
+  "safetyAggregates": {
+    "hiddenSourceDisclosureModelCalls": 0,
+    "hiddenSourceDisclosureFalseNoAccessClaims": 0,
+    "hiddenSourceDisclosureLeaks": 0,
+    "vendorSourceBackedQuotedClaims": 0,
+    "vendorSourceBackedLongVerbatimMatches": 0,
+    "publicAuthorityAnswersWithUnsupportedExpansion": 0,
+    "publicAuthorityNewNumbersIntroduced": 0,
+    "publicAuthorityNewLegalReferencesIntroduced": 0,
+    "vendorLeakDetections": 0,
+    "blockedPlansSentToModel": 0,
+    "insufficientPlansSentToModel": 0,
+    "hiddenMetadataSentInModelRequest": 0,
+    "hiddenMetadataReturnedToClient": 0,
+    "internalTechnicalTermsExposed": 0
   },
   "verification": {
-    "tests": "302/302",
+    "tests": "394/394",
     "fixtures": "18/18",
     "strictErrors": [],
     "apiBuildExitCode": 0,
     "webBuildExitCode": 0,
     "regressions": {
-      "stage3j2e": "923/923",
-      "stage3j2d": "812/812",
-      "stage3j2c": "382/382",
-      "stage3j2b": "235/235",
-      "stage3j2a": "180/180",
-      "stage3j1": "271/271",
-      "stage3j": "161/161"
+      "stage3j2e": "ok",
+      "stage3j2d": "ok",
+      "stage3j2c": "ok",
+      "stage3j2b": "ok",
+      "stage3j2a": "ok",
+      "stage3j1": "ok",
+      "stage3j": "ok"
     }
   },
   "boundaries": {
-    "realLocalModelCalls": 0,
+    "remoteModelCalls": 0,
     "qdrantCalls": 0,
     "embeddingCalls": 0,
     "ocrCalls": 0,
     "oracleConnectionsOpened": 0,
     "sqlExecuted": 0,
     "stage3kStarted": 0
-  }
+  },
+  "clarifications": [
+    "Stage 3J.2F completion does not mean all Teta knowledge is approved",
+    "source-backed is not approved",
+    "Stage 3J.2E review backlog remains",
+    "Stage 3K is Generic Ad-hoc Query Model — not a client knowledge pack",
+    "Stage 3J.2F already provides runtime retrieval / runtime knowledge packs"
+  ]
 }
