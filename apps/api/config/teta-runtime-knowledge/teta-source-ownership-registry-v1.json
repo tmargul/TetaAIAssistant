@@ -1,0 +1,55 @@
+{
+  "contractVersion": "teta-source-ownership-registry-v1",
+  "note": "Explicit ownership only. Do not infer from path/extension/filename.",
+  "entries": [
+    {
+      "logicalSourceIdPattern": "synthetic:client:*",
+      "sourceOwnership": "client",
+      "clientDocumentClass": "normative",
+      "visibilityAudience": "all_client_users",
+      "sensitivity": "normal"
+    },
+    {
+      "logicalSourceIdPattern": "synthetic:client-analysis:*",
+      "sourceOwnership": "client",
+      "clientDocumentClass": "analysis",
+      "visibilityAudience": "hr_only",
+      "sensitivity": "internal"
+    },
+    {
+      "logicalSourceIdPattern": "synthetic:public:*",
+      "sourceOwnership": "public_authority",
+      "clientDocumentClass": null,
+      "visibilityAudience": null,
+      "sensitivity": null
+    },
+    {
+      "logicalSourceIdPattern": "registry:*",
+      "sourceOwnership": "vendor",
+      "clientDocumentClass": null,
+      "visibilityAudience": null,
+      "sensitivity": null
+    },
+    {
+      "logicalSourceIdPattern": "document:*",
+      "sourceOwnership": "vendor",
+      "clientDocumentClass": null,
+      "visibilityAudience": null,
+      "sensitivity": null
+    },
+    {
+      "logicalSourceIdPattern": "video:*",
+      "sourceOwnership": "vendor",
+      "clientDocumentClass": null,
+      "visibilityAudience": null,
+      "sensitivity": null
+    },
+    {
+      "logicalSourceIdPattern": "evidence:registry:*",
+      "sourceOwnership": "vendor",
+      "clientDocumentClass": null,
+      "visibilityAudience": null,
+      "sensitivity": null
+    }
+  ]
+}

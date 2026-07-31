@@ -1,0 +1,50 @@
+{
+  "contractVersion": "teta-runtime-source-policy-v1",
+  "defaultsByOwnership": {
+    "vendor": {
+      "sourceOwnership": "vendor",
+      "sourceVisibility": "hidden",
+      "citationPolicy": "forbidden",
+      "quotePolicy": "forbidden",
+      "distributionClass": "vendor_audit_only"
+    },
+    "client_normative": {
+      "sourceOwnership": "client",
+      "sourceVisibility": "cite_exact",
+      "citationPolicy": "required",
+      "quotePolicy": "allowed_if_authorized",
+      "distributionClass": "client_runtime_safe"
+    },
+    "client_analysis": {
+      "sourceOwnership": "client",
+      "sourceVisibility": "cite_when_relevant",
+      "citationPolicy": "optional",
+      "quotePolicy": "allowed_if_authorized",
+      "distributionClass": "client_runtime_safe"
+    },
+    "public_authority": {
+      "sourceOwnership": "public_authority",
+      "sourceVisibility": "cite_exact",
+      "citationPolicy": "required",
+      "quotePolicy": "allowed_if_current_and_relevant",
+      "distributionClass": "public_runtime"
+    }
+  },
+  "unknownOwnershipBlocksRuntimeUse": true,
+  "forbiddenVendorPhrases": [
+    "zgodnie z dokumentacją Vendora",
+    "w filmie szkoleniowym",
+    "w instrukcji producenta",
+    "w źródle",
+    "na stronie",
+    "w transkrypcji"
+  ],
+  "vendorSelfReferencePatterns": [
+    "w tym filmie",
+    "w poniższej instrukcji",
+    "na ekranie szkolenia",
+    "w tym dokumencie",
+    "w niniejszej instrukcji",
+    "w tym materiale"
+  ]
+}

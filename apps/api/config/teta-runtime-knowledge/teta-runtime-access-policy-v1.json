@@ -1,0 +1,9 @@
+{
+  "contractVersion": "teta-runtime-access-policy-v1",
+  "missingAccessContextBlocksClientKnowledge": true,
+  "missingAccessContextAllowsVendor": true,
+  "missingAccessContextAllowsPublicAuthority": true,
+  "crossTenantAlwaysBlocked": true,
+  "unauthorizedClientPolicy": "deny_retrieve_and_use",
+  "sensitivityRequiresExplicitRole": ["confidential", "restricted"]
+}

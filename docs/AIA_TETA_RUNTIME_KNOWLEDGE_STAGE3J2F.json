@@ -1,0 +1,89 @@
+{
+  "stage": "3J.2F",
+  "title": "Runtime Knowledge Retrieval, Source Visibility & Answer Grounding",
+  "status": "ready_for_runtime_model_smoke",
+  "committed": true,
+  "pushedToOriginMain": true,
+  "local": false,
+  "nextStage": "3J.2F_runtime_model_smoke",
+  "stage3kStatus": "not_started",
+  "stage3kReadiness": "not_ready",
+  "stage3kReadinessReason": "stage3j2f_runtime_model_smoke_not_completed",
+  "carryForward": {
+    "stage3j2e": {
+      "status": "human_pilot_completed_with_limited_approval",
+      "featureCommit": "5db7a9a69ef0b62d4f91a84be95a190b197657f2",
+      "humanPilotDocsCommit": "613f92904dd9923447379f5eb0ad425040750e24",
+      "realDecisionEvents": 7,
+      "realApprovedRegistryRecords": 1,
+      "realApprovedContentRecords": 0
+    }
+  },
+  "module": "apps/api/src/teta-runtime-knowledge",
+  "cli": "knowledge-runtime:stage3j2f",
+  "aggregates": {
+    "approvedCanonicalUnitsCreated": 1,
+    "sourceBackedCandidatesEvaluated": 800,
+    "sourceBackedDirectUnitsCreated": 261,
+    "sourceBackedPartialUnitsCreated": 69,
+    "sourceBackedCandidatesBlocked": 470,
+    "blockedByReason": {
+      "blocked_source_policy": 221,
+      "blocked_unknown_scope": 158,
+      "blocked_fragment_without_subject": 81,
+      "blocked_heading_only": 10
+    },
+    "runtimeUnitsByOwnership": {
+      "vendor": 331,
+      "client": 5,
+      "public_authority": 3
+    },
+    "runtimeUnitsByVisibility": {
+      "hidden": 331,
+      "cite_exact": 6,
+      "cite_when_relevant": 2
+    },
+    "vendorRuntimePacksCreated": 1,
+    "vendorAuditPacksCreated": 1,
+    "indexDocuments": 339,
+    "packMetadataLeakCounters": {
+      "vendorRuntimePackContainsHumanReadableSourceMetadata": 0,
+      "vendorRuntimePackContainsEvidenceIds": 0,
+      "vendorRuntimePackContainsRawExcerpts": 0,
+      "vendorAuditPackIncludedInClientDistribution": 0
+    }
+  },
+  "pilot": {
+    "RF01": "approved_canonical",
+    "RF02": "insufficient_knowledge",
+    "RF03": "blocked_by_scope",
+    "RF04": "blocked_by_currentness",
+    "RF05": "source_backed_direct",
+    "realLocalModelCalls": 0
+  },
+  "verification": {
+    "tests": "302/302",
+    "fixtures": "18/18",
+    "strictErrors": [],
+    "apiBuildExitCode": 0,
+    "webBuildExitCode": 0,
+    "regressions": {
+      "stage3j2e": "923/923",
+      "stage3j2d": "812/812",
+      "stage3j2c": "382/382",
+      "stage3j2b": "235/235",
+      "stage3j2a": "180/180",
+      "stage3j1": "271/271",
+      "stage3j": "161/161"
+    }
+  },
+  "boundaries": {
+    "realLocalModelCalls": 0,
+    "qdrantCalls": 0,
+    "embeddingCalls": 0,
+    "ocrCalls": 0,
+    "oracleConnectionsOpened": 0,
+    "sqlExecuted": 0,
+    "stage3kStarted": 0
+  }
+}

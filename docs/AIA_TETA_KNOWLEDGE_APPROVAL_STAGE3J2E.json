@@ -8,7 +8,7 @@
   "pushedToOriginMain": true,
   "stage3kStarted": false,
   "stage3kReadiness": "not_ready",
-  "stage3kReadinessReason": "insufficient_content_based_approved_knowledge",
+  "stage3kReadinessReason": "stage3j2f_runtime_model_smoke_not_completed",
   "input": "stage3j2d_acceptance_overlap_manifest_aggregates",
   "module": "apps/api/src/teta-knowledge-approval",
   "cli": "knowledge-approval:stage3j2e",
@@ -51,5 +51,5 @@
     "fixturePacks": "20/20",
     "strictErrors": []
   },
-  "nextStage": "3K_not_ready"
+  "nextStage": "3J.2F_runtime_model_smoke"
 }

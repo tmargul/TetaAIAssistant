@@ -1,0 +1,27 @@
+{
+  "contractVersion": "teta-runtime-risk-policy-v1",
+  "rules": {
+    "normal_product_knowledge": {
+      "allowApproved": true,
+      "allowSourceBacked": true
+    },
+    "configuration_sensitive": {
+      "allowDescribeStandardMechanism": true,
+      "forbidClaimClientHasExactConfigWithoutClientEvidence": true
+    },
+    "payroll_sensitive": {
+      "allowExplainGeneralMechanism": true,
+      "forbidGuaranteePayrollOutcome": true,
+      "forbidClaimClientConfigMatch": true
+    },
+    "legal_or_regulatory": {
+      "requirePublicAuthorityForCurrentLaw": true,
+      "requireCurrentnessVerified": true,
+      "requireExactCitation": true,
+      "forbidVendorOnlyCurrentLaw": true
+    },
+    "security_sensitive": {
+      "requireMatchingRole": true
+    }
+  }
+}

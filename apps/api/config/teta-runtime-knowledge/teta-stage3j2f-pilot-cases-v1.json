@@ -1,0 +1,60 @@
+{
+  "contractVersion": "teta-stage3j2f-pilot-cases-v1",
+  "cases": [
+    {
+      "id": "RF01",
+      "query": "Czym jest Teta ME?",
+      "productFamily": "teta_hr",
+      "productSurface": "teta_me",
+      "expectedAnswerability": "answerable",
+      "expectedKnowledgeMode": "approved_canonical",
+      "expectVisibleSources": 0,
+      "mustContain": ["Teta ME", "Teta HR", "wspólnej bazy"],
+      "mustNotContainVendorCitation": true
+    },
+    {
+      "id": "RF02",
+      "query": "Jak przebiega autoryzacja w Teta Edu?",
+      "productFamily": "teta_edu",
+      "productSurface": null,
+      "expectedAnswerability": ["partially_answerable", "insufficient"],
+      "expectedKnowledgeMode": ["source_backed_partial", "insufficient_knowledge"],
+      "expectVisibleSources": 0,
+      "mustDisclosePartialityIfPartial": true,
+      "mustNotContainVendorCitation": true,
+      "mustNotPresentFullAuthorizationProcedure": true
+    },
+    {
+      "id": "RF03",
+      "query": "Czym różni się autoryzacja w Teta HR od Teta Edu?",
+      "productFamily": null,
+      "productSurface": null,
+      "expectedAnswerability": ["insufficient", "blocked"],
+      "expectedKnowledgeMode": ["insufficient_knowledge", "blocked_by_scope"],
+      "expectVisibleSources": 0,
+      "mustNotTreatMissingHrEvidenceAsDifference": true,
+      "mustNotApproveAsVariants": true
+    },
+    {
+      "id": "RF04",
+      "query": "Czy Teta obsługuje aktualne wymagania KSeF?",
+      "productFamily": null,
+      "productSurface": null,
+      "domain": "ksef",
+      "expectedAnswerability": ["insufficient", "blocked"],
+      "expectedKnowledgeMode": ["blocked_by_currentness", "insufficient_knowledge"],
+      "expectVisibleSources": 0,
+      "mustNotClaimInstructionMissing": true,
+      "mustNotClaimKsefUnsupported": true
+    },
+    {
+      "id": "RF05",
+      "query": null,
+      "selection": "first_eligible_source_backed_direct_from_corpus",
+      "expectedKnowledgeMode": "source_backed_direct",
+      "expectVisibleSources": 0,
+      "expectNaturalAnswer": true,
+      "expectInternalTraceComplete": true
+    }
+  ]
+}

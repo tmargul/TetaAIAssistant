@@ -1,0 +1,22 @@
+{
+  "contractVersion": "teta-runtime-ranking-policy-v1",
+  "rankOrder": [
+    "approved_canonical_exact_subject",
+    "approved_canonical_lexical_alias",
+    "authorized_client_exact",
+    "verified_public_authority_exact",
+    "source_backed_direct",
+    "source_backed_partial",
+    "insufficient"
+  ],
+  "doNotMergeAcross": [
+    "productFamily",
+    "productSurface",
+    "version",
+    "temporalScope",
+    "clientScope",
+    "currentness",
+    "tenant"
+  ],
+  "moreEvidenceDoesNotIncreaseTruth": true
+}

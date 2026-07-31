@@ -32,9 +32,12 @@ No other question is `approved_supported` without an approved record.
 
 ## Stage 3K
 
-**not_ready** — `insufficient_content_based_approved_knowledge`
+**not_started** / readiness **not_ready** — `stage3j2f_runtime_model_smoke_not_completed`
 
-One registry-scoped approved record is not enough to start a runtime knowledge pack.
+Next stage after 3J.2E is **Stage 3J.2F** (runtime retrieval & source visibility), not 3K.
+Stage 3J.2F core is at `ready_for_runtime_model_smoke` (`nextStage=3J.2F_runtime_model_smoke`).
+
+One registry-scoped approved record is not enough to start Stage 3K client knowledge pack.
 
 ## Scope preserved
 

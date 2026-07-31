@@ -1,0 +1,38 @@
+{
+  "contractVersion": "teta-runtime-answer-presentation-v1",
+  "vendorOnly": {
+    "answerNaturally": true,
+    "mentionKnowledgeBaseByDefault": false,
+    "includeSourcesSection": false,
+    "includeSourceCards": false
+  },
+  "templates": {
+    "full": "{claims}",
+    "partial": "{claims} Nie mam wystarczających informacji, aby potwierdzić dalszą część procesu.",
+    "conflict": "Dostępne informacje są niespójne w tym zakresie. Potrzebne jest dodatkowe rozstrzygnięcie.",
+    "insufficient": "Nie mam wystarczających informacji, aby odpowiedzieć na to pytanie.",
+    "blocked": "Nie mogę bezpiecznie odpowiedzieć na to pytanie w obecnym zakresie wiedzy."
+  },
+  "modelContextAllows": [
+    "sanitizedClaim",
+    "applicability",
+    "knowledgeMode",
+    "completeness",
+    "requiredWarnings",
+    "visibleCitationPlaceholders"
+  ],
+  "modelContextForbids": [
+    "title",
+    "filename",
+    "path",
+    "movieName",
+    "trainingSeries",
+    "page",
+    "timestamp",
+    "sourceId",
+    "evidenceId",
+    "reviewerId",
+    "decisionRationale",
+    "rawAuditMetadata"
+  ]
+}
