@@ -1,0 +1,11 @@
+{
+  "version": "teta-aia-generic-semantic-reuse-policy-v1",
+  "defaultReuse": "deny",
+  "restrictedSubjects": ["occupational_health_examinations"],
+  "reusableRoles": [],
+  "notes": [
+    "Empty reusableRoles means Stage 3D approved bindings under restricted subjects are NOT generic-reusable.",
+    "approvalReuseStatus defaults to approved_scope_restricted when a BHP-scoped approved role is observed.",
+    "Only explicit reusableRoles entries may yield approved_reusable_role or approved_exact_scope for generic requests."
+  ]
+}

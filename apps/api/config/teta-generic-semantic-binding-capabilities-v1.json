@@ -1,0 +1,29 @@
+{
+  "version": "teta-aia-generic-semantic-binding-capabilities-v1",
+  "diagnosticRoles": [
+    "employee",
+    "current_position",
+    "position_name",
+    "organizational_unit",
+    "active_employment",
+    "health_examination"
+  ],
+  "missingSemantics": [
+    "position_history",
+    "employment_contract_list_subject",
+    "employment_date",
+    "compensation",
+    "location",
+    "department",
+    "negative_existence_health_examination",
+    "generic_employee_to_organizational_unit"
+  ],
+  "planningReadyRequires": [
+    "approved_exact_scope",
+    "approved_reusable_role"
+  ],
+  "notes": [
+    "Capability presence does not imply Oracle path discovery.",
+    "Stage 3K.2A is approved-only adapter with default deny reuse."
+  ]
+}
