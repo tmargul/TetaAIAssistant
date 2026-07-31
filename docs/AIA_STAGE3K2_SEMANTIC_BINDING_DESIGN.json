@@ -1,0 +1,221 @@
+{
+  "stage": "3K.2",
+  "title": "Semantic Binding Design / Readiness Review",
+  "reviewOnly": true,
+  "implementationStarted": false,
+  "committed": false,
+  "pushedToOriginMain": false,
+  "headAtReview": "0cc5c35363c0cf573d7f65a7271685e94c782e15",
+  "branch": "main",
+  "headEqualsOriginMain": true,
+  "workingTreeCleanAtStart": true,
+  "localTracked": false,
+  "oracleConnections": 0,
+  "sqlCompiled": 0,
+  "sqlExecuted": 0,
+  "localModelCalls": 0,
+  "remoteModelCalls": 0,
+  "qdrantCalls": 0,
+  "embeddingCalls": 0,
+  "stage3kStatus": "started_foundation",
+  "stage3k1Status": "accepted_offline_foundation",
+  "stage3k1Commit": "0cc5c35363c0cf573d7f65a7271685e94c782e15",
+  "stage3k2Status": "not_started",
+  "stage3k2Readiness": "ready_for_stage3k2_approved_binding_adapter",
+  "nextStage": "stage3k2a_semantic_binding_contract_and_approved_adapter",
+  "readyForLiveOracle": false,
+  "readyForGenericExecution": false,
+  "contractFamilyProposed": "teta-aia-generic-semantic-binding-v1",
+  "reuseBindingStatusEnum": "teta-aia-business-semantics-v1#SemanticBindingStatus",
+  "stage3d": {
+    "frameworkVerdict": "generic",
+    "contentVerdict": "BHP_only",
+    "effectiveForGenericAdhoc": "behaves_like_BHP_specific",
+    "subjects": 1,
+    "subjectId": "occupational_health_examinations",
+    "ontologyRoleKeys": 26,
+    "approvedBindings": 31,
+    "discoveredBindings": 0,
+    "ambiguousBindings": 0,
+    "unresolvedBindings": 0,
+    "staleBindings": 0,
+    "invalidBindings": 0,
+    "sources": 8,
+    "projections": 8,
+    "relations": 7,
+    "valuePaths": 3,
+    "temporals": 3,
+    "forms": 2,
+    "filterOnlySources": 1,
+    "filterOnlyRelations": 1,
+    "preferDisplayTextProjections": 3,
+    "graphSourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+    "ontologyVersion": "teta-aia-business-ontology-v1",
+    "bindingsVersion": "teta-aia-business-semantic-bindings-v1",
+    "languageVersion": "teta-aia-business-language-pl-v1"
+  },
+  "stage3a": {
+    "localSqliteIndex": "available",
+    "indexPath": ".local/AIA_CANONICAL_GRAPH_STAGE3A.sqlite",
+    "sourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+    "nodes": 864320,
+    "edges": 992993,
+    "conflictsUnresolved": 5432,
+    "displaysFromEdges": 834,
+    "bindsLookupEdges": 834,
+    "temporalFirstClassInGraph": false,
+    "publicHttpApi": false,
+    "offlineEvidenceApis": true
+  },
+  "proposedContracts": [
+    "TetaGenericSemanticBindingRequest",
+    "TetaGenericSemanticBindingResult",
+    "TetaSemanticElementBinding",
+    "TetaSemanticClarification",
+    "TetaSemanticEvidenceTrace",
+    "TetaSemanticBindingPolicy",
+    "TetaSemanticBindingCapabilityManifest"
+  ],
+  "readinessMatrix": {
+    "employee": "READY_WITH_RESTRICTIONS",
+    "employee_identity": "READY_WITH_RESTRICTIONS",
+    "position": "MISSING_CONCEPT",
+    "position_name": "READY_APPROVED",
+    "position_history": "MISSING_BINDING",
+    "organizational_unit": "READY_WITH_RESTRICTIONS",
+    "active_employment": "READY_WITH_RESTRICTIONS",
+    "employment_contract": "MISSING_CONCEPT",
+    "employment_date": "MISSING_BINDING",
+    "health_examination": "READY_WITH_RESTRICTIONS",
+    "health_examination_currentness": "AMBIGUOUS",
+    "department": "UNRESOLVED",
+    "compensation": "MISSING_CONCEPT",
+    "location": "MISSING_CONCEPT"
+  },
+  "fixtureOutcomes": {
+    "K1": "partially_bound_or_needs_clarification",
+    "K2": "needs_clarification_or_unresolved_relation",
+    "K3": "needs_clarification",
+    "K4": "unresolved_history",
+    "K5": "unresolved_or_partial_negative_existence",
+    "K6": "needs_clarification",
+    "K7": "unresolved",
+    "K8": "delegated",
+    "K9": "delegated",
+    "K10": "delegated",
+    "K11": "needs_clarification_or_unresolved",
+    "K12": "unresolved",
+    "N1_N5": "rejected"
+  },
+  "identityModel": {
+    "slots": [
+      "employee_identity.name",
+      "employee_identity.employee_number",
+      "employee_identity.internal_id"
+    ],
+    "leadingZeroPolicy": "preserve_as_string",
+    "noOracleColumnInPublicContract": true
+  },
+  "temporalModel": {
+    "reuseStage3dTypes": ["half_open_date_interval", "effective_on_date"],
+    "roleScoped": true,
+    "historyRole": "missing",
+    "publicRawDateColumns": false
+  },
+  "lookupDisplayModel": {
+    "reusePreferDisplayText": true,
+    "reuseValuePaths": true,
+    "stage3aDisplaysFromInternalEvidenceOnly": true
+  },
+  "relationSemantics": {
+    "reuse": ["row_producing", "filter_only", "preservesReportGrain"],
+    "extendClassification": [
+      "lookup_display",
+      "temporal_qualifier",
+      "supporting_only"
+    ],
+    "forbidShortestPathAutoSelect": true,
+    "forbidBhpOuPathAsGenericDefault": true
+  },
+  "grainModel": {
+    "reuseReportGrainConcept": true,
+    "examples": {
+      "K1": "employee",
+      "K4": "position_history_record",
+      "K5": "employee",
+      "K6": "organizational_unit_group",
+      "K7": "employment_contract",
+      "BHP_template": "health_examination"
+    }
+  },
+  "staleness": {
+    "dependencyVector": [
+      "graphSourceHash",
+      "ontologyVersion",
+      "semanticBindingsVersion",
+      "businessLanguageVersion",
+      "lexiconVersion",
+      "stage3k1ContractVersion",
+      "stage3k2BindingContractVersion"
+    ],
+    "fingerprints": [
+      "semanticBindingInputFingerprint",
+      "semanticBindingResultFingerprint"
+    ]
+  },
+  "runtimeVsAudit": {
+    "runtimeMinimal": true,
+    "auditTraceClientVisible": false
+  },
+  "canReuseStage3dDirectly": [
+    "SemanticBindingStatus",
+    "source_projection_relation_valuePath_temporal_shapes",
+    "filter_only_row_producing",
+    "value_path_display_rules",
+    "temporal_AST_types",
+    "stale_on_graphSourceHash_mismatch",
+    "role_resolver_machinery",
+    "graph_node_id_validation"
+  ],
+  "mustNotReuseGenerically": [
+    "occupational_health_examinations_as_default_grain",
+    "ou_via_current_position_as_generic_employee_ou",
+    "current_month_exam_validity_as_negative_existence",
+    "current_position_as_history",
+    "bhp_forms_as_help_routing",
+    "payroll_engines_as_compensation_semantics",
+    "knowledge_approval_as_schema_binding_approval",
+    "auto_promote_discovered_paths"
+  ],
+  "missingSemanticsPriority": [
+    "position_vs_current_position_vs_history",
+    "generic_employee_to_ou_relation",
+    "employment_contract_list_subject",
+    "employment_date_roles",
+    "health_exam_negative_existence_employee_grain",
+    "compensation_schema_roles",
+    "location_address_city_semantics",
+    "formal_employee_identity_slots",
+    "as_of_date_range_generic_content"
+  ],
+  "firstImplementationSlice": {
+    "id": "stage3k2a",
+    "title": "Generic Semantic Binding Contract + Approved Stage 3D Adapter",
+    "allowsNewOracleMappings": false,
+    "allowsAutoApproveDiscovered": false,
+    "allowsSql": false,
+    "allowsOracle": false,
+    "allowsModel": false,
+    "allowsChatRewire": false,
+    "executionEligible": false
+  },
+  "explicitlyNotToBuild": [
+    "QueryPlan Stage 3C",
+    "SQL generation/compilation/execution",
+    "live row authorization",
+    "chat runtime integration",
+    "new mass ontology content",
+    "auto-approve discovered bindings",
+    "Stage 3K.2 limited live pilot"
+  ]
+}
