@@ -1,0 +1,62 @@
+{
+  "version": "teta-aia-generic-query-routing-v1",
+  "productionOrchestratorRewired": false,
+  "precedence": [
+    "dedicated_deterministic_engine",
+    "payroll_engine",
+    "application_help",
+    "runtime_knowledge_3j2f",
+    "generic_readonly_query",
+    "clarification",
+    "unsupported"
+  ],
+  "dedicatedCapabilities": {
+    "occupational_health_examinations_current_month": {
+      "routeId": "occupational_health_examinations_current_month",
+      "requiresSubjectHints": ["health_examination"],
+      "requiresExpirySemantics": true,
+      "requiresPeriodResolution": true,
+      "note": "Wins only when expiry/ending semantics + report period match dedicated Stage 3G/3H capability — not mere BHP topic."
+    }
+  },
+  "rejectionClasses": {
+    "mutation": {
+      "phraseContainsAny": [
+        "usuń ",
+        "usun ",
+        "zmień ",
+        "zmien ",
+        "zaktualizuj ",
+        "uruchom procedurę",
+        "uruchom procedure",
+        "wywołaj procedurę",
+        "wywolaj procedure",
+        "call procedure"
+      ]
+    },
+    "raw_sql": {
+      "phraseContainsAny": [
+        "select * from",
+        "select ",
+        "insert into",
+        "update ",
+        "delete from"
+      ]
+    },
+    "prompt_injection": {
+      "phraseContainsAny": [
+        "zignoruj zasady",
+        "ignore previous",
+        "wygeneruj select",
+        "generate select",
+        "napisz sql"
+      ]
+    }
+  },
+  "adapters": {
+    "dedicated": "DedicatedRouteCapabilityAdapter",
+    "payroll": "PayrollRouteCapabilityAdapter",
+    "help": "HelpRouteCapabilityAdapter",
+    "knowledge": "KnowledgeRouteCapabilityAdapter"
+  }
+}

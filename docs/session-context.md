@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-31** (Stage 3K readiness review: **`ready_for_stage3k_foundation`**; Stage 3K still `not_started`; next=`stage3k1_generic_readonly_logical_request_model`; 3J.2F completed; HEAD `4276c2c`)
+> Ostatnia aktualizacja: **2026-07-31** (Stage 3K.1 `accepted_offline_foundation`; Stage 3K `started_foundation`; Stage 3K.2 `not_started`; next=`stage3k2_semantic_binding_design`; readiness review `fed2b00`)
 
 ---
 
@@ -182,8 +182,8 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2C — Canonical Topic Segmentation & Candidate Knowledge Extraction:** zakończony (`ee8a108`, ready_with_review)
 - [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`; feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests 812/812)
 - [x] **Stage 3J.2E — Review, Approval & Evidence Governance:** zakończony i wypchnięty (feature `5db7a9a`, human pilot docs `613f929`); decisions=7; approved registry=1; approved content=0; status `human_pilot_completed_with_limited_approval`
-- [x] **Stage 3J.2F — Runtime Knowledge Retrieval:** **completed_with_runtime_model_smoke**; `runtimeModelSmokeStatus=completed_and_human_accepted`; PASS=7, PASS_WITH_NOTE=3, FAIL=0; smoke v1 calls=9, v2=4, total=13; nextStage=`stage3k_readiness_review`
-- [ ] **Stage 3K:** nierozpoczęty (`not_started` / readiness `requires_separate_readiness_review` — Generic Ad-hoc Query Model; **nie** client knowledge pack)
+- [x] **Stage 3J.2F — Runtime Knowledge Retrieval:** **completed_with_runtime_model_smoke**; `runtimeModelSmokeStatus=completed_and_human_accepted`; PASS=7, PASS_WITH_NOTE=3, FAIL=0; smoke v1 calls=9, v2=4, total=13; readiness review=`fed2b00`
+- [ ] **Stage 3K:** `started_foundation` (readiness=`ready_for_stage3k_foundation` / `fed2b00`); Stage 3K.1 = `accepted_offline_foundation`; Stage 3K.2 = `not_started` (`nextStage=stage3k2_semantic_binding_design`)
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
 
@@ -195,7 +195,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2D:** zakończony (`demonstrated_with_review`), feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests **812/812**, `HEAD=origin/main`
 - **Stage 3J.2E:** zakończony — feature `5db7a9a`; human pilot docs `613f929`; decisions=7 (approve=1, request_more_evidence=5, defer=1); approved registry records=1; approved content=0; Q21=`approved_supported`; Q07/Q08/Q14=`requires_more_evidence`; status `human_pilot_completed_with_limited_approval`
 - **Stage 3J.2F:** **completed_with_runtime_model_smoke**; human-accepted; runtime retrieval + Vendor-hidden policy + coverage/disclosure/legal containment; source-backed ≠ approved
-- **Stage 3K:** nierozpoczęty (`not_started` / `requires_separate_readiness_review`) — Generic Ad-hoc Query Model; nextStage=`stage3k_readiness_review`
+- **Stage 3K:** `started_foundation` (readiness review `fed2b00` = `ready_for_stage3k_foundation`); Stage 3K.1 = `accepted_offline_foundation`; Stage 3K.2 = `not_started` — Generic Ad-hoc Query Model; **nie** client knowledge pack
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
@@ -207,7 +207,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2D:** relation decisions nie usuwają occurrences; applicability przed merge; conflicts bez auto-resolve; golden questions = coverage, nie final answers; bez modelu; approval w 3J.2E
 - **Stage 3J.2E:** Cursor nie zatwierdza realnej wiedzy; decyzje podejmuje człowiek; decision template ≠ decyzja; `apply-decision` wymaga `--confirm-human-decision`; approved record nie usuwa provenance
 - **Stage 3J.2F:** Vendor provenance internal-only; Vendor source names never client-visible; Vendor answer natural without citations; client documents may be cited when authorized; public authority sources should be cited exactly; unauthorized client knowledge is not used; internal provenance remains available for Vendor audit; source-backed ≠ approved; **completed_with_runtime_model_smoke**
-- **Stage 3K:** nierozpoczęty (`requires_separate_readiness_review`) — Generic Ad-hoc Query Model (not a client knowledge pack; runtime packs already in 3J.2F)
+- **Stage 3K:** `started_foundation` (readiness=`ready_for_stage3k_foundation`, commit `fed2b00`) — Generic Ad-hoc Query Model (not a client knowledge pack; runtime packs already in 3J.2F); Stage 3K.1 = `accepted_offline_foundation`; Stage 3K.2 = `not_started` (`nextStage=stage3k2_semantic_binding_design`)
 
 ### Stage 3J.2B ustalenia (2026-07-29)
 
@@ -299,8 +299,38 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 ## Notatki sesji
 
-### 2026-07-31 — Stage 3K READINESS REVIEW (no implementation)
+### 2026-07-31 — Stage 3K.1 FINALIZATION (accepted)
 
+- Human verdict: `PASS_WITH_FINALIZATION` → `humanReviewStatus=accepted`
+- previousHumanReviewVerdict=`NEEDS_CONTRACT_CLEANUP_BEFORE_COMMIT` (retained)
+- Stage 3K.1=`accepted_offline_foundation`; Stage 3K=`started_foundation`; Stage 3K.2=`not_started`
+- nextStage=`stage3k2_semantic_binding_design` (design only; **not** implemented)
+- executionEligibility fence: generic=`not_evaluated`, never `eligible` in 3K.1
+- Tests **240/240**; regressions **1382/1382**; `audit --strict` strictErrors=[]
+- readiness review commit: `fed2b001067f2c6e30641979543b8a94aaa6e55d`
+- Bez Oracle / live generic / Stage 3K.2 implementation
+
+### 2026-07-31 — Stage 3K.1 CONTRACT CLEANUP (awaiting re-review; NOT committed)
+
+- Human review: `NEEDS_CONTRACT_CLEANUP_BEFORE_COMMIT` — cleanup applied locally
+- Stage 3K: `started_foundation`; Stage 3K.1: `implemented_offline_contract_cleanup_awaiting_review`
+- Capability-based dedicated routing; adapters; interpretation×capability; delegated LR=null
+- Surfaces (`surfaceMeaningKey`) zamiast pseudo `conceptKey`; fingerprints input≠semantic
+- Tests **234/234**; fixtures K1–K12+N1–N5 + R1–R7; `audit --strict` strictErrors=[]
+- Regressions 3B/3C/3D/3E/3G/3H/3J/3J.1/3J.2F: **1382/1382**
+- **Nie commitować**; nie startować 3K.2; bez Oracle/SQL/model/Qdrant
+
+### 2026-07-31 — Stage 3K.1 LOCAL (awaiting review; NOT committed)
+
+- Review docs committed: `fed2b00` (`docs(aia): record Stage 3K readiness review`); readiness=`ready_for_stage3k_foundation`
+- Stage 3K: `started_foundation`; Stage 3K.1: initially `implemented_offline_awaiting_review` → superseded by contract cleanup above
+- Module `apps/api/src/teta-generic-query/` + CLI `generic-query:stage3k1`
+- Contract `teta-logical-readonly-request-v1`; intent `generic_readonly_query` (offline only; orchestrator not rewired)
+- **Nie commitować** Stage 3K.1 bez osobnej decyzji
+
+### 2026-07-31 — Stage 3K READINESS REVIEW (no implementation) — HISTORYCZNE / superseded by Stage 3K.1
+
+- [HISTORYCZNE] Poniższy stan `not_started` dotyczy momentu review readiness — supersedowany przez Stage 3K.1 (`accepted_offline_foundation`)
 - Artefakty: `docs/AIA_STAGE3K_READINESS_REVIEW.md` + `.json` (review-only; **nie commitowane** w tej iteracji)
 - HEAD wejściowy: `4276c2c` = origin/main; clean; `.local` not tracked
 - **stage3kReadiness = `ready_for_stage3k_foundation`** (nie `ready`, nie limited pilot)

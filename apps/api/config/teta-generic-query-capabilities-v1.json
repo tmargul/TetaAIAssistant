@@ -1,0 +1,30 @@
+{
+  "version": "teta-aia-generic-query-capabilities-v1",
+  "note": "Recognition in Stage 3K.1 does not imply Stage 3C/3E support.",
+  "capabilities": [
+    { "id": "projection", "status": "supported_now" },
+    { "id": "filter_equals", "status": "recognized_but_not_supported" },
+    { "id": "filter_comparison", "status": "recognized_but_not_supported" },
+    { "id": "filter_date_range", "status": "recognized_but_not_supported" },
+    { "id": "filter_null", "status": "recognized_but_not_supported" },
+    { "id": "filter_like", "status": "recognized_but_not_supported" },
+    { "id": "filter_in", "status": "recognized_but_not_supported" },
+    { "id": "boolean_and", "status": "recognized_but_not_supported" },
+    { "id": "boolean_or", "status": "recognized_but_not_supported" },
+    { "id": "current_record", "status": "supported_now" },
+    { "id": "history", "status": "recognized_but_not_supported" },
+    { "id": "as_of", "status": "recognized_but_not_supported" },
+    { "id": "ordering", "status": "recognized_but_not_supported" },
+    { "id": "top_n", "status": "recognized_but_not_supported" },
+    { "id": "distinct", "status": "recognized_but_not_supported" },
+    { "id": "aggregate_count", "status": "recognized_but_not_supported" },
+    { "id": "aggregate_sum", "status": "recognized_but_not_supported" },
+    { "id": "aggregate_avg", "status": "recognized_but_not_supported" },
+    { "id": "aggregate_min", "status": "recognized_but_not_supported" },
+    { "id": "aggregate_max", "status": "recognized_but_not_supported" },
+    { "id": "group_by", "status": "recognized_but_not_supported" },
+    { "id": "having", "status": "recognized_but_not_supported" },
+    { "id": "pagination", "status": "recognized_but_not_supported" },
+    { "id": "negative_existence", "status": "recognized_but_not_supported" }
+  ]
+}

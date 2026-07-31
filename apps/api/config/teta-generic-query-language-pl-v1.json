@@ -1,0 +1,262 @@
+{
+  "version": "teta-aia-generic-query-language-pl-v1",
+  "normalization": {
+    "lowercase": true,
+    "collapseWhitespace": true
+  },
+  "requestShapeMarkers": {
+    "show": ["pokaż", "pokaz", "wypisz", "podaj", "wyświetl", "wyswietl"],
+    "which": ["jakie", "jaki", "jaka", "które", "ktore"],
+    "count": ["ile", "ilu"],
+    "each": ["każdym", "kazdym", "każdej", "kazdej", "każdy", "kazdy"],
+    "most": ["najwięcej", "najwiecej"],
+    "newest": ["najnowszych", "najnowsze", "najnowszy"],
+    "current": ["aktualne", "aktualny", "aktualna", "aktualnych", "bieżące", "biezace"],
+    "history": ["historia", "historię", "historie", "historyczne"],
+    "from": ["od"],
+    "to": ["do"],
+    "after": ["po"],
+    "before": ["przed"],
+    "without": ["bez"],
+    "with": ["z"]
+  },
+  "canonicalConcepts": [
+    {
+      "conceptKey": "employee",
+      "labels": ["pracownik", "pracownicy", "pracowników", "pracownikow", "osoba zatrudniona", "zatrudniony"],
+      "kind": "entity",
+      "resolutionStatus": "resolved",
+      "refs": ["teta-hr-language-pl-v1:employee", "teta-business-ontology:employee"]
+    },
+    {
+      "conceptKey": "position",
+      "labels": ["stanowisko", "stanowiska", "stanowisk"],
+      "kind": "attribute_or_entity",
+      "resolutionStatus": "resolved",
+      "refs": ["teta-business-ontology:current_position", "teta-business-language-pl-v1"]
+    },
+    {
+      "conceptKey": "organizational_unit",
+      "labels": ["jednostka organizacyjna", "jednostki organizacyjnej", "jednostce organizacyjnej"],
+      "kind": "entity",
+      "resolutionStatus": "resolved",
+      "refs": ["teta-business-ontology:organizational_unit"]
+    },
+    {
+      "conceptKey": "employment_contract",
+      "labels": ["umowa", "umowy", "umów", "umow", "umowa o pracę", "umowy o pracę"],
+      "kind": "entity",
+      "resolutionStatus": "unresolved",
+      "refs": ["teta-hr-language-pl-v1:recognized_but_not_routed", "stage3k1:contracts-not-list-subject"]
+    },
+    {
+      "conceptKey": "active_employment",
+      "labels": ["aktywnych", "aktywny", "zatrudnionych", "zatrudnieni"],
+      "kind": "qualifier",
+      "resolutionStatus": "ambiguous",
+      "refs": ["teta-business-ontology:active_employment"]
+    },
+    {
+      "conceptKey": "health_examination",
+      "labels": ["badania bhp", "badań bhp", "badanie bhp"],
+      "kind": "entity",
+      "resolutionStatus": "resolved",
+      "refs": ["teta-business-ontology:health_examination"]
+    }
+  ],
+  "surfaceMeanings": [
+    {
+      "surfaceMeaningKey": "department",
+      "labels": ["dział", "dzial", "dziale", "działu", "dzialu"],
+      "resolutionStatus": "ambiguous",
+      "classification": "NEW_RESOLUTION_SURFACE",
+      "refs": ["stage3k1:surface-department"]
+    },
+    {
+      "surfaceMeaningKey": "compensation",
+      "labels": ["wynagrodzenie", "pensja", "płaca", "placa"],
+      "resolutionStatus": "ambiguous",
+      "classification": "NEW_RESOLUTION_SURFACE",
+      "refs": ["stage3k1:surface-compensation"]
+    },
+    {
+      "surfaceMeaningKey": "location",
+      "labels": ["warszawy", "warszawa", "z warszawy", "w warszawie"],
+      "resolutionStatus": "unresolved",
+      "classification": "NEW_RESOLUTION_SURFACE",
+      "refs": ["stage3k1:surface-location"]
+    },
+    {
+      "surfaceMeaningKey": "employment_date",
+      "labels": ["data zatrudnienia", "zatrudnionych po", "zatrudnieni po", "zatrudniony po"],
+      "resolutionStatus": "ambiguous",
+      "classification": "NEW_RESOLUTION_SURFACE",
+      "refs": ["stage3k1:surface-employment-date"]
+    },
+    {
+      "surfaceMeaningKey": "employee_identity",
+      "labels": [],
+      "resolutionStatus": "resolved",
+      "classification": "NEW_RESOLUTION_SURFACE",
+      "refs": ["stage3k1:surface-employee-identity"]
+    }
+  ],
+  "identityPatterns": [
+    {
+      "id": "person_name_after_pracownik",
+      "description": "Capture person name after pracownik",
+      "regex": "pracownik(?:a)?\\s+([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+(?:\\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+)+)"
+    },
+    {
+      "id": "person_name_genitive",
+      "description": "Capture genitive person name",
+      "regex": "\\b([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+)\\s+([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+(?:ego|iej|iego)?)\\b"
+    },
+    {
+      "id": "employee_number_leading_zero",
+      "description": "Preserve leading-zero identifiers as strings",
+      "regex": "\\b(0\\d{2,})\\b"
+    }
+  ],
+  "temporalPatterns": [
+    {
+      "kind": "current",
+      "markers": ["aktualne", "aktualny", "aktualna", "aktualnych", "bieżące", "biezace"]
+    },
+    {
+      "kind": "history",
+      "markers": ["historia", "historię", "historie", "historycznych"]
+    },
+    {
+      "kind": "as_of",
+      "regex": "na\\s+(\\d{1,2})\\s+(stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|pazdziernika|października|listopada|grudnia)\\s+(\\d{4})"
+    },
+    {
+      "kind": "date_range",
+      "regex": "od\\s+(\\w+)\\s+do\\s+(\\w+)"
+    },
+    {
+      "kind": "after_date",
+      "regex": "po\\s+(\\d{1,2})\\s+(stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|października|pazdziernika|listopada|grudnia)\\s+(\\d{4})"
+    },
+    {
+      "kind": "iso_after",
+      "regex": "po\\s+(\\d{4}-\\d{2}-\\d{2})"
+    }
+  ],
+  "dateMonthNamesRef": "teta-report-period-language-pl-v1#monthNames",
+  "aggregationPatterns": {
+    "count": ["ile", "ilu"],
+    "groupByEach": ["w każdym", "w kazdym", "w każdej", "w kazdej", "każdym", "kazdym"]
+  },
+  "topNPatterns": [
+    { "regex": "(\\d+)\\s+najnowsz" },
+    { "regex": "najnowszych\\s+(\\d+)" }
+  ],
+  "negativeExistenceMarkers": ["bez"],
+  "knowledgeProcessMarkers": [
+    "jak przebiega",
+    "jak działa",
+    "jak dziala",
+    "czym jest",
+    "co to jest"
+  ],
+  "relationValuePatterns": [
+    {
+      "surfaceMeaningKey": "organizational_unit",
+      "regex": "jednostce organizacyjnej\\s+([A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9_-]+)"
+    }
+  ],
+  "dedicatedExpirySemanticsMarkers": [
+    "kończą się",
+    "koncza sie",
+    "kończących się",
+    "konczacych sie",
+    "kończące się",
+    "konczace sie",
+    "wygasają",
+    "wygasaja",
+    "tracą ważność",
+    "traca waznosc"
+  ],
+  "clarificationCatalog": {
+    "department": {
+      "subject": "dział",
+      "question": "Co masz na myśli przez „dział”?",
+      "candidates": [
+        {
+          "candidateId": "ou",
+          "conceptKey": "organizational_unit",
+          "label": "jednostka organizacyjna",
+          "meaning": "Jednostka struktury organizacyjnej pracownika",
+          "reason": "Known approved concept in Stage 3D ontology / business language",
+          "evidenceStatus": "known_in_config",
+          "bindingStatus": "known_config",
+          "selectionDoesNotAuthorizeExecution": false
+        },
+        {
+          "candidateId": "other_department_meaning",
+          "conceptKey": null,
+          "label": "inne znaczenie działu",
+          "meaning": "Alternative meaning of „dział” without an approved Stage 3K.1 binding",
+          "reason": "No verified semantic evidence for a second canonical binding in this stage",
+          "evidenceStatus": "unresolved_alternative",
+          "bindingStatus": "unbound",
+          "selectionDoesNotAuthorizeExecution": true
+        }
+      ]
+    },
+    "employment_date": {
+      "subject": "data zatrudnienia",
+      "question": "Którą datę zatrudnienia masz na myśli?",
+      "candidates": [
+        {
+          "candidateId": "first_employment",
+          "conceptKey": null,
+          "label": "pierwsza data zatrudnienia",
+          "meaning": "First employment date — not uniquely bound",
+          "reason": "Ambiguous employment-date semantics",
+          "evidenceStatus": "unbound_meaning",
+          "bindingStatus": "unbound",
+          "selectionDoesNotAuthorizeExecution": true
+        },
+        {
+          "candidateId": "current_contract_start",
+          "conceptKey": null,
+          "label": "początek bieżącej umowy",
+          "meaning": "Current contract start — unbound clarification vocabulary (not a Stage 3K.1 canonical date binding)",
+          "reason": "Clarification option only; selectionDoesNotAuthorizeExecution",
+          "evidenceStatus": "unbound_meaning",
+          "bindingStatus": "unbound",
+          "selectionDoesNotAuthorizeExecution": true
+        }
+      ]
+    },
+    "compensation": {
+      "subject": "wynagrodzenie",
+      "question": "Które znaczenie wynagrodzenia masz na myśli?",
+      "candidates": [
+        {
+          "candidateId": "base_salary",
+          "conceptKey": null,
+          "label": "wynagrodzenie zasadnicze",
+          "meaning": "Base salary meaning — unbound clarification vocabulary",
+          "reason": "Helpful unbound meaning; does not authorize execution",
+          "evidenceStatus": "unbound_meaning",
+          "bindingStatus": "unbound",
+          "selectionDoesNotAuthorizeExecution": true
+        },
+        {
+          "candidateId": "payroll_result",
+          "conceptKey": null,
+          "label": "wynik naliczenia / lista",
+          "meaning": "Payroll result meaning — unbound clarification vocabulary",
+          "reason": "Helpful unbound meaning; does not authorize execution",
+          "evidenceStatus": "unbound_meaning",
+          "bindingStatus": "unbound",
+          "selectionDoesNotAuthorizeExecution": true
+        }
+      ]
+    }
+  }
+}
