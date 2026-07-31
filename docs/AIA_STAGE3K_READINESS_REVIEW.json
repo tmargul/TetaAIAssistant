@@ -1,0 +1,398 @@
+{
+  "stage": "3K",
+  "title": "Generic Ad-hoc Query Model — Readiness Review",
+  "reviewOnly": true,
+  "implementationStarted": false,
+  "committed": false,
+  "pushedToOriginMain": false,
+  "headAtReview": "4276c2c487a78655abc1ac6a77374c7c3d381b2f",
+  "branch": "main",
+  "headEqualsOriginMain": true,
+  "workingTreeCleanAtStart": true,
+  "localTracked": false,
+  "stage3j2fStatus": "completed_with_runtime_model_smoke",
+  "runtimeModelSmokeStatus": "completed_and_human_accepted",
+  "priorStage3kStatus": "not_started",
+  "priorStage3kReadiness": "requires_separate_readiness_review",
+  "stage3kReadiness": "ready_for_stage3k_foundation",
+  "stage3kStatus": "not_started",
+  "nextStage": "stage3k1_generic_readonly_logical_request_model",
+  "definition": {
+    "stage3kIs": "Generic Ad-hoc Query Model",
+    "stage3kIsNot": [
+      "client knowledge pack",
+      "RAG",
+      "documentation Q&A",
+      "approval knowledge",
+      "source-backed answer generation"
+    ],
+    "knowledgeApprovalGateSoleDecision": false,
+    "knowledgeApprovalNote": "Stage 3J.2E approved registry=1 / approved content=0 does not by itself decide Stage 3K readiness; 3K depends primarily on graph, semantics, plan expressiveness, compiler, executor, authorization, ambiguity.",
+    "interpretiveNotes": [
+      "Q8 READY_WITH_RESTRICTIONS is BHP-bound cross-domain report path only; not generic cross-domain readiness",
+      "Q9 READY_WITH_RESTRICTIONS is dedicated Stage 3I/3J payroll engines; not generic payroll query readiness",
+      "Stage 3J.2E approved content count is not a standalone Stage 3K gate",
+      "Business authorization NOT_READY blocks production generic live querying but not offline Stage 3K.1 foundation"
+    ]
+  },
+  "targetArchitecture": {
+    "forbidden": "user question → LLM writes arbitrary SQL → execute",
+    "required": "user language → intent/result shape → entity+attribute resolution → graph-backed semantic evidence → deterministic logical query plan → deterministic SQL compiler → readonly executor",
+    "llmMay": [
+      "interpret language",
+      "rank candidates",
+      "produce structured proposal"
+    ],
+    "llmMustNever": [
+      "invent Oracle objects",
+      "invent joins",
+      "directly execute generated SQL",
+      "bypass graph evidence",
+      "auto-resolve true ambiguity",
+      "bypass access/safety policy"
+    ],
+    "canReuseWithoutReplacing3Ato3H": true
+  },
+  "dependencyVerdicts": {
+    "A_canonicalGraph": "READY",
+    "B_polishLanguageResolution": "PARTIAL",
+    "C_businessSemantics": "PARTIAL",
+    "D_genericQueryPlanExpressiveness": "PARTIAL",
+    "E_deterministicCompiler": "PARTIAL",
+    "F_readOnlyExecutor": "READY",
+    "G_chatRouting": "PARTIAL",
+    "H_businessAuthorization": "NOT_READY",
+    "I_ambiguityHandling": "PARTIAL",
+    "J_temporalCurrentnessSemantics": "PARTIAL"
+  },
+  "semanticCoverage": {
+    "verdict": "B_framework_generic_content_mostly_BHP",
+    "effectiveForGenericAdhoc": "behaves_like_BHP_specific",
+    "ontologySubjects": 1,
+    "ontologySubjectId": "occupational_health_examinations",
+    "approvedBindings": 31,
+    "bindingBreakdown": {
+      "sources": 8,
+      "projections": 8,
+      "relations": 7,
+      "valuePaths": 3,
+      "temporals": 3,
+      "forms": 2
+    },
+    "unresolvedRolesInSubject": 0,
+    "ambiguousRolesInSubject": 0,
+    "stage3cGateIntent": "build_employee_report",
+    "stage3cGateSubject": "occupational_health_examinations",
+    "rolesOfInterest": {
+      "pracownik": "bound_as_employee",
+      "osoba": "lexicon_alias_only_not_ontology_role",
+      "zatrudnienie": "bound_as_active_employment_filter_only",
+      "umowa": "bound_as_active_employment_filter_only_not_list_subject",
+      "stanowisko": "bound_as_current_position",
+      "jednostka_organizacyjna": "bound",
+      "firma": "missing",
+      "dzial": "missing",
+      "badanie_bhp": "bound",
+      "nieobecnosc": "missing",
+      "urlop": "missing",
+      "wynagrodzenie": "missing_in_3D_payroll_is_3I_3J",
+      "skladnik_placowy": "missing_in_3D",
+      "wyksztalcenie": "missing",
+      "adres": "missing",
+      "staz": "missing",
+      "przelozony": "missing"
+    }
+  },
+  "stage3j1Lexicon": {
+    "approvedDomainsRegistered": 11,
+    "approvedLexiconConcepts": 4,
+    "approvedHrConcepts": 2,
+    "approvedPayrollConcepts": 2,
+    "helpAutoApprovedConcepts": 0,
+    "note": "Lexicon framework multi-domain; approved routing surface is thin"
+  },
+  "plannerCapabilityMatrix": {
+    "contract": "teta-aia-readonly-query-plan-v1",
+    "sources": {
+      "single": "SUPPORTED",
+      "multiple": "SUPPORTED",
+      "rowProducing": "SUPPORTED",
+      "filterOnly": "SUPPORTED",
+      "arbitraryGraphBackedJoinTree": "PARTIAL",
+      "optionalLeft": "SUPPORTED",
+      "existence": "SUPPORTED"
+    },
+    "projection": {
+      "rawField": "SUPPORTED",
+      "lookupDisplay": "SUPPORTED",
+      "aliases": "PARTIAL",
+      "computedExpression": "NOT_SUPPORTED",
+      "multiple": "SUPPORTED",
+      "duplicateLogicalFields": "NOT_SUPPORTED"
+    },
+    "filters": {
+      "equality": "PARTIAL",
+      "inequality": "NOT_SUPPORTED",
+      "comparisons": "PARTIAL",
+      "betweenDateRange": "SUPPORTED",
+      "in": "NOT_SUPPORTED",
+      "notIn": "NOT_SUPPORTED",
+      "isNull": "PARTIAL",
+      "isNotNull": "PARTIAL",
+      "likeContainsPrefix": "NOT_SUPPORTED",
+      "caseInsensitive": "NOT_SUPPORTED",
+      "and": "PARTIAL",
+      "or": "NOT_SUPPORTED",
+      "nestedBoolean": "NOT_SUPPORTED",
+      "relativeDates": "SUPPORTED",
+      "effectiveDateCurrentRecord": "SUPPORTED",
+      "userLiteralsAsBinds": "PARTIAL"
+    },
+    "resultOperations": {
+      "orderBy": "SUPPORTED",
+      "ascDesc": "SUPPORTED",
+      "nullsFirstLast": "NOT_SUPPORTED",
+      "limitFetch": "PARTIAL",
+      "topN": "PARTIAL",
+      "distinct": "NOT_SUPPORTED",
+      "count": "NOT_SUPPORTED",
+      "sum": "NOT_SUPPORTED",
+      "avg": "NOT_SUPPORTED",
+      "min": "NOT_SUPPORTED",
+      "max": "NOT_SUPPORTED",
+      "groupBy": "NOT_SUPPORTED",
+      "having": "NOT_SUPPORTED",
+      "pagination": "NOT_SUPPORTED"
+    }
+  },
+  "compilerCapabilityMatrix": {
+    "contract": "teta-aia-oracle-select-v1",
+    "notes": "Capability usable end-to-end only if plannerSupport AND compilerSupport are SUPPORTED (or PARTIAL with proven path). Aggregates/DISTINCT/GROUP BY absent in both.",
+    "highlights": {
+      "halfOpenDateInterval": {
+        "plannerSupport": "SUPPORTED",
+        "compilerSupport": "SUPPORTED",
+        "executorCompatible": true,
+        "tested": true,
+        "liveProven": true
+      },
+      "rollingDateInterval": {
+        "plannerSupport": "PARTIAL",
+        "compilerSupport": "SUPPORTED",
+        "executorCompatible": true,
+        "tested": true,
+        "liveProven": false
+      },
+      "explicitLocalDateInterval": {
+        "plannerSupport": "PARTIAL",
+        "compilerSupport": "SUPPORTED",
+        "executorCompatible": true,
+        "tested": true,
+        "liveProven": true
+      },
+      "effectiveOnDate": {
+        "plannerSupport": "SUPPORTED",
+        "compilerSupport": "SUPPORTED",
+        "executorCompatible": true,
+        "tested": true,
+        "liveProven": true
+      },
+      "existenceCorrelated": {
+        "plannerSupport": "SUPPORTED",
+        "compilerSupport": "SUPPORTED",
+        "executorCompatible": true,
+        "tested": true,
+        "liveProven": true
+      },
+      "userLiteralEquals": {
+        "plannerSupport": "NOT_SUPPORTED",
+        "compilerSupport": "SUPPORTED",
+        "executorCompatible": true,
+        "tested": true,
+        "liveProven": false
+      },
+      "aggregatesGroupByHavingDistinctPagination": {
+        "plannerSupport": "NOT_SUPPORTED",
+        "compilerSupport": "NOT_SUPPORTED",
+        "executorCompatible": false,
+        "tested": false,
+        "liveProven": false
+      }
+    }
+  },
+  "graphPathTests": {
+    "A_employee_current_position_name": {
+      "pathCountRaw": "high",
+      "ambiguity": true,
+      "currentHistoricalExplicit": true,
+      "lookupDisplay": true,
+      "deterministicWithoutBinding": false,
+      "deterministicWithApprovedBinding": true,
+      "note": "Approved BHP path only"
+    },
+    "B_employee_organizational_unit": {
+      "ambiguity": true,
+      "deterministicWithoutBinding": false,
+      "deterministicWithApprovedBinding": true
+    },
+    "C_employee_position_history": {
+      "ontologyRole": false,
+      "ambiguity": true,
+      "deterministicChoice": false
+    },
+    "D_employee_bhp_exam_type": {
+      "deterministicWithApprovedBinding": true,
+      "readyForSubject": true
+    },
+    "E_employee_education": {
+      "ontologyRole": false,
+      "graphEvidence": "partial",
+      "deterministicChoice": false
+    },
+    "F_employee_address": {
+      "ontologyRole": false,
+      "graphEvidence": "broken_or_mislinked",
+      "deterministicChoice": false
+    },
+    "G_employee_contracts": {
+      "boundAsFilterOnly": true,
+      "listSubject": false
+    },
+    "H_employee_payroll_components": {
+      "graphEvidence": true,
+      "wiredInto3D": false,
+      "dedicatedEngine": "3I_3J"
+    }
+  },
+  "languagePhraseTests": {
+    "aktualne stanowisko": "resolved",
+    "nazwa stanowiska": "resolved",
+    "dział pracownika": "ambiguous",
+    "jednostka organizacyjna": "resolved",
+    "data zatrudnienia": "ambiguous",
+    "pracownicy zatrudnieni po 1 stycznia": "ambiguous",
+    "pracownicy bez aktualnych badań": "multi_domain",
+    "historia stanowisk": "ambiguous",
+    "ile osób pracuje w każdym dziale": "unresolved",
+    "pracownicy z Warszawy": "unresolved",
+    "pokaż 10 najnowszych umów": "unresolved"
+  },
+  "queryClassReadiness": {
+    "Q1_lookup": "READY_WITH_RESTRICTIONS",
+    "Q2_list": "NOT_READY",
+    "Q3_multi_filter": "NOT_READY",
+    "Q4_history": "NOT_READY",
+    "Q5_negative_existence": "READY_WITH_RESTRICTIONS",
+    "Q6_aggregate": "NOT_READY",
+    "Q7_topN": "NOT_READY",
+    "Q8_cross_domain": "READY_WITH_RESTRICTIONS",
+    "Q9_payroll": "READY_WITH_RESTRICTIONS",
+    "Q10_ambiguous": "READY_WITH_RESTRICTIONS"
+  },
+  "authorization": {
+    "technicalSqlSafety": "READY",
+    "businessDataAuthorization": "NOT_READY",
+    "safetyPolicyAuthorizationStatus": "deferred",
+    "assumedOracleUser": "TETA_ADMIN",
+    "filtersApplied": false,
+    "productionGenericQueryBlocker": true,
+    "blockerReason": "No formal company/employee/OU row-level access model for logged-in user; technical SELECT safety is not business authorization."
+  },
+  "legacyLlmSqlPaths": [
+    {
+      "id": "P4",
+      "path": "oracle-agent LLM loop answer.sql → OracleQueryService",
+      "chatWired": true,
+      "bypassesDeterministicPlanner": true
+    },
+    {
+      "id": "P5",
+      "path": "LLM tool call_procedure → SchemaProcedureService",
+      "chatWired": true,
+      "defaultEnabled": false,
+      "note": "PL/SQL execute path; allowlist gated"
+    },
+    {
+      "id": "P1",
+      "path": "canonical 3B→3C→3E→3F",
+      "llmAuthorsSql": false,
+      "chatWired": true
+    },
+    {
+      "id": "P2_P3",
+      "path": "plugin/metadata deterministic SQL",
+      "llmAuthorsSql": false,
+      "chatWired": true
+    }
+  ],
+  "routing": {
+    "actualOrder": [
+      "payroll_3J",
+      "canonical_BHP_3G_3H",
+      "classifyAgentQueryRoute",
+      "application_help_or_llm_only_or_clarify",
+      "plugin_fast_path",
+      "LLM_SQL_loop"
+    ],
+    "proposedOrder": [
+      "dedicated_deterministic_engine",
+      "payroll_engine",
+      "Help_application_knowledge",
+      "Stage_3J2F_knowledge",
+      "generic_readonly_query",
+      "safe_unsupported_or_clarification"
+    ],
+    "stage3j2fWiredIntoChat": false,
+    "genericReadonlyIntentExists": false,
+    "genericFallbackBypassesPlanner": true
+  },
+  "recommendedFirstSlice": {
+    "id": "stage3k1",
+    "title": "Generic Read-Only Query Intent & Logical Request Model",
+    "oracleExecution": false,
+    "sqlGeneration": false,
+    "llmSql": false,
+    "goal": "Establish offline contract mapping user language to a structured logical readonly request, with ambiguity/clarification and routing precedence, without compiling or executing SQL.",
+    "inputs": [
+      "user utterance (PL)",
+      "Stage 3B evidence/intent framework",
+      "Stage 3J.1 lexicon packs",
+      "Stage 3D ontology/bindings shapes",
+      "Stage 3A graph resolve statuses (offline)"
+    ],
+    "outputs": [
+      "generic_readonly_query intent proposal (types+catalog only)",
+      "LogicalReadonlyRequest model",
+      "needs_clarification candidate meanings",
+      "routing precedence contract vs dedicated/payroll/knowledge/legacy",
+      "fixture acceptance cases (offline)"
+    ],
+    "nonGoals": [
+      "Oracle connect/execute",
+      "SQL compile",
+      "LLM→SQL",
+      "opening 3C/3E/3F gates to all subjects",
+      "all query classes Q1–Q10",
+      "business row authorization implementation",
+      "replacing 3A–3H"
+    ]
+  },
+  "explicitlyNotToBuildYet": [
+    "live Oracle generic pilot",
+    "arbitrary LLM SQL",
+    "aggregates/GROUP BY compiler slice",
+    "full multi-subject ontology population",
+    "row-level authorization product",
+    "address/education generic subjects without graph repair",
+    "deleting legacy agent without migration fence"
+  ],
+  "boundariesObserved": {
+    "oracleConnections": 0,
+    "sqlExecuted": 0,
+    "localModelCalls": 0,
+    "remoteModelCalls": 0,
+    "qdrantCalls": 0,
+    "embeddingCalls": 0,
+    "productionCodeChanged": false
+  }
+}

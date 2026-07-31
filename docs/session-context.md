@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-31** (Stage 3J.2F **completed_with_runtime_model_smoke**; smoke human-accepted PASS=7 / PASS_WITH_NOTE=3 / FAIL=0; nextStage=`stage3k_readiness_review`; Stage 3K `not_started` / `requires_separate_readiness_review`; tests 394/394)
+> Ostatnia aktualizacja: **2026-07-31** (Stage 3K readiness review: **`ready_for_stage3k_foundation`**; Stage 3K still `not_started`; next=`stage3k1_generic_readonly_logical_request_model`; 3J.2F completed; HEAD `4276c2c`)
 
 ---
 
@@ -298,6 +298,19 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-07-31 — Stage 3K READINESS REVIEW (no implementation)
+
+- Artefakty: `docs/AIA_STAGE3K_READINESS_REVIEW.md` + `.json` (review-only; **nie commitowane** w tej iteracji)
+- HEAD wejściowy: `4276c2c` = origin/main; clean; `.local` not tracked
+- **stage3kReadiness = `ready_for_stage3k_foundation`** (nie `ready`, nie limited pilot)
+- Stage 3K nadal `not_started`; 3K ≠ knowledge/RAG/client pack (to już 3J.2F)
+- Semantyka 3D: framework OK, content **1 subject BHP / 31 bindings** → verdict B (efektywnie BHP-specific dla ad-hoc)
+- Plan 3C / compiler 3E: brak aggregates/GROUP BY/OR/IN/LIKE/pagination; BHP gate
+- Business auth: **deferred** → blocker produkcji generic; technical SQL safety OK
+- Legacy: LLM `answer.sql` omija planner; 3J.2F nie wpięte w chat
+- Pierwszy slice (rekomendacja): **3K.1 Logical Request Model + intent** — bez Oracle/SQL/LLM SQL
+- Bez Oracle / modelu / Qdrant / embeddings / commit w tej sesji review
 
 ### 2026-07-31 — Stage 3J.2F FINALIZATION (human-accepted)
 
