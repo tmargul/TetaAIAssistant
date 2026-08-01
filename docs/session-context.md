@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-07-31** (Stage 3K.2A `accepted_offline_approved_binding_adapter`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2B=`not_started`; next=`stage3k2b_semantic_coverage_design`; Stage 3K=`started_foundation`)
+> Ostatnia aktualizacja: **2026-08-01** (Stage 3K.2B design `PASS_WITH_SMALL_DESIGN_CORRECTIONS` → readiness=`ready_for_candidate_discovery_contract`; Stage 3K.2B still `not_started`; next=`stage3k2b1_candidate_discovery_and_review_pack`)
 
 ---
 
@@ -183,7 +183,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`; feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests 812/812)
 - [x] **Stage 3J.2E — Review, Approval & Evidence Governance:** zakończony i wypchnięty (feature `5db7a9a`, human pilot docs `613f929`); decisions=7; approved registry=1; approved content=0; status `human_pilot_completed_with_limited_approval`
 - [x] **Stage 3J.2F — Runtime Knowledge Retrieval:** **completed_with_runtime_model_smoke**; `runtimeModelSmokeStatus=completed_and_human_accepted`; PASS=7, PASS_WITH_NOTE=3, FAIL=0; smoke v1 calls=9, v2=4, total=13; readiness review=`fed2b00`
-- [ ] **Stage 3K:** `started_foundation`; Stage 3K.1 = `accepted_offline_foundation` (`0cc5c35`); Stage 3K.2 = `started_approved_binding_adapter`; Stage 3K.2A = `accepted_offline_approved_binding_adapter`; Stage 3K.2B = `not_started` (next design=`stage3k2b_semantic_coverage_design`)
+- [ ] **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter` (`602acde`); Stage 3K.2B=`not_started` (design readiness=`ready_for_candidate_discovery_contract`; next=`stage3k2b1_…`)
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
 
@@ -298,6 +298,23 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-08-01 — Stage 3K.2B DESIGN CORRECTIONS (PASS_WITH_SMALL_DESIGN_CORRECTIONS)
+
+- Single activation authority: Stage 3D = substance; reuse policy pointer = sole generic runtime activation (no `genericReuseAllowed` dual flag)
+- Fingerprint split: candidateFingerprint vs candidateEvaluationFingerprint vs decisionFingerprint
+- `approved_stage3d_role` = priorApprovalReference only (not independent evidence family)
+- First pilot narrowed to P1–P4 (employee, employee_number, current_position, position_name); active_employment excluded; P3 remains NEEDS_MORE_EVIDENCE on cardinality
+- readiness still `ready_for_candidate_discovery_contract`; Stage 3K.2B `not_started`
+
+### 2026-07-31 — Stage 3K.2B SEMANTIC COVERAGE DESIGN (review-only; NOT committed; NOT implemented)
+
+- Artefakty: `docs/AIA_STAGE3K2B_SEMANTIC_COVERAGE_DESIGN.md` + `.json`
+- HEAD baseline: `602acde` = origin/main; design changes local only; `.local` not tracked
+- **stage3k2bReadiness = `ready_for_candidate_discovery_contract`**
+- Stage 3K.2B nadal `not_started`; next=`stage3k2b1_candidate_discovery_and_review_pack`
+- Registry: OPTION A (extend Stage 3D + reuse policy pointers); 31 BHP bindings stay; deny policy unchanged
+- Offline graph only; no Oracle/SQL/model/Qdrant/implementation
 
 ### 2026-07-31 — Stage 3K.2A FINALIZATION (accepted)
 

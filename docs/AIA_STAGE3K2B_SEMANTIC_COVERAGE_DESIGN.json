@@ -1,0 +1,89 @@
+{
+  "stage": "3K.2B",
+  "title": "Generic Semantic Coverage Design / Readiness Review",
+  "humanReviewVerdict": "PASS_WITH_SMALL_DESIGN_CORRECTIONS",
+  "stage3k2bStatus": "not_started",
+  "stage3k2bReadiness": "ready_for_candidate_discovery_contract",
+  "stage3k2Status": "started_approved_binding_adapter",
+  "stage3k2aStatus": "accepted_offline_approved_binding_adapter",
+  "stage3kStatus": "started_foundation",
+  "implemented": false,
+  "productionReusePolicyUnchanged": true,
+  "defaultReuse": "deny",
+  "reusableRoles": [],
+  "planningEligibleBindings": 0,
+  "registryArchitectureRecommendation": "OPTION_A_extend_stage3d_plus_reuse_policy_pointers",
+  "singleActivationAuthority": {
+    "substanceSourceOfTruth": "stage3d",
+    "genericRuntimeActivationSourceOfTruth": "reuse_policy_pointer",
+    "genericReuseAllowedPersistedOnBinding": false,
+    "invariant": "approvedBindingWithoutReusePolicyPointer_not_generic_reusable"
+  },
+  "fingerprintSplit": {
+    "candidateFingerprint": "semantic_identity_only",
+    "candidateEvaluationFingerprint": "candidateFingerprint_plus_candidateEvaluationPolicyVersion",
+    "decisionFingerprint": "candidate_plus_evaluation_plus_actor_decision_reason_policy_dependency"
+  },
+  "provenance": {
+    "independentTechnicalFamilies": [
+      "oracle_metadata_ddl",
+      "application_form_control",
+      "dataset_gateway_join",
+      "sqljoin_reconstruction",
+      "lookup_display_path",
+      "help_semantic_mapping",
+      "package_dependency"
+    ],
+    "approvedStage3dRoleIs": "priorApprovalReference_not_independent_family",
+    "priorApprovalReferencesCountedAsIndependentEvidence": 0,
+    "duplicateObservationFamiliesCountedAsIndependent": 0
+  },
+  "stage3dMigrationRecommendation": "A_stay_plus_C_reuse_governance_via_policy",
+  "existingBhpApprovedBindings": 31,
+  "subjects": 1,
+  "graphSourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+  "graphIndexOfflineAvailable": true,
+  "graphCandidatesInspectedApprox": 12,
+  "coverageTargets": 23,
+  "firstPilotCandidates": [
+    "employee",
+    "employee_identity.employee_number",
+    "current_position",
+    "position_name"
+  ],
+  "firstPilotNotes": {
+    "current_position": "NEEDS_MORE_EVIDENCE_until_cardinality_tie_policy",
+    "active_employment": "excluded_from_first_pilot_not_k1_dependency"
+  },
+  "k1Feasibility": {
+    "employee": "READY",
+    "employeeIdentity": "MISSING_OR_PARTIAL",
+    "currentPositionRelation": "PARTIAL",
+    "currentTemporal": "READY",
+    "positionDisplay": "READY",
+    "overall": "feasible_pilot_after_human_review_not_planning_ready",
+    "preferredIdentityFacet": "employee_number"
+  },
+  "nextImplementationSlice": "stage3k2b1_candidate_discovery_and_review_pack",
+  "nextStage": "stage3k2b1_candidate_discovery_and_review_pack",
+  "notToBuildYet": [
+    "reusableRoles_activation",
+    "production_stage3d_mutation",
+    "sql",
+    "oracle",
+    "stage3c_plans",
+    "llm",
+    "qdrant",
+    "embeddings",
+    "auto_approval",
+    "ou_payroll_location_pilots",
+    "limited_human_binding_pilot"
+  ],
+  "oracleConnections": 0,
+  "sqlCompiled": 0,
+  "sqlExecuted": 0,
+  "localModelCalls": 0,
+  "remoteModelCalls": 0,
+  "qdrantCalls": 0,
+  "embeddingCalls": 0
+}
