@@ -1,0 +1,107 @@
+{
+  "policyId": "teta-generic-semantic-candidate-evaluation",
+  "policyVersion": "teta-aia-generic-semantic-candidate-evaluation-policy-v1",
+  "description": "Versioned human-review evidence thresholds for Stage 3K.2B1 candidates. Not an approval/reuse activation policy.",
+  "allowedEvidenceStrengths": [
+    "verified_exact",
+    "verified_composed",
+    "supported_by_multiple_independent_edges",
+    "supported_by_single_authoritative_mapping",
+    "inferred",
+    "heuristic",
+    "conflicting",
+    "stale"
+  ],
+  "strengthsSufficientForDecision": [
+    "verified_exact",
+    "verified_composed",
+    "supported_by_multiple_independent_edges",
+    "supported_by_single_authoritative_mapping"
+  ],
+  "strengthsBlockedForDecision": ["inferred", "heuristic", "conflicting", "stale"],
+  "riskClasses": {
+    "normal_reference": {
+      "minimumIndependentObservationGroups": 1,
+      "requiredSemanticEvidenceClasses": ["concept"],
+      "requireScopeAssessmentWhenExpanding": true,
+      "requireGrainAssessment": true,
+      "requireBusinessMeaningBeyondDdl": true
+    },
+    "temporal_sensitive": {
+      "minimumIndependentObservationGroups": 1,
+      "requiredSemanticEvidenceClasses": ["concept", "relation", "temporal"],
+      "requireScopeAssessmentWhenExpanding": true,
+      "requireGrainAssessment": true,
+      "requireCardinalityResolved": true,
+      "requireBusinessMeaningBeyondDdl": true
+    },
+    "configuration_sensitive": {
+      "minimumIndependentObservationGroups": 2,
+      "requiredSemanticEvidenceClasses": ["concept", "relation"],
+      "requireScopeAssessmentWhenExpanding": true,
+      "requireGrainAssessment": true,
+      "requireBusinessMeaningBeyondDdl": true
+    },
+    "payroll_sensitive": {
+      "minimumIndependentObservationGroups": 2,
+      "requiredSemanticEvidenceClasses": ["concept", "value"],
+      "requireScopeAssessmentWhenExpanding": true,
+      "requireGrainAssessment": true,
+      "requireBusinessMeaningBeyondDdl": true
+    },
+    "identity_sensitive": {
+      "minimumIndependentObservationGroups": 1,
+      "requiredSemanticEvidenceClasses": ["identity", "concept"],
+      "requireIdentityFacetSeparation": true,
+      "requireExactIdentitySemanticEvidence": true,
+      "ddlAloneDoesNotProveIdentityMeaning": true,
+      "requireScopeAssessmentWhenExpanding": true,
+      "requireGrainAssessment": true,
+      "requireEmployeeGrainDependency": true
+    }
+  },
+  "scopeExpansion": {
+    "unprovenBlocksSufficientForDecision": true,
+    "partialBlocksSufficientForDecision": true,
+    "conflictingBlocksSufficientForDecision": true,
+    "requireExplicitAssessment": true,
+    "unprovenMustAppearInKnownGaps": true
+  },
+  "grainCardinality": {
+    "unresolvedCardinalityBlocksSufficientForDecision": true,
+    "requireExplicitGrainAssessment": true,
+    "employeeRequiresEmployeeGrainEvidence": true,
+    "identityRequiresEmployeeGrainDependency": true,
+    "displayRequiresPositionGrainOrIdentityLink": true
+  },
+  "ambiguityConflict": {
+    "anyAmbiguityBlocksSufficientForDecision": true,
+    "anyConflictBlocksSufficientForDecision": true
+  },
+  "stale": {
+    "graphHashMismatchYieldsStale": true,
+    "staleBlocksApproval": true
+  },
+  "sufficientForDecision": {
+    "allBlockingRulesMustPass": true,
+    "readyForApprovalDecisionRequiresSufficientEvidence": true,
+    "neverMeansApprovedOrReusable": true
+  },
+  "needsMoreEvidence": {
+    "whenAnyBlockingRuleFails": true,
+    "whenInferredOrHeuristicOnly": true,
+    "whenScopeUnprovenOnExpansion": true,
+    "whenCardinalityUnresolved": true,
+    "whenIdentitySemanticMissing": true,
+    "whenGrainAssessmentMissingOrFailed": true
+  },
+  "dependencies": {
+    "inactiveRequiredDependencyBlocksReuseActivation": true,
+    "pendingDependencyMustAppearInKnownGaps": true,
+    "planningComposableRequiresSatisfiedDependencies": true
+  },
+  "notes": [
+    "oracle_metadata_ddl may prove technical type/object/mapping integrity but not business meaning, generic scope, or identity meaning alone.",
+    "Family count alone never decides sufficient_for_decision."
+  ]
+}

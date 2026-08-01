@@ -1,0 +1,88 @@
+{
+  "stage": "3K.2B1",
+  "title": "Generic Semantic Binding Candidate Discovery and Human Review Pack",
+  "stage3kStatus": "started_foundation",
+  "stage3k2Status": "started_approved_binding_adapter",
+  "stage3k2aStatus": "accepted_offline_approved_binding_adapter",
+  "stage3k2bStatus": "started_candidate_discovery",
+  "stage3k2b1Status": "accepted_offline_candidate_discovery_and_review_pack",
+  "stage3k2b2Status": "not_started",
+  "stage3k2bReadiness": "ready_for_candidate_discovery_contract",
+  "nextStage": "stage3k2b2_semantic_evidence_gap_resolution_design",
+  "designCommit": "d930538",
+  "accepted": true,
+  "acceptedInfrastructure": "candidate_discovery_and_review_pack",
+  "committed": true,
+  "previousHumanReviewVerdict": "PATCH_BEFORE_COMMIT",
+  "humanReviewVerdict": "PASS_WITH_FINALIZATION",
+  "humanReviewStatus": "accepted",
+  "realCandidateApprovalStatus": "no_candidates_approved",
+  "realCandidateDecisionsSummary": {
+    "P1": "request_more_evidence",
+    "P2": "request_more_evidence",
+    "P3": "request_more_evidence",
+    "P4": "request_more_evidence"
+  },
+  "evaluationPolicyConfig": "apps/api/config/teta-generic-semantic-candidate-evaluation-policy-v1.json",
+  "reviewPacksV2": ".local/stage3k2b1/review-packs-v2/",
+  "pilotTargets": ["P1", "P2", "P3", "P4"],
+  "excludedFromPilot": ["active_employment", "OU", "history", "payroll", "location", "negative_exam_existence"],
+  "realEvidenceGaps": {
+    "P1": [
+      "scope_expansion_unproven",
+      "employee_grain_partial",
+      "generic_teta_hr_applicability_not_proven"
+    ],
+    "P2": [
+      "p1_dependency_pending",
+      "bounded_teta_hr_scope_unproven",
+      "identity_semantic_evidence_incomplete"
+    ],
+    "P3": [
+      "scope_expansion_unproven",
+      "cardinality_unresolved",
+      "multiple_current_records_unresolved",
+      "tie_ambiguity_policy_unresolved"
+    ],
+    "P4": [
+      "generic_position_source_dependency_pending",
+      "scope_expansion_unproven",
+      "display_lookup_supported_but_generic_activation_blocked"
+    ]
+  },
+  "contracts": {
+    "coverageTarget": "teta-aia-semantic-coverage-target-v1",
+    "candidate": "teta-aia-generic-semantic-candidate-v1",
+    "decision": "teta-aia-generic-semantic-binding-decision-v1",
+    "evaluationPolicy": "teta-aia-generic-semantic-candidate-evaluation-policy-v1"
+  },
+  "fingerprintSplit": true,
+  "priorApprovalReferencesCountedAsIndependentEvidence": 0,
+  "duplicateObservationFamiliesCountedAsIndependent": 0,
+  "realDecisionEventsApplied": 0,
+  "realApprovedGenericBindingsCreated": 0,
+  "stage3dProductionBindingsAdded": 0,
+  "stage3dProductionBindingsModified": 0,
+  "reusePolicyEntriesAdded": 0,
+  "reusePolicyEntriesModified": 0,
+  "planningEligibleBindingsAdded": 0,
+  "productionReusePolicy": {
+    "defaultReuse": "deny",
+    "reusableRoles": []
+  },
+  "oracleConnections": 0,
+  "sqlCompiled": 0,
+  "sqlExecuted": 0,
+  "stage3cPlansBuilt": 0,
+  "localModelCalls": 0,
+  "remoteModelCalls": 0,
+  "qdrantCalls": 0,
+  "embeddingCalls": 0,
+  "cli": "generic-semantic:stage3k2b1",
+  "module": "apps/api/src/teta-generic-semantic-candidate",
+  "localArtifacts": [
+    ".local/stage3k2b1/review-packs/",
+    ".local/stage3k2b1/review-packs-v2/",
+    ".local/stage3k2b1/evidence/"
+  ]
+}

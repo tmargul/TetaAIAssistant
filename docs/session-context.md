@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-08-01** (Stage 3K.2B design `PASS_WITH_SMALL_DESIGN_CORRECTIONS` → readiness=`ready_for_candidate_discovery_contract`; Stage 3K.2B still `not_started`; next=`stage3k2b1_candidate_discovery_and_review_pack`)
+> Ostatnia aktualizacja: **2026-08-01** (Stage 3K.2B1 `PASS_WITH_FINALIZATION` / `accepted_offline_candidate_discovery_and_review_pack`; Stage 3K.2B=`started_candidate_discovery`; next=`stage3k2b2_semantic_evidence_gap_resolution_design` **not_started**; P1–P4 = request_more_evidence, **no production approval**)
 
 ---
 
@@ -183,7 +183,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`; feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests 812/812)
 - [x] **Stage 3J.2E — Review, Approval & Evidence Governance:** zakończony i wypchnięty (feature `5db7a9a`, human pilot docs `613f929`); decisions=7; approved registry=1; approved content=0; status `human_pilot_completed_with_limited_approval`
 - [x] **Stage 3J.2F — Runtime Knowledge Retrieval:** **completed_with_runtime_model_smoke**; `runtimeModelSmokeStatus=completed_and_human_accepted`; PASS=7, PASS_WITH_NOTE=3, FAIL=0; smoke v1 calls=9, v2=4, total=13; readiness review=`fed2b00`
-- [ ] **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter` (`602acde`); Stage 3K.2B=`not_started` (design readiness=`ready_for_candidate_discovery_contract`; next=`stage3k2b1_…`)
+- [ ] **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter` (`602acde`); Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack` (`PASS_WITH_FINALIZATION`); Stage 3K.2B2=`not_started` (next=`stage3k2b2_semantic_evidence_gap_resolution_design`)
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
 
@@ -195,7 +195,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2D:** zakończony (`demonstrated_with_review`), feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests **812/812**, `HEAD=origin/main`
 - **Stage 3J.2E:** zakończony — feature `5db7a9a`; human pilot docs `613f929`; decisions=7 (approve=1, request_more_evidence=5, defer=1); approved registry records=1; approved content=0; Q21=`approved_supported`; Q07/Q08/Q14=`requires_more_evidence`; status `human_pilot_completed_with_limited_approval`
 - **Stage 3J.2F:** **completed_with_runtime_model_smoke**; human-accepted; runtime retrieval + Vendor-hidden policy + coverage/disclosure/legal containment; source-backed ≠ approved
-- **Stage 3K:** `started_foundation`; Stage 3K.1 = `accepted_offline_foundation` (`0cc5c35`); Stage 3K.2 = `started_approved_binding_adapter`; Stage 3K.2A = `accepted_offline_approved_binding_adapter`; Stage 3K.2B = `not_started` — Generic Ad-hoc Query Model; **nie** client knowledge pack
+- **Stage 3K:** `started_foundation`; Stage 3K.1 = `accepted_offline_foundation` (`0cc5c35`); Stage 3K.2 = `started_approved_binding_adapter`; Stage 3K.2A = `accepted_offline_approved_binding_adapter`; Stage 3K.2B = `started_candidate_discovery`; Stage 3K.2B1 = `accepted_offline_candidate_discovery_and_review_pack`; Stage 3K.2B2 = `not_started` — Generic Ad-hoc Query Model; **nie** client knowledge pack
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
@@ -207,7 +207,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2D:** relation decisions nie usuwają occurrences; applicability przed merge; conflicts bez auto-resolve; golden questions = coverage, nie final answers; bez modelu; approval w 3J.2E
 - **Stage 3J.2E:** Cursor nie zatwierdza realnej wiedzy; decyzje podejmuje człowiek; decision template ≠ decyzja; `apply-decision` wymaga `--confirm-human-decision`; approved record nie usuwa provenance
 - **Stage 3J.2F:** Vendor provenance internal-only; Vendor source names never client-visible; Vendor answer natural without citations; client documents may be cited when authorized; public authority sources should be cited exactly; unauthorized client knowledge is not used; internal provenance remains available for Vendor audit; source-backed ≠ approved; **completed_with_runtime_model_smoke**
-- **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter`; Stage 3K.2B=`not_started` (next=`stage3k2b_semantic_coverage_design`)
+- **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter`; Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack`; next=`stage3k2b2_semantic_evidence_gap_resolution_design` (**not_started**; **nie** approval application)
 
 ### Stage 3J.2B ustalenia (2026-07-29)
 
@@ -299,13 +299,40 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 ## Notatki sesji
 
-### 2026-08-01 — Stage 3K.2B DESIGN CORRECTIONS (PASS_WITH_SMALL_DESIGN_CORRECTIONS)
+### 2026-08-01 — Stage 3K.2B1 PASS_WITH_FINALIZATION (accepted infrastructure; no P1–P4 approval)
+
+- Verdict: `PASS_WITH_FINALIZATION` / `humanReviewStatus=accepted`
+- Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack`
+- Stage 3K.2B=`started_candidate_discovery` (not completed); Stage 3K.2B2=`not_started`
+- nextStage=`stage3k2b2_semantic_evidence_gap_resolution_design` (**not** approval_application)
+- Human infra decisions (not applied to Stage 3D / reuse policy): P1–P4 = `request_more_evidence`
+- realCandidateApprovalStatus=`no_candidates_approved`; realDecisionEventsApplied=0
+- Production: `defaultReuse=deny`, `reusableRoles=[]`, planningEligible=0
+
+### 2026-08-01 — Stage 3K.2B1 PATCH_BEFORE_COMMIT (review pack cleanup; NOT committed)
+
+- External verdict: `PATCH_BEFORE_COMMIT` — discovery/safety OK; pack completeness + evaluation policy + deps
+- Versioned policy: `apps/api/config/teta-generic-semantic-candidate-evaluation-policy-v1.json`
+- Review packs v2: `.local/stage3k2b1/review-packs-v2/` (v1 nie nadpisane); audit: `stage3k2b1-audit-v2.json`
+- Superseded by PASS_WITH_FINALIZATION above
+- **Nie startować approval application**
+
+### 2026-08-01 — Stage 3K.2B1 CANDIDATE DISCOVERY (local; NOT committed; awaiting review)
+
+- Module: `apps/api/src/teta-generic-semantic-candidate/`; CLI `generic-semantic:stage3k2b1`
+- Docs: `docs/AIA_GENERIC_SEMANTIC_CANDIDATE_DISCOVERY_STAGE3K2B1.{md,json}`
+- Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1 supersedowany przez PATCH powyżej (`implemented_offline_review_pack_cleanup_awaiting_review`)
+- Pilot P1–P4 only; P3=`needs_more_evidence` (cardinality); realDecisionEventsApplied=0; no Stage3D/reuse-policy mutation
+- Artifacts: `.local/stage3k2b1/` (untracked)
+- **Do not commit 3K.2B1 / do not start approval application** without separate review
+
+### 2026-08-01 — Stage 3K.2B DESIGN CORRECTIONS (PASS_WITH_SMALL_DESIGN_CORRECTIONS) — committed `d930538`
 
 - Single activation authority: Stage 3D = substance; reuse policy pointer = sole generic runtime activation (no `genericReuseAllowed` dual flag)
 - Fingerprint split: candidateFingerprint vs candidateEvaluationFingerprint vs decisionFingerprint
 - `approved_stage3d_role` = priorApprovalReference only (not independent evidence family)
 - First pilot narrowed to P1–P4 (employee, employee_number, current_position, position_name); active_employment excluded; P3 remains NEEDS_MORE_EVIDENCE on cardinality
-- readiness still `ready_for_candidate_discovery_contract`; Stage 3K.2B `not_started`
+- Design readiness was `ready_for_candidate_discovery_contract`; implementation started as 3K.2B1 above
 
 ### 2026-07-31 — Stage 3K.2B SEMANTIC COVERAGE DESIGN (review-only; NOT committed; NOT implemented)
 
