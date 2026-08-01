@@ -1,0 +1,377 @@
+{
+  "stage": "3K.2B2",
+  "title": "Semantic Evidence Gap Resolution Design / Readiness Review",
+  "designOnly": true,
+  "implemented": false,
+  "committed": true,
+  "humanReviewVerdict": "PASS_WITH_SMALL_DESIGN_CORRECTIONS_BEFORE_COMMIT",
+  "humanReviewStatus": "accepted_with_design_corrections",
+  "stage3kStatus": "started_foundation",
+  "stage3k2Status": "started_approved_binding_adapter",
+  "stage3k2aStatus": "accepted_offline_approved_binding_adapter",
+  "stage3k2bStatus": "started_candidate_discovery",
+  "stage3k2b1Status": "accepted_offline_candidate_discovery_and_review_pack",
+  "stage3k2b2Status": "not_started",
+  "stage3k2b2Readiness": "ready_for_bounded_offline_gap_collectors",
+  "nextImplementationSlice": "stage3k2b2a_gap_contracts_bounded_collectors_review_pack_v3",
+  "nextStage": "stage3k2b2a_gap_contracts_bounded_collectors_review_pack_v3",
+  "baseline": {
+    "defaultReuse": "deny",
+    "reusableRoles": [],
+    "planningEligibleBindings": 0,
+    "realCandidateApprovalStatus": "no_candidates_approved",
+    "realCandidateDecisionsUnchanged": {
+      "P1": "request_more_evidence",
+      "P2": "request_more_evidence",
+      "P3": "request_more_evidence",
+      "P4": "request_more_evidence"
+    },
+    "productionStage3dMutations": 0,
+    "reusePolicyMutations": 0
+  },
+  "humanExpertiseModes": [
+    "not_required",
+    "conditional_after_offline_collection",
+    "required"
+  ],
+  "humanExpertiseInvariant": {
+    "humanQuestionGeneratedBeforeOfflineEvidenceExhausted": 0,
+    "humanRequestRequires": [
+      "allAllowedOfflineCollectorsCompleted=true",
+      "blockingGapStillOpen=true"
+    ]
+  },
+  "inputAudit": {
+    "reviewPacks": ".local/stage3k2b1/review-packs-v2/",
+    "audit": ".local/stage3k2b1/stage3k2b1-audit-v2.json",
+    "evaluationPolicy": "apps/api/config/teta-generic-semantic-candidate-evaluation-policy-v1.json",
+    "evaluationPolicyHash": "c5bfcebfd5a328996603ceb2665cea8fbdf6fec95c19325f33e93542a0950b7a",
+    "graphIndexAvailable": true,
+    "graphSourceHash": "2e7f0b7e323f0703cbea3f8f9d2b709590899edfb789f1ee5943496c717f73c3",
+    "failedBlockingRules": [
+      {
+        "ruleId": "scope.unprovenBlocks",
+        "candidateId": "cand:P1:employee",
+        "missingEvidenceClass": "scope_applicability_gap",
+        "automaticResolutionPossibility": "partial",
+        "humanExpertiseMode": "conditional_after_offline_collection"
+      },
+      {
+        "ruleId": "scope.unprovenBlocks",
+        "candidateId": "cand:P2:employee_identity.employee_number",
+        "missingEvidenceClass": "scope_applicability_gap",
+        "automaticResolutionPossibility": "partial",
+        "humanExpertiseMode": "conditional_after_offline_collection"
+      },
+      {
+        "ruleId": "identity.employeeGrainDependency",
+        "candidateId": "cand:P2:employee_identity.employee_number",
+        "missingEvidenceClass": "dependency_gap",
+        "automaticResolutionPossibility": "yes_after_p1",
+        "humanExpertiseMode": "not_required"
+      },
+      {
+        "ruleId": "scope.unprovenBlocks",
+        "candidateId": "cand:P3:current_position",
+        "missingEvidenceClass": "scope_applicability_gap",
+        "automaticResolutionPossibility": "partial",
+        "humanExpertiseMode": "conditional_after_offline_collection"
+      },
+      {
+        "ruleId": "grain.cardinalityResolved",
+        "candidateId": "cand:P3:current_position",
+        "missingEvidenceClass": "cardinality_gap",
+        "automaticResolutionPossibility": "rare",
+        "humanExpertiseMode": "conditional_after_offline_collection",
+        "notes": "may escalate to required only after constraint/help/package collectors"
+      },
+      {
+        "ruleId": "risk.requiredSemanticClass.concept",
+        "candidateId": "cand:P4:position_name",
+        "missingEvidenceClass": "semantic_meaning_gap",
+        "automaticResolutionPossibility": "partial_via_p5",
+        "humanExpertiseMode": "conditional_after_offline_collection"
+      },
+      {
+        "ruleId": "scope.unprovenBlocks",
+        "candidateId": "cand:P4:position_name",
+        "missingEvidenceClass": "scope_applicability_gap",
+        "automaticResolutionPossibility": "partial",
+        "humanExpertiseMode": "conditional_after_offline_collection"
+      }
+    ],
+    "constraintNeighborhoodAggregate": {
+      "viewsHaveDirectPkUk": false,
+      "baseTablesViaDependsOnHavePkUk": true,
+      "pkUkProvesCurrentCardinality": false
+    }
+  },
+  "gapTaxonomyVersion": "teta-aia-semantic-evidence-gap-taxonomy-v1",
+  "gapTypes": [
+    "semantic_meaning_gap",
+    "scope_applicability_gap",
+    "result_grain_gap",
+    "identity_facet_gap",
+    "relation_meaning_gap",
+    "temporal_policy_gap",
+    "cardinality_gap",
+    "uniqueness_gap",
+    "display_value_gap",
+    "dependency_gap",
+    "ambiguity_gap",
+    "conflict_gap",
+    "provenance_independence_gap",
+    "currentness_gap",
+    "version_scope_gap",
+    "authorization_domain_gap"
+  ],
+  "gapResolutionStatuses": [
+    "open",
+    "collectable_offline",
+    "requires_human_domain_confirmation",
+    "requires_additional_source",
+    "ambiguous",
+    "conflicting",
+    "not_resolvable_from_available_evidence",
+    "resolved_pending_re_evaluation",
+    "superseded"
+  ],
+  "evidenceSourceInventory": [
+    "stage3a_canonical_graph",
+    "stage2a_form_control_bindings",
+    "stage2b_gateway_oracle_mappings",
+    "stage2c_help_semantic_mappings",
+    "stage2d_sqljoin_reconstruction",
+    "stage2e_canonical_graph_provenance",
+    "stage3d_approved_bhp_binding_evidence_as_prior_approval_ref_only",
+    "stage3j1_lexicon_aliases",
+    "product_surface_business_area_registries",
+    "registry_form_plugin_evidence",
+    "static_dll_metadata",
+    "extracted_help_html",
+    "package_dependencies_in_graph",
+    "constraint_cardinality_metadata_in_graph"
+  ],
+  "disallowedSources": [
+    "live_oracle",
+    "free_column_name_scan",
+    "rag_as_schema_truth",
+    "historical_generated_sql_as_approval_evidence",
+    "client_specific_runtime_rows",
+    "screen_text_to_column_binding"
+  ],
+  "proposedContracts": [
+    "TetaApplicationContextAnchor",
+    "TetaSemanticEvidenceGap",
+    "TetaSemanticEvidenceRequest",
+    "TetaSemanticEvidenceCollectionPlan",
+    "TetaSemanticEvidenceObservation",
+    "TetaSemanticGapResolutionResult",
+    "TetaSemanticCandidateReevaluationRequest",
+    "EmployeeRootEvidenceAssessment",
+    "IdentityFacetEvidenceAssessment",
+    "SemanticApplicabilityEvidence",
+    "SemanticGrainEvidence",
+    "TetaApplicationFeatureFamilyEvidence",
+    "HumanDomainEvidenceRequest"
+  ],
+  "applicationContextAnchor": {
+    "contract": "TetaApplicationContextAnchor",
+    "isSemanticBinding": false,
+    "origins": [
+      "user_question",
+      "application_context",
+      "screenshot_context",
+      "known_form_context"
+    ],
+    "screenshotProvesDatabaseMapping": false,
+    "visionInStage3k2b2a": false
+  },
+  "collectorStartPoints": [
+    "TetaApplicationContextAnchor",
+    "existing_candidate_anchor",
+    "stage3d_prior_evidence_ref",
+    "unresolved_dependency",
+    "explicit_coverage_target"
+  ],
+  "allowedCollectorFlow": "form→control→dataset→gateway→oracle_object→typed_relation→lookup_display_package",
+  "forbiddenCollectorFlow": "screen_text→random_column_name→binding",
+  "collectorTypes": [
+    "stage3a_anchor_trace_collector",
+    "form_usage_collector",
+    "help_semantic_label_collector",
+    "gateway_lineage_collector",
+    "cross_form_usage_collector",
+    "constraint_metadata_collector",
+    "lookup_display_chain_collector",
+    "package_rule_reference_collector",
+    "scope_usage_collector",
+    "competing_root_collector",
+    "dependency_evidence_collector"
+  ],
+  "collectorBoundsRequired": [
+    "maxDepth",
+    "allowedNodeTypes",
+    "allowedEdgeTypes",
+    "maxCandidates",
+    "conflictPolicy"
+  ],
+  "featureFamilyEvidence": {
+    "contract": "TetaApplicationFeatureFamilyEvidence",
+    "mustNotDeriveFromFormNameOrDllFolderAlone": true,
+    "mustDeriveFrom": [
+      "product_registry",
+      "product_surface_registry",
+      "business_area_registry",
+      "plugin_form_ownership",
+      "known_application_hierarchy",
+      "canonical_provenance"
+    ],
+    "formsCountedAsIndependentFeaturesWithoutClassification": 0
+  },
+  "dependencyDag": {
+    "nodes": ["P1", "P2", "P3", "P4", "P5_position_reference"],
+    "edges": [
+      {
+        "from": "P1",
+        "to": "P2",
+        "kinds": ["semantic_validity", "approval", "generic_activation", "planning_composition"]
+      },
+      {
+        "from": "P1",
+        "to": "P3",
+        "kinds": ["semantic_validity", "generic_activation", "planning_composition"]
+      },
+      {
+        "from": "P5_position_reference",
+        "to": "P4",
+        "kinds": ["semantic_validity", "generic_activation"]
+      }
+    ],
+    "cycleDetection": "topological_sort_fail_closed",
+    "priorityOrder": ["P1", "P2", "P5_position_reference", "P4", "P3"]
+  },
+  "p5DesignCandidate": {
+    "targetId": "P5",
+    "roleKey": "position_reference",
+    "status": "design_candidate_dependency_not_approved",
+    "purpose": "dictionary_or_concept_identity_independent_of_current_assignment"
+  },
+  "p3AllowedOutcomes": [
+    "single_current_position_proven",
+    "multiple_current_positions_valid",
+    "multiple_current_positions_ambiguous",
+    "primary_position_indicator_required",
+    "cardinality_not_proven"
+  ],
+  "scopeExpansionAssessments": [
+    "proven_exact",
+    "supported_bounded",
+    "partial",
+    "unproven",
+    "conflicting"
+  ],
+  "boundedApplicability": {
+    "defaultRequireCanonicalAcrossAllTetaHr": false,
+    "supportedBoundedMayList": [
+      "productFamily",
+      "productSurfaces",
+      "businessAreas",
+      "featureFamilies",
+      "versionScope"
+    ],
+    "laterApprovalMayBe": "approve_with_scope",
+    "approveInThisStage": false
+  },
+  "humanFallbackQuestions": {
+    "p1": "bounded_feature_family_same_employee_master_not_all_teta_hr",
+    "p2": "uniqueness_domain_firm_db_period_only_after_technical_identity",
+    "p3": [
+      "multi_simultaneous_positions",
+      "primary_position_exists",
+      "multi_position_return_policy"
+    ],
+    "forbiddenHumanTopicsWhenTechnicallyKnown": [
+      "table",
+      "column",
+      "fk",
+      "join",
+      "oracle_mapping"
+    ]
+  },
+  "evidenceFactKinds": [
+    "technical_fact",
+    "business_semantic_fact",
+    "scope_fact",
+    "cardinality_fact",
+    "human_confirmed_business_rule"
+  ],
+  "proposedGapResolutionPolicy": "teta-aia-semantic-evidence-gap-resolution-policy-v1",
+  "gapResolutionPolicyConfigPath": "apps/api/config/teta-semantic-evidence-gap-resolution-policy-v1.json",
+  "reevaluationFlow": {
+    "evidenceChangeCreatesNewCandidateFingerprint": true,
+    "policyChangeCreatesNewEvaluationFingerprintOnly": true,
+    "reviewPackVersion": "v3",
+    "overwritePriorPacks": false,
+    "gapResolvedMeans": "eligible_for_3k2b1_reevaluation_not_approved"
+  },
+  "stalenessFields": [
+    "graphSourceHash",
+    "sourceStageVersion",
+    "collectorVersion",
+    "sourceArtifactFingerprint",
+    "dependencyVector"
+  ],
+  "k1Feasibility": {
+    "question": "Jakie aktualne stanowisko ma pracownik 00122?",
+    "overall": "feasible_after_gap_resolution_and_human_approval_not_sql",
+    "minimalLinks": [
+      "employee_root",
+      "employee_number_identity",
+      "employee_number_filter_semantics",
+      "employee_to_position_assignment",
+      "current_temporal_semantics",
+      "position_reference",
+      "position_display_name",
+      "cardinality_or_selection_behavior"
+    ],
+    "hardestGap": "p3_cardinality_and_multi_current_policy"
+  },
+  "pilotFocusForFirstSlice": ["P1", "P2"],
+  "deferredInFirstSlice": ["P3", "P4", "P5"],
+  "notToBuildYet": [
+    "approval_application",
+    "stage3d_production_mutation",
+    "reuse_policy_mutation",
+    "oracle",
+    "sql_generation_execution",
+    "stage3c_plans",
+    "llm",
+    "qdrant",
+    "embeddings",
+    "vision_ocr",
+    "free_search_collectors",
+    "policy_threshold_lowering",
+    "planning_eligibility_activation",
+    "auto_approve_candidates"
+  ],
+  "strictDesignCounters": {
+    "humanQuestionGeneratedBeforeOfflineEvidenceExhausted": 0,
+    "formsCountedAsIndependentFeaturesWithoutClassification": 0,
+    "priorApprovalReferencesCountedAsIndependentEvidence": 0,
+    "duplicateObservationFamiliesCountedAsIndependent": 0
+  },
+  "oracleConnections": 0,
+  "sqlCompiled": 0,
+  "sqlExecuted": 0,
+  "stage3cPlansBuilt": 0,
+  "localModelCalls": 0,
+  "remoteModelCalls": 0,
+  "qdrantCalls": 0,
+  "embeddingCalls": 0,
+  "localDesignArtifacts": ".local/stage3k2b2-design/",
+  "docs": [
+    "docs/AIA_STAGE3K2B2_SEMANTIC_EVIDENCE_GAP_DESIGN.md",
+    "docs/AIA_STAGE3K2B2_SEMANTIC_EVIDENCE_GAP_DESIGN.json"
+  ]
+}
