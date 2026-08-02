@@ -53,7 +53,8 @@
     "knowledge-runtime:stage3j2f": "ts-node -r tsconfig-paths/register src/scripts/knowledge-runtime-stage3j2f.ts",
     "generic-query:stage3k1": "ts-node -r tsconfig-paths/register src/scripts/generic-query-stage3k1.ts",
     "generic-semantic:stage3k2a": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2a.ts",
-    "generic-semantic:stage3k2b1": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b1.ts"
+    "generic-semantic:stage3k2b1": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b1.ts",
+    "generic-semantic:stage3k2b2a": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b2a.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

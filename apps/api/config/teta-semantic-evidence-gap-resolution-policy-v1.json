@@ -1,0 +1,127 @@
+{
+  "policyId": "teta-semantic-evidence-gap-resolution",
+  "policyVersion": "teta-aia-semantic-evidence-gap-resolution-policy-v1",
+  "description": "Versioned offline evidence gap resolution policy for Stage 3K.2B2A. Gap resolved does not mean candidate approved.",
+  "automaticGapTypes": [
+    "dependency_gap",
+    "display_value_gap",
+    "provenance_independence_gap"
+  ],
+  "conditionalHumanGapTypes": [
+    "scope_applicability_gap",
+    "uniqueness_gap",
+    "cardinality_gap",
+    "temporal_policy_gap",
+    "currentness_gap",
+    "ambiguity_gap",
+    "conflict_gap",
+    "semantic_meaning_gap",
+    "result_grain_gap",
+    "identity_facet_gap"
+  ],
+  "requiredCollectorSequenceP1": [
+    "stage3a_anchor_trace_collector",
+    "form_usage_collector",
+    "gateway_lineage_collector",
+    "cross_form_usage_collector",
+    "scope_usage_collector",
+    "competing_root_collector",
+    "help_semantic_label_collector",
+    "constraint_metadata_collector"
+  ],
+  "requiredCollectorSequenceP2": [
+    "help_semantic_label_collector",
+    "form_usage_collector",
+    "gateway_lineage_collector",
+    "dependency_evidence_collector",
+    "constraint_metadata_collector",
+    "scope_usage_collector"
+  ],
+  "minimumEvidenceFacts": {
+    "P1": [
+      "business_meaning_support",
+      "employee_grain_support",
+      "bounded_feature_family_usage",
+      "competing_root_scan"
+    ],
+    "P2": [
+      "semantic_label",
+      "employee_source_dependency",
+      "string_datatype",
+      "leading_zero_preservation",
+      "negative_distinction"
+    ]
+  },
+  "featureFamilyIndependenceRules": {
+    "requireClassificationEvidence": true,
+    "formNameAloneInsufficient": true,
+    "dllFolderAloneInsufficient": true,
+    "sharedGatewayObservationNotIndependent": true,
+    "formsCountedAsIndependentFeaturesWithoutClassificationMustBeZero": true
+  },
+  "boundedApplicabilityRules": {
+    "defaultRequireCanonicalAcrossAllTetaHr": false,
+    "supportedBoundedAllowed": true,
+    "supportedBoundedMayList": [
+      "productFamily",
+      "productSurfaces",
+      "businessAreas",
+      "featureFamilies",
+      "versionScope"
+    ],
+    "formCountIsNotGenericProof": true
+  },
+  "staleRules": {
+    "graphHashMismatchYieldsStale": true,
+    "staleBlocksReevaluationUntilRefresh": true
+  },
+  "reevaluationConditions": {
+    "requiresNewObservationsOrPolicyChange": true,
+    "gapResolvedMeansEligibleFor3k2b1ReevaluationNotApproved": true,
+    "approvalForbidden": true,
+    "actualReevaluationRequired": true
+  },
+  "gapResolutionRules": {
+    "actualReevaluationRequired": true,
+    "realPackFixtureExclusion": true,
+    "viewGrainRequiresKeyPreservation": true,
+    "scopeInheritanceRequiresDependencyEvidence": true,
+    "confirmedDependentRoleRequiresTypedRelation": true,
+    "humanBusinessSamenessDoesNotProveRowUniqueness": true
+  },
+  "humanRequestRequires": {
+    "allAllowedOfflineCollectorsCompleted": true,
+    "blockingGapStillOpen": true,
+    "humanQuestionGeneratedBeforeOfflineEvidenceExhaustedMustBeZero": true,
+    "forbidOracleMappingQuestions": true
+  },
+  "collectorBounds": {
+    "maxDepth": 4,
+    "maxCandidates": 40,
+    "conflictPolicy": "record_and_continue",
+    "allowedNodeTypes": [
+      "application_form",
+      "application_control",
+      "dataset",
+      "gateway",
+      "oracle_object",
+      "oracle_column",
+      "help_field",
+      "package_ref"
+    ],
+    "allowedEdgeTypes": [
+      "HAS_CONTROL",
+      "BINDS_TO",
+      "USES_DATASET",
+      "MAPS_TO_ORACLE_OBJECT",
+      "HAS_COLUMN",
+      "DEPENDS_ON",
+      "PRIMARY_KEY_OF",
+      "UNIQUE_KEY_OF",
+      "FOREIGN_KEY_TO",
+      "HELP_DESCRIBES"
+    ]
+  },
+  "pilotCandidates": ["P1", "P2"],
+  "deferredCandidates": ["P3", "P4", "P5"]
+}

@@ -1,0 +1,103 @@
+{
+  "stage": "3K.2B2A",
+  "title": "Bounded Semantic Evidence Gap Resolution and Re-evaluation",
+  "stage3kStatus": "started_foundation",
+  "stage3k2Status": "started_approved_binding_adapter",
+  "stage3k2aStatus": "accepted_offline_approved_binding_adapter",
+  "stage3k2bStatus": "started_candidate_discovery",
+  "stage3k2b1Status": "accepted_offline_candidate_discovery_and_review_pack",
+  "stage3k2b2Status": "started_bounded_gap_resolution",
+  "stage3k2b2aStatus": "accepted_offline_bounded_gap_resolution_and_reevaluation",
+  "stage3k2b2bStatus": "not_started",
+  "nextStage": "stage3k2b2b_employee_card_foundation_gap_closure_design",
+  "accepted": true,
+  "acceptedInfrastructure": "bounded_semantic_evidence_gap_resolution_and_reevaluation",
+  "committed": true,
+  "previousHumanReviewVerdict": "PATCH_BEFORE_COMMIT",
+  "humanReviewVerdict": "PASS_WITH_FINALIZATION",
+  "humanReviewStatus": "accepted",
+  "realCandidateApprovalStatus": "no_candidates_approved",
+  "realCandidateDecisionsSummary": {
+    "P1": "request_more_evidence",
+    "P2": "request_more_evidence"
+  },
+  "realCandidateDecisionReasons": {
+    "P1": [
+      "employee_bounded_scope_business_confirmed",
+      "view_grain_key_preservation_partial",
+      "training_participant_technical_attributable_path_unresolved"
+    ],
+    "P2": [
+      "employee_number_semantic_identity_confirmed",
+      "string_and_leading_zeros_confirmed",
+      "composite_employee_card_identity_known",
+      "p1_dependency_not_sufficient_for_generic_activation",
+      "scope_inheritance_blocked",
+      "p6_p7_design_only"
+    ]
+  },
+  "safeCandidateSummaries": {
+    "P1": {
+      "scope": "supported_bounded_confirmed",
+      "businessAreas": ["personnel", "payroll", "occupational_health"],
+      "grain": "partial",
+      "viewKeyPreservation": "not_proven",
+      "trainingParticipant": {
+        "businessDependency": "confirmed_dependent_employee_role",
+        "technicalAttributablePath": "unresolved"
+      },
+      "decision": "request_more_evidence",
+      "genericActivationEligible": false,
+      "planningEligible": false
+    },
+    "P2": {
+      "semanticLabel": "employee_number",
+      "datatype": "string",
+      "leadingZerosSignificant": true,
+      "exactOneGuaranteed": false,
+      "multiResultFilterAllowed": true,
+      "compositeIdentity": {
+        "components": ["employee_number", "employee_card_number"],
+        "uniquenessScope": "whole_database",
+        "firmScoped": false
+      },
+      "reemployment": "may_retain_or_change_employee_number",
+      "decision": "request_more_evidence",
+      "genericActivationEligible": false,
+      "planningEligible": false
+    }
+  },
+  "gapResolutionPolicyConfig": "apps/api/config/teta-semantic-evidence-gap-resolution-policy-v1.json",
+  "gapResolutionPolicyVersion": "teta-aia-semantic-evidence-gap-resolution-policy-v1",
+  "gapResolutionPolicyHash": "0ab0a63804b2f39c1cc69343893460f757f9930820a195d17d54487e1c5040dd",
+  "pilotTargets": ["P1", "P2"],
+  "deferredCandidates": ["P3", "P4", "P5"],
+  "designOnlyDependencies": ["P6", "P7"],
+  "productionReusePolicy": {
+    "defaultReuse": "deny",
+    "reusableRoles": []
+  },
+  "realDecisionEventsApplied": 0,
+  "realApprovedGenericBindingsCreated": 0,
+  "stage3dProductionBindingsAdded": 0,
+  "stage3dProductionBindingsModified": 0,
+  "reusePolicyEntriesAdded": 0,
+  "reusePolicyEntriesModified": 0,
+  "planningEligibleBindingsAdded": 0,
+  "oracleConnections": 0,
+  "sqlCompiled": 0,
+  "sqlExecuted": 0,
+  "stage3cPlansBuilt": 0,
+  "localModelCalls": 0,
+  "remoteModelCalls": 0,
+  "qdrantCalls": 0,
+  "embeddingCalls": 0,
+  "module": "apps/api/src/teta-semantic-evidence-gap/",
+  "cli": "generic-semantic:stage3k2b2a",
+  "localArtifactsUntracked": [
+    ".local/stage3k2b2a/review-packs-v5/",
+    ".local/stage3k2b2a/stage3k2b2a-audit-v5.json",
+    ".local/stage3k2b2a/human-evidence/",
+    ".local/stage3k2b2a/real-graph-traces/"
+  ]
+}
