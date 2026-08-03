@@ -1,0 +1,213 @@
+{
+  "stage": "3K.2B2B",
+  "title": "Employee Card Foundation Gap Closure Design",
+  "designOnly": true,
+  "implemented": false,
+  "previousHumanReviewVerdict": null,
+  "humanReviewVerdict": "PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT",
+  "stage3kStatus": "started_foundation",
+  "stage3k2Status": "started_approved_binding_adapter",
+  "stage3k2bStatus": "started_candidate_discovery",
+  "stage3k2b1Status": "accepted_offline_candidate_discovery_and_review_pack",
+  "stage3k2b2Status": "started_bounded_gap_resolution",
+  "stage3k2b2aStatus": "accepted_offline_bounded_gap_resolution_and_reevaluation",
+  "stage3k2b2bStatus": "not_started",
+  "stage3k2b2bReadiness": "ready_for_employee_source_gap_collectors",
+  "nextImplementationSlice": "stage3k2b2b1_employee_master_source_and_composite_card_identity_offline_evidence_pilot",
+  "baselineCommit": "bbc85229a43d734ccf6a341a147de0680d2fb335",
+  "oracleSqlModelQdrant": "none",
+  "productionReusePolicy": {
+    "defaultReuse": "deny",
+    "reusableRoles": []
+  },
+  "planningEligibleBindings": 0,
+  "realCandidateApprovalStatus": "no_candidates_approved",
+  "p1BusinessGrain": "one_row_per_employee_card_or_master_record",
+  "forbiddenGrainLabels": ["one_row_per_natural_person", "one_row_per_person"],
+  "foundationEvidencePolicy": {
+    "policyId": "teta-employee-card-foundation-evidence",
+    "policyVersion": "teta-aia-employee-card-foundation-evidence-policy-v1",
+    "configPath": "apps/api/config/teta-employee-card-foundation-evidence-policy-v1.json",
+    "notApprovalPolicy": true,
+    "notReusePolicy": true,
+    "controls": [
+      "direct_master_source_evidence",
+      "view_key_preservation_thresholds",
+      "row_multiplication_detection",
+      "typed_relation_attribution",
+      "p6_semantic_evidence",
+      "p2_p6_same_record_proof",
+      "composite_identity_sufficiency",
+      "business_vs_technical_uniqueness",
+      "scope_grain_dependency_separation",
+      "collector_phase_gates",
+      "staleness",
+      "fail_closed_statuses"
+    ]
+  },
+  "contracts": {
+    "TetaEmployeeMasterSourceCandidate": {
+      "semanticSourceKind": ["table", "view", "gateway_projection", "composed_source"],
+      "fields": [
+        "semanticMasterSourceRef",
+        "applicationAccessSurfaceRefs",
+        "runtimeExecutionAccessObjectRef",
+        "runtimeAccessEligibility",
+        "authorizationDomainStatus"
+      ],
+      "runtimeAccessEligibilityValues": [
+        "not_evaluated",
+        "blocked",
+        "requires_separate_access_binding",
+        "eligible_after_separate_approval"
+      ],
+      "authorizationDomainStatusValues": ["deferred", "not_evaluated", "blocked"],
+      "productionBinding": false,
+      "executionAccessEstablishedInThisStage": false
+    },
+    "EmployeeViewKeyPreservationAssessment": {
+      "keyPreservationStatus": ["proven", "supported_partial", "unproven", "conflicting"],
+      "hardRule": "base_table_pk_via_depends_on_alone_cannot_yield_proven"
+    },
+    "EmployeeCardNumberEvidenceAssessment": {
+      "freeSearchForbidden": true,
+      "negativeDistinctions": [
+        "badge_or_access_card",
+        "payroll_card",
+        "document_number",
+        "internal_id",
+        "training_card",
+        "benefit_card"
+      ]
+    },
+    "CompositeIdentityEvidenceAssessment": {
+      "components": ["employee_number", "employee_card_number"],
+      "uniquenessScope": "whole_database",
+      "firmScoped": false,
+      "businessUniquenessRuleStatus": ["confirmed", "partial", "unknown", "conflicting"],
+      "technicalUniquenessEnforcementStatus": [
+        "proven",
+        "supported_partial",
+        "not_found",
+        "unavailable",
+        "conflicting"
+      ],
+      "exactOneSemantics": [
+        "technically_enforced",
+        "business_expected_with_runtime_cardinality_guard",
+        "not_supported",
+        "conflicting"
+      ],
+      "h4SetsBusinessConfirmedOnly": true,
+      "runtimeCardinalityGuardImplementedInThisStage": false
+    },
+    "SemanticRelationAttributionEvidence": {
+      "attributionStatus": ["proven", "supported_partial", "unresolved", "conflicting"],
+      "requiresApplicationAttribution": true,
+      "relationApplicabilityRequired": true,
+      "allowedConfirmationKinds": [
+        "typed_foreign_key_reference",
+        "verified_gateway_relation",
+        "verified_sqljoin_relation",
+        "composed_verified_relation"
+      ]
+    },
+    "EmployeeFoundationDependencyStatus": {
+      "dimensions": [
+        "scopeDependencyStatus",
+        "grainDependencyStatus",
+        "reevaluationDependencyStatus",
+        "genericActivationDependencyStatus",
+        "planningDependencyStatus"
+      ],
+      "p2ScopeIndependentOfP1Grain": true
+    },
+    "EmployeeFoundationStalenessVector": {
+      "requiredFields": [
+        "graphSourceHash",
+        "sourceStageVersion",
+        "collectorVersion",
+        "sourceArtifactFingerprint",
+        "foundationPolicyVersion",
+        "foundationPolicyHash",
+        "candidateFingerprint",
+        "dependencyFingerprints"
+      ],
+      "p7DependsOn": ["P1", "P2", "P6", "H4", "same_record_evidence"],
+      "silentCarryForwardForbidden": true
+    }
+  },
+  "requiredZeroCounters": [
+    "baseTableEvidencePromotedToRuntimeAccess",
+    "applicationAccessSurfaceBypassClaims",
+    "employeeCardGrainCollapsedIntoPersonIdentity",
+    "p2ScopeBlockedOnlyBecauseOfP1Grain",
+    "scopeAndGrainDependencyConflations",
+    "businessRuleUsedAsTechnicalConstraint",
+    "exactOneGuaranteedWithoutTechnicalOrRuntimeGuard",
+    "p6DiscoveryWithoutEmployeeMasterAnchor",
+    "p7AssessmentWithoutP2P6SameRecordEvidence",
+    "downstreamCandidateActivatedWithBlockingP1"
+  ],
+  "phaseGates": {
+    "phase1": "P1_source_grain",
+    "phase2": "training_participant_attribution",
+    "phase3": "P6_anchored_discovery",
+    "phase4": "P7_composite_assessment",
+    "phase5": "P2_dependency_reevaluation",
+    "p6RequiresEmployeeMasterAnchor": true,
+    "p7RequiresP2P6SameRecord": true,
+    "p1UnresolvedMakesP6P7DiagnosticsOnly": true
+  },
+  "trainingParticipantApplicability": {
+    "h2ConfirmsMeaningOnly": true,
+    "doesNotInheritAllH1BusinessAreasAutomatically": true,
+    "requires": [
+      "training_application_anchor",
+      "product_surface",
+      "feature_family",
+      "participant_source_evidence"
+    ],
+    "missingAnchorStatus": "requires_additional_source"
+  },
+  "offlineAudit": {
+    "viewDefinitionEvidence": "unavailable",
+    "p1Grain": "partial",
+    "keyPreservation": "partial",
+    "baseTablePkViaDependsOnAlone": true,
+    "trainingParticipantTechnical": "unresolved"
+  },
+  "collectorsDesignedNotImplemented": [
+    "employee_master_source_collector",
+    "view_key_preservation_collector",
+    "employee_identity_facet_collector",
+    "employee_card_number_collector",
+    "same_record_identity_collector",
+    "composite_identity_collector",
+    "training_participant_anchor_collector",
+    "typed_relation_attribution_collector",
+    "constraint_consistency_collector",
+    "application_context_identity_collector"
+  ],
+  "thingsNotToBuild": [
+    "approval_application",
+    "stage3d_production_bindings",
+    "generic_reuse_activation",
+    "planning_eligibility",
+    "runtime_cardinality_guard_implementation",
+    "stage3c_planner_changes",
+    "sql_compiler_changes",
+    "oracle_executor",
+    "live_data_sampling",
+    "arbitrary_schema_search",
+    "ocr_vision",
+    "person_deduplication",
+    "pesel_identity",
+    "current_position",
+    "position_name"
+  ],
+  "docs": [
+    "docs/AIA_STAGE3K2B2B_EMPLOYEE_CARD_FOUNDATION_DESIGN.md",
+    "docs/AIA_STAGE3K2B2B_EMPLOYEE_CARD_FOUNDATION_DESIGN.json"
+  ]
+}
