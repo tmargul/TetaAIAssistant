@@ -1,0 +1,237 @@
+{
+  "stage": "3K.2B2B2",
+  "title": "Employee Foundation Offline Source Evidence Enrichment Design",
+  "designOnly": true,
+  "implemented": false,
+  "previousHumanReviewVerdict": "PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT",
+  "designCorrectionsApplied": true,
+  "stage3k2b2bStatus": "started_employee_source_gap_closure",
+  "stage3k2b2b1Status": "accepted_offline_employee_foundation_evidence_pilot",
+  "stage3k2b2b2Status": "not_started",
+  "stage3k2b2b2Readiness": "ready_for_candidate_scoped_offline_extraction",
+  "supportingReadiness": [
+    "ready_for_existing_artifact_enrichment",
+    "ready_for_vendor_metadata_export_design",
+    "ready_for_application_context_assisted_pilot"
+  ],
+  "nextImplementationSlice": "stage3k2b2b2a_candidate_scoped_employee_view_and_application_data_surface_offline_enrichment_pilot",
+  "nextImplementationSliceTitle": "Stage 3K.2B2B2A — Candidate-Scoped Employee View and Application Data Surface Offline Enrichment Pilot",
+  "productionReusePolicy": {
+    "defaultReuse": "deny",
+    "reusableRoles": [],
+    "planningEligibleBindings": 0,
+    "realApprovedGenericBindings": 0
+  },
+  "contracts": {
+    "TetaCandidateScopedEnrichmentAllowlist": {
+      "required": true,
+      "firstSliceScope": [
+        "P1_employee",
+        "known_employee_form_anchor",
+        "existing_employee_semantic_view_ref",
+        "directly_related_stage2_artifacts",
+        "exact_target_view_definition_import"
+      ],
+      "prohibitedFallbacks": [
+        "similar_view_name",
+        "global_view_scan",
+        "global_column_scan",
+        "prac_employee_karta_search",
+        "unanchored_shortest_path"
+      ]
+    },
+    "TetaViewDefinitionEvidenceArtifact": {
+      "definitionSourceKinds": [
+        "all_views_text",
+        "dbms_metadata_ddl",
+        "preserved_source_file",
+        "gateway_equivalent_select",
+        "sqljoin_equivalent_select",
+        "manual_vendor_artifact"
+      ],
+      "definitionCompletenessStatuses": [
+        "complete",
+        "fragmented_complete",
+        "truncated",
+        "incomplete",
+        "missing",
+        "conflicting"
+      ],
+      "parseStatuses": [
+        "parsed",
+        "parsed_with_unsupported_constructs",
+        "parse_failed",
+        "not_parsed"
+      ],
+      "provenRequires": {
+        "definitionCompletenessStatus": ["complete", "fragmented_complete"],
+        "parseStatus": "parsed",
+        "noUnresolvedGrainAffectingConstructs": true
+      }
+    },
+    "TetaApplicationDataSurfaceEvidence": {
+      "evidenceAvailability": ["complete", "partial", "unavailable", "conflicting"],
+      "materializationStatus": [
+        "materialized",
+        "requires_bounded_reconstruction",
+        "requires_new_extraction",
+        "blocked"
+      ],
+      "semanticAttributionStatus": ["proven", "supported_partial", "unproven", "conflicting"],
+      "currentRealP1Expectation": {
+        "evidenceAvailability": "partial",
+        "materializationStatus": "requires_bounded_reconstruction",
+        "semanticAttributionStatus": "unproven"
+      },
+      "invariant": "form_guid_alone_is_not_data_surface_and_cannot_be_confirmed_until_full_path"
+    },
+    "TetaOfflineTechnicalEvidenceArtifact": {
+      "sensitivityClassification": [
+        "generic_technical_metadata",
+        "vendor_confidential",
+        "client_specific_technical_metadata",
+        "restricted"
+      ],
+      "rawDdlRules": {
+        "containsClientRows": false,
+        "containsPersonalData": false,
+        "containsCredentials": false,
+        "rawPayloadRepoEligible": false,
+        "vendorOnly": true,
+        "containsClientSpecificMetadata": "true_or_unknown_until_classified"
+      }
+    },
+    "TetaCanonicalGraphEnrichmentManifest": {
+      "graphRevisionStatuses": ["preview", "validated_preview", "rejected", "superseded"],
+      "stage3k2b2b2aAlways": {
+        "graphRevisionStatus": ["preview", "validated_preview"],
+        "activeGraphPointerUnchanged": true,
+        "runtimeConsumersMayUsePreview": false,
+        "promotionStatus": "not_requested"
+      }
+    }
+  },
+  "existingSourceAudit": {
+    "view_definition_evidence": {
+      "evidenceAvailability": "unavailable",
+      "enrichmentRequestStatus": "requires_vendor_export",
+      "stage3aStoresViewDefinitionSql": false,
+      "newExtractionNeeded": true
+    },
+    "application_data_surface_evidence": {
+      "evidenceAvailability": "partial",
+      "materializationStatus": "requires_bounded_reconstruction",
+      "semanticAttributionStatus": "unproven",
+      "notReportedAs": "available_in_existing_artifacts_complete",
+      "newExtractionNeeded": false,
+      "boundedReconstructionNeeded": true
+    },
+    "training_application_anchor": {
+      "enrichmentRequestStatus": "requires_application_context"
+    },
+    "employee_card_number_semantic_path": {
+      "enrichmentRequestStatus": "requires_new_offline_extraction"
+    },
+    "same_record_identity_evidence": {
+      "enrichmentRequestStatus": "blocked"
+    },
+    "participant_role_attribution": {
+      "enrichmentRequestStatus": "requires_application_context"
+    }
+  },
+  "firstSliceLegalOutcomesWithoutRealDdl": {
+    "viewDefinitionArtifactStatus": "requires_vendor_export",
+    "viewKeyPreservationStatus": "not_evaluable",
+    "applicationDataSurface": ["partial", "supported_partial", "ambiguous"],
+    "p1GrainStatus": "partial",
+    "notASliceFailure": true
+  },
+  "sqlParsingIsNotSqlExecution": {
+    "viewDefinitionsLocated": "audit_counter",
+    "viewDefinitionsImported": "audit_counter",
+    "viewDefinitionsParsed": "audit_counter",
+    "viewDefinitionParseFailures": "audit_counter",
+    "sqlCompiled": 0,
+    "sqlExecuted": 0,
+    "viewDefinitionsExecuted": 0,
+    "forbiddenConsumers": [
+      "stage3e_compiler",
+      "oracle_executor",
+      "query_planner",
+      "runtime_agent"
+    ]
+  },
+  "enrichmentPolicyDesign": {
+    "policyVersion": "teta-aia-employee-foundation-source-enrichment-policy-v1",
+    "futurePath": "apps/api/config/teta-employee-foundation-source-enrichment-policy-v1.json",
+    "additionalRules": [
+      "viewDefinitionCompletenessRequired",
+      "unsupportedConstructsBlockKeyPreservation",
+      "candidateScopedAllowlistRequired",
+      "partialDataSurfaceNotConfirmed",
+      "ambiguousDataSurfaceRequiresSelection",
+      "rawTechnicalMetadataContainment",
+      "previewGraphCannotBecomeActive",
+      "syntheticArtifactsExcludedFromRealAssessment",
+      "missingArtifactIsFailClosedNotFailure"
+    ],
+    "notApprovalPolicy": true,
+    "notReusePolicy": true
+  },
+  "requiredStrictZeros": [
+    "enrichmentRunsWithoutAllowlist",
+    "artifactsReadOutsideAllowlist",
+    "graphTraversalOutsideAllowedNodeTypes",
+    "graphTraversalOutsideAllowedEdgeTypes",
+    "candidateScopedRunFellBackToNameSearch",
+    "keyPreservationProvenFromIncompleteDefinition",
+    "keyPreservationProvenWithUnsupportedConstructs",
+    "truncatedViewDefinitionTreatedAsComplete",
+    "unorderedDefinitionFragmentsAccepted",
+    "partialDataSurfaceReportedAsComplete",
+    "ambiguousDataSurfaceAutoSelected",
+    "nearestGatewayUsedAsSemanticProof",
+    "formAnchorUsedAsDataSurface",
+    "rawViewDefinitionCommittedToRepo",
+    "clientSpecificTechnicalMetadataExposedInDocs",
+    "unclassifiedRawMetadataMarkedRepoEligible",
+    "activeGraphPointerChanges",
+    "runtimeConsumersUsingPreviewGraph",
+    "previewGraphPromotedWithoutReview",
+    "productionGraphReplaced",
+    "syntheticViewDefinitionUsedForRealP1",
+    "missingRealArtifactReportedAsExtractionFailure",
+    "realP1GrainImprovedWithoutRealViewArtifact",
+    "syntheticArtifactIncludedInRealGraphPreview"
+  ],
+  "phaseOrder": [
+    "P1_view_definition_and_application_data_surface",
+    "P1_key_preservation_reassessment",
+    "P6_employee_card_number_semantic_path",
+    "P2_P6_same_record_assessment",
+    "P7_composite_identity_reassessment",
+    "training_application_anchor_and_participant_attribution"
+  ],
+  "thingsNotToBuild": [
+    "live_oracle_extractor",
+    "data_row_sampler",
+    "arbitrary_schema_crawler",
+    "approval_application",
+    "stage3d_binding_mutation",
+    "reuse_activation",
+    "active_graph_promotion",
+    "runtime_access_binding",
+    "P3",
+    "P4",
+    "P5"
+  ],
+  "oracleConnections": 0,
+  "sqlCompiled": 0,
+  "sqlExecuted": 0,
+  "viewDefinitionsExecuted": 0,
+  "stage3cPlansBuilt": 0,
+  "localModelCalls": 0,
+  "remoteModelCalls": 0,
+  "qdrantCalls": 0,
+  "embeddingCalls": 0
+}
