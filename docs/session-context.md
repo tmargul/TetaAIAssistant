@@ -1,7 +1,7 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-08-03** (Stage 3K.2B2B design **PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT**; readiness=`ready_for_employee_source_gap_collectors`; next=`stage3k2b2b1_…`; corrections: source/access split, card grain, P2 scope≠grain, business vs technical uniqueness, foundation policy, phase gates)
+> Ostatnia aktualizacja: **2026-08-04** (Stage 3K.2B2B1 **accepted_offline_employee_foundation_evidence_pilot**; Stage 3K.2B2B=`started_employee_source_gap_closure`; next=`stage3k2b2b2_…`; humanReview=`PASS_WITH_FINALIZATION` / `accepted`; no real approvals)
 
 ---
 
@@ -183,7 +183,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`; feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests 812/812)
 - [x] **Stage 3J.2E — Review, Approval & Evidence Governance:** zakończony i wypchnięty (feature `5db7a9a`, human pilot docs `613f929`); decisions=7; approved registry=1; approved content=0; status `human_pilot_completed_with_limited_approval`
 - [x] **Stage 3J.2F — Runtime Knowledge Retrieval:** **completed_with_runtime_model_smoke**; `runtimeModelSmokeStatus=completed_and_human_accepted`; PASS=7, PASS_WITH_NOTE=3, FAIL=0; smoke v1 calls=9, v2=4, total=13; readiness review=`fed2b00`
-- [ ] **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter` (`602acde`); Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack` (`0771e6a`); Stage 3K.2B2=`started_bounded_gap_resolution`; Stage 3K.2B2A=`accepted_offline_bounded_gap_resolution_and_reevaluation` (`bbc8522`); Stage 3K.2B2B=`not_started` / readiness=`ready_for_employee_source_gap_collectors`; next=`stage3k2b2b1_employee_master_source_and_composite_card_identity_offline_evidence_pilot` (design lokalnie, **not committed**)
+- [ ] **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter` (`602acde`); Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack` (`0771e6a`); Stage 3K.2B2=`started_bounded_gap_resolution`; Stage 3K.2B2A=`accepted_offline_bounded_gap_resolution_and_reevaluation` (`bbc8522`); Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`accepted_offline_employee_foundation_evidence_pilot`; Stage 3K.2B2B2=`not_started`; next=`stage3k2b2b2_employee_foundation_offline_source_evidence_enrichment_design`
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
 
@@ -195,7 +195,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2D:** zakończony (`demonstrated_with_review`), feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests **812/812**, `HEAD=origin/main`
 - **Stage 3J.2E:** zakończony — feature `5db7a9a`; human pilot docs `613f929`; decisions=7 (approve=1, request_more_evidence=5, defer=1); approved registry records=1; approved content=0; Q21=`approved_supported`; Q07/Q08/Q14=`requires_more_evidence`; status `human_pilot_completed_with_limited_approval`
 - **Stage 3J.2F:** **completed_with_runtime_model_smoke**; human-accepted; runtime retrieval + Vendor-hidden policy + coverage/disclosure/legal containment; source-backed ≠ approved
-- **Stage 3K:** `started_foundation`; Stage 3K.1 = `accepted_offline_foundation` (`0cc5c35`); Stage 3K.2 = `started_approved_binding_adapter`; Stage 3K.2A = `accepted_offline_approved_binding_adapter`; Stage 3K.2B = `started_candidate_discovery`; Stage 3K.2B1 = `accepted_offline_candidate_discovery_and_review_pack` (`0771e6a`); Stage 3K.2B2 = `started_bounded_gap_resolution`; Stage 3K.2B2A = `accepted_offline_bounded_gap_resolution_and_reevaluation` (`bbc8522`); Stage 3K.2B2B = `not_started` / readiness=`ready_for_employee_source_gap_collectors`; next = `stage3k2b2b1_employee_master_source_and_composite_card_identity_offline_evidence_pilot` — Generic Ad-hoc Query Model; **nie** client knowledge pack
+- **Stage 3K:** `started_foundation`; Stage 3K.1 = `accepted_offline_foundation` (`0cc5c35`); Stage 3K.2 = `started_approved_binding_adapter`; Stage 3K.2A = `accepted_offline_approved_binding_adapter`; Stage 3K.2B = `started_candidate_discovery`; Stage 3K.2B1 = `accepted_offline_candidate_discovery_and_review_pack` (`0771e6a`); Stage 3K.2B2 = `started_bounded_gap_resolution`; Stage 3K.2B2A = `accepted_offline_bounded_gap_resolution_and_reevaluation` (`bbc8522`); Stage 3K.2B2B = `started_employee_source_gap_closure`; Stage 3K.2B2B1 = `accepted_offline_employee_foundation_evidence_pilot`; Stage 3K.2B2B2 = `not_started`; next = `stage3k2b2b2_employee_foundation_offline_source_evidence_enrichment_design` — Generic Ad-hoc Query Model; **nie** client knowledge pack
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
@@ -207,7 +207,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2D:** relation decisions nie usuwają occurrences; applicability przed merge; conflicts bez auto-resolve; golden questions = coverage, nie final answers; bez modelu; approval w 3J.2E
 - **Stage 3J.2E:** Cursor nie zatwierdza realnej wiedzy; decyzje podejmuje człowiek; decision template ≠ decyzja; `apply-decision` wymaga `--confirm-human-decision`; approved record nie usuwa provenance
 - **Stage 3J.2F:** Vendor provenance internal-only; Vendor source names never client-visible; Vendor answer natural without citations; client documents may be cited when authorized; public authority sources should be cited exactly; unauthorized client knowledge is not used; internal provenance remains available for Vendor audit; source-backed ≠ approved; **completed_with_runtime_model_smoke**
-- **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter`; Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack`; Stage 3K.2B2=`started_bounded_gap_resolution`; Stage 3K.2B2A=`accepted_offline_bounded_gap_resolution_and_reevaluation`; Stage 3K.2B2B=`not_started` / readiness=`ready_for_employee_source_gap_collectors`; next=`stage3k2b2b1_employee_master_source_and_composite_card_identity_offline_evidence_pilot` (**nie** approval; design lokalnie, bez commit)
+- **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter`; Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack`; Stage 3K.2B2=`started_bounded_gap_resolution`; Stage 3K.2B2A=`accepted_offline_bounded_gap_resolution_and_reevaluation`; Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`accepted_offline_employee_foundation_evidence_pilot`; Stage 3K.2B2B2=`not_started`; next=`stage3k2b2b2_employee_foundation_offline_source_evidence_enrichment_design` (**nie** real approval; defaultReuse=deny)
 
 ### Stage 3J.2B ustalenia (2026-07-29)
 
@@ -299,10 +299,41 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 
 ## Notatki sesji
 
+### 2026-08-04 — Stage 3K.2B2B1 FINALIZATION (PASS_WITH_FINALIZATION; commit)
+
+- previousHumanReviewVerdict=`PATCH_BEFORE_COMMIT`; humanReviewVerdict=`PASS_WITH_FINALIZATION`; humanReviewStatus=`accepted`
+- acceptedInfrastructure=`employee_card_foundation_offline_evidence_pilot`; realCandidateApprovalStatus=`no_candidates_approved`
+- Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`accepted_offline_employee_foundation_evidence_pilot`; Stage 3K.2B2B2=`not_started`
+- nextStage=`stage3k2b2b2_employee_foundation_offline_source_evidence_enrichment_design`
+- Docs: `docs/AIA_STAGE3K2B2B1_EMPLOYEE_FOUNDATION_EVIDENCE_PILOT.{md,json}`
+- Policy hash `af2ac8cf…8651`; P1/P2 remain `request_more_evidence`; P6/P7 `not_ready_for_approval_decision`
+- P6 real discovery=`requires_additional_source` (no non-heuristic technical path); P7 exactOne=`not_supported` / same-record unproven
+- Production: defaultReuse=deny; reusableRoles=[]; planningEligible=0; no Stage 3D/reuse mutations; **nie startować 3K.2B2B2 / P3–P5 / approval**
+
+### 2026-08-04 — Stage 3K.2B2B1 CONTRACT PATCH (external review: PATCH_BEFORE_COMMIT)
+
+- Status: Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`implemented_offline_contract_patch_awaiting_review` (**nie committed**)
+- Policy extended (same-record gate, anchor vs data surface, evaluation integrity, P6 status split, source-gap generation); new hash `af2ac8cf...8651`
+- P7 gate corrected: same-record=`unproven` => `compositeIdentityStatus=needs_more_evidence`, `exactOneSemantics=not_supported`, runtime guard=`deferred_until_same_record_proven`
+- P1 split corrected: `applicationAnchorRefs` vs `applicationDataSurfaceRefs`; form GUID stays anchor-only; data surface remains `requires_additional_source`
+- Actual evaluator trace recorded per candidate (P2 executed via 3K.2B1 evaluator; P1/P6/P7 explicitly blocked with reasons)
+- Source-gap requests generated: `view_definition_evidence`, `training_application_anchor`, `employee_card_number_semantic_path`
+- Artifacts: `.local/stage3k2b2b1/review-packs-v2/pack-P{1,2,6,7}.json`, `.local/stage3k2b2b1/stage3k2b2b1-audit-v2.json`
+- Tests 569/569 (slice), regressions 2152/2152, API build OK, strictErrors=[]
+
+### 2026-08-03 — Stage 3K.2B2B1 LOCAL IMPLEMENTATION (awaiting review; NOT committed)
+
+- Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`implemented_offline_awaiting_review`
+- Design commit (already on main): `f94d759` — `docs(aia): record Stage 3K.2B2B employee card foundation design`
+- Module: `apps/api/src/teta-employee-card-foundation/`; policy `apps/api/config/teta-employee-card-foundation-evidence-policy-v1.json` (hash `ea5ed7be…b946`)
+- Offline: P1=`supported_partial` / grain=`partial`; view def unavailable; participant=`requires_additional_source`; P6=`diagnostics_only`; P7 business uniqueness=`confirmed`, technical=`not_found`, exactOne=`business_expected_with_runtime_cardinality_guard`; P2 scope=`supported_bounded_confirmed`, grain=`blocked_by_p1_grain`
+- Packs: `.local/stage3k2b2b1/review-packs-v1/pack-P{1,2,6,7}.json`; audit `.local/stage3k2b2b1/stage3k2b2b1-audit-v1.json`
+- Tests 500/500 slice; regressions 2152/2152; nest build OK; strictErrors=[]; no Oracle/SQL/model/Qdrant; **nie commit / nie P3–P5 / nie approval**
+
 ### 2026-08-03 — Stage 3K.2B2B DESIGN CORRECTIONS (PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT)
 
 - Corrections: semanticMasterSource vs applicationAccessSurface; card grain ≠ person; P2 scope decoupled from P1 grain; business vs technical uniqueness; training applicability scoped; versioned foundation evidence policy; staleness/fingerprints; 3K.2B2B1 phase gates
-- Readiness remains `ready_for_employee_source_gap_collectors`; Stage 3K.2B2B=`not_started`
+- Design committed+pushed: `f94d759`; readiness was `ready_for_employee_source_gap_collectors` before 3K.2B2B1 start
 - Docs: `docs/AIA_STAGE3K2B2B_EMPLOYEE_CARD_FOUNDATION_DESIGN.{md,json}`
 
 ### 2026-08-03 — Stage 3K.2B2B DESIGN ONLY (employee card foundation; superseded by corrections)

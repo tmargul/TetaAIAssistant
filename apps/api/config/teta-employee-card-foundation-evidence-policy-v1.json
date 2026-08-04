@@ -1,0 +1,126 @@
+{
+  "policyId": "teta-employee-card-foundation-evidence",
+  "policyVersion": "teta-aia-employee-card-foundation-evidence-policy-v1",
+  "description": "Offline employee-card foundation evidence policy. Not approval. Not reuse. Gap closed does not mean approved.",
+  "p1BusinessGrain": "one_row_per_employee_card_or_master_record",
+  "forbiddenGrainLabels": ["one_row_per_natural_person", "one_row_per_person"],
+  "directMasterSource": {
+    "tableMayProveSemanticGrain": true,
+    "baseTableNotAutoRuntimeAccess": true,
+    "defaultRuntimeAccessEligibility": "requires_separate_access_binding",
+    "defaultAuthorizationDomainStatus": "deferred"
+  },
+  "viewKeyPreservation": {
+    "basePkViaDependsOnAloneInsufficient": true,
+    "requiresProjectedKeyOrAuthoritativeGrain": true,
+    "rowMultiplicationMustBeAssessed": true,
+    "statusesSufficientForProven": ["proven"],
+    "viewDefinitionUnavailableYields": "unproven_or_supported_partial"
+  },
+  "typedRelationAttribution": {
+    "requiresApplicationRoleAttribution": true,
+    "allowedConfirmationKinds": [
+      "typed_foreign_key_reference",
+      "verified_gateway_relation",
+      "verified_sqljoin_relation",
+      "composed_verified_relation"
+    ],
+    "nameHeuristicInsufficient": true,
+    "missingTrainingAnchorYields": "requires_additional_source"
+  },
+  "p6SemanticEvidence": {
+    "requiresEmployeeMasterAnchor": true,
+    "freeNameSearchForbidden": true,
+    "requiredNegativeDistinctions": [
+      "badge_or_access_card",
+      "payroll_card",
+      "document_number",
+      "internal_id",
+      "training_card",
+      "benefit_card"
+    ]
+  },
+  "sameRecordProof": {
+    "requiredForP7": true,
+    "p2AndP6MustShareEmployeeCardGrain": true,
+    "sameRecordRequiredBeforeCompositeExactOne": true
+  },
+  "compositeIdentity": {
+    "components": ["employee_number", "employee_card_number"],
+    "uniquenessScope": "whole_database",
+    "firmScoped": false,
+    "h4SetsBusinessUniquenessOnly": true,
+    "missingTechnicalConstraintExactOne": "business_expected_with_runtime_cardinality_guard"
+  },
+  "scopeGrainSeparation": {
+    "p2ScopeIndependentOfP1Grain": true,
+    "scopeBlockedOnlyBecauseOfP1GrainForbidden": true
+  },
+  "applicationSurfaceSeparation": {
+    "formAnchorIsNotDataSurface": true,
+    "applicationDataSurfaceRequiresTechnicalReference": true
+  },
+  "evaluationIntegrity": {
+    "actualEvaluationMustBeDistinguishedFromDiscovery": true,
+    "evaluatorKind": "stage3k2b1_policy_evaluator"
+  },
+  "p6StatusModel": {
+    "p6DiscoveryStatusSeparateFromUsageEligibility": true
+  },
+  "sourceGapPolicy": {
+    "sourceGapRequestGeneration": true
+  },
+  "phaseGates": {
+    "phase1": "P1_source_grain",
+    "phase2": "training_participant_attribution",
+    "phase3": "P6_anchored_discovery",
+    "phase4": "P7_composite_assessment",
+    "phase5": "P2_dependency_reevaluation",
+    "p6RequiresEmployeeMasterAnchor": true,
+    "p7RequiresP2P6SameRecord": true,
+    "p1UnresolvedMakesDownstreamDiagnosticsOnly": true
+  },
+  "staleness": {
+    "graphHashMismatchYieldsStale": true,
+    "policyHashMismatchYieldsStale": true,
+    "silentCarryForwardForbidden": true,
+    "p7DependsOnFingerprints": ["P1", "P2", "P6", "H4", "same_record"]
+  },
+  "failClosed": {
+    "approvalForbidden": true,
+    "genericActivationForbidden": true,
+    "planningForbidden": true,
+    "executionAccessNotEstablished": true
+  },
+  "collectorBounds": {
+    "maxDepth": 4,
+    "maxCandidates": 40,
+    "conflictPolicy": "record_and_continue",
+    "allowedNodeTypes": [
+      "application_form",
+      "application_control",
+      "dataset",
+      "gateway",
+      "oracle_object",
+      "oracle_column",
+      "help_field",
+      "package_ref"
+    ],
+    "allowedEdgeTypes": [
+      "HAS_CONTROL",
+      "BINDS_TO",
+      "USES_DATASET",
+      "MAPS_TO_ORACLE_OBJECT",
+      "HAS_COLUMN",
+      "DEPENDS_ON",
+      "PRIMARY_KEY_OF",
+      "UNIQUE_KEY_OF",
+      "FOREIGN_KEY_TO",
+      "REFERENCES",
+      "HELP_DESCRIBES",
+      "JOINS_TO"
+    ]
+  },
+  "pilotTargets": ["P1", "P2", "P6", "P7"],
+  "deferredTargets": ["P3", "P4", "P5"]
+}
