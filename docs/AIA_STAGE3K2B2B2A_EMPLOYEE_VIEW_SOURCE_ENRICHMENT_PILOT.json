@@ -1,0 +1,121 @@
+{
+  "stage": "3K.2B2B2A",
+  "title": "Candidate-Scoped Employee View and Application Data Surface Offline Enrichment Pilot",
+  "stage3k2b2bStatus": "started_employee_source_gap_closure",
+  "stage3k2b2b2Status": "started_offline_source_evidence_enrichment",
+  "stage3k2b2b2aStatus": "accepted_offline_candidate_scoped_employee_view_enrichment_pilot",
+  "stage3k2b2b2bStatus": "not_started",
+  "nextStage": "stage3k2b2b2b_candidate_scoped_view_definition_metadata_export_design",
+  "nextStageTitle": "Candidate-Scoped View Definition Metadata Export and Import Design",
+  "accepted": true,
+  "acceptedInfrastructure": "candidate_scoped_employee_view_and_application_surface_offline_enrichment_pilot",
+  "committed": true,
+  "previousHumanReviewVerdict": "PATCH_BEFORE_COMMIT",
+  "humanReviewVerdict": "PASS_WITH_FINALIZATION",
+  "humanReviewStatus": "accepted",
+  "realCandidateApprovalStatus": "no_candidates_approved",
+  "realCandidateDecisionsSummary": {
+    "cand:P1:employee": "request_more_evidence"
+  },
+  "enrichmentPolicyConfig": "apps/api/config/teta-employee-foundation-source-enrichment-policy-v1.json",
+  "enrichmentPolicyVersion": "teta-aia-employee-foundation-source-enrichment-policy-v1",
+  "enrichmentPolicyHash": "69ff562c1be4deba9116e5ab25e3d6dbb7b32ac817bccf787d3fb78d04a5caec",
+  "policyRulesApplied": [
+    "notParsedMeansNotEvaluated",
+    "zeroCandidatesAreNotUnambiguous",
+    "activeGraphImmutabilityRequiresContentHash",
+    "validatedPreviewRequiresNonEmptyDelta",
+    "allowlistRequiresObservedBounds",
+    "syntheticAndRealMetricsSeparated",
+    "requestAvailabilityDoesNotProveSemanticAttribution"
+  ],
+  "allowlistSummary": {
+    "scope": "P1_employee_only",
+    "applicationAnchor": "known_employee_form_anchor",
+    "technicalSource": "known_employee_semantic_view_reference",
+    "artifactScope": ["stage2a", "stage2b", "stage2c", "stage2d", "stage2e", "stage3a", "stage3k2b2b1_p1_pack"],
+    "configuredBounds": {
+      "maxDepth": 4,
+      "maxNodes": 80,
+      "maxEdges": 160,
+      "maxCandidates": 20
+    },
+    "prohibitedFallbacks": [
+      "similar_view_name",
+      "global_view_scan",
+      "global_column_scan",
+      "prac_employee_karta_search",
+      "unanchored_shortest_path"
+    ]
+  },
+  "safeCandidateSummaries": {
+    "cand:P1:employee": {
+      "viewDefinitionRequestStatus": "requires_vendor_export",
+      "artifactPresentStatus": "missing",
+      "definitionCompletenessStatus": "missing",
+      "parseStatus": "not_parsed",
+      "unsupportedConstructsStatus": "not_evaluated",
+      "unsupportedConstructs": null,
+      "parseWarnings": null,
+      "keyPreservationStatus": "not_evaluable",
+      "evidenceAvailability": "partial",
+      "materializationStatus": "requires_bounded_reconstruction",
+      "surfaceCandidateCount": 0,
+      "surfaceSelectionStatus": "no_candidates",
+      "ambiguityStatus": "not_evaluable",
+      "selectionRequired": false,
+      "semanticAttributionStatus": "unproven",
+      "applicationDataSurfaceStatus": "supported_partial",
+      "sourceOutcome": "supported_partial",
+      "businessGrain": "one_row_per_employee_card_or_master_record",
+      "grainStatus": "partial",
+      "genericActivationEligible": false,
+      "planningEligible": false,
+      "approvalForbidden": true
+    }
+  },
+  "graphResult": {
+    "activeGraphPointerUnchanged": true,
+    "activeGraphContentUnchanged": true,
+    "runtimeConsumersMayUsePreview": false,
+    "promotionStatus": "not_requested",
+    "previewStatus": "not_created_no_new_validated_evidence",
+    "previewAddedNodes": 0,
+    "previewAddedEdges": 0,
+    "previewSupersededEvidence": 0,
+    "previewSemanticUpgradeCount": 0
+  },
+  "acceptedInfrastructureCapabilities": [
+    "exact_candidate_scoped_enrichment_allowlist",
+    "configured_and_observed_traversal_bounds",
+    "existing_artifact_locator",
+    "form_anchor_not_data_surface",
+    "partial_ambiguous_no_candidate_surface_semantics",
+    "optional_manifest_based_view_definition_import",
+    "view_definition_completeness_validation",
+    "parser_not_evaluated_separation",
+    "unsupported_oracle_constructs_fail_closed",
+    "depends_on_base_pk_not_key_preservation_proof",
+    "technical_metadata_sensitivity_containment",
+    "immutable_graph_preview_contract",
+    "active_graph_content_hash_immutability",
+    "zero_delta_preview_suppression",
+    "synthetic_vs_real_evidence_separation",
+    "staleness_and_fingerprints",
+    "no_approval_activation_planning_execution"
+  ],
+  "productionReusePolicy": {
+    "defaultReuse": "deny",
+    "reusableRoles": [],
+    "planningEligibleBindings": 0,
+    "realApprovedGenericBindings": 0
+  },
+  "stage3dMutations": 0,
+  "reusePolicyMutations": 0,
+  "realDecisionEventsApplied": 0,
+  "oracleConnections": 0,
+  "sqlCompiled": 0,
+  "sqlExecuted": 0,
+  "localModelCalls": 0,
+  "qdrantCalls": 0
+}
