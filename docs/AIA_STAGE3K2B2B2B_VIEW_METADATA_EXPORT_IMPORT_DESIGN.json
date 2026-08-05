@@ -1,0 +1,865 @@
+{
+  "stage": "3K.2B2B2B",
+  "title": "Candidate-Scoped View Definition Metadata Export and Import Design",
+  "designOnly": true,
+  "implemented": false,
+  "committed": false,
+  "previousHumanReviewVerdict": "PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT",
+  "humanReviewVerdict": "PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT",
+  "designCorrectionThemes": [
+    "deterministic_metadata_export_profile",
+    "raw_hash_authority",
+    "create_view_envelope_handoff",
+    "atomic_storage_and_path_containment",
+    "object_and_application_edition_identity",
+    "closed_metadata_statement_templates",
+    "legal_fail_closed_outcomes"
+  ],
+  "stage3k2b2bStatus": "started_employee_source_gap_closure",
+  "stage3k2b2b2Status": "started_offline_source_evidence_enrichment",
+  "stage3k2b2b2aStatus": "accepted_offline_candidate_scoped_employee_view_enrichment_pilot",
+  "stage3k2b2b2bStatus": "not_started",
+  "stage3k2b2b2bReadiness": "ready_for_candidate_scoped_metadata_export_contract",
+  "nextImplementationSlice": "stage3k2b2b2b1_candidate_scoped_p1_view_definition_metadata_export_and_import_pilot",
+  "nextImplementationSliceTitle": "Candidate-Scoped P1 View Definition Metadata Export and Import Pilot",
+  "productionReusePolicy": {
+    "defaultReuse": "deny",
+    "reusableRoles": [],
+    "planningEligibleBindings": 0,
+    "realApprovedGenericBindings": 0
+  },
+  "inputP1State": {
+    "candidateId": "cand:P1:employee",
+    "viewDefinitionRequestStatus": "requires_vendor_export",
+    "artifactPresentStatus": "missing",
+    "definitionCompletenessStatus": "missing",
+    "parseStatus": "not_parsed",
+    "unsupportedConstructsStatus": "not_evaluated",
+    "keyPreservationStatus": "not_evaluable",
+    "grainStatus": "partial",
+    "sourceOutcome": "supported_partial",
+    "genericActivationEligible": false,
+    "planningEligible": false,
+    "approvalForbidden": true,
+    "humanDecision": "request_more_evidence"
+  },
+  "exactScope": {
+    "candidateId": "cand:P1:employee",
+    "targetObjectClass": "known_p1_employee_oracle_view",
+    "objectType": "VIEW",
+    "boundedObjectCount": 1,
+    "allowlistRequired": true,
+    "allowlistClass": "allowlist:P1:employee:v1",
+    "outOfScope": [
+      "other_employee_views",
+      "base_tables",
+      "synonyms",
+      "packages",
+      "functions",
+      "other_schemas",
+      "name_similar_objects",
+      "view_dependencies",
+      "P6",
+      "P7",
+      "training",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "prohibitedPatterns": [
+      "wildcards",
+      "LIKE",
+      "global_all_views_scan",
+      "name_fragment_search",
+      "similar_name_fallback",
+      "unanchored_shortest_path",
+      "auto_pick_other_owner",
+      "auto_pick_other_edition",
+      "auto_pick_other_schema"
+    ]
+  },
+  "contracts": {
+    "TetaCandidateScopedViewIdentity": {
+      "fields": [
+        "candidateId",
+        "candidateFingerprint",
+        "owner",
+        "objectName",
+        "objectType",
+        "objectEdition",
+        "editionableStatus",
+        "objectId",
+        "lastDdlTime",
+        "objectStatus",
+        "applicationEditionEvidenceRef",
+        "applicationEditionEvidenceStatus",
+        "databaseIdentityConfidence",
+        "applicationBuildFingerprint",
+        "applicationVersionEvidenceRef",
+        "applicationSemanticSourceRef",
+        "canonicalGraphObjectRef",
+        "expectedOwner",
+        "expectedObjectName",
+        "expectedObjectType",
+        "expectedEdition",
+        "identityVerificationStatus",
+        "identityFingerprint"
+      ],
+      "objectStatus": ["VALID", "INVALID", "UNKNOWN"],
+      "applicationEditionEvidenceStatus": [
+        "confirmed_exact",
+        "confirmed_not_editioned",
+        "unavailable",
+        "ambiguous",
+        "conflicting"
+      ],
+      "databaseIdentityConfidence": [
+        "verified",
+        "supported",
+        "unverified",
+        "conflicting"
+      ],
+      "identityVerificationStatus": [
+        "verified_exact",
+        "object_missing",
+        "owner_mismatch",
+        "type_mismatch",
+        "edition_mismatch",
+        "multiple_editions",
+        "conflicting",
+        "not_verified"
+      ],
+      "exportRequires": "verified_exact",
+      "verifiedExactRequires": [
+        "exact_owner",
+        "exact_object_name",
+        "exact_view_type",
+        "exact_database_environment",
+        "exact_edition_or_confirmed_not_editioned",
+        "explicit_objectStatus"
+      ],
+      "invalidObjectMayExportDdl": true,
+      "invalidObjectBlocksRuntimeReadinessClaims": true,
+      "sessionEditionMustNotEqualApplicationEditionByAssumption": true
+    },
+    "TetaCandidateScopedViewMetadataExportRequest": {
+      "metadataOnly": true,
+      "rowDataAllowed": false,
+      "dmlAllowed": false,
+      "ddlExecutionAllowed": false,
+      "boundedObjectCount": 1,
+      "requestedArtifactKind": "view_definition",
+      "deterministicTransformProfileFields": [
+        "metadataTransformProfileId",
+        "metadataTransformProfileVersion",
+        "metadataTransformParameters",
+        "metadataTransformProfileHash"
+      ],
+      "sessionAndSourceContextFields": [
+        "sessionEdition",
+        "sessionNlsSettingsFingerprint",
+        "sourceDatabaseProductVersion",
+        "metadataApiVersion"
+      ],
+      "transformProfileRequirements": [
+        "versioned",
+        "allowlisted",
+        "deterministic",
+        "included_in_exportPolicyHash",
+        "included_in_staleness_vector"
+      ],
+      "status": [
+        "planned",
+        "ready_for_explicit_vendor_execution",
+        "identity_not_verified",
+        "privilege_check_required",
+        "blocked",
+        "conflicting"
+      ],
+      "designStageExecutesRequest": false
+    },
+    "TetaViewDefinitionExportManifest": {
+      "vendorOnly": true,
+      "rawPayloadRepoEligible": false,
+      "containsClientRows": false,
+      "containsPersonalData": false,
+      "containsCredentials": false,
+      "requiredFields": [
+        "manifestVersion",
+        "exportRequestId",
+        "candidateId",
+        "candidateFingerprint",
+        "targetIdentity",
+        "identityFingerprint",
+        "sourceDatabaseIdentityFingerprint",
+        "sourceDatabaseProductVersion",
+        "sourceProductVersion",
+        "sourceEditionContext",
+        "metadataApiVersion",
+        "metadataTransformProfileId",
+        "metadataTransformProfileVersion",
+        "metadataTransformParameters",
+        "metadataTransformProfileHash",
+        "sessionEdition",
+        "sessionNlsSettingsFingerprint",
+        "metadataSourceKind",
+        "exporterVersion",
+        "exportPolicyVersion",
+        "exportPolicyHash",
+        "vendorArtifactRootId",
+        "vendorArtifactRootFingerprint",
+        "payloadFileName",
+        "payloadRelativePath",
+        "payloadResolvedPathFingerprint",
+        "payloadByteLength",
+        "rawPayloadSha256",
+        "canonicalPayloadSha256",
+        "payloadEncoding",
+        "payloadContentType",
+        "declaredCompletenessStatus",
+        "fragmentCount",
+        "fragmentOrderingVerified",
+        "containsClientSpecificMetadata",
+        "sensitivityClassification",
+        "exportedAt",
+        "manifestFingerprint"
+      ],
+      "forbiddenInManifest": [
+        "password",
+        "connection_string",
+        "host",
+        "oracle_login",
+        "raw_ddl_text",
+        "absolute_local_path",
+        "client_specific_content"
+      ]
+    },
+    "TetaMetadataPayloadCompletenessAssessment": {
+      "completenessStatus": [
+        "complete",
+        "fragmented_complete",
+        "truncated",
+        "incomplete",
+        "conflicting",
+        "not_evaluable"
+      ],
+      "forbiddenCompleteHeuristics": [
+        "ends_with_valid_character",
+        "contains_select_keyword_alone"
+      ]
+    },
+    "TetaViewDefinitionImportManifest": {
+      "vendorOnly": true,
+      "rawPayloadRepoEligible": false,
+      "extends": "stage3k2b2b2a_TetaViewDefinitionImportManifest",
+      "requiredFields": [
+        "manifestVersion",
+        "sourceExportManifestFingerprint",
+        "candidateId",
+        "candidateFingerprint",
+        "targetViewIdentity",
+        "targetIdentityFingerprint",
+        "vendorArtifactRootId",
+        "vendorArtifactRootFingerprint",
+        "payloadFile",
+        "payloadRelativePath",
+        "payloadResolvedPathFingerprint",
+        "rawPayloadSha256",
+        "canonicalPayloadSha256",
+        "payloadByteLength",
+        "payloadEncoding",
+        "rawHashVerificationStatus",
+        "canonicalHashComparisonStatus",
+        "rawHashRevalidatedBeforeImport",
+        "payloadRevalidatedBeforeImport",
+        "storageContainmentStatus",
+        "atomicWriteStatus",
+        "declaredCompletenessStatus",
+        "metadataSourceKind",
+        "metadataTransformProfileId",
+        "metadataTransformProfileVersion",
+        "metadataTransformProfileHash",
+        "exporterVersion",
+        "exportPolicyVersion",
+        "exportPolicyHash",
+        "expectedImportPolicyVersion",
+        "expectedImportPolicyHash",
+        "importRequestedAt",
+        "importManifestFingerprint"
+      ],
+      "requiredRejections": [
+        "missing_manifest",
+        "fingerprint_mismatch",
+        "target_mismatch",
+        "candidate_mismatch",
+        "owner_type_edition_mismatch",
+        "payload_outside_vendor_store",
+        "path_containment_not_verified",
+        "hash_changed_after_manifest",
+        "interrupted_atomic_write",
+        "symlink_reparse_escape",
+        "unknown_source_kind",
+        "incomplete_fragment_set",
+        "artifact_outside_allowlist",
+        "raw_marked_repo_eligible",
+        "canonical_used_instead_of_raw_integrity"
+      ]
+    },
+    "TetaOracleViewDdlEnvelopeAssessment": {
+      "requiredFields": [
+        "rawDdlFingerprint",
+        "ddlEnvelopeParseStatus",
+        "createKind",
+        "forceStatus",
+        "editionableStatus",
+        "declaredOwner",
+        "declaredViewName",
+        "declaredColumnList",
+        "viewHeaderIdentityStatus",
+        "queryBodyExtractionStatus",
+        "queryBodyStartOffset",
+        "queryBodyEndOffset",
+        "queryBodyRawFingerprint",
+        "queryBodyCanonicalFingerprint",
+        "wrapperWarnings",
+        "wrapperUnsupportedConstructs"
+      ],
+      "ddlEnvelopeParseStatus": [
+        "parsed",
+        "parsed_with_unsupported_wrapper",
+        "malformed",
+        "conflicting",
+        "not_parsed"
+      ],
+      "createKind": [
+        "create_view",
+        "create_or_replace_view",
+        "unsupported"
+      ],
+      "queryBodyExtractionStatus": [
+        "extracted",
+        "ambiguous",
+        "missing",
+        "unsupported",
+        "not_evaluated"
+      ],
+      "existingParserNote": "Stage 3K.2B2B2A parseOracleViewDefinition is SELECT/FROM oriented; envelope extraction is required before handoff",
+      "regexOnlyNotSoleAuthoritativeAsLocator": true,
+      "doNotDuplicateKeyPreservationEvaluator": true
+    },
+    "TetaAllowedMetadataStatement": {
+      "designOnlyFutureContract": true,
+      "requiredFields": [
+        "metadataStatementTemplateId",
+        "metadataStatementTemplateVersion",
+        "metadataStatementTemplateHash",
+        "metadataStatementClass",
+        "allowedObjectCount",
+        "bindNames",
+        "bindValueFingerprints",
+        "targetCandidateId",
+        "targetAllowlistId",
+        "policyVersion",
+        "policyHash"
+      ],
+      "metadataStatementClass": [
+        "exact_object_identity_lookup",
+        "exact_view_ddl_export",
+        "exact_fragment_completeness_lookup"
+      ],
+      "identifierSource": "exact_allowlist_only",
+      "freeFormUserTextForbidden": true,
+      "arbitrarySqlForbidden": true
+    }
+  },
+  "metadataSourceStrategy": {
+    "preferredSourceKind": "dbms_metadata_get_ddl",
+    "fallbackSourceKinds": [
+      "preserved_source_file",
+      "manual_vendor_artifact",
+      "all_views_text_fragments_when_proven_complete"
+    ],
+    "nonAuthoritativeSourceKinds": [
+      "gateway_equivalent_select",
+      "sqljoin_equivalent_select"
+    ],
+    "manualVendorFallbackRequiresExplicitAcquisitionMode": true,
+    "notes": {
+      "gateway_sqljoin": "May provide equivalence evidence only; must not masquerade as raw Oracle VIEW DDL",
+      "privilegeFailure": "Must not trigger fallback scan, owner change, or unverified source"
+    }
+  },
+  "noRowDataContract": {
+    "metadataOnly": true,
+    "forbidden": [
+      "select_from_target_view",
+      "count_from_target_view",
+      "row_sampling",
+      "fetch_first",
+      "execute_view_definition",
+      "explain_plan_on_view",
+      "dml",
+      "ddl",
+      "commit",
+      "unrelated_session_mutation"
+    ],
+    "metadataAuditCounters": [
+      "oracleMetadataConnections",
+      "metadataStatementsPrepared",
+      "metadataStatementsExecuted",
+      "metadataRowsReturned",
+      "viewDefinitionsExported"
+    ],
+    "requiredZeros": [
+      "businessSqlStatementsExecuted",
+      "targetViewBusinessSelects",
+      "targetViewRowsRead",
+      "dmlStatements",
+      "ddlStatementsExecuted",
+      "viewDefinitionsExecuted",
+      "commits"
+    ]
+  },
+  "fingerprintModel": {
+    "rawPayloadSha256": "sole_integrity_hash_authorizing_import",
+    "canonicalPayloadSha256": "compare_and_dedup_only_cannot_replace_raw",
+    "canonicalizationV1MayNormalize": [
+      "BOM",
+      "CRLF_LF",
+      "optional_single_trailing_newline"
+    ],
+    "canonicalizationMustNot": [
+      "per_line_trailing_whitespace_strip_unless_literal_comment_aware_proven_safe",
+      "alter_identifiers",
+      "alter_quoted_identifiers",
+      "remove_joins",
+      "remove_where",
+      "strip_comments_before_raw_hash",
+      "rewrite_aliases",
+      "rewrite_oracle_syntax"
+    ],
+    "fields": [
+      "canonicalizerVersion",
+      "canonicalizationRules",
+      "canonicalizationFingerprint",
+      "rawHashVerificationStatus",
+      "canonicalHashComparisonStatus",
+      "rawHashRevalidatedBeforeImport",
+      "rawHashRevalidatedBeforeParse"
+    ]
+  },
+  "atomicStorageAndPathContainment": {
+    "fields": [
+      "vendorArtifactRootId",
+      "vendorArtifactRootFingerprint",
+      "payloadRelativePath",
+      "payloadResolvedPathFingerprint",
+      "storageContainmentStatus",
+      "atomicWriteStatus",
+      "temporaryPayloadFingerprint",
+      "finalPayloadFingerprint",
+      "payloadImmutableAfterExport",
+      "payloadRevalidatedBeforeImport",
+      "payloadRevalidatedBeforeParse"
+    ],
+    "storageContainmentStatus": [
+      "contained",
+      "outside_vendor_root",
+      "symlink_or_reparse_escape",
+      "path_invalid",
+      "not_verified"
+    ],
+    "atomicWriteStatus": [
+      "completed",
+      "interrupted",
+      "failed",
+      "not_attempted"
+    ],
+    "requirements": [
+      "realpath_containment",
+      "no_dotdot_escape",
+      "no_symlink_junction_reparse_escape",
+      "write_temporary_file",
+      "complete_write_and_hash",
+      "atomic_rename",
+      "manifest_only_after_payload_completion",
+      "rehash_before_import",
+      "rehash_before_parser_handoff"
+    ]
+  },
+  "editionHandling": {
+    "fields": [
+      "sessionEdition",
+      "objectEdition",
+      "expectedEdition",
+      "editionableStatus",
+      "editionResolutionStatus",
+      "applicationEditionEvidenceRef",
+      "applicationEditionEvidenceStatus",
+      "applicationBuildFingerprint"
+    ],
+    "editionResolutionStatus": [
+      "exact",
+      "not_editioned",
+      "edition_missing",
+      "edition_mismatch",
+      "ambiguous",
+      "unsupported"
+    ],
+    "blockExportWhenAmbiguous": true,
+    "sessionEditionNotAssumedApplicationEdition": true
+  },
+  "privilegeAvailabilityOutcomes": [
+    "ready_for_export",
+    "requires_metadata_privilege",
+    "metadata_package_unavailable",
+    "requires_edition_resolution",
+    "object_not_visible",
+    "object_missing",
+    "edition_ambiguous",
+    "source_returns_truncated_text",
+    "export_blocked_by_policy",
+    "export_failed",
+    "export_completed"
+  ],
+  "legalFailClosedPilotOutcomes": {
+    "outcomes": [
+      "requires_metadata_privilege",
+      "metadata_package_unavailable",
+      "requires_edition_resolution",
+      "object_not_visible",
+      "object_missing",
+      "source_returns_truncated_text",
+      "export_blocked_by_policy"
+    ],
+    "notImplementationFailure": true,
+    "mustNot": [
+      "trigger_fallback_scan",
+      "change_p1",
+      "create_real_ddl_artifact",
+      "create_graph_preview",
+      "run_parser"
+    ],
+    "manualVendorFallbackRequiresExplicitAcquisitionMode": true,
+    "gatewaySqljoinNonAuthoritative": true
+  },
+  "importValidationOutcomes": [
+    "not_imported",
+    "validated_complete",
+    "validated_fragmented_complete",
+    "rejected_fingerprint_mismatch",
+    "rejected_target_mismatch",
+    "rejected_candidate_mismatch",
+    "rejected_incomplete",
+    "rejected_truncated",
+    "rejected_edition_mismatch",
+    "rejected_policy_mismatch",
+    "rejected_sensitive_storage",
+    "rejected_path_containment",
+    "rejected_atomic_write_interrupted",
+    "rejected_raw_hash_mismatch",
+    "conflicting"
+  ],
+  "parserEligibleImportOutcomes": [
+    "validated_complete",
+    "validated_fragmented_complete"
+  ],
+  "rawArtifactContainment": {
+    "storage": ["local_vendor_only_store"],
+    "never": [
+      "repo",
+      "docs",
+      "model_prompt",
+      "qdrant",
+      "application_facing_log",
+      "client_visible_response"
+    ],
+    "repoSafeAllowed": [
+      "hash",
+      "length",
+      "source_kind",
+      "completeness_status",
+      "parser_status",
+      "unsupported_construct_summary",
+      "safe_key_preservation_result",
+      "envelope_assessment_summary"
+    ],
+    "fields": [
+      "rawPayloadAccessStatus",
+      "rawPayloadStorageClass",
+      "rawPayloadRetentionPolicy",
+      "safeSummaryFingerprint",
+      "redactionStatus",
+      "vendorArtifactRootId",
+      "vendorArtifactRootFingerprint",
+      "storageContainmentStatus",
+      "atomicWriteStatus"
+    ]
+  },
+  "exportImportPolicyDesign": {
+    "policyVersion": "teta-aia-candidate-scoped-view-metadata-export-policy-v1",
+    "futurePath": "apps/api/config/teta-candidate-scoped-view-metadata-export-policy-v1.json",
+    "policyFileCreatedInThisStage": false,
+    "notApprovalPolicy": true,
+    "notReusePolicy": true,
+    "notQueryExecutionPolicy": true,
+    "controls": [
+      "exact_candidate_identity",
+      "single_object_scope",
+      "allowed_metadata_sources",
+      "edition_verification",
+      "application_vs_session_edition",
+      "deterministic_transform_profile",
+      "closed_metadata_statement_templates",
+      "metadata_only_access",
+      "no_row_data_reads",
+      "clob_completeness",
+      "fragment_ordering",
+      "raw_hash_integrity",
+      "canonical_compare_dedup",
+      "atomic_path_containment",
+      "sensitivity_containment",
+      "export_manifest",
+      "import_manifest",
+      "importer_rejection_rules",
+      "privilege_fail_closed_outcomes",
+      "staleness",
+      "no_graph_promotion",
+      "no_approval_effect"
+    ]
+  },
+  "stalenessInputs": [
+    "candidateFingerprint",
+    "allowlistFingerprint",
+    "objectIdentityFingerprint",
+    "lastDdlTime",
+    "objectEdition",
+    "objectStatus",
+    "applicationEditionEvidenceStatus",
+    "sourceDatabaseIdentityFingerprint",
+    "metadataTransformProfileHash",
+    "sessionNlsSettingsFingerprint",
+    "extractorVersion",
+    "exportPolicyHash",
+    "importPolicyHash",
+    "rawPayloadSha256",
+    "canonicalPayloadSha256",
+    "baseGraphHash"
+  ],
+  "replayIdempotence": {
+    "contentFingerprintIndependentOf": ["runId", "timestamp", "localPath"],
+    "sameInputsYieldSame": [
+      "rawPayloadSha256",
+      "canonicalPayloadSha256",
+      "importValidationResult",
+      "parserInputFingerprint"
+    ]
+  },
+  "handoffToStage3k2b2b2a": {
+    "reuseExistingParser": true,
+    "reuseExistingKeyPreservationAssessor": true,
+    "existingParserIsSelectFromOriented": true,
+    "envelopeExtractionRequired": true,
+    "doNotSendFullCreateViewDirectlyToSelectOnlyParser": true,
+    "flow": [
+      "validated_import_artifact",
+      "teta_oracle_view_ddl_envelope_assessment",
+      "exact_header_identity_comparison",
+      "query_body_extraction",
+      "existing_view_definition_parser_select_from_text_only",
+      "completeness_gate",
+      "unsupported_construct_gate",
+      "key_preservation_assessment",
+      "immutable_graph_preview_if_positive_delta",
+      "p1_grain_reassessment_preview"
+    ],
+    "cannotBypass": [
+      "stage3k2b2b2a_policy",
+      "parser_completeness_gate",
+      "unsupported_construct_gate",
+      "graph_preview_gate",
+      "human_review"
+    ],
+    "importDoesNotMean": [
+      "key_preservation_proven",
+      "p1_grain_proven",
+      "graph_promotion",
+      "semantic_approval"
+    ]
+  },
+  "activeGraphSafeguards": {
+    "activeGraphPointerUnchanged": true,
+    "runtimeConsumersMayUsePreview": false,
+    "promotionStatus": "not_requested",
+    "stage3aSqliteWritesForbidden": true,
+    "zeroDeltaPreviewStatus": "not_created_no_new_validated_evidence"
+  },
+  "humanRole": {
+    "may": [
+      "approve_exact_candidate_scoped_metadata_export_run",
+      "designate_correct_environment_version",
+      "confirm_edition_when_system_detects_ambiguity",
+      "authorize_explicit_manual_vendor_artifact_acquisition_mode"
+    ],
+    "mustNot": [
+      "invent_table_name",
+      "invent_owner",
+      "invent_fk",
+      "invent_join",
+      "hand_rewrite_ddl",
+      "decide_key_preservation",
+      "equate_session_edition_to_application_edition_by_assertion"
+    ]
+  },
+  "readinessOutcomesAllowed": [
+    "not_ready",
+    "ready_for_candidate_scoped_metadata_export_contract",
+    "ready_for_explicit_vendor_metadata_export_pilot",
+    "ready_for_manual_vendor_artifact_import_pilot",
+    "requires_privilege_resolution_design",
+    "requires_edition_resolution"
+  ],
+  "selectedReadiness": "ready_for_candidate_scoped_metadata_export_contract",
+  "firstImplementationSlice": {
+    "id": "stage3k2b2b2b1_candidate_scoped_p1_view_definition_metadata_export_and_import_pilot",
+    "title": "Candidate-Scoped P1 View Definition Metadata Export and Import Pilot",
+    "started": false,
+    "inScope": [
+      "export_import_contracts",
+      "exact_p1_allowlist",
+      "object_identity_preflight",
+      "deterministic_transform_profile",
+      "closed_metadata_statements",
+      "explicit_vendor_only_metadata_export",
+      "complete_clob_handling",
+      "raw_hash_authority",
+      "envelope_handoff",
+      "atomic_path_containment",
+      "manifests",
+      "fingerprinting",
+      "vendor_only_containment",
+      "import_validation",
+      "handoff_to_existing_parser",
+      "p1_reassessment_preview"
+    ],
+    "outOfScope": [
+      "global_metadata_export",
+      "other_views",
+      "P6",
+      "P7",
+      "training",
+      "P3",
+      "P4",
+      "P5",
+      "active_graph_promotion",
+      "approval",
+      "runtime_query_integration"
+    ]
+  },
+  "thingsNotToBuild": [
+    "arbitrary_oracle_metadata_crawler",
+    "schema_dump",
+    "all_views_full_export",
+    "package_source_export",
+    "table_ddl_export",
+    "data_row_sampler",
+    "query_executor",
+    "runtime_oracle_feature",
+    "client_ui",
+    "model_summarization",
+    "qdrant_ingest",
+    "auto_approval",
+    "stage3d_binding",
+    "reuse_activation",
+    "graph_promotion",
+    "P6_P7_training_P3_P5",
+    "second_key_preservation_evaluator",
+    "regex_only_authoritative_envelope_as_locator"
+  ],
+  "requiredFutureZeroCounters": [
+    "metadataExportRunsWithoutExactAllowlist",
+    "metadataObjectsExportedOutsideAllowlist",
+    "metadataExportWildcardQueries",
+    "metadataExportNameSimilarityFallbacks",
+    "viewIdentityNotVerifiedBeforeExport",
+    "wrongOwnerViewDefinitionsExported",
+    "wrongEditionViewDefinitionsExported",
+    "ambiguousEditionAutoSelected",
+    "targetViewBusinessSelects",
+    "targetViewRowsRead",
+    "dmlStatements",
+    "ddlStatementsExecuted",
+    "viewDefinitionsExecuted",
+    "businessSqlStatementsExecuted",
+    "incompleteClobMarkedComplete",
+    "unorderedFragmentsAccepted",
+    "truncatedMetadataImported",
+    "payloadFingerprintMismatchAccepted",
+    "rawDdlCommittedToRepo",
+    "rawDdlExposedInDocs",
+    "rawDdlSentToModel",
+    "rawDdlSentToQdrant",
+    "rawDdlShownToClient",
+    "importedArtifactUsedWithoutManifest",
+    "importedArtifactCandidateMismatch",
+    "importedArtifactTargetMismatch",
+    "importedArtifactEditionMismatch",
+    "activeGraphPointerChanges",
+    "productionGraphReplaced",
+    "previewGraphPromotedWithoutReview",
+    "realDecisionEventsApplied",
+    "realApprovedGenericBindingsCreated",
+    "stage3dProductionBindingsAdded",
+    "reusePolicyEntriesAdded",
+    "planningEligibleBindingsAdded",
+    "metadataExportWithoutTransformProfile",
+    "metadataTransformProfileNotHashed",
+    "metadataSessionSettingsMissing",
+    "unversionedMetadataTransformUsed",
+    "canonicalHashUsedInsteadOfRawIntegrityHash",
+    "payloadAcceptedWithRawHashMismatch",
+    "lineWhitespaceNormalizationChangedLiteralContent",
+    "lineWhitespaceNormalizationChangedCommentContent",
+    "fullCreateViewSentDirectlyToSelectOnlyParser",
+    "queryBodyExtractedFromAmbiguousEnvelope",
+    "ddlHeaderIdentityMismatchAccepted",
+    "regexOnlyEnvelopeAcceptedAsAuthoritative",
+    "payloadWrittenOutsideVendorRoot",
+    "payloadPathTraversalAccepted",
+    "payloadSymlinkEscapeAccepted",
+    "manifestWrittenBeforePayloadFinalization",
+    "payloadChangedBetweenValidationAndParse",
+    "partialPayloadImported",
+    "sessionEditionAssumedAsApplicationEdition",
+    "verifiedExactWithoutEditionEvidence",
+    "verifiedExactWithoutDatabaseIdentity",
+    "invalidObjectReportedRuntimeReady",
+    "unregisteredMetadataStatementExecuted",
+    "metadataStatementTemplateHashMismatch",
+    "freeFormIdentifierUsedInMetadataExport",
+    "metadataStatementOutsideCandidateAllowlist",
+    "businessSqlMisclassifiedAsMetadataSql",
+    "privilegeFailureTriggeredGlobalScan",
+    "privilegeFailureTriggeredOwnerFallback",
+    "editionAmbiguityAutoResolved",
+    "nonAuthoritativeSourceUsedAsRawDdl",
+    "missingDdlReportedAsKeyPreservationFailure"
+  ],
+  "consumesEnrichmentPolicy": {
+    "path": "apps/api/config/teta-employee-foundation-source-enrichment-policy-v1.json",
+    "version": "teta-aia-employee-foundation-source-enrichment-policy-v1",
+    "hash": "69ff562c1be4deba9116e5ab25e3d6dbb7b32ac817bccf787d3fb78d04a5caec"
+  },
+  "oracleSqlModelQdrantInThisStage": {
+    "oracleConnections": 0,
+    "sqlExecuted": 0,
+    "plsqlExecuted": 0,
+    "dbmsMetadataCalls": 0,
+    "realDdlImported": 0,
+    "parserRunsOnRealDdl": 0,
+    "graphPreviewCreated": 0,
+    "localModelCalls": 0,
+    "qdrantCalls": 0,
+    "embeddingCalls": 0
+  }
+}
