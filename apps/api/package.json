@@ -56,7 +56,8 @@
     "generic-semantic:stage3k2b1": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b1.ts",
     "generic-semantic:stage3k2b2a": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b2a.ts",
     "generic-semantic:stage3k2b2b1": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b2b1.ts",
-    "generic-semantic:stage3k2b2b2a": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b2b2a.ts"
+    "generic-semantic:stage3k2b2b2a": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b2b2a.ts",
+    "generic-semantic:stage3k2b2b2b1": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b2b2b1.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

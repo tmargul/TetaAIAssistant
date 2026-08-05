@@ -1,0 +1,115 @@
+{
+  "stage": "3K.2B2B2B1",
+  "title": "Candidate-Scoped View Metadata Export/Import Infrastructure",
+  "stage3k2b2b2bStatus": "started_candidate_scoped_metadata_export",
+  "stage3k2b2b2b1Status": "accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure",
+  "stage3k2b2b2b2Status": "not_started",
+  "nextStage": "stage3k2b2b2b2_real_p1_view_metadata_export_import_and_reassessment_pilot",
+  "nextStageTitle": "Stage 3K.2B2B2B2 — Real P1 View Metadata Export, Import and Reassessment Pilot",
+  "accepted": true,
+  "acceptedInfrastructure": "offline_candidate_scoped_view_metadata_export_import_infrastructure",
+  "realMetadataExportStatus": "not_executed",
+  "realCandidateApprovalStatus": "no_candidates_approved",
+  "humanReviewVerdict": "PASS_WITH_FINALIZATION",
+  "humanReviewStatus": "accepted",
+  "notNamedAs": [
+    "completed_real_export_pilot",
+    "accepted_real_metadata_export"
+  ],
+  "policyPath": "apps/api/config/teta-candidate-scoped-view-metadata-export-policy-v1.json",
+  "policyVersion": "teta-aia-candidate-scoped-view-metadata-export-policy-v1",
+  "policyHash": "ef861bf587a97fde7e3483373cfa6d1e974edcc38f6bad7e5a7f277745cf3499",
+  "transformProfile": {
+    "id": "oracle-view-ddl-canonical-v1",
+    "version": "v1",
+    "hash": "1298763b33ba952abc1081b1db6041c4e156c536209cb5ccf9b943d8f82112c7",
+    "rules": ["strip_utf8_bom", "crlf_to_lf", "remove_one_trailing_newline"],
+    "forbiddenRules": ["strip_line_trailing_whitespace", "strip_comments", "normalize_literals"]
+  },
+  "allowlistSummary": {
+    "candidateId": "cand:P1:employee",
+    "allowlistId": "allowlist:P1:employee:v1",
+    "objectType": "VIEW",
+    "boundedObjectCount": 1,
+    "scope": "exact_P1_only"
+  },
+  "defaultOfflineRunStatuses": {
+    "requestStatus": "ready_for_explicit_vendor_execution",
+    "identityPreflightStatus": "not_run",
+    "oracleExecutionConsentStatus": "not_provided",
+    "getDdlEligibility": "blocked_flags_missing",
+    "exportAttemptStatus": "not_attempted",
+    "exportOutcome": "not_attempted",
+    "identityVerificationStatus": "not_verified",
+    "objectStatus": "UNKNOWN",
+    "applicationEditionEvidenceStatus": "unavailable",
+    "databaseIdentityConfidence": "unverified",
+    "getDdlAllowed": false,
+    "oracleFlags": {
+      "executeRealOracleMetadataExport": false,
+      "confirmMetadataOnlySingleObjectExport": false
+    }
+  },
+  "realRunOrder": [
+    "dual_flags_present",
+    "exact_allowlist_validation",
+    "database_identity_preflight",
+    "exact_owner_name_type_preflight",
+    "application_edition_resolution",
+    "object_status_assessment",
+    "getDdlEligibility_evaluation",
+    "metadata_ddl_export"
+  ],
+  "dualFlagsDoNotBypassPreflight": true,
+  "syntheticCoverageSummary": {
+    "successfulPathCovered": true,
+    "failClosedPathsCovered": [
+      "wrong_owner",
+      "wrong_object_type",
+      "wrong_edition",
+      "ambiguous_edition",
+      "unverified_database_identity",
+      "invalid_object",
+      "missing_privilege",
+      "truncated_clob",
+      "raw_hash_mismatch",
+      "path_containment_failure",
+      "payload_changed_before_parsing",
+      "malformed_create_view_envelope",
+      "unsupported_wrapper"
+    ],
+    "syntheticArtifactsInRealP1Pack": false
+  },
+  "safeCandidateSummaries": {
+    "cand:P1:employee": {
+      "humanDecision": "request_more_evidence",
+      "grainStatus": "partial",
+      "genericActivationEligible": false,
+      "planningEligible": false,
+      "approvalForbidden": true,
+      "keyPreservationStatus": "not_evaluable",
+      "previewStatus": "not_created_no_new_validated_evidence"
+    }
+  },
+  "graphResult": {
+    "activeGraphPointerUnchanged": true,
+    "runtimeConsumersMayUsePreview": false,
+    "previewPromoted": false
+  },
+  "mutations": {
+    "decisionEventsCreated": 0,
+    "stage3dProductionBindingsAdded": 0,
+    "stage3dProductionBindingsModified": 0,
+    "reusePolicyEntriesAdded": 0,
+    "reusePolicyEntriesModified": 0,
+    "planningEligibleBindingsAdded": 0,
+    "approvals": 0
+  },
+  "realCounters": {
+    "realOracleMetadataExports": 0,
+    "realViewDefinitionsImported": 0,
+    "realParserRunsOnDdl": 0
+  },
+  "modulePath": "apps/api/src/teta-candidate-scoped-view-metadata-export/",
+  "cli": "generic-semantic:stage3k2b2b2b1"
+}
