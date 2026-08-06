@@ -1,9 +1,32 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-08-06** (P1 current-position pilot ACCEPTED; nextProductSlice planned only)
+> Ostatnia aktualizacja: **2026-08-06** (P1 surname+current-position report ACCEPTED)
 
 ---
+
+## Notatki sesji (2026-08-06) — P1 surname prefix + current position report (ACCEPTED)
+
+- Architect verdict: `PASS_WITH_FINALIZATION_AND_COMMIT`.
+- ScenarioId: `employee_surname_prefix_with_current_position_report`
+- Exact Q (prefix testowy `A` only); gate `TETA_ENABLE_P1_EMPLOYEE_VERTICAL_PILOT`
+- Module: `teta-p1-employee-vertical-pilot/` + script `pilot:p1-surname-current-position`
+- `pilotStatus=implemented_and_real_readonly_smoke_completed`
+- `businessResultValidationStatus=accepted_by_user_comparison_with_teta`
+- `pilotTechnicalStatus=passed`; `pilotBusinessStatus=passed`
+- `employeeSetValidationStatus=all_expected_employees_preserved`
+- `currentPositionValidationStatus=all_returned_position_values_confirmed_correct`
+- `employeePreservingJoinValidationStatus=accepted_real_employee_set_with_and_without_positions`
+- Confirmed by user vs Teta: `employeeSetConfirmedCorrect=true`; `currentPositionValuesConfirmedCorrect=true`; `employeePreservingJoinConfirmed=true`
+- Aggregates: `validatedEmployeeDistinctCount=8`; `validatedReturnedRowCount=8`; without=2; single=6; multiple=0; missing dict names=0
+- Sources (pilot-only): employee `TETA_ADMIN.NT_KP_PRC_PRACOWNICY`; position `NT_KP_KDR_STANOWISKA`; dictionary `NT_KP_SLO_STANOWISKA`
+- Fields: IMIE/NAZWISKO/NR_EWIDENCYJNY/ID; PRAC_ID/SSTN_ID/DATA_OD/DATA_DO; dict ID/NAZWA
+- Joins: driving=employee; `ID=PRAC_ID` LEFT; `SSTN_ID=ID` LEFT
+- Temporal in JOIN ON only: `DATA_OD<=TRUNC(SYSDATE)` AND (`DATA_DO IS NULL` OR `DATA_DO>=TRUNC(SYSDATE)`); WHERE only surname starts_with
+- SQL hash: `6e07a4b046d64ed85ec55059e1d35a345cf30ce1dd3ef784b0a04972b7421559`; sqlSafetyOk=true
+- Boundaries: `pilotOnly`; no Stage 3D/reuse/planning mutation; B3A stash untouched
+- Artefacts local only: `.local/p1-employee-surname-current-position-report/` — nie commitować
+- **nextProductSlice (plan only, not started):** `employee_current_time_work_group_by_employee_number` — najpierw ustalić exact źródło grupy czasu pracy / powiązanie / słownik / temporal / kardynalność / brak przypisania; nie zakładać nazw tabel
 
 ## Notatki sesji (2026-08-06) — P1 current position by employee number (ACCEPTED)
 

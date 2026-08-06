@@ -8,3 +8,7 @@ export * from './teta-p1-current-position-resolve';
 export * from './teta-p1-current-position-compile';
 export * from './teta-p1-current-position-chat';
 export * from './teta-p1-current-position-pipeline';
+export * from './teta-p1-surname-current-position.types';
+export * from './teta-p1-surname-current-position-compile';
+export * from './teta-p1-surname-current-position-chat';
+export * from './teta-p1-surname-current-position-pipeline';
