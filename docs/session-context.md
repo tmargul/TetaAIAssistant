@@ -1,9 +1,20 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-08-05** (Stage 3K.2B2B2B1 **offline infrastructure accepted** `PASS_WITH_FINALIZATION`; real metadata export **not executed / not started**; next=`stage3k2b2b2b2_…` **not_started**)
+> Ostatnia aktualizacja: **2026-08-06** (Stage 3K.2B2B2B2 accepted po v3 re-export + offline reevaluation; Stage 3K.2B2B2B3 `not_started`; **committed**)
 
 ---
+
+## Notatki sesji (2026-08-06) — Stage 3K.2B2B2B2 v3 (accepted)
+
+- Wykonano jednorazowy real Oracle metadata-only re-export (`cand:P1:employee`, `TETA_ADMIN.NT_KP_PRC_PRACOWNICY`, `VIEW`) z dual flags.
+- Artefakty v2 pozostawione bez modyfikacji; status repo-safe: `blocked_missing_raw_payload` / `incomplete_local_evidence_chain`; superseded przez v3.
+- Utworzono v3 immutable payload w content-addressed ścieżce: `.local/teta-vendor-artifacts/view-definitions/sha256/<raw_sha256>.sql`.
+- Durability gate v3 przechodzi: payload istnieje i ma identyczny SHA po zapisie, przed importem, po imporcie i przed reevaluacją.
+- Offline finalization uruchomione na v3 artifacts (bez Oracle): `oracleMetadataConnections=0`, `metadataStatementsExecuted=0`, `viewDefinitionsExported=0`.
+- Wynik reevaluacji: `grainStatusPreview=proven`, `genericActivationEligible=false`, `planningEligible=false`, `approvalForbidden=true`; brak mutacji Stage 3D/reuse/decision events.
+- Stage status: `stage3k2b2b2b2=accepted_real_p1_view_metadata_export_import_and_reassessment_pilot`, `stage3k2b2b2b3=not_started`, `nextStage=stage3k2b2b2b3_p1_application_access_surface_and_semantic_attribution_gap_closure_design`.
+- Human review: `humanReviewVerdict=PASS_WITH_FINALIZATION`, `humanReviewStatus=accepted`, `realCandidateApprovalStatus=no_candidates_approved`.
 
 ## Środowisko dev (ten projekt)
 
@@ -183,7 +194,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - [x] **Stage 3J.2D — Candidate Correlation, Deduplication, Variants & Conflicts:** zakończony i wypchnięty (`demonstrated_with_review`; feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests 812/812)
 - [x] **Stage 3J.2E — Review, Approval & Evidence Governance:** zakończony i wypchnięty (feature `5db7a9a`, human pilot docs `613f929`); decisions=7; approved registry=1; approved content=0; status `human_pilot_completed_with_limited_approval`
 - [x] **Stage 3J.2F — Runtime Knowledge Retrieval:** **completed_with_runtime_model_smoke**; `runtimeModelSmokeStatus=completed_and_human_accepted`; PASS=7, PASS_WITH_NOTE=3, FAIL=0; smoke v1 calls=9, v2=4, total=13; readiness review=`fed2b00`
-- [ ] **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter` (`602acde`); Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack` (`0771e6a`); Stage 3K.2B2=`started_bounded_gap_resolution`; Stage 3K.2B2A=`accepted_offline_bounded_gap_resolution_and_reevaluation` (`bbc8522`); Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`accepted_offline_employee_foundation_evidence_pilot` (`3a2cd4f`); Stage 3K.2B2B2=`started_offline_source_evidence_enrichment`; Stage 3K.2B2B2A=`accepted_offline_candidate_scoped_employee_view_enrichment_pilot` (`9353d1a`); Stage 3K.2B2B2B=`started_candidate_scoped_metadata_export`; Stage 3K.2B2B2B1=`accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure` (**offline only**; real export **not executed**); Stage 3K.2B2B2B2=`not_started` / next=`stage3k2b2b2b2_real_p1_view_metadata_export_import_and_reassessment_pilot`
+- [ ] **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter` (`602acde`); Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack` (`0771e6a`); Stage 3K.2B2=`started_bounded_gap_resolution`; Stage 3K.2B2A=`accepted_offline_bounded_gap_resolution_and_reevaluation` (`bbc8522`); Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`accepted_offline_employee_foundation_evidence_pilot` (`3a2cd4f`); Stage 3K.2B2B2=`started_offline_source_evidence_enrichment`; Stage 3K.2B2B2A=`accepted_offline_candidate_scoped_employee_view_enrichment_pilot` (`9353d1a`); Stage 3K.2B2B2B=`started_candidate_scoped_metadata_export`; Stage 3K.2B2B2B1=`accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure`; Stage 3K.2B2B2B2=`accepted_real_p1_view_metadata_export_import_and_reassessment_pilot`; Stage 3K.2B2B2B3=`not_started`
 
 ### Stan Stage 3J / 3J.1 / 3J.2A (jednoznaczny)
 
@@ -195,7 +206,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2D:** zakończony (`demonstrated_with_review`), feature `d77f213`, docs status `d56c130`, finalization `1e57e2d`, tests **812/812**, `HEAD=origin/main`
 - **Stage 3J.2E:** zakończony — feature `5db7a9a`; human pilot docs `613f929`; decisions=7 (approve=1, request_more_evidence=5, defer=1); approved registry records=1; approved content=0; Q21=`approved_supported`; Q07/Q08/Q14=`requires_more_evidence`; status `human_pilot_completed_with_limited_approval`
 - **Stage 3J.2F:** **completed_with_runtime_model_smoke**; human-accepted; runtime retrieval + Vendor-hidden policy + coverage/disclosure/legal containment; source-backed ≠ approved
-- **Stage 3K:** `started_foundation`; Stage 3K.1 = `accepted_offline_foundation` (`0cc5c35`); Stage 3K.2 = `started_approved_binding_adapter`; Stage 3K.2A = `accepted_offline_approved_binding_adapter`; Stage 3K.2B = `started_candidate_discovery`; Stage 3K.2B1 = `accepted_offline_candidate_discovery_and_review_pack` (`0771e6a`); Stage 3K.2B2 = `started_bounded_gap_resolution`; Stage 3K.2B2A = `accepted_offline_bounded_gap_resolution_and_reevaluation` (`bbc8522`); Stage 3K.2B2B = `started_employee_source_gap_closure`; Stage 3K.2B2B1 = `accepted_offline_employee_foundation_evidence_pilot` (`3a2cd4f`); Stage 3K.2B2B2 = `started_offline_source_evidence_enrichment`; Stage 3K.2B2B2A = `accepted_offline_candidate_scoped_employee_view_enrichment_pilot` (`9353d1a`); Stage 3K.2B2B2B = `started_candidate_scoped_metadata_export`; Stage 3K.2B2B2B1 = `accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure` (**offline infrastructure**; real metadata export **not executed**); Stage 3K.2B2B2B2 = `not_started` — Generic Ad-hoc Query Model; **nie** client knowledge pack
+- **Stage 3K:** `started_foundation`; Stage 3K.1 = `accepted_offline_foundation` (`0cc5c35`); Stage 3K.2 = `started_approved_binding_adapter`; Stage 3K.2A = `accepted_offline_approved_binding_adapter`; Stage 3K.2B = `started_candidate_discovery`; Stage 3K.2B1 = `accepted_offline_candidate_discovery_and_review_pack` (`0771e6a`); Stage 3K.2B2 = `started_bounded_gap_resolution`; Stage 3K.2B2A = `accepted_offline_bounded_gap_resolution_and_reevaluation` (`bbc8522`); Stage 3K.2B2B = `started_employee_source_gap_closure`; Stage 3K.2B2B1 = `accepted_offline_employee_foundation_evidence_pilot` (`3a2cd4f`); Stage 3K.2B2B2 = `started_offline_source_evidence_enrichment`; Stage 3K.2B2B2A = `accepted_offline_candidate_scoped_employee_view_enrichment_pilot` (`9353d1a`); Stage 3K.2B2B2B = `started_candidate_scoped_metadata_export`; Stage 3K.2B2B2B1 = `accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure`; Stage 3K.2B2B2B2 = `accepted_real_p1_view_metadata_export_import_and_reassessment_pilot`; Stage 3K.2B2B2B3 = `not_started`; next=`stage3k2b2b2b3_p1_application_access_surface_and_semantic_attribution_gap_closure_design`
 - **Teta ME:** web product surface Teta HR (wspólna BD) — nie business domain
 - **Teta Edu:** odrębna product family na wspólnej platformie
 - **Series registry:** DS, EDU, KADRY, ME, OBD, PIT, PLACE, PPK, PROJ, RAP, RCP, WCAG, WORKFLOW, WSTEP, ZU
@@ -207,7 +218,7 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 - **Stage 3J.2D:** relation decisions nie usuwają occurrences; applicability przed merge; conflicts bez auto-resolve; golden questions = coverage, nie final answers; bez modelu; approval w 3J.2E
 - **Stage 3J.2E:** Cursor nie zatwierdza realnej wiedzy; decyzje podejmuje człowiek; decision template ≠ decyzja; `apply-decision` wymaga `--confirm-human-decision`; approved record nie usuwa provenance
 - **Stage 3J.2F:** Vendor provenance internal-only; Vendor source names never client-visible; Vendor answer natural without citations; client documents may be cited when authorized; public authority sources should be cited exactly; unauthorized client knowledge is not used; internal provenance remains available for Vendor audit; source-backed ≠ approved; **completed_with_runtime_model_smoke**
-- **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter`; Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack`; Stage 3K.2B2=`started_bounded_gap_resolution`; Stage 3K.2B2A=`accepted_offline_bounded_gap_resolution_and_reevaluation`; Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`accepted_offline_employee_foundation_evidence_pilot`; Stage 3K.2B2B2=`started_offline_source_evidence_enrichment`; Stage 3K.2B2B2A=`accepted_offline_candidate_scoped_employee_view_enrichment_pilot`; Stage 3K.2B2B2B=`started_candidate_scoped_metadata_export`; Stage 3K.2B2B2B1=`accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure`; Stage 3K.2B2B2B2=`not_started` (defaultReuse=deny; real export not started)
+- **Stage 3K:** `started_foundation`; Stage 3K.1=`accepted_offline_foundation`; Stage 3K.2=`started_approved_binding_adapter`; Stage 3K.2A=`accepted_offline_approved_binding_adapter`; Stage 3K.2B=`started_candidate_discovery`; Stage 3K.2B1=`accepted_offline_candidate_discovery_and_review_pack`; Stage 3K.2B2=`started_bounded_gap_resolution`; Stage 3K.2B2A=`accepted_offline_bounded_gap_resolution_and_reevaluation`; Stage 3K.2B2B=`started_employee_source_gap_closure`; Stage 3K.2B2B1=`accepted_offline_employee_foundation_evidence_pilot`; Stage 3K.2B2B2=`started_offline_source_evidence_enrichment`; Stage 3K.2B2B2A=`accepted_offline_candidate_scoped_employee_view_enrichment_pilot`; Stage 3K.2B2B2B=`started_candidate_scoped_metadata_export`; Stage 3K.2B2B2B1=`accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure`; Stage 3K.2B2B2B2=`accepted_real_p1_view_metadata_export_import_and_reassessment_pilot`; Stage 3K.2B2B2B3=`not_started` (defaultReuse=deny; reusableRoles=[]; planningEligibleBindings=0; realApprovedGenericBindings=0)
 
 ### Stage 3J.2B ustalenia (2026-07-29)
 
@@ -298,6 +309,31 @@ Format: `teta-knowledge-chunk-v1` — patrz `docs/rag-pipeline-formats.md`.
 ---
 
 ## Notatki sesji
+
+### 2026-08-06 — Stage 3K.2B2B2B2 contract patch + rerun (awaiting review; not committed)
+
+- Review verdict wejściowy: `PATCH_NOT_APPLIED_DO_NOT_ACCEPT_DO_NOT_COMMIT` — patch edition flow został wdrożony lokalnie i zweryfikowany
+- Policy v1 rozszerzona o edition rules; hash: `ef861bf5...3499` -> `56b1f759...41af`
+- Real run (dual flags): metadata-only, exact P1 view `TETA_ADMIN.NT_KP_PRC_PRACOWNICY`, bez row reads / bez DML / bez wykonania DDL
+- Wykonane template IDs (prepared/executed=6): `database_identity`, `exact_current_visible_object_identity`, `exact_owner_editions_enabled_lookup`, `exact_object_all_editions_lookup`, `session_edition_lookup`, `exact_view_ddl_export`
+- Owner edition capability: `ownerEditionsEnabledStatus=disabled` (`DBA_USERS.EDITIONS_ENABLED`); all-editions evidence: `DBA_OBJECTS_AE`, `actualObjectVersionCount=1`, `namedEditionRowCount=0`, `nullEditionRowCount=1`
+- Edition decision: `objectVersioningStatus=noneditioned`, `objectEditionFieldInterpretation=noneditioned_owner_schema`, `applicationEditionEvidenceStatus=confirmed_not_editioned`, `editionResolutionStatus=not_editioned`
+- GET_DDL eligibility: `eligible`; export/import/envelope/parser/key-preservation completed; `keyPreservationStatus=proven`; `grainStatusPreview=proven`
+- P1 nadal bez approval (`approvalForbidden=true`), `genericActivationEligible=false`, `planningEligible=false`; brak mutacji Stage 3D/reuse
+- Active graph pointer/content/hash/file size unchanged; `strictErrors=[]`
+- Stage status: `Stage 3K.2B2B2B2=real_p1_metadata_pilot_contract_patch_awaiting_review`, `humanReviewStatus=pending`
+- Local artifacts v2: `.local/stage3k2b2b2b2/{stage3k2b2b2b2-audit-v2.json,real-export-request-v2.json,review-packs-v2/pack-P1.json,export-manifest-v2.json,import-manifest-v2.json,ddl-envelope-assessment-v2.json,key-preservation-assessment-v2.json}`
+
+### 2026-08-05 — Stage 3K.2B2B2B2 REAL P1 METADATA PILOT (awaiting review; not committed)
+
+- Dual flags used; metadata-only; exact P1 VIEW `TETA_ADMIN.NT_KP_PRC_PRACOWNICY`
+- Oracle connection opened+closed; database identity `verified`; object identity `verified_exact`; objectStatus=`VALID`
+- editionableStatus=`EDITIONABLE` with null objectEdition → applicationEditionEvidence=`unavailable` → getDdlEligibility=`blocked_edition_evidence`
+- exportOutcome=`requires_edition_resolution` (legal fail-closed; no DDL export/import/parser; no row reads)
+- P1 remains request_more_evidence / grain partial; active graph unchanged; no approval
+- Status: Stage 3K.2B2B2B2=`real_p1_metadata_pilot_awaiting_review`; humanReviewStatus=`pending`
+- nextStage=`stage3k2b2b2b2_real_p1_view_metadata_export_import_and_reassessment_human_review`
+- Local: `.local/stage3k2b2b2b2/**` (not committed)
 
 ### 2026-08-05 — Stage 3K.2B2B2B1 FINALIZATION (PASS_WITH_FINALIZATION; offline infrastructure)
 

@@ -41,6 +41,16 @@ const repoRoot = path.resolve(__dirname, '../../../..');
 const P1_DDL =
   'CREATE OR REPLACE VIEW TETA_ADMIN.NT_KP_PRC_PRACOWNICY AS SELECT ID, NR_PRAC FROM T_PRAC';
 const payloadRelativePath = `P1/${REAL_EMPLOYEE_OBJECT_OWNER}.${REAL_EMPLOYEE_OBJECT_NAME}.sql`;
+const sharedProductionVendorStoreSentinel = path.join(
+  vendorRoot(repoRoot),
+  'sentinel-do-not-touch.txt',
+);
+let testVendorArtifactRoot = '';
+let previousRequireTestVendorRoot = '';
+
+function allocateTestVendorArtifactRoot() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'teta-vendor-test-root-'));
+}
 
 function verifiedOracleIdentity(
   overrides: Partial<TetaCandidateScopedViewIdentity> = {},
@@ -98,6 +108,7 @@ async function exportComplete(
     counters,
     oracleIdentity: verifiedOracleIdentity(),
     syntheticMode: true,
+    vendorArtifactRoot: testVendorArtifactRoot,
     exporter: {
       exportDdl: async () => ({
         raw: Buffer.from(ddl),
@@ -110,8 +121,18 @@ async function exportComplete(
   return { ...result, counters, policyHash };
 }
 
+beforeEach(() => {
+  previousRequireTestVendorRoot = process.env.TETA_REQUIRE_TEST_VENDOR_ROOT ?? '';
+  process.env.TETA_REQUIRE_TEST_VENDOR_ROOT = '1';
+  testVendorArtifactRoot = allocateTestVendorArtifactRoot();
+  fs.mkdirSync(path.dirname(sharedProductionVendorStoreSentinel), { recursive: true });
+  fs.writeFileSync(sharedProductionVendorStoreSentinel, 'shared-sentinel');
+});
+
 afterEach(() => {
-  fs.rmSync(path.join(vendorRoot(repoRoot), 'P1'), { recursive: true, force: true });
+  if (testVendorArtifactRoot) fs.rmSync(testVendorArtifactRoot, { recursive: true, force: true });
+  testVendorArtifactRoot = '';
+  process.env.TETA_REQUIRE_TEST_VENDOR_ROOT = previousRequireTestVendorRoot;
 });
 
 describe('Stage 3K.2B2B2B1 — metadata policy validation and hashes', () => {
@@ -168,6 +189,13 @@ describe('Stage 3K.2B2B2B1 — metadata policy validation and hashes', () => {
     'session_edition_not_application_edition',
     'verified_exact_requires_edition_and_database_identity',
     'manifest_after_payload',
+    'editionablePropertyDoesNotProveEditionedObject',
+    'ownerSchemaEditionCapabilityRequired',
+    'nonEditionsEnabledOwnerNeedsNoApplicationEdition',
+    'allEditionsEvidenceRequiredForEditionAmbiguity',
+    'ordinaryAllObjectsIsNotAllEditionsEvidence',
+    'nullEditionDoesNotAutomaticallyMeanMissingEdition',
+    'insufficientEditionVisibilityFailsClosed',
   ])('declares the required policy rule %s', (rule) => {
     expect(loaded.policy.rulesApplied).toContain(rule);
   });
@@ -298,10 +326,26 @@ describe('Stage 3K.2B2B2B1 — exact P1 export request constraints', () => {
       expect(built.request.metadataTransformProfileHash).toBe(transformProfileHash())],
     ['non-empty request fingerprint', () => expect(built.request.requestFingerprint).toMatch(/^[a-f0-9]{64}$/)],
     ['exact owner statement bind', () =>
-      expect(built.request.statements[0].sqlText).toContain('OWNER = :owner')],
+      expect(
+        built.request.statements.find(
+          (s) => s.metadataStatementTemplateId === 'exact_current_visible_object_identity',
+        )?.sqlText,
+      ).toContain('OWNER = :owner')],
     ['no wildcard metadata statement', () =>
       expect(built.request.statements.every((statement) => !statement.sqlText.includes('*'))).toBe(true)],
-    ['only three registered statements', () => expect(built.request.statements).toHaveLength(3)],
+    ['registered metadata templates include edition evidence probes', () =>
+      expect(
+        built.request.statements.map((s) => s.metadataStatementTemplateId),
+      ).toEqual(
+        expect.arrayContaining([
+          'database_identity',
+          'exact_current_visible_object_identity',
+          'exact_owner_editions_enabled_lookup',
+          'exact_object_all_editions_lookup',
+          'session_edition_lookup',
+          'exact_view_ddl_export',
+        ]),
+      )],
   ])('enforces %s', (_, assertion) => assertion());
 });
 
@@ -421,6 +465,11 @@ describe('Stage 3K.2B2B2B1 — closed metadata statement templates', () => {
   });
 
   it.each([
+    ['database_identity', []],
+    ['exact_current_visible_object_identity', ['owner', 'object_name', 'object_type']],
+    ['exact_owner_editions_enabled_lookup', ['owner']],
+    ['exact_object_all_editions_lookup', ['owner', 'object_name', 'object_type']],
+    ['session_edition_lookup', []],
     ['exact_object_identity_lookup', ['owner', 'object_name', 'object_type']],
     ['exact_view_ddl_export', ['object_type', 'object_name', 'owner']],
     ['exact_fragment_completeness_lookup', ['owner', 'object_name']],
@@ -454,6 +503,51 @@ describe('Stage 3K.2B2B2B1 — closed metadata statement templates', () => {
 });
 
 describe('Stage 3K.2B2B2B1 — contained vendor storage and atomic payloads', () => {
+  it('fails closed in test mode without explicit testVendorArtifactRoot', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'teta-storage-guard-'));
+    const counters = emptyStage3k2b2b2b1SafetyCounters();
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'test';
+    try {
+      expect(assessPathContainment(root, 'P1/payload.sql', counters).status).toBe('path_invalid');
+      expect(counters.testUsedProductionVendorArtifactRoot).toBe(1);
+    } finally {
+      process.env.NODE_ENV = prev;
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('cleanup removes only test root and preserves shared sentinel', async () => {
+    const isolatedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'teta-isolated-root-'));
+    const sentinel = fs.mkdtempSync(path.join(os.tmpdir(), 'teta-shared-sentinel-'));
+    const sentinelFile = path.join(sentinel, 'sentinel.sql');
+    fs.writeFileSync(sentinelFile, 'keep');
+    const { policy, policyHash } = loadMetadataPolicy(repoRoot);
+    const counters = emptyStage3k2b2b2b1SafetyCounters();
+    const result = await executeMetadataExport({
+      root: repoRoot,
+      policy,
+      policyHash,
+      execute: true,
+      confirm: true,
+      counters,
+      oracleIdentity: verifiedOracleIdentity(),
+      syntheticMode: true,
+      vendorArtifactRoot: isolatedRoot,
+      exporter: {
+        exportDdl: async () => ({
+          raw: Buffer.from(P1_DDL),
+          completeness: 'complete',
+        }),
+      },
+    });
+    expect(result.outcome).toBe('export_completed');
+    fs.rmSync(isolatedRoot, { recursive: true, force: true });
+    expect(fs.existsSync(sentinelFile)).toBe(true);
+    expect(fs.existsSync(isolatedRoot)).toBe(false);
+    fs.rmSync(sentinel, { recursive: true, force: true });
+  });
+
   it.each([
     ['normal relative path', 'P1/payload.sql', 'contained'],
     ['parent traversal', '../payload.sql', 'path_invalid'],
@@ -463,14 +557,18 @@ describe('Stage 3K.2B2B2B1 — contained vendor storage and atomic payloads', ()
   ] as const)('%s is %s', (_, relative, status) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'teta-storage-'));
     const counters = emptyStage3k2b2b2b1SafetyCounters();
-    expect(assessPathContainment(root, relative, counters).status).toBe(status);
+    expect(assessPathContainment(root, relative, counters, { vendorArtifactRoot: root }).status).toBe(
+      status,
+    );
     fs.rmSync(root, { recursive: true, force: true });
   });
 
   it('writes atomically through temp+rename and rehashes final bytes', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'teta-atomic-'));
     const counters = emptyStage3k2b2b2b1SafetyCounters();
-    const written = atomicWriteVendorPayload(root, 'P1/payload.sql', Buffer.from(P1_DDL), counters);
+    const written = atomicWriteVendorPayload(root, 'P1/payload.sql', Buffer.from(P1_DDL), counters, {
+      vendorArtifactRoot: root,
+    });
     expect(written.atomicWriteStatus).toBe('completed');
     expect(written.rawPayloadSha256).toBe(sha256(Buffer.from(P1_DDL)));
     expect(rehashPayloadFile(written.payloadPath)).toBe(written.finalPayloadFingerprint);
@@ -481,27 +579,39 @@ describe('Stage 3K.2B2B2B1 — contained vendor storage and atomic payloads', ()
   it('rejects traversal before writing', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'teta-traversal-'));
     expect(() =>
-      atomicWriteVendorPayload(root, '../escape.sql', Buffer.from(P1_DDL), emptyStage3k2b2b2b1SafetyCounters()),
+      atomicWriteVendorPayload(
+        root,
+        '../escape.sql',
+        Buffer.from(P1_DDL),
+        emptyStage3k2b2b2b1SafetyCounters(),
+        { vendorArtifactRoot: root },
+      ),
     ).toThrow('path_invalid');
-    expect(() => containedPayloadPath(root, '../escape.sql')).toThrow('path_containment:path_invalid');
+    expect(() => containedPayloadPath(root, '../escape.sql', { vendorArtifactRoot: root })).toThrow(
+      'path_containment:path_invalid',
+    );
     fs.rmSync(root, { recursive: true, force: true });
   });
 
   it('rejects symlink escape when the platform permits symlink creation', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'teta-symlink-'));
     const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'teta-outside-'));
-    const link = path.join(vendorRoot(root), 'escape');
+    const link = path.join(vendorRoot(root, root), 'escape');
     fs.mkdirSync(path.dirname(link), { recursive: true });
     try {
       fs.symlinkSync(outside, link, 'junction');
-      expect(assessPathContainment(root, 'escape/payload.sql', emptyStage3k2b2b2b1SafetyCounters()).status).toBe(
-        'symlink_or_reparse_escape',
-      );
+      expect(
+        assessPathContainment(root, 'escape/payload.sql', emptyStage3k2b2b2b1SafetyCounters(), {
+          vendorArtifactRoot: root,
+        }).status,
+      ).toBe('symlink_or_reparse_escape');
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
-      expect(assessPathContainment(root, '../payload.sql', emptyStage3k2b2b2b1SafetyCounters()).status).toBe(
-        'path_invalid',
-      );
+      expect(
+        assessPathContainment(root, '../payload.sql', emptyStage3k2b2b2b1SafetyCounters(), {
+          vendorArtifactRoot: root,
+        }).status,
+      ).toBe('path_invalid');
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
       fs.rmSync(outside, { recursive: true, force: true });
@@ -524,6 +634,7 @@ describe('Stage 3K.2B2B2B1 — export controls and legal failures', () => {
       execute,
       confirm,
       counters,
+      vendorArtifactRoot: testVendorArtifactRoot,
     });
     expect(result.outcome).toBe('not_attempted');
     expect(result.lifecycle.exportOutcome).toBe('not_attempted');
@@ -545,6 +656,7 @@ describe('Stage 3K.2B2B2B1 — export controls and legal failures', () => {
       execute: true,
       confirm: true,
       counters,
+      vendorArtifactRoot: testVendorArtifactRoot,
     });
     expect(result.outcome).toBe('export_blocked_by_policy');
     expect(result.lifecycle.oracleExecutionConsentStatus).toBe('confirmed');
@@ -578,6 +690,7 @@ describe('Stage 3K.2B2B2B1 — export controls and legal failures', () => {
       counters,
       oracleIdentity: verifiedOracleIdentity(),
       syntheticMode: true,
+      vendorArtifactRoot: testVendorArtifactRoot,
       exporter: { exportDdl: async () => Promise.reject(new Error(message)) },
     });
     expect(result.outcome).toBe(outcome);
@@ -600,7 +713,9 @@ describe('Stage 3K.2B2B2B1 — export controls and legal failures', () => {
   it('writes the payload before returning the manifest fingerprint', async () => {
     const result = await exportComplete();
     expect(result.manifest).not.toBeNull();
-    expect(fs.existsSync(path.join(vendorRoot(repoRoot), result.manifest!.payloadRelativePath))).toBe(true);
+    expect(
+      fs.existsSync(path.join(vendorRoot(repoRoot, testVendorArtifactRoot), result.manifest!.payloadRelativePath)),
+    ).toBe(true);
     expect(result.manifest!.manifestFingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(result.manifest!.finalPayloadFingerprint).toBe(result.manifest!.rawPayloadSha256);
   });
@@ -623,6 +738,7 @@ describe('Stage 3K.2B2B2B1 — export controls and legal failures', () => {
         objectStatus: 'VALID',
       },
       syntheticMode: true,
+      vendorArtifactRoot: testVendorArtifactRoot,
       exporter: { exportDdl: async () => ({ raw: Buffer.from(P1_DDL), completeness: 'complete' }) },
     });
     expect(flagged.lifecycle.getDdlEligibility).not.toBe('eligible');
@@ -647,6 +763,7 @@ describe('Stage 3K.2B2B2B1 — import validation, rehash, and parser handoff', (
     const result = importValidatedViewDefinition(repoRoot, manifest, counters, {
       expectedCandidateId: 'cand:P1:employee',
       expectedPolicyHash: manifest.exportPolicyHash,
+      vendorArtifactRoot: testVendorArtifactRoot,
     });
     expect(result.outcome).toBe('validated_complete');
     expect(result.rawHashRevalidatedBeforeImport).toBe(true);
@@ -671,15 +788,21 @@ describe('Stage 3K.2B2B2B1 — import validation, rehash, and parser handoff', (
       importValidatedViewDefinition(repoRoot, alter(manifest), counters, {
         expectedCandidateId: 'cand:P1:employee',
         expectedPolicyHash: manifest.exportPolicyHash,
+        vendorArtifactRoot: testVendorArtifactRoot,
       }).outcome,
     ).toBe(outcome);
   });
 
   it('rejects a raw payload changed after export before parse handoff', async () => {
     const { manifest } = await exportedImportManifest();
-    fs.writeFileSync(path.join(vendorRoot(repoRoot), manifest.payloadRelativePath), `${P1_DDL} -- TOCTOU`);
+    fs.writeFileSync(
+      path.join(vendorRoot(repoRoot, testVendorArtifactRoot), manifest.payloadRelativePath),
+      `${P1_DDL} -- TOCTOU`,
+    );
     const counters = emptyStage3k2b2b2b1SafetyCounters();
-    const result = importValidatedViewDefinition(repoRoot, manifest, counters);
+    const result = importValidatedViewDefinition(repoRoot, manifest, counters, {
+      vendorArtifactRoot: testVendorArtifactRoot,
+    });
     expect(result.outcome).toBe('rejected_raw_hash_mismatch');
     expect(result.rawHashRevalidatedBeforeImport).toBe(true);
     expect(result.rawHashRevalidatedBeforeParse).toBe(false);
@@ -697,6 +820,7 @@ describe('Stage 3K.2B2B2B1 — import validation, rehash, and parser handoff', (
         repoRoot,
         buildImportManifestFromExport(result.manifest!),
         counters,
+        { vendorArtifactRoot: testVendorArtifactRoot },
       ).outcome,
     ).toBe('rejected_target_mismatch');
     expect(counters.importedArtifactTargetMismatch).toBe(1);

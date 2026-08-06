@@ -128,12 +128,22 @@ export interface TetaCandidateScopedViewIdentity {
 
 export interface TetaAllowedMetadataStatement {
   metadataStatementTemplateId:
+    | 'database_identity'
+    | 'exact_current_visible_object_identity'
+    | 'exact_owner_editions_enabled_lookup'
+    | 'exact_object_all_editions_lookup'
+    | 'session_edition_lookup'
     | 'exact_object_identity_lookup'
     | 'exact_view_ddl_export'
     | 'exact_fragment_completeness_lookup';
   metadataStatementTemplateVersion: string;
   metadataStatementTemplateHash: string;
   metadataStatementClass:
+    | 'database_identity'
+    | 'exact_current_visible_object_identity'
+    | 'exact_owner_editions_enabled_lookup'
+    | 'exact_object_all_editions_lookup'
+    | 'session_edition_lookup'
     | 'exact_object_identity_lookup'
     | 'exact_view_ddl_export'
     | 'exact_fragment_completeness_lookup';
@@ -354,6 +364,15 @@ export interface Stage3k2b2b2b1SafetyCounters {
   realOracleMetadataExports: number;
   realViewDefinitionsImported: number;
   realParserRunsOnDdl: number;
+  objectEditionNullReportedAmbiguousWithoutOwnerCheck: number;
+  editionableFlagUsedAsEditionedObjectProof: number;
+  ownerEditionsEnabledNotCheckedBeforeEditionBlock: number;
+  ordinaryAllObjectsUsedAsAllEditionsProof: number;
+  nonEditionsEnabledOwnerBlockedForApplicationEdition: number;
+  testCleanupTouchedSharedVendorStore: number;
+  testCleanupTouchedRealEvidencePayload: number;
+  testUsedProductionVendorArtifactRoot: number;
+  productionVendorPayloadDeletedByTests: number;
 }
 
 const KEYS = [
@@ -456,6 +475,15 @@ const KEYS = [
   'realOracleMetadataExports',
   'realViewDefinitionsImported',
   'realParserRunsOnDdl',
+  'objectEditionNullReportedAmbiguousWithoutOwnerCheck',
+  'editionableFlagUsedAsEditionedObjectProof',
+  'ownerEditionsEnabledNotCheckedBeforeEditionBlock',
+  'ordinaryAllObjectsUsedAsAllEditionsProof',
+  'nonEditionsEnabledOwnerBlockedForApplicationEdition',
+  'testCleanupTouchedSharedVendorStore',
+  'testCleanupTouchedRealEvidencePayload',
+  'testUsedProductionVendorArtifactRoot',
+  'productionVendorPayloadDeletedByTests',
 ] as const;
 
 /** Synthetic coverage counters are allowed non-zero in offline audits; all others must stay 0. */

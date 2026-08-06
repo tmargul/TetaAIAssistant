@@ -1,0 +1,114 @@
+{
+  "stage": "Stage 3K.2B2B2B2",
+  "title": "Real P1 View Metadata Pilot Finalization Accepted",
+  "scope": {
+    "candidateId": "cand:P1:employee",
+    "owner": "TETA_ADMIN",
+    "objectName": "NT_KP_PRC_PRACOWNICY",
+    "objectType": "VIEW"
+  },
+  "v2Evidence": {
+    "v2EvidenceReplayStatus": "blocked_missing_raw_payload",
+    "v2EvidenceStatus": "incomplete_local_evidence_chain",
+    "v2SupersededBy": "stage3k2b2b2b2_v3_real_reexport"
+  },
+  "identity": {
+    "technicalSourceIdentityStatus": "verified_exact",
+    "ownerEditionsEnabledStatus": "disabled",
+    "objectVersioningStatus": "noneditioned",
+    "editionResolutionStatus": "not_editioned"
+  },
+  "policyAndTransform": {
+    "exportPolicyHash": "56b1f75936f3ad0d1818d3d8903055dc2f3c5b8ddab8083491516befbe8d41af",
+    "transformProfileHash": "1298763b33ba952abc1081b1db6041c4e156c536209cb5ccf9b943d8f82112c7",
+    "evaluationPolicyHash": "c5bfcebfd5a328996603ceb2665cea8fbdf6fec95c19325f33e93542a0950b7a"
+  },
+  "metadataOnly": {
+    "metadataOnly": true,
+    "targetViewBusinessSelects": 0,
+    "targetViewRowsRead": 0,
+    "businessSqlStatementsExecuted": 0
+  },
+  "payload": {
+    "rawPayloadSha256": "a3597a5c532f1fb7d1efbfd212365c71d304a925a826f3dad585a8ea8a884246",
+    "payloadStorageClass": "vendor_only_content_addressed",
+    "payloadRetentionStatus": "required_for_future_offline_replay",
+    "rawPayloadRepoEligible": false,
+    "durability": {
+      "payloadExistsAfterAtomicWrite": true,
+      "payloadExistsBeforeImport": true,
+      "payloadExistsAfterImport": true,
+      "payloadExistsBeforeReevaluation": true,
+      "payloadRawHashAfterAtomicWrite": "a3597a5c532f1fb7d1efbfd212365c71d304a925a826f3dad585a8ea8a884246",
+      "payloadRawHashBeforeImport": "a3597a5c532f1fb7d1efbfd212365c71d304a925a826f3dad585a8ea8a884246",
+      "payloadRawHashAfterImport": "a3597a5c532f1fb7d1efbfd212365c71d304a925a826f3dad585a8ea8a884246",
+      "payloadRawHashBeforeReevaluation": "a3597a5c532f1fb7d1efbfd212365c71d304a925a826f3dad585a8ea8a884246"
+    }
+  },
+  "validation": {
+    "importValidationResult": "validated_complete",
+    "ddlEnvelopeParseStatus": "parsed",
+    "queryBodyExtractionStatus": "extracted",
+    "parseStatus": "parsed",
+    "keyPreservationStatus": "proven"
+  },
+  "evaluator": {
+    "evaluatorExecuted": true,
+    "evaluatorKind": "stage3k2b1_offline_policy_evaluator",
+    "evaluatorImplementationRef": "teta-semantic-evidence-gap/teta-candidate-reevaluation.executeStage3k2b1Reevaluation",
+    "evaluationPolicyVersion": "teta-aia-generic-semantic-candidate-evaluation-policy-v1",
+    "evaluationPolicyHash": "c5bfcebfd5a328996603ceb2665cea8fbdf6fec95c19325f33e93542a0950b7a",
+    "candidateFingerprintBefore": "15708a74256b85611970a8f54cb09435e13a2bdee4daa7c4dd573b220dc631fe",
+    "candidateFingerprintAfter": "d3a8fdaac83899c2ef32133f6504bde0fa03f7456421394f2e8d055c9f5a68e0",
+    "candidateEvaluationFingerprint": "edc5511de1121bdda42d6a7614e8cffea8d4a4180198c91508c0a2d1ca129a0e",
+    "evidenceFingerprint": "618119848f75a3f2206194077a6b2ffc67a5e80df7e9db01b8503c14596f8142",
+    "grainStatusBefore": "partial",
+    "grainStatusPreview": "proven",
+    "genericActivationEligible": false,
+    "planningEligible": false,
+    "approvalForbidden": true
+  },
+  "preview": {
+    "previewStatus": "validated_preview_with_semantic_effect",
+    "previewAddedNodes": 2,
+    "previewAddedEdges": 3,
+    "previewSemanticUpgradeCount": 1
+  },
+  "activeGraph": {
+    "activeGraphPointerUnchanged": true,
+    "baseGraphHashUnchanged": true,
+    "baseGraphFileSha256Unchanged": true,
+    "baseGraphFileSizeUnchanged": true,
+    "runtimeConsumersMayUsePreview": false,
+    "promotionStatus": "not_requested"
+  },
+  "testIsolation": {
+    "testArtifactRootIsolationStatus": "isolated",
+    "testCleanupTouchedSharedVendorStore": 0,
+    "testCleanupTouchedRealEvidencePayload": 0,
+    "testUsedProductionVendorArtifactRoot": 0,
+    "productionVendorPayloadDeletedByTests": 0
+  },
+  "approval": {
+    "humanDecision": "request_more_evidence",
+    "realCandidateApprovalStatus": "no_candidates_approved",
+    "candidateApprovalStatus": "not_approved",
+    "genericReuseStatus": "denied_by_current_policy",
+    "planningEligibilityStatus": "blocked"
+  },
+  "humanReview": {
+    "previousHumanReviewVerdict": "PASS_WITH_ONE_FINAL_OFFLINE_REEVALUATION_BEFORE_COMMIT",
+    "humanReviewVerdict": "PASS_WITH_FINALIZATION",
+    "humanReviewStatus": "accepted",
+    "acceptedInfrastructure": "real_candidate_scoped_p1_view_metadata_export_import_and_reassessment_pilot",
+    "acceptedTechnicalEvidence": "p1_view_definition_key_preservation_and_grain_evaluation_evidence"
+  },
+  "stageStatus": {
+    "stage3k2b2b2bStatus": "started_candidate_scoped_metadata_export",
+    "stage3k2b2b2b1Status": "accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure",
+    "stage3k2b2b2b2Status": "accepted_real_p1_view_metadata_export_import_and_reassessment_pilot",
+    "stage3k2b2b2b3Status": "not_started",
+    "strictErrors": []
+  },
+  "nextStage": "stage3k2b2b2b3_p1_application_access_surface_and_semantic_attribution_gap_closure_design"
+}

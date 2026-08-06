@@ -5,8 +5,18 @@ import {
 } from './teta-view-metadata.types';
 
 const SQL: Record<TetaAllowedMetadataStatement['metadataStatementTemplateId'], string> = {
+  database_identity:
+    "SELECT DBID, NAME, DATABASE_ROLE, (SELECT BANNER FROM V$VERSION WHERE BANNER LIKE 'Oracle%' AND ROWNUM = 1) AS PRODUCT_VERSION FROM V$DATABASE",
+  exact_current_visible_object_identity:
+    'SELECT OWNER, OBJECT_NAME, OBJECT_TYPE, OBJECT_ID, STATUS, LAST_DDL_TIME, EDITIONABLE, EDITION_NAME FROM ALL_OBJECTS WHERE OWNER = :owner AND OBJECT_NAME = :object_name AND OBJECT_TYPE = :object_type',
+  exact_owner_editions_enabled_lookup:
+    'SELECT USERNAME, EDITIONS_ENABLED FROM DBA_USERS WHERE USERNAME = :owner',
+  exact_object_all_editions_lookup:
+    'SELECT OWNER, OBJECT_NAME, OBJECT_TYPE, EDITION_NAME, OBJECT_ID, STATUS, EDITIONABLE FROM DBA_OBJECTS_AE WHERE OWNER = :owner AND OBJECT_NAME = :object_name AND OBJECT_TYPE = :object_type',
+  session_edition_lookup:
+    "SELECT SYS_CONTEXT('USERENV','SESSION_EDITION_NAME') AS SESSION_EDITION, SYS_CONTEXT('USERENV','LANGUAGE') AS NLS_LANG, SYS_CONTEXT('USERENV','NLS_DATE_FORMAT') AS NLS_DATE_FORMAT FROM DUAL",
   exact_object_identity_lookup:
-    'SELECT OWNER, OBJECT_NAME, OBJECT_TYPE, STATUS, EDITION_NAME FROM ALL_OBJECTS WHERE OWNER = :owner AND OBJECT_NAME = :object_name AND OBJECT_TYPE = :object_type',
+    'SELECT OWNER, OBJECT_NAME, OBJECT_TYPE, OBJECT_ID, STATUS, LAST_DDL_TIME, EDITIONABLE, EDITION_NAME FROM ALL_OBJECTS WHERE OWNER = :owner AND OBJECT_NAME = :object_name AND OBJECT_TYPE = :object_type',
   exact_view_ddl_export:
     'SELECT DBMS_METADATA.GET_DDL(:object_type, :object_name, :owner) AS DDL FROM DUAL',
   exact_fragment_completeness_lookup:
@@ -14,6 +24,11 @@ const SQL: Record<TetaAllowedMetadataStatement['metadataStatementTemplateId'], s
 };
 
 const BINDS: Record<TetaAllowedMetadataStatement['metadataStatementTemplateId'], string[]> = {
+  database_identity: [],
+  exact_current_visible_object_identity: ['owner', 'object_name', 'object_type'],
+  exact_owner_editions_enabled_lookup: ['owner'],
+  exact_object_all_editions_lookup: ['owner', 'object_name', 'object_type'],
+  session_edition_lookup: [],
   exact_object_identity_lookup: ['owner', 'object_name', 'object_type'],
   exact_view_ddl_export: ['object_type', 'object_name', 'owner'],
   exact_fragment_completeness_lookup: ['owner', 'object_name'],

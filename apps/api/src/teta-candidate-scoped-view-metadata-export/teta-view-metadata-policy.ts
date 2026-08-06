@@ -49,6 +49,13 @@ const REQUIRED_RULES = [
   'session_edition_not_application_edition',
   'verified_exact_requires_edition_and_database_identity',
   'manifest_after_payload',
+  'editionablePropertyDoesNotProveEditionedObject',
+  'ownerSchemaEditionCapabilityRequired',
+  'nonEditionsEnabledOwnerNeedsNoApplicationEdition',
+  'allEditionsEvidenceRequiredForEditionAmbiguity',
+  'ordinaryAllObjectsIsNotAllEditionsEvidence',
+  'nullEditionDoesNotAutomaticallyMeanMissingEdition',
+  'insufficientEditionVisibilityFailsClosed',
 ];
 
 const REQUIRED_FAIL_CLOSED = [
@@ -83,6 +90,11 @@ export function validateMetadataPolicy(p: MetadataPolicy): string[] {
   for (const r of REQUIRED_RULES) if (!p.rulesApplied?.includes(r)) errors.push(`missing_rule:${r}`);
   for (const f of REQUIRED_FAIL_CLOSED) if (p.failClosed?.[f] !== true) errors.push(`fail_closed:${f}`);
   for (const id of [
+    'database_identity',
+    'exact_current_visible_object_identity',
+    'exact_owner_editions_enabled_lookup',
+    'exact_object_all_editions_lookup',
+    'session_edition_lookup',
     'exact_object_identity_lookup',
     'exact_view_ddl_export',
     'exact_fragment_completeness_lookup',

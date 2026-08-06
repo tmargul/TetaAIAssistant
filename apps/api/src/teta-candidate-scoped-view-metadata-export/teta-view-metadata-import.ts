@@ -55,7 +55,11 @@ export function importValidatedViewDefinition(
   root: string,
   manifest: TetaViewDefinitionImportManifest,
   counters: Stage3k2b2b2b1SafetyCounters,
-  options?: { expectedPolicyHash?: string; expectedCandidateId?: string },
+  options?: {
+    expectedPolicyHash?: string;
+    expectedCandidateId?: string;
+    vendorArtifactRoot?: string;
+  },
 ): {
   outcome: ImportOutcome;
   envelope: ReturnType<typeof assessOracleViewDdlEnvelope> | null;
@@ -117,7 +121,9 @@ export function importValidatedViewDefinition(
     };
   }
 
-  const containment = assessPathContainment(root, manifest.payloadRelativePath, counters);
+  const containment = assessPathContainment(root, manifest.payloadRelativePath, counters, {
+    vendorArtifactRoot: options?.vendorArtifactRoot,
+  });
   if (containment.status !== 'contained' || !containment.resolvedPath) {
     if (containment.status === 'symlink_or_reparse_escape') counters.payloadSymlinkEscapeAccepted++;
     if (containment.status === 'outside_vendor_root') counters.payloadWrittenOutsideVendorRoot++;

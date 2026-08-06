@@ -190,6 +190,8 @@ export async function executeMetadataExport(input: {
   oracleIdentity?: Parameters<typeof preflightP1Identity>[0]['oracleIdentity'];
   /** Test/synthetic only — never set by real dual flags alone. */
   syntheticMode?: boolean;
+  /** Test isolation: explicit vendor artifact root for writes. */
+  vendorArtifactRoot?: string;
 }): Promise<{
   outcome: MetadataOutcome;
   lifecycle: ExportLifecycleStatuses;
@@ -335,13 +337,16 @@ export async function executeMetadataExport(input: {
     const canon = canonicalizeViewDdl(exported.raw);
     let manifest: TetaViewDefinitionExportManifest | null = null;
     if (input.writeArtifacts !== false) {
-      const rootInfo = storageRootInfo(input.root);
+      const rootInfo = storageRootInfo(input.root, {
+        vendorArtifactRoot: input.vendorArtifactRoot,
+      });
       const relative = `P1/${REAL_EMPLOYEE_OBJECT_OWNER}.${REAL_EMPLOYEE_OBJECT_NAME}.sql`;
       const written = atomicWriteVendorPayload(
         input.root,
         relative,
         exported.raw,
         input.counters,
+        { vendorArtifactRoot: input.vendorArtifactRoot },
       );
       const draft = {
         manifestVersion: 'teta-view-definition-export-manifest-v1',

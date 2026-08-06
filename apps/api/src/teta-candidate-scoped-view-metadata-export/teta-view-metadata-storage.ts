@@ -8,11 +8,37 @@ import {
   type StorageContainmentStatus,
 } from './teta-view-metadata.types';
 
-export const vendorRoot = (root: string) =>
-  path.join(root, '.local', 'teta-vendor-artifacts', 'view-definitions');
+export const DEFAULT_VENDOR_ROOT_RELATIVE = path.join(
+  '.local',
+  'teta-vendor-artifacts',
+  'view-definitions',
+);
 
-export function storageRootInfo(root: string) {
-  const dir = vendorRoot(root);
+function resolveVendorRoot(root: string, override?: string): string {
+  if (!override) return path.join(root, DEFAULT_VENDOR_ROOT_RELATIVE);
+  return path.isAbsolute(override) ? override : path.resolve(root, override);
+}
+
+function assertTestVendorRootProvided(
+  root: string,
+  override: string | undefined,
+  counters?: Stage3k2b2b2b1SafetyCounters,
+) {
+  const runningInTest =
+    process.env.NODE_ENV === 'test' ||
+    Boolean(process.env.JEST_WORKER_ID) ||
+    process.env.TETA_REQUIRE_TEST_VENDOR_ROOT === '1';
+  if (!runningInTest) return;
+  if (override && override.trim().length > 0) return;
+  counters && (counters.testUsedProductionVendorArtifactRoot += 1);
+  throw new Error('test_vendor_artifact_root_required');
+}
+
+export const vendorRoot = (root: string, override?: string) => resolveVendorRoot(root, override);
+
+export function storageRootInfo(root: string, options?: { vendorArtifactRoot?: string }) {
+  assertTestVendorRootProvided(root, options?.vendorArtifactRoot);
+  const dir = vendorRoot(root, options?.vendorArtifactRoot);
   fs.mkdirSync(dir, { recursive: true });
   const resolved = fs.realpathSync(dir);
   return {
@@ -26,6 +52,7 @@ export function assessPathContainment(
   root: string,
   relative: string,
   counters: Stage3k2b2b2b1SafetyCounters,
+  options?: { vendorArtifactRoot?: string },
 ): { status: StorageContainmentStatus; resolvedPath: string | null } {
   if (!relative || path.isAbsolute(relative) || relative.split(/[\\/]+/).includes('..')) {
     counters.payloadPathTraversalAccepted += 0;
@@ -34,8 +61,9 @@ export function assessPathContainment(
   try {
     // A first payload write has no root yet; create only the fixed vendor root
     // before resolving the untrusted relative path.
-    fs.mkdirSync(vendorRoot(root), { recursive: true });
-    const base = fs.realpathSync(vendorRoot(root));
+    assertTestVendorRootProvided(root, options?.vendorArtifactRoot, counters);
+    fs.mkdirSync(vendorRoot(root, options?.vendorArtifactRoot), { recursive: true });
+    const base = fs.realpathSync(vendorRoot(root, options?.vendorArtifactRoot));
     const unresolved = path.resolve(base, relative);
     // Reject if any path segment before realpath is a symlink/junction escaping
     let walk = base;
@@ -62,8 +90,12 @@ export function assessPathContainment(
   }
 }
 
-export function containedPayloadPath(root: string, relative: string): string {
-  const assessed = assessPathContainment(root, relative, emptyCountersProxy());
+export function containedPayloadPath(
+  root: string,
+  relative: string,
+  options?: { vendorArtifactRoot?: string },
+): string {
+  const assessed = assessPathContainment(root, relative, emptyCountersProxy(), options);
   if (assessed.status !== 'contained' || !assessed.resolvedPath) {
     throw new Error(`path_containment:${assessed.status}`);
   }
@@ -82,6 +114,7 @@ export function atomicWriteVendorPayload(
   relative: string,
   data: Buffer,
   counters: Stage3k2b2b2b1SafetyCounters,
+  options?: { vendorArtifactRoot?: string },
 ): {
   payloadPath: string;
   payloadRelativePath: string;
@@ -92,7 +125,7 @@ export function atomicWriteVendorPayload(
   storageContainmentStatus: StorageContainmentStatus;
   atomicWriteStatus: AtomicWriteStatus;
 } {
-  const containment = assessPathContainment(root, relative, counters);
+  const containment = assessPathContainment(root, relative, counters, options);
   if (containment.status === 'outside_vendor_root') {
     counters.payloadWrittenOutsideVendorRoot++;
     throw new Error('outside_vendor_root');

@@ -8,3 +8,6 @@ export * from './teta-view-metadata-envelope';
 export * from './teta-view-metadata-export';
 export * from './teta-view-metadata-import';
 export * from './teta-view-metadata-pipeline';
+export * from './teta-view-metadata-oracle-client';
+export * from './teta-view-metadata-real-pilot';
+export * from './teta-view-metadata-offline-finalization';
