@@ -174,7 +174,8 @@ export function gateCompiledSelect(input: Stage3fGateInput): Stage3fGateReport {
 
   const isP1EmployeeVerticalPilot =
     compiled.intent === 'p1_employee_vertical_pilot' &&
-    compiled.subject === 'employee_surname_prefix';
+    (compiled.subject === 'employee_surname_prefix' ||
+      compiled.subject === 'employee_current_position');
   if (isP1EmployeeVerticalPilot) {
     if (process.env.TETA_ENABLE_P1_EMPLOYEE_VERTICAL_PILOT !== 'true') {
       fail(

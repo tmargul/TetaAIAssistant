@@ -1,9 +1,29 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-08-06** (P1 employee vertical pilot ACCEPTED; nextProductSlice planned only)
+> Ostatnia aktualizacja: **2026-08-06** (P1 current-position pilot ACCEPTED; nextProductSlice planned only)
 
 ---
+
+## Notatki sesji (2026-08-06) — P1 current position by employee number (ACCEPTED)
+
+- Architect verdict: `PASS_WITH_FINALIZATION_AND_COMMIT`.
+- Scenario: `p1_employee_current_position_by_employee_number`; gate `TETA_ENABLE_P1_EMPLOYEE_VERTICAL_PILOT`; CLI `--employee-number` (`^[0-9]+$`).
+- `pilotStatus=implemented_and_real_readonly_smoke_completed`
+- `businessResultValidationStatus=accepted_by_user_comparison_with_teta`
+- `pilotTechnicalStatus=passed`; `pilotBusinessStatus=passed`
+- `currentPositionBindingValidationStatus=accepted_real_positive_and_negative_cases`
+- `positiveCurrentPositionValueConfirmed=true` (value only in `.local`, not in repo)
+- Validated cases (user vs Teta):
+  - `00122` → `employee_without_current_position` (records 1/0) — accepted
+  - `00069` → `employee_with_single_current_position` (records 1/1, no multiplicity) — accepted
+- Sources (pilot-only, not generic approved): employee `TETA_ADMIN.NT_KP_PRC_PRACOWNICY`; position `NT_KP_KDR_STANOWISKA`; dictionary `NT_KP_SLO_STANOWISKA`
+- Fields: IMIE/NAZWISKO/NR_EWIDENCYJNY/ID; PRAC_ID/SSTN_ID/DATA_OD/DATA_DO; dict ID/NAZWA
+- Joins: `ID=PRAC_ID`; `SSTN_ID=ID`
+- Temporal: `DATA_OD<=TRUNC(SYSDATE)` AND (`DATA_DO IS NULL` OR `DATA_DO>=TRUNC(SYSDATE)`); inclusive start/end
+- Boundaries: `pilotOnly`; no Stage 3D/reuse/planning mutation; B3A stash untouched
+- Artefacts local only: `.local/p1-employee-current-position-pilot/` (+ `runs/employee-00069/`) — do not commit
+- **nextProductSlice (plan only):** `employee_surname_prefix_with_current_position_report` — surname prefix + current position; keep people without position; do not hide multiplicity; one SELECT; no B3A / model SQL / time-groups
 
 ## Notatki sesji (2026-08-06) — P1 employee vertical pilot (ACCEPTED)
 

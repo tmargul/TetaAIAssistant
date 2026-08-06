@@ -3,3 +3,8 @@ export * from './teta-p1-vertical-pilot-field-resolve';
 export * from './teta-p1-vertical-pilot-compile';
 export * from './teta-p1-vertical-pilot-chat';
 export * from './teta-p1-vertical-pilot-pipeline';
+export * from './teta-p1-current-position.types';
+export * from './teta-p1-current-position-resolve';
+export * from './teta-p1-current-position-compile';
+export * from './teta-p1-current-position-chat';
+export * from './teta-p1-current-position-pipeline';
