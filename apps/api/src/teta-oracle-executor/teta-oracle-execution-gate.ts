@@ -172,14 +172,24 @@ export function gateCompiledSelect(input: Stage3fGateInput): Stage3fGateReport {
     }
   }
 
-  if (compiled.intent !== STAGE3C_SUPPORTED_INTENT) {
+  const isP1EmployeeVerticalPilot =
+    compiled.intent === 'p1_employee_vertical_pilot' &&
+    compiled.subject === 'employee_surname_prefix';
+  if (isP1EmployeeVerticalPilot) {
+    if (process.env.TETA_ENABLE_P1_EMPLOYEE_VERTICAL_PILOT !== 'true') {
+      fail(
+        'intent_supported',
+        'pilot_gate_disabled',
+        'P1 employee vertical pilot requires TETA_ENABLE_P1_EMPLOYEE_VERTICAL_PILOT=true',
+      );
+    }
+  } else if (compiled.intent !== STAGE3C_SUPPORTED_INTENT) {
     fail(
       'intent_supported',
       'unsupported_intent',
       `Intent ${String(compiled.intent)} is unsupported for Stage 3F`,
     );
-  }
-  if (compiled.subject !== STAGE3C_SUPPORTED_SUBJECT) {
+  } else if (compiled.subject !== STAGE3C_SUPPORTED_SUBJECT) {
     fail(
       'subject_supported',
       'unsupported_subject',

@@ -33,9 +33,11 @@ const STRUCTURAL_KEYWORDS = new Set([
   'NULL',
   'AS',
   'EXISTS',
+  'LIKE',
+  'ESCAPE',
 ]);
 
-const ALLOWED_FUNCTIONS = new Set(['TRUNC', 'ADD_MONTHS', 'SYSDATE', 'TO_DATE']);
+const ALLOWED_FUNCTIONS = new Set(['TRUNC', 'ADD_MONTHS', 'SYSDATE', 'TO_DATE', 'UPPER']);
 
 const FORBIDDEN_WORDS: Array<{ word: string; check: CompiledSqlValidationCheck; code: string }> = [
   { word: 'INSERT', check: 'no_dml_or_ddl', code: 'dml_forbidden' },
@@ -100,8 +102,8 @@ export type CompiledSqlValidationInput = {
   allowedInlineLiterals?: string[];
 };
 
-/** Oracle date-format masks — never user-supplied values. */
-export const DEFAULT_ALLOWED_INLINE_LITERALS = ["'MM'", "'YYYY-MM-DD'"] as const;
+/** Oracle date-format masks / single-char LIKE escape — never user-supplied values. */
+export const DEFAULT_ALLOWED_INLINE_LITERALS = ["'MM'", "'YYYY-MM-DD'", "'\\'"] as const;
 
 type ExistsBlock = { start: number; end: number; text: string };
 

@@ -1,15 +1,33 @@
 # Kontekst rozmów — Teta AI Assistant
 
 > **Plik żywy** — uzupełniany po ważnych ustaleniach w czacie. Synchronizuje się przez git między komputerami.
-> Ostatnia aktualizacja: **2026-08-06** (Stage 3K.2B2B2B3 design corrections PASS_WITH_TARGETED_DESIGN_CORRECTIONS; readiness `ready_for_bounded_p1_application_surface_reconstruction_review`; next B3A lokalnie po commit designu)
+> Ostatnia aktualizacja: **2026-08-06** (P1 employee vertical pilot ACCEPTED; nextProductSlice planned only)
 
 ---
+
+## Notatki sesji (2026-08-06) — P1 employee vertical pilot (ACCEPTED)
+
+- Architect verdict: `PASS_WITH_FINALIZATION_AND_COMMIT`.
+- Exact Q (surname prefix A) → deterministic SQL → one read-only SELECT → chat table.
+- `pilotStatus=implemented_and_real_readonly_smoke_completed`
+- `businessResultValidationStatus=accepted_by_user_comparison_with_teta`
+- `pilotTechnicalStatus=passed`; `pilotBusinessStatus=passed`
+- `validatedRowCount=8`; `surnameValidationResult=all_rows_and_values_confirmed_correct`
+- Field map (all `resolved_exact`): `employee_first_name→IMIE`, `employee_last_name→NAZWISKO`, `employee_number→NR_EWIDENCYJNY`, `employee_birth_date→DATA_URODZENIA`
+- Source: `TETA_ADMIN.NT_KP_PRC_PRACOWNICY` (VIEW); SQL safety `ok=true`; Oracle smoke 1/1 conn, 1 SELECT, 0 DML/DDL/PLSQL/commits
+- Boundaries: `pilotOnly=true`; `pilotSourceKind=vendor_local_vertical_pilot_source`; `candidateApprovalStatus=not_approved`; no Stage 3D / reuse / planning mutations
+- Gate: `TETA_ENABLE_P1_EMPLOYEE_VERTICAL_PILOT=true`
+- Module: `apps/api/src/teta-p1-employee-vertical-pilot/`; script `pilot:p1-employee-vertical`
+- Stash B3A (nie restore): `WIP Stage 3K.2B2B2B3A paused for P1 vertical MVP`
+- B3/B3A status unchanged by this pilot
+- **nextProductSlice (plan only, not started):** `p1_employee_report_minimal_generalization` — dynamic surname letter; subset of 4 confirmed fields; exact lookup by employee number; still only `NT_KP_PRC_PRACOWNICY`; deterministic SQL; one SELECT; no B3A / model SQL / generic approval
+- Lokalne artefakty `.local/p1-employee-vertical-pilot/*` — nie commitować (PII)
 
 ## Notatki sesji (2026-08-06) — Stage 3K.2B2B2B3 design corrections
 
 - Verdict: `PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT` — poprawiono design przed commitem.
 - Korekty: exact anchor allowlist entry; surfaceRole (root vs lookup/child/support); `accessObjectRefs[]`; versioned lineage patterns; bounded artifact locator (bez full NDJSON); same-object-only grain inheritance; readiness axes (B3A runtime=`not_evaluated_out_of_scope`); explicit hashed bounds; dedup z provenance; Stage 3A immutability.
-- Status designu: `stage3k2b2b2b3=not_started`; readiness=`ready_for_bounded_p1_application_surface_reconstruction_review`; next=`stage3k2b2b2b3a_p1_candidate_scoped_application_surface_reconstruction_pilot`.
+- Status designu: `stage3k2b2b2b3=not_started` (bez zmiany przez vertical pilot); readiness designu bez zmian.
 - Docs: `AIA_STAGE3K2B2B2B3_P1_APPLICATION_SURFACE_DESIGN.*`.
 
 ## Notatki sesji (2026-08-06) — Stage 3K.2B2B2B2 v3 (accepted) — HISTORYCZNE

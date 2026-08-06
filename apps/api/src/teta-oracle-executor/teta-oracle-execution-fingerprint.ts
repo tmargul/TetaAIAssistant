@@ -66,9 +66,15 @@ function normalizeBindValue(
     }
     return { ok: true, value: num };
   }
-  if (bind.semanticType === 'local_date' || bind.oracleType === 'string') {
+  if (bind.semanticType === 'local_date') {
     if (typeof raw !== 'string' || !isValidIsoLocalDate(raw)) {
       return { ok: false, message: `invalid local_date bind ${bind.name}` };
+    }
+    return { ok: true, value: raw };
+  }
+  if (bind.oracleType === 'string' || bind.semanticType === 'user_literal') {
+    if (typeof raw !== 'string') {
+      return { ok: false, message: `invalid string bind ${bind.name}` };
     }
     return { ok: true, value: raw };
   }
