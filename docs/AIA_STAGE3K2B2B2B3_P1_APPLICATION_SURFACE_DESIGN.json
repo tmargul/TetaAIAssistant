@@ -1,0 +1,390 @@
+{
+  "stage": "3K.2B2B2B3",
+  "title": "P1 Application Access Surface and Semantic Attribution Gap Closure Design",
+  "designOnly": true,
+  "implemented": false,
+  "committed": false,
+  "accepted": false,
+  "approved": false,
+  "planningReady": false,
+  "previousHumanReviewVerdict": "PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT",
+  "humanReviewVerdict": "PASS_WITH_TARGETED_DESIGN_CORRECTIONS_BEFORE_COMMIT",
+  "designCorrectionThemes": [
+    "exact_application_anchor_contract",
+    "surface_role_classification",
+    "multi_object_access_surface",
+    "versioned_lineage_path_grammar",
+    "bounded_artifact_locator",
+    "identity_and_grain_evidence_inheritance",
+    "current_slice_vs_future_runtime_readiness",
+    "explicit_hashed_policy_bounds",
+    "candidate_deduplication_without_evidence_loss",
+    "active_graph_immutability_contract"
+  ],
+  "stage3k2b2b2bStatus": "started_candidate_scoped_metadata_export",
+  "stage3k2b2b2b1Status": "accepted_offline_candidate_scoped_view_metadata_export_import_infrastructure",
+  "stage3k2b2b2b2Status": "accepted_real_p1_view_metadata_export_import_and_reassessment_pilot",
+  "stage3k2b2b2b3Status": "not_started",
+  "stage3k2b2b2b3Readiness": "ready_for_bounded_p1_application_surface_reconstruction_review",
+  "nextImplementationSlice": "stage3k2b2b2b3a_p1_candidate_scoped_application_surface_reconstruction_pilot",
+  "productionReusePolicy": {
+    "defaultReuse": "deny",
+    "reusableRoles": [],
+    "planningEligibleBindings": 0,
+    "realApprovedGenericBindings": 0
+  },
+  "acceptedInputState": {
+    "candidateId": "cand:P1:employee",
+    "semanticMasterSourceRef": {
+      "owner": "TETA_ADMIN",
+      "objectName": "NT_KP_PRC_PRACOWNICY",
+      "objectType": "VIEW"
+    },
+    "technicalSourceIdentityStatus": "verified_exact",
+    "technicalViewDefinitionStatus": "validated_complete",
+    "technicalKeyPreservationStatus": "proven",
+    "candidateGrainEvaluationStatus": "proven",
+    "candidateApprovalStatus": "not_approved",
+    "genericReuseStatus": "denied_by_current_policy",
+    "planningEligibilityStatus": "blocked"
+  },
+  "proposedContracts": [
+    "TetaExactApplicationAnchorAllowlistEntry",
+    "TetaApplicationAccessSurfaceCandidate",
+    "TetaApplicationSurfaceLineage",
+    "TetaApplicationSurfaceLineagePattern",
+    "TetaBoundedArtifactLocator",
+    "TetaApplicationSurfaceEvidenceAssessment",
+    "TetaApplicationSurfaceIdentityAssessment",
+    "TetaSemanticAttributionAssessment",
+    "TetaRuntimeExecutionAccessAssessment",
+    "TetaApplicationSurfaceGapRequest",
+    "TetaApplicationSurfaceReviewPack",
+    "TetaApplicationSurfaceStalenessVector"
+  ],
+  "exactApplicationAnchorAllowlistEntry": {
+    "minimumFields": [
+      "allowlistEntryId",
+      "candidateId",
+      "applicationAnchorId",
+      "applicationAnchorRef",
+      "formGuid",
+      "formClassIdentity",
+      "assemblyIdentity",
+      "productFamily",
+      "productSurface",
+      "businessArea",
+      "sourceArtifactRef",
+      "sourceArtifactFingerprint",
+      "applicationAnchorFingerprint",
+      "applicationVersion",
+      "applicationBuildFingerprint",
+      "assemblyFingerprint",
+      "anchorVerificationStatus"
+    ],
+    "anchorVerificationStatus": [
+      "verified_exact",
+      "supported_bounded",
+      "missing",
+      "stale",
+      "conflicting",
+      "not_evaluated"
+    ],
+    "prohibitedStartModes": [
+      "form_display_name",
+      "word_pracownik",
+      "class_similarity",
+      "global_guid_search",
+      "first_kadry_form"
+    ],
+    "strictZeros": [
+      "collectorStartedWithoutExactAnchor",
+      "anchorResolvedByNameSimilarity",
+      "anchorResolvedByGlobalGuidSearch",
+      "anchorFingerprintMismatchAccepted",
+      "staleAnchorUsedForCollection"
+    ]
+  },
+  "surfaceRoleClassification": {
+    "surfaceRole": [
+      "root_record_surface",
+      "child_collection_surface",
+      "lookup_surface",
+      "supporting_surface",
+      "filter_only_surface",
+      "action_surface",
+      "unknown"
+    ],
+    "surfaceRoleEvidenceStatus": [
+      "proven_direct",
+      "supported_lineage",
+      "partial",
+      "unproven",
+      "conflicting",
+      "not_evaluable"
+    ],
+    "counters": [
+      "totalSurfaceCandidateCount",
+      "rootSurfaceCandidateCount",
+      "childSurfaceCandidateCount",
+      "lookupSurfaceCandidateCount",
+      "supportingSurfaceCandidateCount",
+      "unknownRoleCandidateCount"
+    ],
+    "rootSemantics": {
+      "zero": "no_root_candidates",
+      "one": "single_root_candidate",
+      "multiple": "multiple_root_candidates"
+    },
+    "nonRootNotCompetingP1Roots": true,
+    "strictZeros": [
+      "lookupSurfaceCountedAsCompetingP1Root",
+      "childCollectionCountedAsCompetingP1Root",
+      "supportingSurfaceAutoSelectedAsRoot",
+      "unknownRoleAutoPromotedToRoot"
+    ]
+  },
+  "multiObjectAccessSurface": {
+    "accessObjectRefs": true,
+    "accessObjectRoles": [
+      "root_row_source",
+      "joined_required",
+      "lookup_only",
+      "filter_only",
+      "security_scope",
+      "package_mediated",
+      "unknown"
+    ],
+    "rowProducingRootRequiresExplicitEvidence": [
+      "explicit_ViewName",
+      "explicit_BaseTableName",
+      "verified_gateway_main_source",
+      "verified_sqljoin_main_source",
+      "versioned_root_source_contract"
+    ],
+    "accessSurfaceFingerprintRequired": true,
+    "strictZeros": [
+      "multiObjectGatewayFlattenedToSingleObject",
+      "firstAccessObjectAutoSelectedAsRoot",
+      "joinedSourceDroppedFromCandidate",
+      "unknownObjectRoleReportedAsRoot"
+    ]
+  },
+  "lineagePatterns": {
+    "contract": "TetaApplicationSurfaceLineagePattern",
+    "examples": [
+      "form_datasource_gateway",
+      "form_bo_gateway",
+      "form_df_gateway",
+      "form_control_dataset_gateway",
+      "form_datasource_bo_gateway",
+      "form_datasource_df_gateway",
+      "form_datasource_bo_df_gateway_declared_access_object"
+    ],
+    "completenessRelativeToSelectedPattern": true,
+    "optionalNodesNotRequiredSimultaneously": true,
+    "strictZeros": [
+      "lineageRejectedOnlyBecauseOptionalNodeMissing",
+      "lineageMarkedCompleteWithoutRequiredPatternSteps",
+      "lineagePatternSelectedByNameHeuristic",
+      "unregisteredLineagePatternUsed"
+    ]
+  },
+  "boundedArtifactLocator": {
+    "lookupModes": [
+      "exact_id_index",
+      "exact_offset_manifest",
+      "exact_graph_node_lookup",
+      "exact_allowlisted_file_read",
+      "unavailable"
+    ],
+    "allowed": [
+      "exact_stage3a_sqlite_lookup",
+      "existing_id_offset_manifest",
+      "exact_artifact_ref_from_accepted_anchor_lineage",
+      "exact_allowlisted_dll_metadata_file_read"
+    ],
+    "forbidden": [
+      "full_stage2_ndjson_read_and_filter",
+      "scan_all_forms_or_gateways",
+      "temporary_global_index_build_in_b3a",
+      "grep_or_name_search"
+    ],
+    "missingLocatorGapCode": "requires_bounded_artifact_index",
+    "strictZeros": [
+      "fullStage2ArtifactScans",
+      "fullNdjsonScansForExactAnchor",
+      "temporaryGlobalIndexesBuilt",
+      "artifactNameSearchFallbacks",
+      "artifactLocatorMissingButCollectionContinued"
+    ]
+  },
+  "identityAndGrainInheritance": {
+    "sameObjectOnly": {
+      "owner": "TETA_ADMIN",
+      "objectName": "NT_KP_PRC_PRACOWNICY",
+      "objectType": "VIEW"
+    },
+    "inheritedStatuses": {
+      "masterRelation": "same_object",
+      "identityStatus": "inherited_verified_exact",
+      "grainCompatibilityStatus": "inherited_proven"
+    },
+    "otherObjectGrainStatuses": [
+      "not_evaluable",
+      "requires_view_definition_evidence",
+      "requires_key_preservation_evidence",
+      "conflicting"
+    ],
+    "forbiddenInheritanceBases": [
+      "similar_columns",
+      "same_base_table",
+      "stage2e_depends_on_alone",
+      "similar_name",
+      "shared_gateway"
+    ],
+    "strictZeros": [
+      "p1GrainInheritedByDifferentObject",
+      "staleP1EvidenceInherited",
+      "stage2GraphIdentityReportedCurrentVerifiedExact",
+      "similarColumnsUsedAsSurfaceEquivalenceProof",
+      "baseDependencyUsedAsKeyPreservationProof"
+    ]
+  },
+  "readinessAxes": {
+    "surfaceReconstructionReadiness": [
+      "ready_for_review",
+      "partial",
+      "blocked_missing_artifact",
+      "blocked_ambiguous_roots",
+      "conflicting",
+      "not_evaluated"
+    ],
+    "semanticAttributionReadiness": [
+      "ready_for_review",
+      "supported_bounded",
+      "partial",
+      "blocked_missing_evidence",
+      "conflicting",
+      "not_evaluated"
+    ],
+    "runtimeAccessReadiness": [
+      "not_evaluated_out_of_scope",
+      "blocked_missing_authorization",
+      "blocked_semantic_gap",
+      "blocked_grain_gap",
+      "blocked_scope_gap",
+      "ambiguous",
+      "supported_bounded",
+      "not_evaluated"
+    ],
+    "b3aDefaultRuntimeAccessReadiness": "not_evaluated_out_of_scope",
+    "b3aSelectsRuntimeExecutionAccessObject": false,
+    "gapPhase": [
+      "surface_reconstruction",
+      "semantic_attribution",
+      "runtime_authorization"
+    ],
+    "missingRuntimeAuthorizationContextInB3A": {
+      "gapPhase": "runtime_authorization",
+      "blockingForCurrentSlice": false
+    },
+    "strictZeros": [
+      "runtimeAuthorizationGapBlockedSurfaceReconstruction",
+      "runtimeObjectSelectedInB3A",
+      "runtimeReadinessReportedSupportedInB3A",
+      "outOfScopeRuntimeGapReportedAsPilotFailure"
+    ]
+  },
+  "explicitBounds": {
+    "maxTraversalDepth": 8,
+    "maxNodesVisited": 120,
+    "maxEdgesVisited": 240,
+    "maxSurfaceCandidates": 24,
+    "maxRootSurfaceCandidates": 8,
+    "maxArtifactReads": 64,
+    "maxBytesReadPerArtifactFamily": 8388608,
+    "rationale": "Slightly above Stage 3K.2B2B2A enrichment caps to cover form→datasource→BO/DF→gateway→access-object and multi-object gateway members while remaining exact-anchored and fail-closed.",
+    "auditRequiresConfiguredAndObserved": true,
+    "strictZeros": [
+      "implicitBoundsInheritedWithoutPolicy",
+      "collectorExceededDepthBound",
+      "collectorExceededNodeBound",
+      "collectorExceededEdgeBound",
+      "collectorExceededCandidateBound",
+      "collectorExceededArtifactReadBound"
+    ]
+  },
+  "candidateDeduplication": {
+    "canonicalKeyParts": [
+      "applicationAnchorFingerprint",
+      "lineagePatternId",
+      "canonicalGatewayIdentity",
+      "orderedAccessObjectRefsAndRoles",
+      "surfaceRole",
+      "applicabilityFingerprint"
+    ],
+    "preserveOccurrenceRefs": true,
+    "strictZeros": [
+      "derivedGraphCopyCountedAsSeparateCandidate",
+      "sameGatewayCandidateDuplicatedAcrossStages",
+      "candidateDeduplicationRemovedEvidenceRefs",
+      "candidateDeduplicationCollapsedDifferentRoles"
+    ]
+  },
+  "activeGraphImmutability": {
+    "readOnly": true,
+    "requiredUnchanged": [
+      "activeGraphPointer",
+      "baseGraphHash",
+      "baseGraphFileSha256",
+      "baseGraphFileSize"
+    ],
+    "graphWriteAttempts": 0,
+    "graphMutationAttempts": 0,
+    "strictZeros": [
+      "activeGraphPointerChanges",
+      "activeGraphContentHashChanged",
+      "activeGraphFileShaChanged",
+      "activeGraphFileSizeChanged",
+      "stage3aGraphWrites"
+    ]
+  },
+  "policyDesign": {
+    "path": "apps/api/config/teta-application-access-surface-evidence-policy-v1.json",
+    "version": "teta-aia-application-access-surface-evidence-policy-v1",
+    "createdInThisDesignStage": false,
+    "createdInB3AImplementation": true,
+    "firstPilotAllowlist": "P1_only"
+  },
+  "firstImplementationSlice": {
+    "id": "stage3k2b2b2b3a_p1_candidate_scoped_application_surface_reconstruction_pilot",
+    "excludes": [
+      "oracle",
+      "sql",
+      "dll_rescan",
+      "full_artifact_scans",
+      "model",
+      "rag",
+      "qdrant",
+      "p1_approval",
+      "reuse_policy_mutation",
+      "runtime_access_object_selection",
+      "authorization_collector",
+      "planner",
+      "P2",
+      "P3",
+      "P4",
+      "P5",
+      "P6",
+      "P7",
+      "training"
+    ]
+  },
+  "legalOutcomesDoNotApproveP1": true,
+  "outputs": [
+    "docs/AIA_STAGE3K2B2B2B3_P1_APPLICATION_SURFACE_DESIGN.md",
+    "docs/AIA_STAGE3K2B2B2B3_P1_APPLICATION_SURFACE_DESIGN.json",
+    "docs/session-context.md"
+  ]
+}
