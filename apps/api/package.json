@@ -62,7 +62,8 @@
     "pilot:p1-employee-vertical": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-vertical-pilot.ts",
     "pilot:p1-employee-current-position": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-current-position-pilot.ts",
     "pilot:p1-surname-current-position": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-surname-current-position-pilot.ts",
-    "pilot:p1-employee-time-work-group": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-time-work-group-pilot.ts"
+    "pilot:p1-employee-time-work-group": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-time-work-group-pilot.ts",
+    "ace:stage1": "ts-node -r tsconfig-paths/register src/scripts/application-code-graph-stage1.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

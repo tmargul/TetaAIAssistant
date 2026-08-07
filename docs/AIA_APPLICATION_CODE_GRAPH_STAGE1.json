@@ -1,0 +1,256 @@
+{
+  "contractVersion": "teta-aia-application-code-graph-stage1-v1",
+  "sourceStage": "ACE-S1",
+  "identityVersion": "teta-aia-canonical-id-v1",
+  "stage0BaselineCommit": "9764a5f5c49277952f89b97c74d4013bea32e318",
+  "implementationStatus": "accepted_with_known_runtime_boundaries",
+  "stage1ApplicationCodeGraph": "accepted",
+  "secondGraphCreated": false,
+  "persistedDuplicateEdges": 0,
+  "brokenEndpointsAgainstUnionGraph": 0,
+  "danglingEdgesPersisted": 0,
+  "invalidEdgeBugs": 0,
+  "payrollAcceptance": "passed",
+  "unseenAcceptance": "passed",
+  "nextRoadmapStage": "stage2_oracle_source_index",
+  "integrityPatch": "PASS_WITH_TARGETED_INTEGRITY_PATCH_BEFORE_COMMIT applied",
+  "canonicalContractChanges": [],
+  "module": "apps/api/src/teta-application-code-graph-stage1/",
+  "cli": "pnpm --filter @teta/api run ace:stage1",
+  "localArtifacts": ".local/application-code-graph-stage1/",
+  "deprecatedV1MetricMeanings": {
+    "duplicateCanonicalEdges": "Discarded re-insert attempts of identical edge id; provenance was dropped — NOT duplicates remaining in the graph",
+    "brokenEndpointEdges": "Path materialization skips (gateway+dataset without viewName) — NOT dangling graph edges"
+  },
+  "repoWideMetricsV2": {
+    "formsScanned": 2794,
+    "controlsScanned": 98379,
+    "businessObjectsScanned": 2424,
+    "dataFormsScanned": 5335,
+    "gatewaysScanned": 4009,
+    "formToDatasetEdges": 7979,
+    "formToBusinessObjectEdges": 5600,
+    "datasetToGatewayEdges": 3954,
+    "gatewayToOracleEdges": 3212,
+    "relationEdges": 46132,
+    "joinEdges": 7192,
+    "lookupEdges": 2907,
+    "runtimeBoundaryEdges": 264,
+    "exactFromSourceEdges": 276042,
+    "strongStaticInferenceEdges": 1,
+    "runtimeOnlyEdges": 264,
+    "unresolvedEdges": 5933,
+    "applicationPathsCompleteToOracle": 8994,
+    "rawEdgesProduced": 365551,
+    "uniqueEdgesPersisted": 282240,
+    "duplicateEdgesObservedBeforeDedup": 83311,
+    "duplicateEdgesRemoved": 83311,
+    "persistedDuplicateEdges": 0,
+    "endpointReferencesChecked": 564480,
+    "endpointsResolvedInAce": 8992,
+    "endpointsResolvedInBaseGraph": 2,
+    "runtimeBoundaryEndpoints": 0,
+    "unresolvedEndpointCandidates": 89,
+    "brokenEndpointsAgainstUnionGraph": 0,
+    "danglingEdgesPersisted": 0,
+    "invalidEdgeBugs": 0
+  },
+  "duplicateClassificationV2": {
+    "multi_control_same_relation": 45,
+    "stage2a_and_stage2b_independent": 0,
+    "declared_inherited_effective": 67,
+    "stage2b_and_stage2d_join": 0,
+    "repeated_type_member_scan": 80399,
+    "form_bo_double_emit": 2800,
+    "same_fact_multiple_evidence": 0,
+    "other": 0
+  },
+  "brokenEndpointClassificationV2": {
+    "oldBrokenEndpointEdges_v1_count": 91,
+    "endpoint_exists_in_base_canonical_graph": 2,
+    "endpoint_should_be_materialized_by_ACE": 0,
+    "runtime_boundary_should_replace_missing_endpoint": 0,
+    "unresolved_external_reference": 89,
+    "invalid_edge_bug": 0
+  },
+  "invariants": {
+    "persistedDuplicateEdges": 0,
+    "brokenEndpointsAgainstUnionGraph": 0,
+    "danglingEdgesPersisted": 0,
+    "invalidEdgeBugs": 0,
+    "strictErrors": []
+  },
+  "hardcodingAudit": {
+    "scenarioSpecificPhysicalMappings": 0,
+    "expectedAcceptanceMappingsUsedAsInput": 0,
+    "hardcodedPayrollOracleMappingsInExtractor": 0,
+    "hardcodedCurrentPositionMappingsInExtractor": 0,
+    "hardcodedTwgMappingsInExtractor": 0,
+    "oracleObjectSelectedByNameSimilarityOnly": 0,
+    "columnRoleSelectedByNameSimilarityOnly": 0,
+    "groundTruthUsedBeforeExtraction": 0
+  },
+  "sideEffects": {
+    "oracleConnectionsOpened": 0,
+    "businessSelectStatementsExecuted": 0,
+    "localModelCalls": 0,
+    "remoteModelCalls": 0,
+    "ragCalls": 0,
+    "qdrantCalls": 0,
+    "embeddingCalls": 0
+  },
+  "payrollAcceptanceDetail": {
+    "matched": true,
+    "path": [
+      "ListyObliczoneWidok",
+      "SkladnikiObliczZamknPrac",
+      "ListyBaseBO",
+      "SkladnikiObliczZamknPracTG",
+      "TETA_ADMIN.NT_KP_PLC_SKLADNIKI_OBL"
+    ],
+    "lookup": "NT_KP_SLO_SKLADNIKI_PLAC"
+  },
+  "unseenAcceptanceDetail": {
+    "module": "Sales / DicRodzajeKoncesji",
+    "status": "passed_post_extraction_source_compare",
+    "path": [
+      "DicRodzajeKoncesji",
+      "RodzajeKoncesji",
+      "RodzajeKoncesjiTG",
+      "TETA_ADMIN.NT_LG_SLO_RODZAJE_KONCESJI"
+    ]
+  },
+  "recommendedReviewVerdict": "PASS_FINALIZE_AND_COMMIT",
+  "gapMatrix": [
+    {
+      "mechanism": "Grid/DataSourceTableName",
+      "existingExtractor": "Stage2A",
+      "existingNodeType": "dataset / ui_control",
+      "existingEdgeType": "BINDS_TARGET / USES_DATASOURCE",
+      "existingProvenance": "IL InitializeComponent property assignment",
+      "coverageStatus": "partially_extracted",
+      "missingInformation": "Not always emitted as traversable FORM→DATASET path with ACE provenance schema",
+      "plannedChange": "Materialize CONTROL_BINDS_DATASET / form dataset edges with Stage1 provenance"
+    },
+    {
+      "mechanism": "Bindings.Table / Bindings.Column",
+      "existingExtractor": "Stage2A",
+      "existingNodeType": "target_binding",
+      "existingEdgeType": "BINDS_TARGET",
+      "existingProvenance": "confirmed_from_il",
+      "coverageStatus": "already_complete",
+      "missingInformation": "none for binding facts",
+      "plannedChange": "Reuse; map to CONTROL_BINDS_* with provenance"
+    },
+    {
+      "mechanism": "Lookup.ParentTable / LookupTableName",
+      "existingExtractor": "Stage2A / Stage2C",
+      "existingNodeType": "lookup_binding",
+      "existingEdgeType": "BINDS_LOOKUP",
+      "existingProvenance": "partial IL + help",
+      "coverageStatus": "partially_extracted",
+      "missingInformation": "Target FK vs lookup display often collapsed in later stages",
+      "plannedChange": "Keep LOOKUP_USES_OBJECT with separate target/key/display attributes"
+    },
+    {
+      "mechanism": "BusinessObjectReference",
+      "existingExtractor": "Stage2A",
+      "existingNodeType": "business_object",
+      "existingEdgeType": "USES_BO",
+      "existingProvenance": "IL literal type+assembly",
+      "coverageStatus": "already_complete",
+      "missingInformation": "none when literal present",
+      "plannedChange": "Reuse as FORM_USES_BUSINESS_OBJECT"
+    },
+    {
+      "mechanism": "ProxyHelper.GetBusinessObject",
+      "existingExtractor": "Stage2A/2B",
+      "existingNodeType": "business_object",
+      "existingEdgeType": "USES_BO",
+      "existingProvenance": "call site without resolved type",
+      "coverageStatus": "runtime_only",
+      "missingInformation": "runtime BO type",
+      "plannedChange": "HAS_RUNTIME_BOUNDARY boundaryType=proxy_factory"
+    },
+    {
+      "mechanism": "DF Gateway / BO MainGateway / BO Add(gateway)",
+      "existingExtractor": "Stage2B",
+      "existingNodeType": "gateway",
+      "existingEdgeType": "RESOLVES_TO_GATEWAY",
+      "existingProvenance": "IL constructor/Add evidence",
+      "coverageStatus": "extracted_but_not_connected",
+      "missingInformation": "Stage2B chain harvested Oracle names only in Stage2E ingest — path hops not traversable",
+      "plannedChange": "Emit BUSINESS_OBJECT_USES_GATEWAY + path hops with independent provenance"
+    },
+    {
+      "mechanism": "TG/MTG TableName / TableAlias / ViewName / BaseTableName",
+      "existingExtractor": "Stage2B",
+      "existingNodeType": "oracle_object / gateway",
+      "existingEdgeType": "MAPS_TO_ORACLE_OBJECT",
+      "existingProvenance": "set_TableName literal",
+      "coverageStatus": "partially_extracted",
+      "missingInformation": "Dataset ctor arg not always linked as first-class edge",
+      "plannedChange": "GATEWAY_BINDS_DATASET from ::.ctor(null,\"Dataset\") + GATEWAY_READS_FROM_ORACLE_OBJECT"
+    },
+    {
+      "mechanism": "SumoCommandBuilder DAC package",
+      "existingExtractor": "Stage2B",
+      "existingNodeType": "oracle_package",
+      "existingEdgeType": "USES_PACKAGE",
+      "existingProvenance": "constructor package literal",
+      "coverageStatus": "already_complete",
+      "missingInformation": "DAC body (deferred to Roadmap Stage 3 write-path)",
+      "plannedChange": "GATEWAY_HAS_DAC_PACKAGE_REFERENCE only; no DAC/DAE/DEF body analysis"
+    },
+    {
+      "mechanism": "Relation / AddRelation exact keys",
+      "existingExtractor": "Stage2B evidence strings",
+      "existingNodeType": "none first-class",
+      "existingEdgeType": "none",
+      "existingProvenance": "IL call text",
+      "coverageStatus": "not_extracted",
+      "missingInformation": "parent/child column lists not materialized as graph edges",
+      "plannedChange": "APPLICATION_RELATION with keyResolutionStatus resolved|unresolved"
+    },
+    {
+      "mechanism": "AddDefaultRelation",
+      "existingExtractor": "none in current corpus (0 hits)",
+      "existingNodeType": "none",
+      "existingEdgeType": "none",
+      "existingProvenance": "n/a",
+      "coverageStatus": "not_extracted",
+      "missingInformation": "framework default keys",
+      "plannedChange": "Store relationMechanism=default_relation keyResolutionStatus=unresolved"
+    },
+    {
+      "mechanism": "JoinDefinition / SqlSelectCommand.AddJoin",
+      "existingExtractor": "Stage2D / Stage2B evidence",
+      "existingNodeType": "join",
+      "existingEdgeType": "JOINS_TO",
+      "existingProvenance": "IL; often null ON",
+      "coverageStatus": "partially_extracted",
+      "missingInformation": "many joins not_provided_in_il",
+      "plannedChange": "Reuse Stage2D; parse simple A.COL=B.COL; else unresolved"
+    },
+    {
+      "mechanism": "Late-binding gateway / dynamic SQL / FillCommandPrepared",
+      "existingExtractor": "Stage2B evidence",
+      "existingNodeType": "none",
+      "existingEdgeType": "none",
+      "existingProvenance": "call site text",
+      "coverageStatus": "runtime_only",
+      "missingInformation": "runtime values",
+      "plannedChange": "HAS_RUNTIME_BOUNDARY; do not invent gateway/oracle"
+    },
+    {
+      "mechanism": "Stage2E canonical IDs / Stage3A index",
+      "existingExtractor": "Stage2E / Stage3A",
+      "existingNodeType": "canonical graph",
+      "existingEdgeType": "existing edge vocabulary",
+      "existingProvenance": "multi-stage",
+      "coverageStatus": "already_complete",
+      "missingInformation": "ACE path materialization feeder",
+      "plannedChange": "Reuse teta-aia-canonical-id-v1; sourceStage=ACE-S1; no second graph"
+    }
+  ]
+}
