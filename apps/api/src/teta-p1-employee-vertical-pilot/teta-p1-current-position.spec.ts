@@ -107,7 +107,7 @@ describe('P1 employee current position pilot', () => {
 
   it('position source exact resolution', () => {
     const counters = emptyCurrentPositionCounters();
-    const { bindings } = resolveCurrentPositionBindings({
+    const { bindings, schemaRoleResolution } = resolveCurrentPositionBindings({
       repoRoot: REPO,
       counters,
       declaredEmployeeColumns: DECLARED,
@@ -119,6 +119,42 @@ describe('P1 employee current position pilot', () => {
     expect(byRole(bindings, 'positionIdColumn')?.physicalColumn).toBe('SSTN_ID');
     expect(byRole(bindings, 'positionValidFromColumn')?.physicalColumn).toBe('DATA_OD');
     expect(byRole(bindings, 'positionValidToColumn')?.physicalColumn).toBe('DATA_DO');
+    expect(schemaRoleResolution?.audit.expectedMappingUsedAsResolverInput).toBe(0);
+    expect(schemaRoleResolution?.audit.humanProvidedOracleObjectSeeds).toBe(0);
+  });
+
+  it('approved_binding_reuse reconstructs accepted mapping from Stage 3D evidence', () => {
+    const counters = emptyCurrentPositionCounters();
+    const { schemaRoleResolution } = resolveCurrentPositionBindings({
+      repoRoot: REPO,
+      counters,
+      declaredEmployeeColumns: DECLARED,
+    });
+    expect(schemaRoleResolution).toBeTruthy();
+    const {
+      validateCurrentPositionAgainstAccepted,
+    } = require('./teta-p1-current-position-resolve') as typeof import('./teta-p1-current-position-resolve');
+    const v = validateCurrentPositionAgainstAccepted(schemaRoleResolution!);
+    expect(v.ok).toBe(true);
+    expect(['proven_exact', 'strong_inference_readonly']).toContain(
+      schemaRoleResolution!.overallStatus,
+    );
+  });
+
+  it('approved_binding_reuse uses Stage 3D; not a blind rediscovery claim', () => {
+    const counters = emptyCurrentPositionCounters();
+    const { schemaRoleResolution } = resolveCurrentPositionBindings({
+      repoRoot: REPO,
+      counters,
+      declaredEmployeeColumns: DECLARED,
+      discoveryMode: 'approved_binding_reuse',
+    });
+    expect(schemaRoleResolution?.audit.discoveryMode).toBe('approved_binding_reuse');
+    expect(schemaRoleResolution?.overallStatus).toBe('proven_exact');
+    // Provenance proves Stage 3D physical binding entered the graph
+    const refs =
+      schemaRoleResolution?.roleAssignmentsByRole.assignment_source?.supportingEvidenceRefs ?? [];
+    expect(refs.some((r) => /stage3d:|teta-business-semantic-bindings/i.test(r))).toBe(true);
   });
 
   it('dictionary exact resolution', () => {

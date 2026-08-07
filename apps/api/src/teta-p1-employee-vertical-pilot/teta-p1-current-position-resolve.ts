@@ -1,98 +1,55 @@
-import fs from 'fs';
-import path from 'path';
 import { loadAcceptedP1DeclaredColumns } from './teta-p1-vertical-pilot-field-resolve';
 import {
   fingerprint,
-  P1_CURRENT_POSITION_DICTIONARY,
-  P1_CURRENT_POSITION_SOURCE,
   P1_VERTICAL_OBJECT,
   P1_VERTICAL_OWNER,
   type CurrentPositionResolvedBinding,
   type CurrentPositionSafetyCounters,
+  type FieldResolutionStatus,
 } from './teta-p1-current-position.types';
-import type { FieldResolutionStatus } from './teta-p1-vertical-pilot.types';
+import {
+  buildCurrentPositionEvidenceFromStage3d,
+  resolveSchemaRoles,
+  type LogicalRoleId,
+  type SchemaRoleResolutionResult,
+  type SchemaRoleResolutionStatus,
+} from '../teta-schema-role-resolution';
+import {
+  buildBlindCurrentPositionEvidenceFromApplicationGraph,
+  compareCurrentPositionGroundTruth,
+  type BlindEvidenceInputClassification,
+} from '../teta-schema-role-resolution/teta-schema-role-evidence-blind-current-position';
 
-type Stage3dBindingFile = {
-  version?: string;
-  subjects?: Array<{
-    subject?: string;
-    sources?: Array<{
-      role?: string;
-      status?: string;
-      logicalObjectNodeId?: string;
-      accessObjectNodeId?: string;
-    }>;
-    joins?: Array<{
-      role?: string;
-      status?: string;
-      joinType?: string;
-      leftSourceRole?: string;
-      rightSourceRole?: string;
-      predicates?: Array<{
-        leftOracleColumnNodeId?: string;
-        rightOracleColumnNodeId?: string;
-        operator?: string;
-      }>;
-      joinNodeId?: string | null;
-    }>;
-    relations?: Array<{
-      role?: string;
-      status?: string;
-      joinType?: string;
-      leftSourceRole?: string;
-      rightSourceRole?: string;
-      predicates?: Array<{
-        leftOracleColumnNodeId?: string;
-        rightOracleColumnNodeId?: string;
-        operator?: string;
-      }>;
-      joinNodeId?: string | null;
-    }>;
-    valuePaths?: Array<{
-      role?: string;
-      status?: string;
-      displayColumnNodeId?: string;
-      displaySourceRole?: string;
-      steps?: Array<{
-        sourceRole?: string;
-        columnNodeId?: string;
-        displayColumnNodeId?: string;
-      }>;
-    }>;
-    temporals?: Array<{
-      role?: string;
-      status?: string;
-      sourceRole?: string;
-      validFromColumnNodeId?: string;
-      validToColumnNodeId?: string;
-      openEndedEndAllowed?: boolean;
-      startInclusive?: boolean;
-      endInclusive?: boolean;
-      clock?: string;
-    }>;
-  }>;
-};
+const REQUIRED_ROLES: LogicalRoleId[] = [
+  'subject_identity',
+  'assignment_source',
+  'subject_reference',
+  'dictionary_reference',
+  'dictionary_identity',
+  'dictionary_display_name',
+  'valid_from',
+  'valid_to',
+];
 
-function parseOracleColumnNode(nodeId: string | undefined): {
-  owner: string;
-  objectName: string;
-  columnName: string;
-} | null {
-  if (!nodeId) return null;
-  const m = /^oracle-column:([^:]+):([^:]+):(.+)$/.exec(nodeId);
-  if (!m) return null;
-  return { owner: m[1]!, objectName: m[2]!, columnName: m[3]! };
-}
+/** Accepted physical mapping — validation only, never passed into the resolver. */
+export const CURRENT_POSITION_EXPECTED_AFTER_RESOLUTION = {
+  assignment: `${P1_VERTICAL_OWNER}.NT_KP_KDR_STANOWISKA`,
+  dictionary: `${P1_VERTICAL_OWNER}.NT_KP_SLO_STANOWISKA`,
+  subjectReference: 'PRAC_ID',
+  dictionaryReference: 'SSTN_ID',
+  dictionaryIdentity: 'ID',
+  dictionaryDisplayName: 'NAZWA',
+  validFrom: 'DATA_OD',
+  validTo: 'DATA_DO',
+} as const;
 
-function parseOracleObjectNode(nodeId: string | undefined): {
-  owner: string;
-  objectType: string;
-  objectName: string;
-} | null {
-  if (!nodeId) return null;
-  const m = /^oracle-object:([^:]+):([^:]+):(.+)$/.exec(nodeId);
-  if (!m) return null;
-  return { owner: m[1]!, objectType: m[2]!, objectName: m[3]! };
+function mapStatus(s: SchemaRoleResolutionStatus | undefined): FieldResolutionStatus {
+  if (!s) return 'missing';
+  if (s === 'proven_exact' || s === 'strong_inference_readonly') return 'resolved_exact';
+  if (s === 'ambiguous') return 'ambiguous';
+  if (s === 'conflicting') return 'conflicting';
+  if (s === 'stale') return 'stale';
+  return 'missing';
 }
 
 function binding(
@@ -117,56 +74,60 @@ function binding(
   };
 }
 
+function applyForce(
+  role: CurrentPositionResolvedBinding['logicalRole'],
+  base: CurrentPositionResolvedBinding,
+  forceStatus?: Partial<Record<CurrentPositionResolvedBinding['logicalRole'], FieldResolutionStatus>>,
+): CurrentPositionResolvedBinding {
+  const forced = forceStatus?.[role];
+  if (!forced || forced === 'resolved_exact') return base;
+  return binding(role, null, null, forced, [...base.evidenceRefs, `forced_${forced}`]);
+}
+
+/**
+ * Resolve current-position physical roles via the generic schema role resolver.
+ *
+ * Default discoveryMode=approved_binding_reuse loads Stage 3D approved bindings
+ * (production fast path). For independent rediscovery acceptance use
+ * discoveryMode=blind_physical_rediscovery (no Stage 3D physical seeds).
+ */
 export function resolveCurrentPositionBindings(input: {
   repoRoot: string;
   counters: CurrentPositionSafetyCounters;
-  /** Test override: force a role to ambiguous/missing. */
   forceStatus?: Partial<Record<CurrentPositionResolvedBinding['logicalRole'], FieldResolutionStatus>>;
   declaredEmployeeColumns?: string[];
+  discoveryMode?: 'approved_binding_reuse' | 'blind_physical_rediscovery';
 }): {
   bindings: CurrentPositionResolvedBinding[];
   allResolvedExact: boolean;
   employeeSourceAvailable: boolean;
   stage3dAvailable: boolean;
+  schemaRoleResolution: SchemaRoleResolutionResult | null;
 } {
-  const bindingsPath = path.join(
-    input.repoRoot,
-    'apps',
-    'api',
-    'config',
-    'teta-business-semantic-bindings-v1.json',
-  );
+  const discoveryMode = input.discoveryMode ?? 'approved_binding_reuse';
   const loadedEmployees = loadAcceptedP1DeclaredColumns(input.repoRoot);
   const declared = new Set(
     (input.declaredEmployeeColumns ?? loadedEmployees.columns).map((c) => c.toUpperCase()),
   );
-  const employeeSourceAvailable = declared.size > 0 || Boolean(input.declaredEmployeeColumns?.length);
-  const stage3dAvailable = fs.existsSync(bindingsPath);
+  const employeeSourceAvailable =
+    declared.size > 0 || Boolean(input.declaredEmployeeColumns?.length);
 
-  const employeeEvidence = [
-    ...loadedEmployees.evidenceRefs,
-    'stage3d:teta-business-semantic-bindings-v1',
-  ];
+  // Production reuse only — never used in blind mode.
+  const graph =
+    discoveryMode === 'approved_binding_reuse'
+      ? buildCurrentPositionEvidenceFromStage3d(input.repoRoot)
+      : null;
+  const stage3dAvailable = Boolean(graph);
 
   const resolveEmployeeCol = (
     role: CurrentPositionResolvedBinding['logicalRole'],
     candidates: string[],
   ): CurrentPositionResolvedBinding => {
-    if (input.forceStatus?.[role] === 'ambiguous') {
-      input.counters.ambiguousPositionBindingAutoSelected += 0;
-      return binding(role, `${P1_VERTICAL_OWNER}.${P1_VERTICAL_OBJECT}`, null, 'ambiguous', [
-        ...employeeEvidence,
-        'forced_ambiguous',
+    if (input.forceStatus?.[role] && input.forceStatus[role] !== 'resolved_exact') {
+      return binding(role, `${P1_VERTICAL_OWNER}.${P1_VERTICAL_OBJECT}`, null, input.forceStatus[role]!, [
+        'pilot:accepted_employee_foundation',
+        `forced_${input.forceStatus[role]}`,
       ]);
-    }
-    if (input.forceStatus?.[role] === 'missing' || input.forceStatus?.[role] === 'stale') {
-      return binding(
-        role,
-        `${P1_VERTICAL_OWNER}.${P1_VERTICAL_OBJECT}`,
-        null,
-        input.forceStatus[role]!,
-        [...employeeEvidence, `forced_${input.forceStatus[role]}`],
-      );
     }
     const present = candidates.filter((c) => declared.has(c.toUpperCase()));
     if (present.length === 1) {
@@ -175,17 +136,19 @@ export function resolveCurrentPositionBindings(input: {
         `${P1_VERTICAL_OWNER}.${P1_VERTICAL_OBJECT}`,
         present[0]!,
         'resolved_exact',
-        [...employeeEvidence, `declaredColumn:${present[0]}`],
+        [
+          ...loadedEmployees.evidenceRefs,
+          `declaredColumn:${present[0]}`,
+          'confirmed_subject_source',
+        ],
       );
     }
     if (present.length > 1) {
       return binding(role, `${P1_VERTICAL_OWNER}.${P1_VERTICAL_OBJECT}`, null, 'ambiguous', [
-        ...employeeEvidence,
         `ambiguousCandidates:${present.join(',')}`,
       ]);
     }
     return binding(role, `${P1_VERTICAL_OWNER}.${P1_VERTICAL_OBJECT}`, null, 'missing', [
-      ...employeeEvidence,
       `candidatesNotInView:${candidates.join(',')}`,
     ]);
   };
@@ -197,369 +160,148 @@ export function resolveCurrentPositionBindings(input: {
     resolveEmployeeCol('employeePrimaryIdentityColumn', ['ID']),
   ];
 
-  if (!stage3dAvailable) {
-    input.counters.guessedCurrentPositionSource += 1;
-    const missingPos = binding(
-      'currentPositionSourceRef',
-      null,
-      null,
-      'missing',
-      ['stage3d_bindings_unavailable'],
-    );
-    const bindings = [...employeeBindings, missingPos];
+  if (!graph) {
+    input.counters.guessedCurrentPositionSource += 0;
+    if (discoveryMode === 'blind_physical_rediscovery') {
+      // Blind path is handled by resolveCurrentPositionBlind — this adapter stays production-only.
+      return {
+        bindings: [
+          ...employeeBindings,
+          binding('currentPositionSourceRef', null, null, 'missing', [
+            'blind_mode_requires_resolveCurrentPositionBlind',
+          ]),
+        ],
+        allResolvedExact: false,
+        employeeSourceAvailable,
+        stage3dAvailable: false,
+        schemaRoleResolution: null,
+      };
+    }
+    const bindings = [
+      ...employeeBindings,
+      binding('currentPositionSourceRef', null, null, 'missing', ['stage3d_evidence_unavailable']),
+    ];
     return {
       bindings,
       allResolvedExact: false,
       employeeSourceAvailable,
       stage3dAvailable: false,
+      schemaRoleResolution: null,
     };
   }
 
-  const file = JSON.parse(fs.readFileSync(bindingsPath, 'utf8')) as Stage3dBindingFile;
-  // Technical evidence only — BHP subject carries the approved physical map for current_position.
-  const subject =
-    file.subjects?.find((s) => s.subject === 'occupational_health_examinations') ??
-    file.subjects?.[0];
-  const evidenceBase = [
-    'stage3d:teta-business-semantic-bindings-v1',
-    'stage3d_subject:occupational_health_examinations:technical_evidence_only',
-    `bindings_version:${file.version ?? 'unknown'}`,
-  ];
+  const schemaRoleResolution = resolveSchemaRoles({
+    question:
+      'Podaj imię, nazwisko, numer ewidencyjny i aktualne stanowisko pracownika o numerze ewidencyjnym 00122.',
+    subjectRole: 'employee',
+    targetConcept: 'current_position',
+    requiredRoles: REQUIRED_ROLES,
+    discoveryMode: 'approved_binding_reuse',
+    confirmedSubjectSource: {
+      owner: P1_VERTICAL_OWNER,
+      objectType: 'VIEW',
+      objectName: P1_VERTICAL_OBJECT,
+      identityColumn: 'ID',
+      businessNumberColumn: 'NR_EWIDENCYJNY',
+      firstNameColumn: 'IMIE',
+      lastNameColumn: 'NAZWISKO',
+    },
+    temporalIntent: 'current_on_oracle_sysdate',
+    evidenceGraph: graph,
+  });
 
-  const positionSource = subject?.sources?.find((s) => s.role === 'current_position');
-  const dictionarySource = subject?.sources?.find((s) => s.role === 'position_dictionary');
-  const empToPos = (subject?.relations ?? subject?.joins)?.find(
-    (j) => j.role === 'employee_to_current_position',
-  );
-  const posToDict = (subject?.relations ?? subject?.joins)?.find(
-    (j) => j.role === 'current_position_to_position_dictionary',
-  );
-  const positionNamePath = subject?.valuePaths?.find((v) => v.role === 'position_name');
-  const temporal = subject?.temporals?.find((t) => t.role === 'current_position_on_oracle_sysdate');
-
-  const resolveObjectRole = (
-    role: CurrentPositionResolvedBinding['logicalRole'],
-    source: { status?: string; logicalObjectNodeId?: string; accessObjectNodeId?: string } | undefined,
-    expectedObject: string,
-    guessCounter: keyof CurrentPositionSafetyCounters,
+  const roles = schemaRoleResolution.roleAssignmentsByRole;
+  const toPilot = (
+    logicalRole: CurrentPositionResolvedBinding['logicalRole'],
+    roleId: LogicalRoleId,
   ): CurrentPositionResolvedBinding => {
-    if (input.forceStatus?.[role] === 'ambiguous') {
-      return binding(role, null, null, 'ambiguous', [...evidenceBase, 'forced_ambiguous']);
-    }
-    if (input.forceStatus?.[role] === 'missing' || input.forceStatus?.[role] === 'stale') {
-      return binding(role, null, null, input.forceStatus[role]!, [
-        ...evidenceBase,
-        `forced_${input.forceStatus[role]}`,
-      ]);
-    }
-    if (input.forceStatus?.[role] === 'conflicting') {
-      return binding(role, null, null, 'conflicting', [...evidenceBase, 'forced_conflicting']);
-    }
-    const parsed = parseOracleObjectNode(source?.logicalObjectNodeId ?? source?.accessObjectNodeId);
-    if (!source || source.status !== 'approved' || !parsed) {
-      input.counters[guessCounter] += 0; // do not guess
-      return binding(role, null, null, 'missing', [...evidenceBase, `${role}_not_approved`]);
-    }
-    if (parsed.owner !== P1_VERTICAL_OWNER || parsed.objectName !== expectedObject) {
-      // Do not auto-select alternate dictionary (e.g. SL_STAN)
-      return binding(role, `${parsed.owner}.${parsed.objectName}`, null, 'conflicting', [
-        ...evidenceBase,
-        `expected:${expectedObject}`,
-        `found:${parsed.objectName}`,
-      ]);
-    }
-    return binding(
-      role,
-      `${parsed.owner}.${parsed.objectName}`,
-      null,
-      'resolved_exact',
-      [...evidenceBase, source.logicalObjectNodeId ?? source.accessObjectNodeId!],
+    const a = roles[roleId];
+    return applyForce(
+      logicalRole,
+      binding(
+        logicalRole,
+        a?.objectRef ?? null,
+        a?.column ?? null,
+        mapStatus(a?.status),
+        a?.supportingEvidenceRefs ?? ['schema_role_resolver'],
+      ),
+      input.forceStatus,
     );
   };
 
-  const currentPositionSourceRef = resolveObjectRole(
-    'currentPositionSourceRef',
-    positionSource,
-    P1_CURRENT_POSITION_SOURCE,
-    'guessedCurrentPositionSource',
-  );
-  const dictionarySourceRef = resolveObjectRole(
+  const assignment = toPilot('currentPositionSourceRef', 'assignment_source');
+  const subjectRef = toPilot('positionEmployeeReferenceColumn', 'subject_reference');
+  const dictRef = toPilot('positionIdColumn', 'dictionary_reference');
+  const dictId = toPilot('dictionaryIdColumn', 'dictionary_identity');
+  const dictObj = applyForce(
     'dictionarySourceRef',
-    dictionarySource,
-    P1_CURRENT_POSITION_DICTIONARY,
-    'guessedPositionDictionary',
+    binding(
+      'dictionarySourceRef',
+      roles.dictionary_identity?.objectRef ?? null,
+      null,
+      mapStatus(roles.dictionary_identity?.status),
+      roles.dictionary_identity?.supportingEvidenceRefs ?? [],
+    ),
+    input.forceStatus,
+  );
+  const dictName = toPilot('positionNameColumn', 'dictionary_display_name');
+  const validFrom = toPilot('positionValidFromColumn', 'valid_from');
+  const validTo = toPilot('positionValidToColumn', 'valid_to');
+
+  const pathOk =
+    schemaRoleResolution.chosenRelationPath &&
+    schemaRoleResolution.chosenRelationPath.length >= 2 &&
+    (schemaRoleResolution.overallStatus === 'proven_exact' ||
+      schemaRoleResolution.overallStatus === 'strong_inference_readonly');
+
+  const employeeToPositionJoin = applyForce(
+    'employeeToPositionJoin',
+    binding(
+      'employeeToPositionJoin',
+      assignment.physicalObject,
+      pathOk
+        ? `${roles.subject_identity?.column ?? 'ID'}=${subjectRef.physicalColumn}`
+        : null,
+      pathOk ? 'resolved_exact' : mapStatus(schemaRoleResolution.overallStatus),
+      schemaRoleResolution.chosenRelationPath?.[0]?.evidenceRefs ?? [],
+    ),
+    input.forceStatus,
   );
 
-  const resolveJoinColumn = (
-    role: CurrentPositionResolvedBinding['logicalRole'],
-    nodeId: string | undefined,
-    expectedObject: string,
-    expectedColumn: string,
-    joinRole: string,
-  ): CurrentPositionResolvedBinding => {
-    if (input.forceStatus?.[role] === 'ambiguous') {
-      return binding(role, null, null, 'ambiguous', [...evidenceBase, 'forced_ambiguous']);
-    }
-    if (input.forceStatus?.[role] && input.forceStatus[role] !== 'resolved_exact') {
-      return binding(role, null, null, input.forceStatus[role]!, [
-        ...evidenceBase,
-        `forced_${input.forceStatus[role]}`,
-      ]);
-    }
-    const parsed = parseOracleColumnNode(nodeId);
-    if (!parsed) {
-      return binding(role, null, null, 'missing', [...evidenceBase, `${joinRole}_column_missing`]);
-    }
-    if (parsed.objectName !== expectedObject || parsed.columnName !== expectedColumn) {
-      return binding(
-        role,
-        `${parsed.owner}.${parsed.objectName}`,
-        parsed.columnName,
-        'conflicting',
-        [...evidenceBase, nodeId!, `expected:${expectedObject}.${expectedColumn}`],
-      );
-    }
-    return binding(
-      role,
-      `${parsed.owner}.${parsed.objectName}`,
-      parsed.columnName,
-      'resolved_exact',
-      [...evidenceBase, nodeId!, `join_role:${joinRole}`],
-    );
-  };
-
-  const empJoinLeft = empToPos?.predicates?.[0]?.leftOracleColumnNodeId;
-  const empJoinRight = empToPos?.predicates?.[0]?.rightOracleColumnNodeId;
-  // Re-check employee primary identity against join evidence
-  const joinIdentity = resolveJoinColumn(
-    'employeePrimaryIdentityColumn',
-    empJoinLeft,
-    P1_VERTICAL_OBJECT,
-    'ID',
-    'employee_to_current_position',
-  );
-  // Prefer declared+join agreement
-  const employeePrimary =
-    employeeBindings.find((b) => b.logicalRole === 'employeePrimaryIdentityColumn')!;
-  const employeePrimaryMerged: CurrentPositionResolvedBinding =
-    employeePrimary.resolutionStatus === 'resolved_exact' &&
-    joinIdentity.resolutionStatus === 'resolved_exact' &&
-    employeePrimary.physicalColumn === joinIdentity.physicalColumn
-      ? binding(
-          'employeePrimaryIdentityColumn',
-          employeePrimary.physicalObject,
-          employeePrimary.physicalColumn,
-          'resolved_exact',
-          [
-            ...employeePrimary.evidenceRefs,
-            ...joinIdentity.evidenceRefs,
-            'declared_and_stage3d_join_agree',
-          ],
-        )
-      : employeePrimary.resolutionStatus !== 'resolved_exact'
-        ? employeePrimary
-        : joinIdentity.resolutionStatus !== 'resolved_exact'
-          ? joinIdentity
-          : binding(
-              'employeePrimaryIdentityColumn',
-              null,
-              null,
-              'conflicting',
-              [...employeePrimary.evidenceRefs, ...joinIdentity.evidenceRefs],
-            );
-
-  const positionEmployeeReferenceColumn = resolveJoinColumn(
-    'positionEmployeeReferenceColumn',
-    empJoinRight,
-    P1_CURRENT_POSITION_SOURCE,
-    'PRAC_ID',
-    'employee_to_current_position',
+  const positionToDictionaryJoin = applyForce(
+    'positionToDictionaryJoin',
+    binding(
+      'positionToDictionaryJoin',
+      dictObj.physicalObject,
+      pathOk ? `${dictRef.physicalColumn}=${dictId.physicalColumn}` : null,
+      pathOk ? 'resolved_exact' : mapStatus(schemaRoleResolution.overallStatus),
+      schemaRoleResolution.chosenRelationPath?.[1]?.evidenceRefs ?? [],
+    ),
+    input.forceStatus,
   );
 
-  const employeeToPositionJoin: CurrentPositionResolvedBinding = (() => {
-    if (input.forceStatus?.employeeToPositionJoin) {
-      return binding(
-        'employeeToPositionJoin',
-        null,
-        null,
-        input.forceStatus.employeeToPositionJoin,
-        [...evidenceBase, `forced_${input.forceStatus.employeeToPositionJoin}`],
-      );
-    }
-    if (
-      empToPos?.status === 'approved' &&
-      empToPos.joinType === 'left' &&
-      employeePrimaryMerged.resolutionStatus === 'resolved_exact' &&
-      positionEmployeeReferenceColumn.resolutionStatus === 'resolved_exact'
-    ) {
-      return binding(
-        'employeeToPositionJoin',
-        `${P1_VERTICAL_OWNER}.${P1_CURRENT_POSITION_SOURCE}`,
-        `${employeePrimaryMerged.physicalColumn}=${positionEmployeeReferenceColumn.physicalColumn}`,
-        'resolved_exact',
-        [
-          ...evidenceBase,
-          'join_role:employee_to_current_position',
-          empJoinLeft!,
-          empJoinRight!,
-        ],
-      );
-    }
-    input.counters.guessedEmployeePositionJoin += 0;
-    return binding('employeeToPositionJoin', null, null, 'missing', [
-      ...evidenceBase,
-      'employee_to_current_position_incomplete',
-    ]);
-  })();
-
-  const posDictLeft = posToDict?.predicates?.[0]?.leftOracleColumnNodeId;
-  const posDictRight = posToDict?.predicates?.[0]?.rightOracleColumnNodeId;
-  const positionIdColumn = resolveJoinColumn(
-    'positionIdColumn',
-    posDictLeft,
-    P1_CURRENT_POSITION_SOURCE,
-    'SSTN_ID',
-    'current_position_to_position_dictionary',
-  );
-  const dictionaryIdColumn = resolveJoinColumn(
-    'dictionaryIdColumn',
-    posDictRight,
-    P1_CURRENT_POSITION_DICTIONARY,
-    'ID',
-    'current_position_to_position_dictionary',
-  );
-
-  const positionToDictionaryJoin: CurrentPositionResolvedBinding = (() => {
-    if (input.forceStatus?.positionToDictionaryJoin) {
-      return binding(
-        'positionToDictionaryJoin',
-        null,
-        null,
-        input.forceStatus.positionToDictionaryJoin,
-        [...evidenceBase, `forced_${input.forceStatus.positionToDictionaryJoin}`],
-      );
-    }
-    if (
-      posToDict?.status === 'approved' &&
-      positionIdColumn.resolutionStatus === 'resolved_exact' &&
-      dictionaryIdColumn.resolutionStatus === 'resolved_exact'
-    ) {
-      return binding(
-        'positionToDictionaryJoin',
-        `${P1_VERTICAL_OWNER}.${P1_CURRENT_POSITION_DICTIONARY}`,
-        `${positionIdColumn.physicalColumn}=${dictionaryIdColumn.physicalColumn}`,
-        'resolved_exact',
-        [
-          ...evidenceBase,
-          'join_role:current_position_to_position_dictionary',
-          posDictLeft!,
-          posDictRight!,
-          posToDict.joinNodeId ? `joinNodeId:${posToDict.joinNodeId}` : 'joinNodeId:null',
-        ],
-      );
-    }
-    return binding('positionToDictionaryJoin', null, null, 'missing', [
-      ...evidenceBase,
-      'position_to_dictionary_incomplete',
-    ]);
-  })();
-
-  const positionNameColumn: CurrentPositionResolvedBinding = (() => {
-    if (input.forceStatus?.positionNameColumn) {
-      return binding(
-        'positionNameColumn',
-        null,
-        null,
-        input.forceStatus.positionNameColumn,
-        [...evidenceBase, `forced_${input.forceStatus.positionNameColumn}`],
-      );
-    }
-    const display = parseOracleColumnNode(positionNamePath?.displayColumnNodeId);
-    if (
-      positionNamePath?.status === 'approved' &&
-      display &&
-      display.objectName === P1_CURRENT_POSITION_DICTIONARY &&
-      display.columnName === 'NAZWA'
-    ) {
-      return binding(
-        'positionNameColumn',
-        `${display.owner}.${display.objectName}`,
-        display.columnName,
-        'resolved_exact',
-        [...evidenceBase, positionNamePath.displayColumnNodeId!, 'valuePath:position_name'],
-      );
-    }
-    // Stale Stage 3C fixture put NAZWA on KDR — reject that as conflicting if somehow present
-    return binding('positionNameColumn', null, null, 'missing', [
-      ...evidenceBase,
-      'position_name_display_unresolved',
-    ]);
-  })();
-
-  const current_position_name = binding(
+  const current_position_name = applyForce(
     'current_position_name',
-    positionNameColumn.physicalObject,
-    positionNameColumn.physicalColumn,
-    positionNameColumn.resolutionStatus,
-    [...positionNameColumn.evidenceRefs, 'projection:current_position_name'],
-  );
-
-  const resolveTemporalCol = (
-    role: 'positionValidFromColumn' | 'positionValidToColumn',
-    nodeId: string | undefined,
-    expected: string,
-  ): CurrentPositionResolvedBinding => {
-    if (input.forceStatus?.[role]) {
-      return binding(role, null, null, input.forceStatus[role]!, [
-        ...evidenceBase,
-        `forced_${input.forceStatus[role]}`,
-      ]);
-    }
-    const parsed = parseOracleColumnNode(nodeId);
-    if (
-      temporal?.status === 'approved' &&
-      temporal.clock === 'oracle_sysdate' &&
-      temporal.openEndedEndAllowed === true &&
-      parsed &&
-      parsed.objectName === P1_CURRENT_POSITION_SOURCE &&
-      parsed.columnName === expected
-    ) {
-      return binding(
-        role,
-        `${parsed.owner}.${parsed.objectName}`,
-        parsed.columnName,
-        'resolved_exact',
-        [...evidenceBase, nodeId!, 'temporal:current_position_on_oracle_sysdate'],
-      );
-    }
-    return binding(role, null, null, 'missing', [
-      ...evidenceBase,
-      `temporal_${expected}_unresolved`,
-    ]);
-  };
-
-  const positionValidFromColumn = resolveTemporalCol(
-    'positionValidFromColumn',
-    temporal?.validFromColumnNodeId,
-    'DATA_OD',
-  );
-  const positionValidToColumn = resolveTemporalCol(
-    'positionValidToColumn',
-    temporal?.validToColumnNodeId,
-    'DATA_DO',
+    binding(
+      'current_position_name',
+      dictName.physicalObject,
+      dictName.physicalColumn,
+      dictName.resolutionStatus,
+      [...dictName.evidenceRefs, 'projection:current_position_name'],
+    ),
+    input.forceStatus,
   );
 
   const bindings: CurrentPositionResolvedBinding[] = [
-    ...employeeBindings.filter((b) => b.logicalRole !== 'employeePrimaryIdentityColumn'),
-    employeePrimaryMerged,
-    currentPositionSourceRef,
-    positionEmployeeReferenceColumn,
-    positionIdColumn,
-    positionValidFromColumn,
-    positionValidToColumn,
-    dictionarySourceRef,
-    dictionaryIdColumn,
-    positionNameColumn,
+    ...employeeBindings,
+    assignment,
+    subjectRef,
+    dictRef,
+    validFrom,
+    validTo,
+    dictObj,
+    dictId,
+    dictName,
     employeeToPositionJoin,
     positionToDictionaryJoin,
     current_position_name,
@@ -570,6 +312,7 @@ export function resolveCurrentPositionBindings(input: {
     allResolvedExact: bindings.every((b) => b.resolutionStatus === 'resolved_exact'),
     employeeSourceAvailable,
     stage3dAvailable,
+    schemaRoleResolution,
   };
 }
 
@@ -579,3 +322,145 @@ export function byRole(
 ): CurrentPositionResolvedBinding | undefined {
   return bindings.find((b) => b.logicalRole === role);
 }
+
+/** Post-resolution validation against previously accepted mapping (not resolver input). */
+export function validateCurrentPositionAgainstAccepted(
+  resolution: SchemaRoleResolutionResult,
+): { ok: boolean; mismatches: string[] } {
+  const mismatches: string[] = [];
+  const exp = CURRENT_POSITION_EXPECTED_AFTER_RESOLUTION;
+  if (resolution.roleAssignmentsByRole.assignment_source?.objectRef !== exp.assignment) {
+    mismatches.push(`assignment:${resolution.roleAssignmentsByRole.assignment_source?.objectRef}`);
+  }
+  if (resolution.roleAssignmentsByRole.dictionary_identity?.objectRef !== exp.dictionary) {
+    mismatches.push(`dictionary:${resolution.roleAssignmentsByRole.dictionary_identity?.objectRef}`);
+  }
+  if (resolution.roleAssignmentsByRole.subject_reference?.column !== exp.subjectReference) {
+    mismatches.push(`subjectRef:${resolution.roleAssignmentsByRole.subject_reference?.column}`);
+  }
+  if (resolution.roleAssignmentsByRole.dictionary_reference?.column !== exp.dictionaryReference) {
+    mismatches.push(`dictRef:${resolution.roleAssignmentsByRole.dictionary_reference?.column}`);
+  }
+  if (resolution.roleAssignmentsByRole.dictionary_display_name?.column !== exp.dictionaryDisplayName) {
+    mismatches.push(`dictName:${resolution.roleAssignmentsByRole.dictionary_display_name?.column}`);
+  }
+  if (resolution.roleAssignmentsByRole.valid_from?.column !== exp.validFrom) {
+    mismatches.push(`validFrom:${resolution.roleAssignmentsByRole.valid_from?.column}`);
+  }
+  if (resolution.roleAssignmentsByRole.valid_to?.column !== exp.validTo) {
+    mismatches.push(`validTo:${resolution.roleAssignmentsByRole.valid_to?.column}`);
+  }
+  if (resolution.audit.expectedMappingUsedAsResolverInput !== 0) {
+    mismatches.push('expectedMappingUsedAsResolverInput');
+  }
+  return { ok: mismatches.length === 0, mismatches };
+}
+
+const BLIND_REQUIRED: LogicalRoleId[] = [
+  'subject_identity',
+  'assignment_source',
+  'subject_reference',
+  'dictionary_reference',
+  'dictionary_identity',
+  'dictionary_display_name',
+  'valid_from',
+  'valid_to',
+];
+
+/**
+ * Acceptance-only blind rediscovery — no Stage 3D / prior-pilot physical seeds.
+ * Ground truth compared only AFTER resolution.
+ */
+export async function resolveCurrentPositionBlind(input: {
+  repoRoot: string;
+  question?: string;
+}): Promise<{
+  schemaRoleResolution: SchemaRoleResolutionResult;
+  inputClassifications: BlindEvidenceInputClassification[];
+  stage3dBindingsFileLoaded: boolean;
+  previousPilotPhysicalBindingsLoaded: boolean;
+  blindRediscoveryStatus: 'passed' | 'not_yet_supported' | 'ambiguous';
+  postResolutionGroundTruth: ReturnType<typeof compareCurrentPositionGroundTruth>;
+  missingCapabilities: string[];
+}> {
+  const question =
+    input.question ??
+    'Podaj aktualne stanowisko pracownika o numerze ewidencyjnym 00069.';
+
+  const blind = await buildBlindCurrentPositionEvidenceFromApplicationGraph(input.repoRoot);
+
+  // Ground truth intentionally NOT loaded into resolver input.
+  const schemaRoleResolution = resolveSchemaRoles({
+    question,
+    subjectRole: 'employee',
+    targetConcept: 'current_position',
+    requiredRoles: BLIND_REQUIRED,
+    discoveryMode: 'blind_physical_rediscovery',
+    confirmedSubjectSource: {
+      owner: P1_VERTICAL_OWNER,
+      objectType: 'VIEW',
+      objectName: P1_VERTICAL_OBJECT,
+      identityColumn: 'ID',
+      businessNumberColumn: 'NR_EWIDENCYJNY',
+      firstNameColumn: 'IMIE',
+      lastNameColumn: 'NAZWISKO',
+    },
+    temporalIntent: 'current_on_oracle_sysdate',
+    evidenceGraph: blind.graph,
+  });
+
+  const roles = schemaRoleResolution.roleAssignmentsByRole;
+  const postResolutionGroundTruth = compareCurrentPositionGroundTruth({
+    assignment: roles.assignment_source?.objectRef,
+    subjectReference: roles.subject_reference?.column,
+    dictionaryReference: roles.dictionary_reference?.column,
+    dictionary: roles.dictionary_identity?.objectRef,
+    dictionaryDisplayName: roles.dictionary_display_name?.column,
+    validFrom: roles.valid_from?.column,
+    validTo: roles.valid_to?.column,
+  });
+
+  const missingCapabilities: string[] = [];
+  if (!roles.assignment_source?.objectRef) {
+    missingCapabilities.push('assignment_source_from_application_graph');
+  }
+  if (!roles.subject_reference?.column) {
+    missingCapabilities.push('employee_assignment_join_predicates');
+  }
+  if (!roles.dictionary_reference?.column) {
+    missingCapabilities.push('assignment_to_dictionary_join_predicates');
+  }
+  if (
+    schemaRoleResolution.temporalResolution.mode === 'unresolved' ||
+    !roles.valid_from?.column ||
+    !roles.valid_to?.column
+  ) {
+    missingCapabilities.push('temporal_role_evidence_on_assignment_source');
+  }
+  if (schemaRoleResolution.chosenRelationPath == null) {
+    missingCapabilities.push('complete_subject_to_dictionary_relation_path');
+  }
+
+  let blindRediscoveryStatus: 'passed' | 'not_yet_supported' | 'ambiguous' =
+    'not_yet_supported';
+  if (schemaRoleResolution.overallStatus === 'ambiguous') {
+    blindRediscoveryStatus = 'ambiguous';
+  } else if (
+    postResolutionGroundTruth.matched &&
+    (schemaRoleResolution.overallStatus === 'proven_exact' ||
+      schemaRoleResolution.overallStatus === 'strong_inference_readonly')
+  ) {
+    blindRediscoveryStatus = 'passed';
+  }
+
+  return {
+    schemaRoleResolution,
+    inputClassifications: blind.inputClassifications,
+    stage3dBindingsFileLoaded: blind.stage3dBindingsFileLoaded,
+    previousPilotPhysicalBindingsLoaded: blind.previousPilotPhysicalBindingsLoaded,
+    blindRediscoveryStatus,
+    postResolutionGroundTruth,
+    missingCapabilities,
+  };
+}
+

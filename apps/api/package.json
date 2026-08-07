@@ -61,7 +61,8 @@
     "generic-semantic:stage3k2b2b2b2": "ts-node -r tsconfig-paths/register src/scripts/generic-semantic-stage3k2b2b2b2.ts",
     "pilot:p1-employee-vertical": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-vertical-pilot.ts",
     "pilot:p1-employee-current-position": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-current-position-pilot.ts",
-    "pilot:p1-surname-current-position": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-surname-current-position-pilot.ts"
+    "pilot:p1-surname-current-position": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-surname-current-position-pilot.ts",
+    "pilot:p1-employee-time-work-group": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-time-work-group-pilot.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
