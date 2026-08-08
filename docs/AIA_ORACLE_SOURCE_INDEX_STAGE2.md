@@ -1,32 +1,50 @@
 # AIA — Oracle Source Index (Stage 2)
 
-**Status:** `implemented_awaiting_review`  
+**Status:** `accepted`  
+**implementationStatus:** `accepted_with_bounded_static_boundaries`  
 **Contract:** `teta-aia-oracle-source-index-stage2-v1`  
+**Source stage:** `OSI-S2`  
 **Stage 1 prerequisite:** `b8a3002`  
+**Stage 2 commit:** `07fffd9ebe54f5c5798e984ff6a60f53ff786eb1`  
+**unwrapProvider:** `local_oracle_plsql_unwrap`  
 **runtimeCopilotDependencies:** `0`  
-**Review (2026-08-08):** correctness blockers patched; Teusink unwrap live-validated
+**remoteUnwrapCalls:** `0`  
+**nextRoadmapStage:** `stage3_targeted_write_path_analyzer`
+
+## Acceptance
+
+| Metric | Value |
+|---|---|
+| persistedDuplicateEdges | 0 |
+| danglingEdgesPersisted | 0 |
+| brokenEndpointsAgainstUnionGraph | 0 |
+| payrollAcceptance | passed |
+| unseenAcceptance | passed |
+| unwrapAttempted | 14771 |
+| unwrapSucceeded | 14723 |
+| unwrapFailed | 21 |
+| unwrapUnsupported | 27 |
+| unwrapSuccessRate | ≈99.7% |
+| readsRecoveredViaUnwrap | 46639 |
+| writesRecoveredViaUnwrap | 18737 |
+| callsRecoveredViaUnwrap | 144147 |
+
+### AKT_DANE vector
+
+- unwrappedByteLength: `247210`
+- unwrappedSha256: `5c10b6ad76101677bd37e8fc135522d0f8e6c17944731fb242d51d357a56e3f0`
+- head: `PACKAGE BODY AKT_DANE IS`
 
 ## Unwrap
 
 - Algorithm: Niels Teusink unwrap.py (public domain) — Oracle 10g/11g
 - Adapter: `OraclePlsqlUnwrapProvider` (local only; no online API)
-- AKT_DANE vector: length `247210`, sha256 `5c10b6ad76101677bd37e8fc135522d0f8e6c17944731fb242d51d357a56e3f0`
-- Live: `unwrapSucceeded=14723/14771` (~99.7%)
 
-## Correctness patches
+## Known non-blocking limitations
 
-- Real ALL_SOURCE wrapped payload (no marker stub)
-- Endpoint integrity via materialized/base/runtime sets (not edge-created nodes)
-- Inventory VIEW/TABLE/SYNONYM resolution; QualifiedName owner semantics
-- String/q-literal masking before static extraction
-- PROGRAM_UNIT + ALL_ARGUMENTS signatures; routine attribution when safe
-- Trigger events from ALL_TRIGGERS.TRIGGERING_EVENT when present
-
-## Live highlights (TETA_ADMIN)
-
-- `programReadEdges=118576`, integrity dangling/broken/dup=0
-- `reads/writes/callsRecoveredViaUnwrap`: 46639 / 18737 / 144147
-- Payroll + unseen view acceptance: passed
+- 21 `unwrap_failed`, 27 `unwrap_unsupported` (classified; not correctness blockers)
+- ALL_ARGUMENTS currently buffered in memory (~873k rows)
+- Source-object buffering not yet production-optimized
 
 ## CLI
 
@@ -34,4 +52,4 @@
 pnpm --filter @teta/api run osi:stage2 -- --provider=oracle_metadata
 ```
 
-Do not commit until architect final OK. Do not start Stage 3.
+Module: `apps/api/src/teta-oracle-source-index-stage2/`

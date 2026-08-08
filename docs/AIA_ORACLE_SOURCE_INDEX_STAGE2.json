@@ -1,11 +1,19 @@
 {
   "contractVersion": "teta-aia-oracle-source-index-stage2-v1",
   "sourceStage": "OSI-S2",
+  "stage2OracleSourceIndex": "accepted",
+  "implementationStatus": "accepted_with_bounded_static_boundaries",
   "stage1Commit": "b8a3002afadbbf6ed63df1dd4d29313b8ac6327c",
-  "implementationStatus": "implemented_awaiting_review",
-  "stage2ReviewStatus": "ready_for_finalization_and_commit",
+  "stage2Commit": "07fffd9ebe54f5c5798e984ff6a60f53ff786eb1",
+  "unwrapProvider": "local_oracle_plsql_unwrap",
   "runtimeCopilotDependencies": 0,
   "remoteUnwrapCalls": 0,
+  "persistedDuplicateEdges": 0,
+  "danglingEdgesPersisted": 0,
+  "brokenEndpointsAgainstUnionGraph": 0,
+  "payrollAcceptance": "passed",
+  "unseenAcceptance": "passed",
+  "nextRoadmapStage": "stage3_targeted_write_path_analyzer",
   "unwrap": {
     "algorithm": "Niels Teusink unwrap.py public domain Oracle 10g/11g",
     "provider": "OraclePlsqlUnwrapProvider",
@@ -26,10 +34,10 @@
     },
     "secondWrapped": "TETA_ADMIN.KP_ABFM_OPERATIONS"
   },
-  "integrity": {
-    "persistedDuplicateEdges": 0,
-    "danglingEdgesPersisted": 0,
-    "brokenEndpointsAgainstUnionGraph": 0,
-    "materializedNodes": 233467
-  }
+  "knownNonBlockingLimitations": [
+    "unwrap_failed=21",
+    "unwrap_unsupported=27",
+    "ALL_ARGUMENTS_buffered",
+    "source_object_buffering_not_production_optimized"
+  ]
 }
