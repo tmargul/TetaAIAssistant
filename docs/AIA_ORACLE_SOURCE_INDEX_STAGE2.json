@@ -1,0 +1,35 @@
+{
+  "contractVersion": "teta-aia-oracle-source-index-stage2-v1",
+  "sourceStage": "OSI-S2",
+  "stage1Commit": "b8a3002afadbbf6ed63df1dd4d29313b8ac6327c",
+  "implementationStatus": "implemented_awaiting_review",
+  "stage2ReviewStatus": "ready_for_finalization_and_commit",
+  "runtimeCopilotDependencies": 0,
+  "remoteUnwrapCalls": 0,
+  "unwrap": {
+    "algorithm": "Niels Teusink unwrap.py public domain Oracle 10g/11g",
+    "provider": "OraclePlsqlUnwrapProvider",
+    "aktDane": {
+      "unwrappedByteLength": 247210,
+      "unwrappedSha256": "5c10b6ad76101677bd37e8fc135522d0f8e6c17944731fb242d51d357a56e3f0",
+      "head": "PACKAGE BODY AKT_DANE IS"
+    },
+    "live": {
+      "unwrapAttempted": 14771,
+      "unwrapSucceeded": 14723,
+      "unwrapFailed": 21,
+      "unwrapUnsupported": 27,
+      "unwrapSuccessRate": 0.99675,
+      "readsRecoveredViaUnwrap": 46639,
+      "writesRecoveredViaUnwrap": 18737,
+      "callsRecoveredViaUnwrap": 144147
+    },
+    "secondWrapped": "TETA_ADMIN.KP_ABFM_OPERATIONS"
+  },
+  "integrity": {
+    "persistedDuplicateEdges": 0,
+    "danglingEdgesPersisted": 0,
+    "brokenEndpointsAgainstUnionGraph": 0,
+    "materializedNodes": 233467
+  }
+}
