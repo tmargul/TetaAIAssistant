@@ -1,0 +1,131 @@
+{
+  "contractVersion": "teta-aia-targeted-write-path-stage3-v1",
+  "sourceStage": "TWP-S3",
+  "stage3TargetedWritePathAnalyzer": "implemented_with_known_static_boundaries_awaiting_review",
+  "implementationStatus": "implemented_with_known_static_boundaries_awaiting_review",
+  "stage2Commit": "07fffd9ebe54f5c5798e984ff6a60f53ff786eb1",
+  "stage2Accepted": "e76b4521192730f587010459045114c916429a96",
+  "runtimeCopilotDependencies": 0,
+  "localModelCalls": 0,
+  "remoteModelCalls": 0,
+  "ragCalls": 0,
+  "qdrantCalls": 0,
+  "embeddingCalls": 0,
+  "businessSelectStatementsExecuted": 0,
+  "businessRowsRead": 0,
+  "dmlStatementsExecuted": 0,
+  "ddlStatementsExecuted": 0,
+  "plsqlBlocksExecuted": 0,
+  "remoteUnwrapCalls": 0,
+  "scenarioSpecificWritePaths": 0,
+  "hardcodedKpWriterPath": 0,
+  "hardcodedHhWriterPath": 0,
+  "hardcodedCrWriterPath": 0,
+  "hardcodedTwgMappings": 0,
+  "hardcodedCurrentPositionMappings": 0,
+  "expectedAcceptancePathsUsedAsInput": 0,
+  "groundTruthUsedBeforeExtraction": 0,
+  "writerSelectedByNameSimilarityOnly": 0,
+  "parameterColumnMappingByNameOnly": 0,
+  "hardcodedKpMappingsInExtractor": 0,
+  "hardcodedHhMappingsInExtractor": 0,
+  "hardcodedCrMappingsInExtractor": 0,
+  "objectSelectedByNameSimilarityOnly": 0,
+  "targetDrivenConstraintHeld": true,
+  "nextRoadmapStage": "stage4_evidence_resolver_v2_not_started",
+  "module": "apps/api/src/teta-targeted-write-path-stage3/",
+  "cli": {
+    "command": "pnpm --filter @teta/api run twp:stage3",
+    "script": "apps/api/src/scripts/targeted-write-path-stage3.ts",
+    "packageJsonScript": "twp:stage3",
+    "requiresListCapabilities": true
+  },
+  "tests": {
+    "stage3Unit": { "passed": 26, "total": 26 },
+    "regressionsNote": "Stage0 schema-role, Stage1 ACE, Stage2 OSI, legacy 2A–2E/2E.1, Stage3A, P1 pilots — passed; API build EXIT 0"
+  },
+  "liveCliRun": {
+    "generatedAt": "2026-08-08T10:12:30.134Z",
+    "edgesPath": ".local/oracle-source-index-stage2/oracle-live/oracle-source-edges-v1.ndjson",
+    "acePath": ".local/application-code-graph-stage1/application-code-graph-v2.ndjson",
+    "maxDepth": 4,
+    "liveSourceEnabled": true,
+    "oracleMetadataConnectionsOpened": 4,
+    "oracleMetadataSelectStatementsExecuted": 79,
+    "kpReferenceComparison": {
+      "matched": true,
+      "matches": ["gateway", "dac", "dae", "def", "table"],
+      "mismatches": []
+    },
+    "targets": [
+      {
+        "label": "kp-reference",
+        "owner": "TETA_ADMIN",
+        "objectName": "T_SKLPL",
+        "pathStatus": "ambiguous_writers",
+        "writersFound": 44,
+        "distinctWriterPackages": 2,
+        "dmlOperationsExtracted": 44,
+        "parameterMappingsExtracted": 176,
+        "validationsFound": 89,
+        "callersDiscovered": 8,
+        "gatewayReferencesMatched": 3,
+        "analysisDurationMs": 32495,
+        "analysisTruncated": false,
+        "examples": {
+          "WSTAW": "INSERT T_SKLPL positional R_TEN.* → columns",
+          "ZMIEN": "UPDATE SET PR_TEN.* → columns + ROW_SELECTOR",
+          "USUN": "DELETE ROW_SELECTOR"
+        }
+      },
+      {
+        "label": "hh-partial-reference",
+        "owner": "TETA_ADMIN",
+        "objectName": "HH_HR_EMPLOYEE_ADDRESSES",
+        "pathStatus": "ambiguous_writers",
+        "writersFound": 3,
+        "distinctWriterPackages": 2,
+        "dmlOperationsExtracted": 3,
+        "parameterMappingsExtracted": 1,
+        "callersDiscovered": 87,
+        "gatewayReferencesMatched": 4,
+        "analysisTruncated": true,
+        "notes": "HH_HR_HEAD_DEF.DELETE_ROW exact ID←P_ID; AGD partial / Stage2 shallow-writer noise"
+      },
+      {
+        "label": "cr-optional-reference",
+        "owner": "TETA_ADMIN",
+        "objectName": "CR_PDM_INHER_ADR",
+        "pathStatus": "ambiguous_writers",
+        "writersFound": 11,
+        "distinctWriterPackages": 6,
+        "dmlOperationsExtracted": 9,
+        "parameterMappingsExtracted": 7,
+        "optional": true
+      },
+      {
+        "label": "unseen-write-path",
+        "owner": "TETA_ADMIN",
+        "objectName": "AP_ANALIZY_XYZ",
+        "autoSelected": true,
+        "selectionCriteria": "1–40 WRITES_TO writers with static DML; exclude KP/HH/CR families and prior targets; chosen after analyzer freeze",
+        "pathStatus": "strong_static_path",
+        "writersFound": 1,
+        "distinctWriterPackages": 1,
+        "dmlOperationsExtracted": 13,
+        "parameterMappingsExtracted": 24,
+        "writerPackage": "AP_P_INMA_XYZ"
+      }
+    ]
+  },
+  "knownStaticBoundaries": [
+    "ambiguous_writers when multiple packages write the target",
+    "MERGE deep positional mapping deferred",
+    "UPDATE SET row=record limited expansion",
+    "validation name-pattern detection is strong_static not exact_static business meaning",
+    "call-graph maxDepth truncation",
+    "Stage2 shallow WRITES_TO may list helper units without body DML"
+  ],
+  "localArtifacts": ".local/targeted-write-path-stage3/",
+  "gapMatrixRef": "apps/api/src/teta-targeted-write-path-stage3/teta-stage3-gap-matrix.ts"
+}
