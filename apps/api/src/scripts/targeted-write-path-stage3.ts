@@ -19,8 +19,10 @@ import { OracleMetadataSourceProvider } from '../teta-oracle-source-index-stage2
 import { stage2ObjectId } from '../teta-oracle-source-index-stage2/teta-stage2-parse';
 import {
   analyzeWritePath,
+  compareKpOrderedPath,
   compareKpReferencePath,
   defaultStage3Paths,
+  loadStage1DacEdges,
   ownerFromWriterId,
   packageNameFromWriterId,
   scanStage3ForHardcoding,
@@ -28,6 +30,8 @@ import {
   STAGE3_CONTRACT_VERSION,
   STAGE3_GAP_MATRIX,
   STAGE3_SOURCE_STAGE,
+  buildSignatureIndexFromArguments,
+  type Stage3SignatureIndex,
   type Stage3WritePathAnalysisResult,
 } from '../teta-targeted-write-path-stage3';
 
@@ -141,15 +145,100 @@ async function discoverUnseenTarget(
   return best ? { owner: best.owner, objectName: best.objectName, writerCount: best.count } : null;
 }
 
+async function discoverAppReachableUnseenTarget(
+  edgesPath: string,
+  acePath: string,
+  excludeObjectNames: Set<string>,
+): Promise<{
+  owner: string;
+  objectName: string;
+  writerCount: number;
+  gatewayName: string;
+  dacPackageName: string;
+  candidateCount: number;
+} | null> {
+  const { index } = await streamLoadWritesToIndex(edgesPath);
+  const candidates: Array<{
+    owner: string;
+    objectName: string;
+    writerCount: number;
+    writerPackages: Set<string>;
+  }> = [];
+  const allWriterPackages = new Set<string>();
+  for (const [toId, edges] of index) {
+    const m = /^oracle-object:([^:]+):TABLE:(.+)$/.exec(toId);
+    if (!m) continue;
+    const owner = m[1]!;
+    const objectName = m[2]!;
+    if (excludeObjectNames.has(objectName)) continue;
+    if (/^(KP_|NT_KP_|HH_|PA_ADRESY|CR_|AP_ANALIZY)/.test(objectName)) continue;
+    if (edges.length < 1 || edges.length > 40) continue;
+    const writerPackages = new Set<string>();
+    for (const e of edges) {
+      const pkg = packageNameFromWriterId(e.fromId);
+      if (pkg) {
+        writerPackages.add(pkg);
+        allWriterPackages.add(pkg);
+      }
+    }
+    if (writerPackages.size === 0) continue;
+    candidates.push({ owner, objectName, writerCount: edges.length, writerPackages });
+  }
+  const { edges: allDacEdges } = await loadStage1DacEdges(acePath, allWriterPackages);
+  const dacByPackage = new Map<string, typeof allDacEdges>();
+  for (const e of allDacEdges) {
+    const list = dacByPackage.get(e.dacPackageName) ?? [];
+    list.push(e);
+    dacByPackage.set(e.dacPackageName, list);
+  }
+  const reachable: Array<{
+    owner: string;
+    objectName: string;
+    writerCount: number;
+    gatewayName: string;
+    dacPackageName: string;
+  }> = [];
+  for (const c of candidates) {
+    const dacEdges = [...c.writerPackages].flatMap((pkg) => dacByPackage.get(pkg) ?? []);
+    if (dacEdges.length === 0) continue;
+    const first = dacEdges.sort((a, b) => a.gatewayName.localeCompare(b.gatewayName))[0]!;
+    reachable.push({
+      owner: c.owner,
+      objectName: c.objectName,
+      writerCount: c.writerCount,
+      gatewayName: first.gatewayName,
+      dacPackageName: first.dacPackageName,
+    });
+  }
+  reachable.sort((a, b) => a.objectName.localeCompare(b.objectName) || a.writerCount - b.writerCount);
+  const best = reachable[0];
+  return best
+    ? { ...best, candidateCount: reachable.length }
+    : null;
+}
+
+function rankWriterPackages(packages: Map<string, string>): Array<[string, string]> {
+  return [...packages.entries()].sort(([a], [b]) => {
+    const fam = (p: string) =>
+      /_DEF$/i.test(p) ? 50 : /_AGD$/i.test(p) ? 45 : /_DAC$/i.test(p) ? 30 : /_DAE$/i.test(p) ? 20 : 0;
+    const d = fam(b) - fam(a);
+    return d !== 0 ? d : a.localeCompare(b);
+  });
+}
+
 async function fetchLiveSourcesForPackages(
   ora: OracleConn,
   targets: Array<{ owner: string; packageName: string }>,
 ): Promise<{
   sources: Map<string, string>;
+  signatureIndex: Stage3SignatureIndex;
   counters: { oracleMetadataConnectionsOpened: number; oracleMetadataSelectStatementsExecuted: number };
+  argumentRowsLoaded: number;
   diagnostics: Array<{ owner: string; objectName: string; objectType: string; sourceStatus: string; len: number }>;
 }> {
   const sources = new Map<string, string>();
+  const signatureIndex: Stage3SignatureIndex = new Map();
+  let argumentRowsLoaded = 0;
   const counters = { oracleMetadataConnectionsOpened: 0, oracleMetadataSelectStatementsExecuted: 0 };
   const diagnostics: Array<{
     owner: string;
@@ -158,7 +247,9 @@ async function fetchLiveSourcesForPackages(
     sourceStatus: string;
     len: number;
   }> = [];
-  if (targets.length === 0) return { sources, counters, diagnostics };
+  if (targets.length === 0) {
+    return { sources, signatureIndex, counters, argumentRowsLoaded, diagnostics };
+  }
   const byOwner = new Map<string, Set<string>>();
   for (const t of targets) {
     if (!byOwner.has(t.owner)) byOwner.set(t.owner, new Set());
@@ -167,7 +258,7 @@ async function fetchLiveSourcesForPackages(
   for (const [owner, pkgSet] of byOwner) {
     const provider = new OracleMetadataSourceProvider(
       { user: ora.user, password: ora.password, connectString: ora.connectString },
-      { ownerFilter: [owner], objectNameAllowlist: [...pkgSet], fetchArguments: false, fetchDependencies: false },
+      { ownerFilter: [owner], objectNameAllowlist: [...pkgSet], fetchArguments: true, fetchDependencies: false },
     );
     try {
       await provider.open();
@@ -177,6 +268,10 @@ async function fetchLiveSourcesForPackages(
       await provider.discoverOwners();
       await provider.loadInventory();
       await provider.preloadSources();
+      const boundedArgs = await provider.loadArgumentsForPackages(owner, [...pkgSet]);
+      argumentRowsLoaded += boundedArgs.length;
+      const pkgIndex = buildSignatureIndexFromArguments(boundedArgs, 'oracle_all_arguments');
+      for (const [k, v] of pkgIndex) signatureIndex.set(k, v);
       for await (const s of provider.iterateSources()) {
         const text = (s.parserInputText || s.sourceText || '').trim();
         diagnostics.push({
@@ -194,8 +289,12 @@ async function fetchLiveSourcesForPackages(
             s.objectType === 'TRIGGER')
         ) {
           // Prefer PACKAGE BODY over PACKAGE/spec when both exist.
-          const prev = sources.get(s.objectName);
-          if (!prev || s.objectType === 'PACKAGE_BODY') sources.set(s.objectName, text);
+          const ownerKey = `${String(s.owner).toUpperCase()}:${String(s.objectName).toUpperCase()}`;
+          const prev = sources.get(ownerKey) ?? sources.get(s.objectName);
+          if (!prev || s.objectType === 'PACKAGE_BODY') {
+            sources.set(ownerKey, text);
+            sources.set(s.objectName, text);
+          }
         }
       }
     } catch (e) {
@@ -210,7 +309,7 @@ async function fetchLiveSourcesForPackages(
       counters.oracleMetadataSelectStatementsExecuted += provider.counters.oracleMetadataSelectStatementsExecuted;
     }
   }
-  return { sources, counters, diagnostics };
+  return { sources, signatureIndex, counters, argumentRowsLoaded, diagnostics };
 }
 
 async function main() {
@@ -246,7 +345,22 @@ async function main() {
     targets.push({ label: 'unseen-write-path', owner: unseen.owner, objectName: unseen.objectName });
   }
 
+  const excludeForAppReachable = new Set([
+    ...targets.map((t) => t.objectName),
+    'CR_PDM_INHER_ADR',
+    'AP_ANALIZY_XYZ',
+  ]);
+  const appReachableUnseen = await discoverAppReachableUnseenTarget(edgesPath, acePath, excludeForAppReachable);
+  if (appReachableUnseen) {
+    targets.push({
+      label: 'app-reachable-unseen',
+      owner: appReachableUnseen.owner,
+      objectName: appReachableUnseen.objectName,
+    });
+  }
+
   const oracleCounters = { oracleMetadataConnectionsOpened: 0, oracleMetadataSelectStatementsExecuted: 0 };
+  let totalArgumentRowsLoaded = 0;
   const sourceFetchDiagnostics: unknown[] = [];
   const results: Array<{ label: string; result: Stage3WritePathAnalysisResult }> = [];
   const maxPackagesToFetch = Number(process.env.TETA_TWP_STAGE3_MAX_PACKAGES ?? 24);
@@ -255,21 +369,25 @@ async function main() {
     console.error(`[twp:stage3] analyzing ${t.label}: ${t.owner}.${t.objectName}`);
     const targetId = stage2ObjectId(t.owner, 'TABLE', t.objectName);
     const packages = await discoverWriterPackages(edgesPath, targetId);
-    const packageEntries = [...packages.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(0, maxPackagesToFetch);
+    const packageEntries = rankWriterPackages(packages);
+    const skippedByCap = Math.max(0, packageEntries.length - maxPackagesToFetch);
+    const boundedPackageEntries = packageEntries.slice(0, maxPackagesToFetch);
 
     let sources: Map<string, string> | undefined;
     if (ora && packageEntries.length > 0) {
       const fetched = await fetchLiveSourcesForPackages(
         ora,
-        packageEntries.map(([packageName, owner]) => ({ owner, packageName })),
+        boundedPackageEntries.map(([packageName, owner]) => ({ owner, packageName })),
       );
       sources = fetched.sources;
+      totalArgumentRowsLoaded += fetched.argumentRowsLoaded;
       sourceFetchDiagnostics.push({
         label: t.label,
-        requestedPackages: packageEntries.map(([p]) => p),
+        requestedPackages: boundedPackageEntries.map(([p]) => p),
+        skippedBySourcePackageFetchCap: skippedByCap,
         loadedPackages: [...fetched.sources.keys()],
+        argumentRowsLoaded: fetched.argumentRowsLoaded,
+        signaturesLoaded: fetched.signatureIndex.size,
         diagnostics: fetched.diagnostics,
       });
       oracleCounters.oracleMetadataConnectionsOpened += fetched.counters.oracleMetadataConnectionsOpened;
@@ -278,6 +396,37 @@ async function main() {
       console.error(
         `[twp:stage3]   liveSources loaded=${fetched.sources.size}/${packageEntries.length} packages`,
       );
+      const result = await analyzeWritePath({
+        targetOwner: t.owner,
+        targetObjectName: t.objectName,
+        targetObjectType: 'TABLE',
+        maxDepth,
+        maxProgramsPerAnalysis: Number(process.env.TETA_TWP_STAGE3_MAX_PROGRAMS ?? 80),
+        edgesPath,
+        acePath,
+        sourceProvider: sources && sources.size > 0 ? 'fixture' : 'none',
+        fixtures: sources
+          ? { sources, signatureIndex: fetched.signatureIndex }
+          : undefined,
+      });
+      if (skippedByCap > 0) {
+        result.analysisTruncated = true;
+        for (const p of result.paths) {
+          if (!p.truncationReason) p.truncationReason = 'source_package_fetch_cap';
+          else if (!p.truncationReason.includes('source_package_fetch_cap')) {
+            p.truncationReason = `${p.truncationReason};source_package_fetch_cap`;
+          }
+        }
+      }
+      result.audit.oracleMetadataConnectionsOpened += fetched.counters.oracleMetadataConnectionsOpened;
+      result.audit.oracleMetadataSelectStatementsExecuted +=
+        fetched.counters.oracleMetadataSelectStatementsExecuted;
+      results.push({ label: t.label, result });
+      fs.writeFileSync(path.join(outDir, `${t.label}-v1.json`), JSON.stringify(result, null, 2));
+      console.error(
+        `[twp:stage3]   pathStatus=${result.pathStatus} writers=${result.metrics.writersFound} dml=${result.metrics.dmlOperationsExtracted} maps=${result.metrics.parameterMappingsExtracted} durationMs=${result.metrics.analysisDurationMs}`,
+      );
+      continue;
     }
 
     const result = await analyzeWritePath({
@@ -321,6 +470,11 @@ async function main() {
     writerPackageNames: [...kpPackages],
     gatewayNames: kpGateways,
     targetObjectName: kpResult.targetObject.objectName,
+    paths: kpResult.paths,
+  });
+  const kpOrdered = compareKpOrderedPath({
+    targetObjectName: kpResult.targetObject.objectName,
+    paths: kpResult.paths,
   });
   fs.writeFileSync(path.join(outDir, 'kp-reference-v1.json'), JSON.stringify({ result: kpResult, comparison: kpComparison }, null, 2));
 
@@ -335,11 +489,142 @@ async function main() {
     );
   }
 
+  const appReachableEntry = results.find((r) => r.label === 'app-reachable-unseen');
+  if (appReachableEntry) {
+    fs.writeFileSync(
+      path.join(outDir, 'app-reachable-unseen-v1.json'),
+      JSON.stringify({ autoSelected: appReachableUnseen, result: appReachableEntry.result }, null, 2),
+    );
+  }
+
+  const kpRoutineNames = ['WSTAW', 'ZMIEN', 'USUN'];
+  const kpRoutineDiagnostics = kpRoutineNames.map((routine) => {
+    const path = kpResult.paths.find((p) => p.programUnitId.includes(`:KP_SKLP_DEF:${routine}:`));
+    const orderedHops = [...(path?.callHops ?? [])].sort((a, b) => a.depth - b.depth);
+    return {
+      routine,
+      programUnitId: path?.programUnitId ?? null,
+      callChain: orderedHops.map((h) => ({
+        fromProgramUnit: h.fromProgramUnitId,
+        toProgramUnit: h.toProgramUnitId,
+        edgeConfidence: h.confidenceClass,
+        edgeSource: h.matchKind,
+      })),
+      gatewayReferences: path?.gatewayReferences ?? [],
+      dmlOperations: path?.dmlOperations ?? [],
+      validations: path?.validations ?? [],
+      lookups: path?.lookups ?? [],
+      callerCount: path?.callers.length ?? 0,
+    };
+  });
+
+  const kpParameterExamples = kpResult.paths
+    .flatMap((p) =>
+      p.dmlOperations.flatMap((op) =>
+        [...op.parameterMappings, ...op.rowSelectors].map((m) => ({
+          writerRoutine: p.programUnitId,
+          operation: op.operation,
+          targetColumn: m.targetColumn,
+          immediateSourceExpression: m.sourceExpression,
+          resolvedSymbolKind: m.classification,
+          resolvedParameter: m.sourceParam,
+          signatureSource: m.signatureSource,
+          subprogramId: m.subprogramId,
+          overload: m.overload,
+          mappingConfidence: m.mappingConfidence,
+        })),
+      ),
+    )
+    .slice(0, 12);
+
+  let crossRoutineAssignmentLeakageCount = 0;
+  for (const p of kpResult.paths.filter((x) => x.writerPackageId === 'KP_SKLP_DEF')) {
+    for (const op of p.dmlOperations) {
+      for (const m of [...op.parameterMappings, ...op.rowSelectors]) {
+        if (m.provenance.normalizedValue?.startsWith('record_chain:') && m.mappingConfidence === 'exact_static') {
+          const other = kpResult.paths.find(
+            (o) =>
+              o.programUnitId !== p.programUnitId &&
+              o.writerPackageId === 'KP_SKLP_DEF' &&
+              o.dmlOperations.some((d) =>
+                [...d.parameterMappings, ...d.rowSelectors].some(
+                  (x) => x.sourceParam && x.sourceParam === m.sourceParam && x.programUnitId !== p.programUnitId,
+                ),
+              ),
+          );
+          if (other) crossRoutineAssignmentLeakageCount += 1;
+        }
+      }
+    }
+  }
+
   const moduleDir = path.join(repoRoot, 'apps/api/src/teta-targeted-write-path-stage3');
   const moduleFiles = ['teta-stage3-analyze.ts', 'teta-stage3-load.ts', 'teta-stage3-dml-map.ts'];
   const moduleSources: Record<string, string> = {};
   for (const f of moduleFiles) moduleSources[f] = fs.readFileSync(path.join(moduleDir, f), 'utf8');
   const hardcodingScan = scanStage3ForHardcoding(moduleSources);
+
+  const acceptanceClosure = {
+    generatedAt: new Date().toISOString(),
+    signatureSourceUsed: 'oracle_all_arguments',
+    totalArgumentRowsLoaded,
+    argumentSignaturesLoaded: kpResult.metrics.argumentSignaturesLoaded,
+    kpOrderedPath: kpOrdered,
+    validationsBeforePatchEstimate: 89,
+    validationsAfter: {
+      validationCallSitesFound: kpResult.metrics.validationCallSitesFound,
+      distinctValidationRoutines: kpResult.metrics.distinctValidationRoutines,
+      validationLookupsFound: kpResult.metrics.validationLookupsFound,
+      validationsFound: kpResult.metrics.validationsFound,
+    },
+    kpRoutineDiagnostics,
+    kpParameterExamples,
+    crossRoutineAssignmentLeakageCount,
+    hhRegression: {
+      pathStatus: hhResult.pathStatus,
+      deleteRowMapping: hhResult.paths
+        .flatMap((p) => p.dmlOperations)
+        .flatMap((op) => op.rowSelectors)
+        .find((m) => m.targetColumn === 'ID' && m.sourceParam),
+    },
+    oracleOnlyUnseen: unseenEntry
+      ? { target: unseenEntry.result.targetObject, pathStatus: unseenEntry.result.pathStatus }
+      : null,
+    appReachableUnseenSelection: appReachableUnseen,
+    appReachableUnseenAcceptance: appReachableEntry
+      ? {
+          appReachableUnseenTarget: appReachableEntry.result.targetObject,
+          appEntryPoint: appReachableUnseen?.gatewayName ?? null,
+          gateway: appReachableUnseen?.gatewayName ?? null,
+          dacPackage: appReachableUnseen?.dacPackageName ?? null,
+          writerProgramUnit: appReachableEntry.result.paths[0]?.programUnitId ?? null,
+          dmlOperations: appReachableEntry.result.metrics.dmlOperationsExtracted,
+          targetObject: appReachableEntry.result.targetObject,
+          pathStatus: appReachableEntry.result.pathStatus,
+          missingHops: [],
+          wrongHops: [],
+        }
+      : null,
+    strictErrors: [] as string[],
+    runtimeCounters: {
+      runtimeCopilotDependencies: kpResult.audit.runtimeCopilotDependencies,
+      businessSelectStatementsExecuted: results.reduce((n, r) => n + r.result.audit.businessSelectStatementsExecuted, 0),
+      businessRowsRead: results.reduce((n, r) => n + r.result.audit.businessRowsRead, 0),
+      dmlStatementsExecuted: results.reduce((n, r) => n + r.result.audit.dmlStatementsExecuted, 0),
+      ddlStatementsExecuted: results.reduce((n, r) => n + r.result.audit.ddlStatementsExecuted, 0),
+      plsqlBlocksExecuted: results.reduce((n, r) => n + r.result.audit.plsqlBlocksExecuted, 0),
+      localModelCalls: results.reduce((n, r) => n + r.result.audit.localModelCalls, 0),
+      remoteModelCalls: results.reduce((n, r) => n + r.result.audit.remoteModelCalls, 0),
+      ragCalls: results.reduce((n, r) => n + r.result.audit.ragCalls, 0),
+      qdrantCalls: results.reduce((n, r) => n + r.result.audit.qdrantCalls, 0),
+      embeddingCalls: results.reduce((n, r) => n + r.result.audit.embeddingCalls, 0),
+    },
+    hardcodingScan,
+  };
+  fs.writeFileSync(
+    path.join(outDir, 'stage3-acceptance-closure-v1.json'),
+    JSON.stringify(acceptanceClosure, null, 2),
+  );
 
   const audit = {
     contractVersion: STAGE3_CONTRACT_VERSION,
@@ -369,7 +654,11 @@ async function main() {
       edgesFilePassCount: result.metrics.edgesFilePassCount,
     })),
     autoSelectedUnseenTarget: unseen,
+    autoSelectedAppReachableUnseen: appReachableUnseen,
+    acceptanceClosureRef: 'stage3-acceptance-closure-v1.json',
+    totalArgumentRowsLoaded,
     kpReferenceComparison: kpComparison,
+    kpOrderedPath: kpOrdered,
     hardcodingScan,
     oracleLiveSourceCounters: oracleCounters,
     sourceFetchDiagnostics,

@@ -18,7 +18,7 @@ import {
   loadStage1DacEdges,
   ownerFromWriterId,
   packageNameFromWriterId,
-  streamFindCallEdgesToPackages,
+  streamFindCallEdgesToTargets,
   streamLoadWritesToIndex,
   writerIdKind,
   type Stage3CallEdgeRaw,
@@ -27,6 +27,11 @@ import {
 } from './teta-stage3-load';
 import { STAGE3_GAP_MATRIX } from './teta-stage3-gap-matrix';
 import { compareKpReferencePath, scanStage3ForHardcoding } from './teta-stage3-hardcoding-scan';
+import {
+  buildSignatureIndexFromArguments,
+  mappingConfidenceForClassification,
+  resolveProgramUnitSignature,
+} from './teta-stage3-signatures';
 import { emptyStage3Audit, emptyStage3Metrics, STAGE3_CONTRACT_VERSION } from './teta-stage3.types';
 
 const TARGET_OWNER = 'TETA_ADMIN';
@@ -89,7 +94,13 @@ function dacEdge(gatewayName: string, dacPackageName: string): Stage3DacEdge {
 
 describe('Stage3 dml-map parsers', () => {
   it('classifies expressions without ever consulting the target column name', () => {
-    expect(classifyExpression('P_A').classification).toBe('direct_param');
+    expect(classifyExpression('P_A').classification).toBe('unresolved_symbol');
+    expect(classifyExpression('P_A', { parameterNames: new Set(['P_A']) }).classification).toBe(
+      'direct_param',
+    );
+    expect(classifyExpression('V_LOCAL', { localSymbols: new Set(['V_LOCAL']) }).classification).toBe(
+      'direct_local_symbol',
+    );
     expect(classifyExpression('R_REC.FIELD_A').classification).toBe('direct_field');
     expect(classifyExpression('NULL').classification).toBe('literal');
     expect(classifyExpression('123').classification).toBe('literal');
@@ -122,6 +133,15 @@ describe('Stage3 dml-map parsers', () => {
     expect(selectors.map((s) => s.column)).toEqual(['ID', 'STATUS']);
   });
 
+  it('does not absorb WHERE from the next UPDATE statement', () => {
+    const matches = parseUpdateSetMappings(
+      `UPDATE T_TEST_TARGET SET COL_A = P_A;\nUPDATE T_TEST_TARGET SET COL_B = P_B WHERE ID = P_ID;`,
+    );
+    expect(matches).toHaveLength(2);
+    expect(matches[0]?.whereClause).toBeNull();
+    expect(matches[1]?.whereClause).toContain('ID = P_ID');
+  });
+
   it('extracts DELETE row selectors only (never a value source)', () => {
     const matches = parseDeleteSelectors(
       `DELETE FROM T_TEST_TARGET WHERE ID = P_ID AND STATUS = 'X';`,
@@ -143,7 +163,7 @@ describe('Stage3 dml-map parsers', () => {
       targetField: 'FIELD_A',
       sourceExpression: 'P_PARAM',
     });
-    expect(assignments[0]?.classification.classification).toBe('direct_param');
+    expect(assignments[0]?.classification.classification).toBe('unresolved_symbol');
     expect(assignments[1]?.classification.classification).toBe('direct_field');
   });
 });
@@ -216,7 +236,11 @@ describe('Stage3 load helpers', () => {
     expect(writes.index.get(TARGET_ID)).toHaveLength(1);
     expect(writes.index.has('oracle-object:TETA_ADMIN:TABLE:UNRELATED_TABLE')).toBe(false);
 
-    const calls = await streamFindCallEdgesToPackages(edgesPath, new Set(['PKG_TEST_DEF']));
+    const calls = await streamFindCallEdgesToTargets(
+      edgesPath,
+      new Set([writerId]),
+      new Set(['PKG_TEST_DEF']),
+    );
     expect(calls.edges).toHaveLength(1);
     expect(calls.edges[0]?.fromId).toBe(callerId);
 
@@ -367,12 +391,32 @@ describe('Stage3 analyzeWritePath — synthetic fixtures', () => {
 
   it('resolves a one-hop record field assignment chain (r_x.field := p_param)', async () => {
     const writerId = writerProgramUnitId('PKG_REC_DAC', 'INSERT_ROW');
+    const signatureIndex = buildSignatureIndexFromArguments(
+      [
+        {
+          owner: TARGET_OWNER,
+          packageName: 'PKG_REC_DAC',
+          objectName: 'INSERT_ROW',
+          overload: 0,
+          subprogramId: 1,
+          position: 1,
+          sequence: 1,
+          argumentName: 'P_PARAM',
+          inOut: 'IN',
+          dataType: 'VARCHAR2',
+          typeOwner: null,
+          typeName: null,
+        },
+      ],
+      'stage2_index',
+    );
     const result = await analyzeWritePath({
       targetOwner: TARGET_OWNER,
       targetObjectName: TARGET_TABLE,
       sourceProvider: 'fixture',
       fixtures: {
         writeEdges: [writeEdge(writerId, 'INSERT')],
+        signatureIndex,
         sources: new Map([
           [
             'PKG_REC_DAC',
@@ -391,7 +435,70 @@ describe('Stage3 analyzeWritePath — synthetic fixtures', () => {
     const mapping = result.paths[0]?.dmlOperations[0]?.parameterMappings[0];
     expect(mapping?.classification).toBe('direct_param');
     expect(mapping?.sourceParam).toBe('P_PARAM');
+    expect(mapping?.signatureSource).toBe('stage2_index');
+    expect(mapping?.mappingConfidence).toBe('exact_static');
     expect(mapping?.provenance.normalizedValue).toMatch(/^record_chain:/);
+  });
+
+  it('builds signature index and matches exact parameter from oracle_all_arguments', () => {
+    const writerId = writerProgramUnitId('PKG_SIG', 'SAVE_ROW', 0, 3);
+    const idx = buildSignatureIndexFromArguments(
+      [
+        {
+          owner: TARGET_OWNER,
+          packageName: 'PKG_SIG',
+          objectName: 'SAVE_ROW',
+          overload: 0,
+          subprogramId: 3,
+          position: 1,
+          sequence: 1,
+          argumentName: 'P_ID',
+          inOut: 'IN',
+          dataType: 'NUMBER',
+          typeOwner: null,
+          typeName: null,
+        },
+      ],
+      'oracle_all_arguments',
+    );
+    const resolved = resolveProgramUnitSignature({
+      programUnitId: writerId,
+      signatureIndex: idx,
+      programUnitResolution: 'resolved',
+    });
+    expect(resolved.signatureSource).toBe('oracle_all_arguments');
+    expect(resolved.parameterNames.has('P_ID')).toBe(true);
+    expect(
+      mappingConfidenceForClassification({
+        classification: 'direct_param',
+        signatureSource: 'oracle_all_arguments',
+        viaRecordChain: false,
+        programUnitResolution: 'resolved',
+      }),
+    ).toBe('exact_static');
+  });
+
+  it('degrades header fallback parameter to strong_static not exact_static', () => {
+    const writerId = writerProgramUnitId('PKG_HDR', 'RUN');
+    const resolved = resolveProgramUnitSignature({
+      programUnitId: writerId,
+      signatureIndex: new Map(),
+      headerParameterNames: new Set(['P_A']),
+      programUnitResolution: 'unresolved',
+    });
+    expect(resolved.signatureSource).toBe('source_header');
+    expect(
+      mappingConfidenceForClassification({
+        classification: 'direct_param',
+        signatureSource: 'source_header',
+        viaRecordChain: false,
+        programUnitResolution: 'unresolved',
+      }),
+    ).toBe('strong_static');
+  });
+
+  it('does not classify bare identifier as direct_param without signature', () => {
+    expect(classifyExpression('P_X').classification).toBe('unresolved_symbol');
   });
 
   it('never promotes a %TYPE declaration to a lookup/read against the target table', async () => {
@@ -476,6 +583,59 @@ describe('Stage3 analyzeWritePath — synthetic fixtures', () => {
     expect(result.writerCandidates).toHaveLength(2);
     expect(result.paths).toHaveLength(2);
     expect(result.pathStatus).toBe('ambiguous_writers');
+  });
+
+  it('does not share callers between sibling writer routines in one package', async () => {
+    const insertId = writerProgramUnitId('PKG_DEF', 'INSERT_ROW', 0, 2);
+    const updateId = writerProgramUnitId('PKG_DEF', 'UPDATE_ROW', 0, 3);
+    const dacId = writerProgramUnitId('PKG_DAC', 'SAVE', 0, 1);
+    const result = await analyzeWritePath({
+      targetOwner: TARGET_OWNER,
+      targetObjectName: TARGET_TABLE,
+      sourceProvider: 'fixture',
+      fixtures: {
+        writeEdges: [writeEdge(insertId, 'INSERT'), writeEdge(updateId, 'UPDATE')],
+        callEdges: [callEdge(dacId, updateId)],
+        sources: new Map([
+          [
+            'PKG_DEF',
+            `PACKAGE BODY PKG_DEF IS
+              PROCEDURE INSERT_ROW(P_A IN VARCHAR2) IS BEGIN INSERT INTO T_TEST_TARGET(COL_A) VALUES (P_A); END;
+              PROCEDURE UPDATE_ROW(P_A IN VARCHAR2, P_ID IN NUMBER) IS BEGIN UPDATE T_TEST_TARGET SET COL_A=P_A WHERE ID=P_ID; END;
+            END PKG_DEF;`,
+          ],
+        ]),
+      },
+    });
+    const ins = result.paths.find((p) => p.programUnitId === insertId);
+    const upd = result.paths.find((p) => p.programUnitId === updateId);
+    expect(upd?.callers.some((c) => c.callerId === dacId)).toBe(true);
+    expect(ins?.callers.some((c) => c.callerId === dacId)).toBe(false);
+  });
+
+  it('does not leak record assignments from sibling routines', async () => {
+    const writerB = writerProgramUnitId('PKG_REC_SCOPE', 'PROC_B', 0, 2);
+    const result = await analyzeWritePath({
+      targetOwner: TARGET_OWNER,
+      targetObjectName: TARGET_TABLE,
+      sourceProvider: 'fixture',
+      fixtures: {
+        writeEdges: [writeEdge(writerB, 'INSERT')],
+        sources: new Map([
+          [
+            'PKG_REC_SCOPE',
+            `PACKAGE BODY PKG_REC_SCOPE IS
+              PROCEDURE PROC_A(P_A IN VARCHAR2) IS R_REC T_TEST_TARGET%ROWTYPE; BEGIN R_REC.COL_A := P_A; END;
+              PROCEDURE PROC_B(P_B IN VARCHAR2) IS R_REC T_TEST_TARGET%ROWTYPE; BEGIN INSERT INTO T_TEST_TARGET (COL_A) VALUES (R_REC.COL_A); END;
+            END PKG_REC_SCOPE;`,
+          ],
+        ]),
+      },
+    });
+    const m = result.paths[0]?.dmlOperations[0]?.parameterMappings[0];
+    expect(m?.sourceExpression).toBe('R_REC.COL_A');
+    expect(m?.classification).toBe('direct_field');
+    expect(m?.sourceParam).toBeNull();
   });
 
   it('detects a caller cycle without looping forever and truncates at maxDepth', async () => {

@@ -11,6 +11,8 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import type { Stage3Confidence, Stage3Provenance } from './teta-stage3.types';
+import { buildInventoryIndex } from '../teta-oracle-source-index-stage2/teta-stage2-resolve';
+import type { Stage2ObjectType } from '../teta-oracle-source-index-stage2/teta-stage2.types';
 
 export type Stage3WriteEdge = {
   fromId: string;
@@ -23,6 +25,9 @@ export type Stage3WriteEdge = {
 export type Stage3CallEdgeRaw = {
   fromId: string;
   toId: string;
+  toProgramUnitId?: string | null;
+  fromProgramUnitId?: string | null;
+  matchKind?: 'routine_exact' | 'package_fallback';
   confidenceClass: Stage3Confidence;
   provenance: Stage3Provenance[];
 };
@@ -64,6 +69,24 @@ export function writerIdKind(id: string): Stage3WriterIdKind {
 export function ownerFromWriterId(id: string): string | null {
   const parts = id.split(':');
   return parts[1] ?? null;
+}
+
+export function parseProgramUnitId(id: string): {
+  owner: string;
+  packageName: string;
+  memberName: string;
+  overload: number;
+  subprogramId: number;
+} | null {
+  const m = /^oracle-program-unit:([^:]+):([^:]+):([^:]+):o(\d+):s(\d+)$/.exec(id);
+  if (!m) return null;
+  return {
+    owner: m[1]!,
+    packageName: m[2]!,
+    memberName: m[3]!,
+    overload: Number(m[4]!),
+    subprogramId: Number(m[5]!),
+  };
 }
 
 function mapStage2ConfidenceClass(raw: unknown): Stage3Confidence {
@@ -182,20 +205,26 @@ export async function streamLoadWritesToIndex(
  * writer packages currently under analysis). Callers must run this once per
  * BFS depth level with the newly-discovered frontier package names.
  */
-export async function streamFindCallEdgesToPackages(
+export async function streamFindCallEdgesToTargets(
   edgesPath: string,
-  targetPackageNames: Set<string>,
+  targetProgramUnitIds: Set<string>,
+  targetPackageNamesFallback: Set<string>,
 ): Promise<{ edges: Stage3CallEdgeRaw[]; edgesScanned: number }> {
   const edges: Stage3CallEdgeRaw[] = [];
   let edgesScanned = 0;
-  if (targetPackageNames.size === 0) return { edges, edgesScanned };
+  if (targetProgramUnitIds.size === 0 && targetPackageNamesFallback.size === 0) {
+    return { edges, edgesScanned };
+  }
   await forEachNdjsonLine(edgesPath, (row) => {
     if (row.edgeKind !== 'CALLS') return;
     const toId = String(row.toId ?? '');
+    const exactRoutine = targetProgramUnitIds.has(toId);
     const pkg = packageNameFromWriterId(toId);
-    if (!pkg || !targetPackageNames.has(pkg)) return;
+    const fallbackRoutine = !exactRoutine && Boolean(pkg && targetPackageNamesFallback.has(pkg));
+    if (!exactRoutine && !fallbackRoutine) return;
     edgesScanned += 1;
     const fromId = String(row.fromId ?? '');
+    const matchKind = exactRoutine ? 'routine_exact' : 'package_fallback';
     const confidenceClass = mapStage2ConfidenceClass(row.confidenceClass);
     const rawProvenance = Array.isArray(row.provenance) ? row.provenance : [];
     const provenance: Stage3Provenance[] = rawProvenance.map((p) => {
@@ -211,7 +240,13 @@ export async function streamFindCallEdgesToPackages(
     edges.push({
       fromId,
       toId,
-      confidenceClass,
+      fromProgramUnitId: fromId.startsWith('oracle-program-unit:') ? fromId : null,
+      toProgramUnitId: toId.startsWith('oracle-program-unit:') ? toId : null,
+      matchKind,
+      confidenceClass:
+        matchKind === 'package_fallback' && confidenceClass === 'exact_static'
+          ? 'strong_static'
+          : confidenceClass,
       provenance: provenance.length
         ? provenance
         : [toStage3Provenance(edgesPath, 'CALLS', null, confidenceClass, [])],
@@ -281,4 +316,33 @@ export function defaultStage3Paths(repoRoot: string): { edgesPath: string; acePa
         'application-code-graph-v2.ndjson',
       ),
   };
+}
+
+export function defaultStage3InventoryPath(repoRoot: string): string {
+  return (
+    process.env.TETA_TWP_STAGE3_INVENTORY_PATH?.trim() ||
+    path.join(
+      repoRoot,
+      '.local',
+      'oracle-source-index-stage2',
+      'oracle-live',
+      'oracle-object-inventory-v1.ndjson',
+    )
+  );
+}
+
+export async function loadStage2InventoryIndexFromObjects(
+  inventoryPath: string,
+  ownerAllowlist: Set<string>,
+): Promise<Map<string, Stage2ObjectType>> {
+  const rows: Array<{ owner: string; objectName: string; objectType: Stage2ObjectType }> = [];
+  await forEachNdjsonLine(inventoryPath, (row) => {
+    const owner = String(row.owner ?? '').toUpperCase();
+    if (!owner || (ownerAllowlist.size > 0 && !ownerAllowlist.has(owner))) return;
+    const objectName = String(row.objectName ?? '').toUpperCase();
+    const objectType = String(row.objectType ?? '').toUpperCase() as Stage2ObjectType;
+    if (!objectName || !objectType) return;
+    rows.push({ owner, objectName, objectType });
+  });
+  return buildInventoryIndex(rows);
 }

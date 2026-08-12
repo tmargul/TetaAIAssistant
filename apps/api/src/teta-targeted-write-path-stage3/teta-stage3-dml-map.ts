@@ -13,17 +13,24 @@ import {
   splitQualifiedName,
 } from '../teta-oracle-source-index-stage2/teta-stage2-parse';
 import type {
+  Stage3Confidence,
   Stage3ExpressionClassification,
   Stage3ParameterMapping,
   Stage3ParameterRole,
   Stage3Provenance,
+  Stage3SignatureSource,
 } from './teta-stage3.types';
+import {
+  mappingConfidenceForClassification,
+  type Stage3ProgramUnitSignature,
+} from './teta-stage3-signatures';
 
 export type Stage3ExpressionClassificationResult = {
   classification: Stage3ExpressionClassification;
   sourceParam: string | null;
   sourceField: string | null;
   transformFunction: string | null;
+  symbolName?: string | null;
 };
 
 /** Balanced-paren scan starting at text[openIdx] === '('. */
@@ -107,24 +114,32 @@ function splitTopLevelWord(text: string, word: string): string[] {
  * consults the target column name — classification is purely a function of
  * the expression's own shape.
  */
-export function classifyExpression(rawExpr: string): Stage3ExpressionClassificationResult {
+export function classifyExpression(
+  rawExpr: string,
+  ctx: {
+    parameterNames?: Set<string>;
+    localSymbols?: Set<string>;
+    packageName?: string | null;
+  } = {},
+): Stage3ExpressionClassificationResult {
   const expr = rawExpr.trim();
   const empty: Stage3ExpressionClassificationResult = {
     classification: 'unresolved',
     sourceParam: null,
     sourceField: null,
     transformFunction: null,
+    symbolName: null,
   };
   if (!expr) return empty;
   if (/^NULL$/i.test(expr)) {
-    return { classification: 'literal', sourceParam: null, sourceField: null, transformFunction: null };
+    return { classification: 'literal', sourceParam: null, sourceField: null, transformFunction: null, symbolName: null };
   }
   if (/^-?\d+(\.\d+)?$/.test(expr)) {
-    return { classification: 'literal', sourceParam: null, sourceField: null, transformFunction: null };
+    return { classification: 'literal', sourceParam: null, sourceField: null, transformFunction: null, symbolName: null };
   }
   if (/^'[\s]*'$/.test(expr) || /^'.*'$/.test(expr)) {
     // masked or literal quoted content
-    return { classification: 'literal', sourceParam: null, sourceField: null, transformFunction: null };
+    return { classification: 'literal', sourceParam: null, sourceField: null, transformFunction: null, symbolName: null };
   }
   const seqM = /^([A-Za-z_][\w$#]*(?:\.[A-Za-z_][\w$#]*)?)\.(NEXTVAL|CURRVAL)$/i.exec(expr);
   if (seqM) {
@@ -133,6 +148,7 @@ export function classifyExpression(rawExpr: string): Stage3ExpressionClassificat
       sourceParam: null,
       sourceField: null,
       transformFunction: `${normalizeOracleName(seqM[1]!)}.${seqM[2]!.toUpperCase()}`,
+      symbolName: null,
     };
   }
   const bindM = /^:([A-Za-z_][\w$#]*|\d+)$/.exec(expr);
@@ -142,14 +158,45 @@ export function classifyExpression(rawExpr: string): Stage3ExpressionClassificat
       sourceParam: `:${bindM[1]}`,
       sourceField: null,
       transformFunction: null,
+      symbolName: `:${bindM[1]}`,
     };
   }
   if (/^[A-Za-z_][\w$#]*$/.test(expr)) {
+    const sym = normalizeOracleName(expr);
+    if (ctx.parameterNames?.has(sym)) {
+      return {
+        classification: 'direct_param',
+        sourceParam: sym,
+        sourceField: null,
+        transformFunction: null,
+        symbolName: sym,
+      };
+    }
+    if (ctx.localSymbols?.has(sym)) {
+      return {
+        classification: 'direct_local_symbol',
+        sourceParam: null,
+        sourceField: null,
+        transformFunction: null,
+        symbolName: sym,
+      };
+    }
     return {
-      classification: 'direct_param',
-      sourceParam: normalizeOracleName(expr),
+      classification: 'unresolved_symbol',
+      sourceParam: null,
       sourceField: null,
       transformFunction: null,
+      symbolName: sym,
+    };
+  }
+  const pkgSymM = /^([A-Za-z_][\w$#]*)\.([A-Za-z_][\w$#]*)$/.exec(expr);
+  if (pkgSymM && ctx.packageName && normalizeOracleName(pkgSymM[1]!) === normalizeOracleName(ctx.packageName)) {
+    return {
+      classification: 'direct_package_symbol',
+      sourceParam: null,
+      sourceField: null,
+      transformFunction: null,
+      symbolName: normalizeOracleName(expr),
     };
   }
   const fieldM = /^([A-Za-z_][\w$#]*)\.([A-Za-z_][\w$#]*)$/.exec(expr);
@@ -159,10 +206,11 @@ export function classifyExpression(rawExpr: string): Stage3ExpressionClassificat
       sourceParam: null,
       sourceField: normalizeOracleName(expr),
       transformFunction: null,
+      symbolName: normalizeOracleName(expr),
     };
   }
   if (/CASE\b/i.test(expr)) {
-    return { classification: 'transformed', sourceParam: null, sourceField: null, transformFunction: 'CASE' };
+    return { classification: 'transformed', sourceParam: null, sourceField: null, transformFunction: 'CASE', symbolName: null };
   }
   const fnM = /^([A-Za-z_][\w$#]*)\s*\(/.exec(expr);
   if (fnM) {
@@ -171,10 +219,11 @@ export function classifyExpression(rawExpr: string): Stage3ExpressionClassificat
       sourceParam: null,
       sourceField: null,
       transformFunction: normalizeOracleName(fnM[1]!),
+      symbolName: null,
     };
   }
   if (/\|\||[+\-*/]/.test(expr)) {
-    return { classification: 'transformed', sourceParam: null, sourceField: null, transformFunction: 'EXPRESSION' };
+    return { classification: 'transformed', sourceParam: null, sourceField: null, transformFunction: 'EXPRESSION', symbolName: null };
   }
   return empty;
 }
@@ -185,8 +234,9 @@ export type RecordFieldChainMap = Map<string, Stage3ExpressionClassificationResu
 function resolveWithRecordChain(
   expr: string,
   recordFieldMap: RecordFieldChainMap,
+  ctx: { parameterNames?: Set<string>; localSymbols?: Set<string>; packageName?: string | null },
 ): Stage3ExpressionClassificationResult & { viaRecordChain: boolean } {
-  const base = classifyExpression(expr);
+  const base = classifyExpression(expr, ctx);
   if (base.classification === 'direct_field' && base.sourceField) {
     const chained = recordFieldMap.get(base.sourceField);
     if (chained) return { ...chained, viaRecordChain: true };
@@ -200,9 +250,30 @@ export function buildParameterMapping(input: {
   role: Stage3ParameterRole;
   positional: boolean;
   recordFieldMap: RecordFieldChainMap;
+  parameterNames?: Set<string>;
+  localSymbols?: Set<string>;
+  packageName?: string | null;
+  programUnitId?: string | null;
+  signature?: Stage3ProgramUnitSignature | null;
+  signatureSource?: Stage3SignatureSource | null;
+  programUnitResolution?: 'resolved' | 'unresolved';
   provenance: Stage3Provenance;
 }): Stage3ParameterMapping {
-  const resolved = resolveWithRecordChain(input.sourceExpression, input.recordFieldMap);
+  const resolved = resolveWithRecordChain(input.sourceExpression, input.recordFieldMap, {
+    parameterNames: input.parameterNames,
+    localSymbols: input.localSymbols,
+    packageName: input.packageName,
+  });
+  const matchedArgumentName =
+    resolved.classification === 'direct_param' && resolved.sourceParam
+      ? resolved.sourceParam
+      : null;
+  const mappingConfidence = mappingConfidenceForClassification({
+    classification: resolved.classification,
+    signatureSource: input.signatureSource ?? null,
+    viaRecordChain: resolved.viaRecordChain,
+    programUnitResolution: input.programUnitResolution ?? 'resolved',
+  });
   return {
     targetColumn: input.targetColumn,
     sourceExpression: input.sourceExpression,
@@ -212,8 +283,16 @@ export function buildParameterMapping(input: {
     sourceField: resolved.sourceField,
     transformFunction: resolved.transformFunction,
     positional: input.positional,
+    symbolName: resolved.symbolName ?? null,
+    programUnitId: input.programUnitId ?? null,
+    signatureSource: input.signatureSource ?? null,
+    matchedArgumentName,
+    subprogramId: input.signature?.subprogramId ?? null,
+    overload: input.signature?.overload ?? null,
+    mappingConfidence,
     provenance: {
       ...input.provenance,
+      confidenceClass: mappingConfidence,
       normalizedValue: resolved.viaRecordChain
         ? `record_chain:${input.sourceExpression}->${resolved.sourceParam ?? resolved.sourceField ?? ''}`
         : input.provenance.normalizedValue ?? null,
@@ -291,11 +370,20 @@ export function parseUpdateSetMappings(sql: string): Stage3UpdateStatementMatch[
     const setStart = m.index + m[0].length;
     const whereIdx = findTopLevelWord(text, setStart, 'WHERE');
     const semiIdx = findTopLevelChar(text, setStart, ';');
-    const setEnd = whereIdx >= 0 ? whereIdx : semiIdx >= 0 ? semiIdx : text.length;
+    // First top-level boundary wins. A WHERE in the next statement must not
+    // be absorbed into the current UPDATE.
+    const setEnd =
+      semiIdx >= 0 && (whereIdx < 0 || semiIdx < whereIdx)
+        ? semiIdx
+        : whereIdx >= 0
+          ? whereIdx
+          : semiIdx >= 0
+            ? semiIdx
+            : text.length;
     const setClause = text.slice(setStart, setEnd);
     let whereClause: string | null = null;
     let statementEnd = setEnd;
-    if (whereIdx >= 0) {
+    if (whereIdx >= 0 && (semiIdx < 0 || whereIdx < semiIdx)) {
       const whereStart = whereIdx + 5;
       const semiAfterWhere = findTopLevelChar(text, whereStart, ';');
       statementEnd = semiAfterWhere >= 0 ? semiAfterWhere : text.length;
@@ -401,7 +489,10 @@ export type Stage3RecordFieldAssignment = {
  * later `INSERT ... VALUES (r_x.field, ...)` can resolve through the
  * assignment instead of remaining an opaque record-field reference.
  */
-export function parseRecordFieldAssignments(sql: string): Stage3RecordFieldAssignment[] {
+export function parseRecordFieldAssignments(
+  sql: string,
+  ctx: { parameterNames?: Set<string>; localSymbols?: Set<string>; packageName?: string | null } = {},
+): Stage3RecordFieldAssignment[] {
   const text = preprocessSqlForStaticExtraction(sql);
   const out: Stage3RecordFieldAssignment[] = [];
   const re = /\b([A-Za-z_][\w$#]*)\.([A-Za-z_][\w$#]*)\s*:=\s*([^;]+);/g;
@@ -412,7 +503,7 @@ export function parseRecordFieldAssignments(sql: string): Stage3RecordFieldAssig
       targetRecord: normalizeOracleName(m[1]!),
       targetField: normalizeOracleName(m[2]!),
       sourceExpression: rhs,
-      classification: classifyExpression(rhs),
+      classification: classifyExpression(rhs, ctx),
       matchIndex: m.index,
     });
   }

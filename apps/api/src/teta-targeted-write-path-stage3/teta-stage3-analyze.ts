@@ -12,13 +12,14 @@ import {
   detectDynamicBoundaries,
   extractDirectCalls,
   extractDmlTargets,
-  extractPackageUnitDecls,
   extractProgramSqlReads,
   normalizeOracleName,
   preprocessSqlForStaticExtraction,
+  splitQualifiedName,
   stage2ObjectId,
 } from '../teta-oracle-source-index-stage2/teta-stage2-parse';
 import type { Stage2ObjectType } from '../teta-oracle-source-index-stage2/teta-stage2.types';
+import { resolveEndpoint } from '../teta-oracle-source-index-stage2/teta-stage2-resolve';
 import {
   buildParameterMapping,
   buildRecordFieldChainMap,
@@ -31,10 +32,13 @@ import {
 } from './teta-stage3-dml-map';
 import {
   defaultStage3Paths,
+  defaultStage3InventoryPath,
   loadStage1DacEdges,
+  loadStage2InventoryIndexFromObjects,
   ownerFromWriterId,
   packageNameFromWriterId,
-  streamFindCallEdgesToPackages,
+  parseProgramUnitId,
+  streamFindCallEdgesToTargets,
   streamLoadWritesToIndex,
   writerIdKind,
   type Stage3CallEdgeRaw,
@@ -42,6 +46,13 @@ import {
   type Stage3WriteEdge,
   type Stage3WriterIdKind,
 } from './teta-stage3-load';
+import {
+  detectProgramUnitResolution,
+  resolveProgramUnitSignature,
+  type Stage3ProgramUnitSignature,
+  type Stage3SignatureIndex,
+  type Stage3SignatureSource,
+} from './teta-stage3-signatures';
 import { STAGE3_GAP_MATRIX } from './teta-stage3-gap-matrix';
 import {
   emptyStage3Audit,
@@ -103,6 +114,10 @@ export type Stage3Fixtures = {
   dacEdges?: Stage3DacEdge[];
   /** writerId or packageName → PL/SQL source text (fixture source provider). */
   sources?: Map<string, string>;
+  /** Exact PROGRAM_UNIT id -> parameter-name set from signatures (ALL_ARGUMENTS / fixtures). */
+  parameterNamesByProgramUnit?: Map<string, Set<string>>;
+  /** Full signature index (preferred over parameterNamesByProgramUnit). */
+  signatureIndex?: Stage3SignatureIndex;
 };
 
 export type AnalyzeWritePathInput = {
@@ -130,7 +145,10 @@ function matchesTarget(
   writerOwner: string | null,
 ): boolean {
   if (normalizeOracleName(raw.objectName) !== normalizeOracleName(targetObjectName)) return false;
-  if (!raw.wasQualified) return true; // unqualified — resolves against the writer's own owner, never invented
+  // Unqualified object resolves in source owner context; never cross-owner by name alone.
+  if (!raw.wasQualified) {
+    return normalizeOracleName(writerOwner ?? '') === normalizeOracleName(targetOwner);
+  }
   const effectiveOwner = normalizeOracleName(targetOwner);
   const rawOwner = normalizeOracleName(raw.owner ?? '');
   return rawOwner === effectiveOwner || rawOwner === normalizeOracleName(writerOwner ?? '');
@@ -139,11 +157,37 @@ function matchesTarget(
 type ProgramUnitSegment = { name: string; start: number; end: number };
 
 function segmentProgramUnits(source: string): ProgramUnitSegment[] {
-  const decls = extractPackageUnitDecls(source).sort((a, b) => a.startOffset - b.startOffset);
-  return decls.map((d, i) => ({
+  // Conservative top-level package-body segmentation:
+  // - only PROCEDURE/FUNCTION headers whose lexical depth is 0
+  // - nested local routines are ignored as top-level members
+  const text = preprocessSqlForStaticExtraction(source);
+  const re = /\b(PROCEDURE|FUNCTION)\s+([A-Za-z_][\w$#]*)\b/gi;
+  const tokens = /\b(BEGIN|END)\b/gi;
+  const depthEvents: Array<{ pos: number; kind: 'BEGIN' | 'END' }> = [];
+  let tm: RegExpExecArray | null;
+  while ((tm = tokens.exec(text))) {
+    depthEvents.push({ pos: tm.index, kind: tm[1]!.toUpperCase() as 'BEGIN' | 'END' });
+  }
+  let depthPtr = 0;
+  let depth = 0;
+  const members: Array<{ name: string; start: number }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    while (depthPtr < depthEvents.length && depthEvents[depthPtr]!.pos < m.index) {
+      depth += depthEvents[depthPtr]!.kind === 'BEGIN' ? 1 : -1;
+      if (depth < 0) depth = 0;
+      depthPtr += 1;
+    }
+    if (depth !== 0) continue;
+    const tail = text.slice(m.index, Math.min(text.length, m.index + 400));
+    if (!/\bIS\b|\bAS\b/i.test(tail)) continue;
+    members.push({ name: normalizeOracleName(m[2]!), start: m.index });
+  }
+  members.sort((a, b) => a.start - b.start);
+  return members.map((d, i) => ({
     name: d.name,
-    start: d.startOffset,
-    end: i + 1 < decls.length ? decls[i + 1]!.startOffset : source.length,
+    start: d.start,
+    end: i + 1 < members.length ? members[i + 1]!.start : source.length,
   }));
 }
 
@@ -158,11 +202,16 @@ function programUnitMemberName(fromId: string): string | null {
  * in the same PACKAGE BODY are not attributed to every candidate.
  */
 function sourceSliceForProgramUnit(source: string, programUnitId: string): string {
-  const member = programUnitMemberName(programUnitId);
+  const parsed = parseProgramUnitId(programUnitId);
+  const member = parsed?.memberName ?? programUnitMemberName(programUnitId);
   if (!member) return source;
   const segments = segmentProgramUnits(source);
   if (segments.length === 0) return source;
-  const hit = segments.find((s) => normalizeOracleName(s.name) === member);
+  const sameName = segments.filter((s) => normalizeOracleName(s.name) === member);
+  // Conservative for overloads: if multiple same-name top-level members exist,
+  // keep whole source and let confidence degrade instead of choosing first.
+  if (sameName.length !== 1) return source;
+  const hit = sameName[0];
   if (!hit) return source;
   return source.slice(hit.start, hit.end);
 }
@@ -174,14 +223,47 @@ function buildDmlOperationsFromSource(input: {
   targetOwner: string;
   targetObjectName: string;
   writerOwner: string | null;
+  writerPackageName: string | null;
+  parameterNames?: Set<string>;
+  signature?: Stage3ProgramUnitSignature | null;
+  signatureSource?: Stage3SignatureSource | null;
+  programUnitResolution?: 'resolved' | 'unresolved';
 }): Stage3DmlOperation[] {
-  const { source, sourcePath, programUnitId, targetOwner, targetObjectName, writerOwner } = input;
+  const {
+    source,
+    sourcePath,
+    programUnitId,
+    targetOwner,
+    targetObjectName,
+    writerOwner,
+    writerPackageName,
+    parameterNames,
+    signature,
+    signatureSource,
+    programUnitResolution,
+  } = input;
+  const mappingCtx = {
+    parameterNames,
+    programUnitId,
+    signature,
+    signatureSource,
+    programUnitResolution,
+  };
   const targetId = stage2ObjectId(targetOwner, 'TABLE', targetObjectName);
-  // Record assignments may live in helpers earlier in the package; keep the
-  // full-package chain map, but parse DML only inside the writer unit body.
-  const recordAssignments = parseRecordFieldAssignments(source);
-  const recordFieldMap: RecordFieldChainMap = buildRecordFieldChainMap(recordAssignments);
   const dmlSource = sourceSliceForProgramUnit(source, programUnitId);
+  // Scope record assignments to the same routine body only (no sibling leakage).
+  const localSymbols = new Set<string>();
+  const localDeclRe = /\b([A-Za-z_][\w$#]*)\s+(?:NUMBER|VARCHAR2|DATE|TIMESTAMP|BOOLEAN|INTEGER|PLS_INTEGER|BINARY_INTEGER)\b/gi;
+  let decl: RegExpExecArray | null;
+  while ((decl = localDeclRe.exec(preprocessSqlForStaticExtraction(dmlSource)))) {
+    localSymbols.add(normalizeOracleName(decl[1]!));
+  }
+  const recordAssignments = parseRecordFieldAssignments(dmlSource, {
+    parameterNames,
+    localSymbols,
+    packageName: writerPackageName,
+  });
+  const recordFieldMap: RecordFieldChainMap = buildRecordFieldChainMap(recordAssignments);
   const ops: Stage3DmlOperation[] = [];
 
   const inserts = parseInsertColumnMappings(dmlSource);
@@ -197,6 +279,9 @@ function buildDmlOperationsFromSource(input: {
           role: 'VALUE_SOURCE',
           positional: true,
           recordFieldMap,
+          localSymbols,
+          packageName: writerPackageName,
+          ...mappingCtx,
           provenance: fmtProv('stage2_edges_ndjson', sourcePath, 'INSERT_positional', 'exact_static', {
             sourceMember: programUnitId,
             rawValue: `${ins.columns[i]} <- ${ins.valueExprs[i]}`,
@@ -230,6 +315,9 @@ function buildDmlOperationsFromSource(input: {
         role: 'VALUE_SOURCE',
         positional: false,
         recordFieldMap,
+        localSymbols,
+        packageName: writerPackageName,
+        ...mappingCtx,
         provenance: fmtProv('stage2_edges_ndjson', sourcePath, 'UPDATE_SET_explicit', 'exact_static', {
           sourceMember: programUnitId,
           rawValue: `${s.column} = ${s.expr}`,
@@ -243,6 +331,9 @@ function buildDmlOperationsFromSource(input: {
         role: 'ROW_SELECTOR',
         positional: false,
         recordFieldMap,
+        localSymbols,
+        packageName: writerPackageName,
+        ...mappingCtx,
         provenance: fmtProv('stage2_edges_ndjson', sourcePath, 'UPDATE_WHERE_selector', 'exact_static', {
           sourceMember: programUnitId,
           rawValue: sel.raw,
@@ -274,6 +365,9 @@ function buildDmlOperationsFromSource(input: {
         role: 'ROW_SELECTOR',
         positional: false,
         recordFieldMap,
+        localSymbols,
+        packageName: writerPackageName,
+        ...mappingCtx,
         provenance: fmtProv('stage2_edges_ndjson', sourcePath, 'DELETE_WHERE_selector', 'exact_static', {
           sourceMember: programUnitId,
           rawValue: sel.raw,
@@ -338,20 +432,31 @@ function findBareValidationCalls(text: string): Array<{ raw: string; member: str
 
 function buildValidationsAndLookups(input: {
   source: string;
+  scopedWriterSource: string;
   sourcePath: string;
   programUnitId: string;
+  writerPackageName: string | null;
+  sourceOwner: string;
+  inventory: Map<string, Stage2ObjectType>;
+  synonyms?: Map<string, { owner: string; objectName: string }>;
 }): { validations: Stage3ValidationCall[]; lookups: Stage3LookupCheck[] } {
-  const { source, sourcePath, programUnitId } = input;
+  const {
+    source,
+    scopedWriterSource,
+    sourcePath,
+    programUnitId,
+    writerPackageName,
+    sourceOwner,
+    inventory,
+    synonyms,
+  } = input;
   const validations: Stage3ValidationCall[] = [];
   const lookups: Stage3LookupCheck[] = [];
   const segments = segmentProgramUnits(source);
 
-  // Validation *calls* can be issued from any member (e.g. an INSERT_ROW procedure
-  // calling a SPRAWDZ_ISTNIENIE helper) — scan the whole source for the call site.
-  // Qualified calls (PKG.MEMBER(...)) reuse Stage2's extractDirectCalls; unqualified
-  // sibling-procedure calls (common inside one PACKAGE BODY) are matched separately.
+  // Validation call attribution is scoped to the writer routine body only.
   const seenValidationCalls = new Set<string>();
-  for (const call of extractDirectCalls(source)) {
+  for (const call of extractDirectCalls(scopedWriterSource)) {
     if (!VALIDATION_NAME_PATTERN.test(call.member)) continue;
     const key = `${call.packageQualified.objectName}.${call.member}`;
     if (seenValidationCalls.has(key)) continue;
@@ -367,7 +472,7 @@ function buildValidationsAndLookups(input: {
       }),
     });
   }
-  for (const bare of findBareValidationCalls(preprocessSqlForStaticExtraction(source))) {
+  for (const bare of findBareValidationCalls(preprocessSqlForStaticExtraction(scopedWriterSource))) {
     const key = `-.${bare.member}`;
     if (seenValidationCalls.has(key)) continue;
     seenValidationCalls.add(key);
@@ -383,23 +488,30 @@ function buildValidationsAndLookups(input: {
     });
   }
 
-  // Lookups are only promoted to VALIDATES_AGAINST when they occur *inside* the
-  // body of a member whose own name matches the validation pattern (deterministic
-  // scoping — never guessed from the call site).
-  const validationSegments = segments.filter((seg) => VALIDATION_NAME_PATTERN.test(seg.name));
-  for (const seg of validationSegments) {
+  // For each exact validation callee, inspect the callee routine body for
+  // deterministic lookup evidence.
+  for (const v of validations) {
+    const isSamePackage = !v.calleePackage || normalizeOracleName(v.calleePackage) === normalizeOracleName(writerPackageName ?? '');
+    if (!isSamePackage) continue;
+    const seg = segments.find((s) => normalizeOracleName(s.name) === normalizeOracleName(v.calleeMember));
+    if (!seg) continue;
     const regionText = source.slice(seg.start, seg.end);
     for (const read of extractProgramSqlReads(regionText)) {
+      const resolved = resolveEndpoint({
+        sourceOwner,
+        qualified: splitQualifiedName(read.raw),
+        inventory,
+        synonyms,
+        prefer: 'read',
+      });
       lookups.push({
         targetObjectRaw: read.raw,
-        targetObjectId: read.qualified.objectName
-          ? stage2ObjectId(read.qualified.owner ?? '', 'TABLE', read.qualified.objectName)
-          : null,
+        targetObjectId: resolved.objectType === 'unresolved_object' ? null : resolved.id,
         viaClause: read.via,
         programUnitId,
         edgeKind: 'VALIDATES_AGAINST',
-        provenance: fmtProv('stage2_edges_ndjson', sourcePath, `${read.via}_in_validation_context`, 'strong_static', {
-          sourceMember: seg.name,
+        provenance: fmtProv('stage2_edges_ndjson', sourcePath, `${read.via}_in_validation_routine`, 'strong_static', {
+          sourceMember: v.calleeMember,
           rawValue: read.raw,
         }),
       });
@@ -422,6 +534,19 @@ function buildRuntimeBoundaries(
     evidenceRefs: [`${sourcePath}#${programUnitId}`],
     confidenceClass: 'runtime_only' as const,
   }));
+}
+
+function inferParameterNamesFromScopedSource(scopedSource: string): Set<string> {
+  const out = new Set<string>();
+  const header = preprocessSqlForStaticExtraction(scopedSource).slice(0, 800);
+  const p = /\(([\s\S]*?)\)/.exec(header);
+  if (!p) return out;
+  const parts = p[1]!.split(',');
+  for (const part of parts) {
+    const m = /^\s*([A-Za-z_][\w$#]*)\b/.exec(part.trim());
+    if (m) out.add(normalizeOracleName(m[1]!));
+  }
+  return out;
 }
 
 function derivePathConfidence(path: {
@@ -480,6 +605,7 @@ export async function analyzeWritePath(
   const sourceProvider = input.sourceProvider ?? 'none';
   const repoRoot = process.cwd();
   const { edgesPath, acePath } = defaultStage3Paths(repoRoot);
+  const inventoryPath = defaultStage3InventoryPath(repoRoot);
   const effectiveEdgesPath = input.edgesPath ?? edgesPath;
   const effectiveAcePath = input.acePath ?? acePath;
 
@@ -590,11 +716,16 @@ export async function analyzeWritePath(
 
   const sourceCache = new Map<string, string | null>();
   const loadSource = async (fromId: string, packageName: string | null, idKind: Stage3WriterIdKind) => {
-    const cacheKey = packageName ?? fromId;
+    const owner = ownerFromWriterId(fromId) ?? '-';
+    const cacheKey = `${owner}:${idKind}:${packageName ?? fromId}`;
     if (sourceCache.has(cacheKey)) return sourceCache.get(cacheKey) ?? null;
     let text: string | null = null;
+    const ownerPkgKey = packageName ? `${owner}:${packageName}` : null;
     if (sourceProvider === 'fixture' && input.fixtures?.sources) {
-      text = input.fixtures.sources.get(fromId) ?? (packageName ? input.fixtures.sources.get(packageName) ?? null : null);
+      text =
+        input.fixtures.sources.get(fromId) ??
+        (ownerPkgKey ? input.fixtures.sources.get(ownerPkgKey) ?? null : null) ??
+        (packageName ? input.fixtures.sources.get(packageName) ?? null : null);
     } else if (sourceProvider === 'oracle_metadata' && input.fetchSource) {
       text = await input.fetchSource(fromId, packageName, idKind);
       if (text != null) metrics.sourceObjectsLoaded += 1;
@@ -605,6 +736,12 @@ export async function analyzeWritePath(
   };
 
   const paths: Stage3WritePath[] = [];
+  const distinctValidationRoutines = new Set<string>();
+  const inventoryIndex = await loadStage2InventoryIndexFromObjects(
+    inventoryPath,
+    new Set([targetOwner]),
+  );
+  const synonyms = new Map<string, { owner: string; objectName: string }>();
 
   for (const candidate of candidatesToAnalyze) {
     metrics.programUnitsVisited += 1;
@@ -623,6 +760,22 @@ export async function analyzeWritePath(
     let runtimeBoundaries: Stage3RuntimeBoundary[] = [];
 
     if (usableSource != null) {
+      const scopedWriterSource = sourceSliceForProgramUnit(usableSource, candidate.fromId);
+      const programUnitResolution = detectProgramUnitResolution(usableSource, candidate.fromId);
+      const headerParamNames = inferParameterNamesFromScopedSource(scopedWriterSource);
+      const sigResolved = resolveProgramUnitSignature({
+        programUnitId: candidate.fromId,
+        signatureIndex: input.fixtures?.signatureIndex ?? new Map(),
+        headerParameterNames: headerParamNames,
+        programUnitResolution,
+      });
+      const effectiveParamNames = sigResolved.parameterNames;
+      if (
+        sigResolved.signatureSource === 'oracle_all_arguments' ||
+        sigResolved.signatureSource === 'stage2_index'
+      ) {
+        metrics.argumentSignaturesLoaded += 1;
+      }
       dmlOperations = buildDmlOperationsFromSource({
         source: usableSource,
         sourcePath: `writer:${candidate.fromId}`,
@@ -630,15 +783,30 @@ export async function analyzeWritePath(
         targetOwner,
         targetObjectName,
         writerOwner,
+        writerPackageName: packageName,
+        parameterNames: effectiveParamNames,
+        signature: sigResolved.signature,
+        signatureSource: sigResolved.signatureSource,
+        programUnitResolution: sigResolved.programUnitResolution,
       });
       const vl = buildValidationsAndLookups({
         source: usableSource,
+        scopedWriterSource,
         sourcePath: `writer:${candidate.fromId}`,
         programUnitId: candidate.fromId,
+        writerPackageName: packageName,
+        sourceOwner: writerOwner ?? targetOwner,
+        inventory: inventoryIndex,
+        synonyms,
       });
       validations = vl.validations;
       lookups = vl.lookups;
-      runtimeBoundaries = buildRuntimeBoundaries(usableSource, `writer:${candidate.fromId}`, candidate.fromId);
+      runtimeBoundaries = buildRuntimeBoundaries(scopedWriterSource, `writer:${candidate.fromId}`, candidate.fromId);
+      for (const v of validations) {
+        distinctValidationRoutines.add(
+          `${v.calleePackage ?? ownerFromWriterId(candidate.fromId) ?? '-'}:${v.calleeMember}`,
+        );
+      }
     }
 
     metrics.dmlOperationsExtracted += dmlOperations.length;
@@ -646,6 +814,8 @@ export async function analyzeWritePath(
     metrics.rowSelectorsExtracted += dmlOperations.reduce((n, op) => n + op.rowSelectors.length, 0);
     metrics.validationsFound += validations.length;
     metrics.lookupsFound += lookups.length;
+    metrics.validationCallSitesFound += validations.length;
+    metrics.validationLookupsFound += lookups.length;
     metrics.runtimeBoundariesFound += runtimeBoundaries.length;
 
     const path: Stage3WritePath = {
@@ -659,73 +829,100 @@ export async function analyzeWritePath(
       lookups,
       sideEffectCalls: [],
       callers: [],
+      callHops: [],
       gatewayReferences: [],
       runtimeBoundaries,
       confidence: 'unresolved',
       truncated: false,
       sourceStatus,
+      programUnitResolution: usableSource != null ? detectProgramUnitResolution(usableSource, candidate.fromId) : undefined,
     };
     path.confidence = derivePathConfidence(path);
     paths.push(path);
   }
+  metrics.distinctValidationRoutines = distinctValidationRoutines.size;
 
-  // --- e. Bounded reverse CALLS traversal per unique writer package. ---
+  // --- e. Bounded reverse CALLS traversal per writer routine (PROGRAM_UNIT first). ---
   const dacTargetPackages = new Set<string>();
-  const pathsByPackage = new Map<string, Stage3WritePath[]>();
   for (const p of paths) {
-    const list = pathsByPackage.get(p.writerPackageId);
-    if (list) list.push(p);
-    else pathsByPackage.set(p.writerPackageId, [p]);
-  }
-
-  for (const [pkgId, pkgPaths] of pathsByPackage) {
-    const visited = new Set<string>([pkgId]);
-    let frontier = new Set<string>([pkgId]);
+    const visited = new Set<string>([p.programUnitId]);
+    let frontierRoutine = new Set<string>([p.programUnitId]);
+    let frontierPackagesFallback = new Set<string>();
+    if (!p.programUnitId.startsWith('oracle-program-unit:')) {
+      frontierPackagesFallback = new Set<string>([p.writerPackageId]);
+    }
     let depth = 0;
     const callersFound: Stage3Caller[] = [];
+    const callHops: Stage3WritePath['callHops'] = [];
     const sideEffects: Stage3SideEffectCall[] = [];
     let truncatedHere = false;
 
-    while (depth < maxDepth && frontier.size > 0) {
+    while (depth < maxDepth && (frontierRoutine.size > 0 || frontierPackagesFallback.size > 0)) {
       depth += 1;
       let callEdges: Stage3CallEdgeRaw[];
       if (input.fixtures?.callEdges) {
-        callEdges = input.fixtures.callEdges.filter((e) => {
-          const toPkg = packageNameFromWriterId(e.toId);
-          return toPkg != null && frontier.has(toPkg);
-        });
+        callEdges = input.fixtures.callEdges
+          .map((e) => ({
+            ...e,
+            toProgramUnitId: e.toId.startsWith('oracle-program-unit:') ? e.toId : null,
+            fromProgramUnitId: e.fromId.startsWith('oracle-program-unit:') ? e.fromId : null,
+            matchKind: frontierRoutine.has(e.toId)
+              ? ('routine_exact' as const)
+              : ('package_fallback' as const),
+          }))
+          .filter((e) => {
+            if (frontierRoutine.has(e.toId)) return true;
+            const toPkg = packageNameFromWriterId(e.toId);
+            return toPkg != null && frontierPackagesFallback.has(toPkg);
+          });
       } else {
-        const res = await streamFindCallEdgesToPackages(effectiveEdgesPath, frontier);
+        const res = await streamFindCallEdgesToTargets(
+          effectiveEdgesPath,
+          frontierRoutine,
+          frontierPackagesFallback,
+        );
         metrics.edgesFilePassCount += 1;
         metrics.edgesScanned += res.edgesScanned;
         callEdges = res.edges;
       }
 
-      const nextFrontier = new Set<string>();
+      const nextRoutine = new Set<string>();
+      const nextPackagesFallback = new Set<string>();
       for (const edge of callEdges) {
-        const callerPkg = packageNameFromWriterId(edge.fromId) ?? edge.fromId;
-        if (visited.has(callerPkg)) {
+        const callerNode = edge.fromProgramUnitId ?? edge.fromId;
+        if (visited.has(callerNode)) {
           metrics.cyclesDetected += 1;
           continue;
         }
-        visited.add(callerPkg);
-        nextFrontier.add(callerPkg);
+        visited.add(callerNode);
+        if (edge.fromProgramUnitId) nextRoutine.add(edge.fromProgramUnitId);
+        const callerPkg = packageNameFromWriterId(edge.fromId) ?? edge.fromId;
+        nextPackagesFallback.add(callerPkg);
         const callerFamily = classifyPackageFamily(callerPkg);
         const caller: Stage3Caller = {
           callerId: edge.fromId,
           callerPackageName: callerPkg,
           packageFamily: callerFamily,
           depth,
+          callMatchKind: edge.matchKind ?? 'package_fallback',
           provenance: edge.provenance[0] ?? fmtProv('stage2_edges_ndjson', effectiveEdgesPath, 'CALLS', 'unresolved'),
         };
         callersFound.push(caller);
+        callHops.push({
+          depth,
+          fromProgramUnitId: edge.fromProgramUnitId ?? edge.fromId,
+          toProgramUnitId: edge.toProgramUnitId ?? edge.toId,
+          matchKind: edge.matchKind ?? 'package_fallback',
+          confidenceClass: edge.confidenceClass,
+          provenance: caller.provenance,
+        });
         metrics.callersDiscovered += 1;
-        if (callerFamily === 'DAE' && HOOK_NAME_PATTERN.test(callerPkg)) {
+        if (HOOK_NAME_PATTERN.test(edge.fromId)) {
           sideEffects.push({
-            calleeId: pkgId,
+            calleeId: p.programUnitId,
             calleeRaw: edge.toId,
             callerPackageFamily: callerFamily,
-            hookType: /before|przed/i.test(callerPkg) ? 'before' : /after|po_/i.test(callerPkg) ? 'after' : 'unknown',
+            hookType: 'unknown',
             matchedPattern: HOOK_NAME_PATTERN.source,
             provenance: caller.provenance,
           });
@@ -733,20 +930,25 @@ export async function analyzeWritePath(
         }
         dacTargetPackages.add(callerPkg);
       }
-      frontier = nextFrontier;
-      if (depth === maxDepth && frontier.size > 0) truncatedHere = true;
+      frontierRoutine = nextRoutine;
+      frontierPackagesFallback = nextPackagesFallback;
+      if (
+        depth === maxDepth &&
+        (frontierRoutine.size > 0 || frontierPackagesFallback.size > 0)
+      ) {
+        truncatedHere = true;
+      }
     }
     metrics.maxDepthReached = Math.max(metrics.maxDepthReached, depth);
-    dacTargetPackages.add(pkgId);
+    dacTargetPackages.add(p.writerPackageId);
 
-    for (const p of pkgPaths) {
-      p.callers = callersFound;
-      p.sideEffectCalls = sideEffects;
-      p.truncated = truncatedHere;
-      if (truncatedHere) {
-        p.truncationReason = `maxDepth=${maxDepth} reached with remaining unexplored callers`;
-        analysisTruncated = true;
-      }
+    p.callers = callersFound;
+    p.callHops = callHops;
+    p.sideEffectCalls = sideEffects;
+    p.truncated = truncatedHere;
+    if (truncatedHere) {
+      p.truncationReason = `maxDepth=${maxDepth} reached with remaining unexplored callers`;
+      analysisTruncated = true;
     }
   }
 

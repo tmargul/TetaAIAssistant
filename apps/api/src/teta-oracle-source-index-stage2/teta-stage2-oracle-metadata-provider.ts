@@ -555,6 +555,67 @@ export class OracleMetadataSourceProvider implements OracleSourceProvider {
     return this.arguments;
   }
 
+  /**
+   * Bounded ALL_ARGUMENTS fetch for specific package names under one owner.
+   * Used by Stage 3 targeted write-path analysis — never scans the full corpus.
+   */
+  async loadArgumentsForPackages(
+    owner: string,
+    packageNames: string[],
+  ): Promise<OracleSourceArgument[]> {
+    if (this.opts.fetchArguments === false) return [];
+    if (!this.capabilities.allArguments) return [];
+    const normalizedOwner = owner.toUpperCase();
+    const pkgs = [...new Set(packageNames.map((p) => p.toUpperCase()))].filter(Boolean);
+    if (pkgs.length === 0) return [];
+    const { binds, placeholders } = buildInBinds(pkgs, 'p');
+    const rows = await this.metaSelect<{
+      OWNER: string;
+      PACKAGE_NAME: string | null;
+      OBJECT_NAME: string;
+      OVERLOAD: number | null;
+      POSITION: number | null;
+      SEQUENCE: number | null;
+      ARGUMENT_NAME: string | null;
+      IN_OUT: string | null;
+      DATA_TYPE: string | null;
+      TYPE_OWNER: string | null;
+      TYPE_NAME: string | null;
+      SUBPROGRAM_ID: number | null;
+    }>(
+      `SELECT owner AS "OWNER",
+              package_name AS "PACKAGE_NAME",
+              object_name AS "OBJECT_NAME",
+              overload AS "OVERLOAD",
+              position AS "POSITION",
+              sequence AS "SEQUENCE",
+              argument_name AS "ARGUMENT_NAME",
+              in_out AS "IN_OUT",
+              data_type AS "DATA_TYPE",
+              type_owner AS "TYPE_OWNER",
+              type_name AS "TYPE_NAME",
+              subprogram_id AS "SUBPROGRAM_ID"
+       FROM all_arguments
+       WHERE owner = :ownerArg
+         AND package_name IN (${placeholders})`,
+      { ownerArg: normalizedOwner, ...binds },
+    );
+    return rows.map((r) => ({
+      owner: String(r.OWNER),
+      packageName: r.PACKAGE_NAME != null ? String(r.PACKAGE_NAME) : null,
+      objectName: String(r.OBJECT_NAME),
+      overload: r.OVERLOAD != null ? Number(r.OVERLOAD) : null,
+      position: r.POSITION != null ? Number(r.POSITION) : null,
+      sequence: r.SEQUENCE != null ? Number(r.SEQUENCE) : null,
+      subprogramId: r.SUBPROGRAM_ID != null ? Number(r.SUBPROGRAM_ID) : null,
+      argumentName: r.ARGUMENT_NAME != null ? String(r.ARGUMENT_NAME) : null,
+      inOut: r.IN_OUT != null ? String(r.IN_OUT) : null,
+      dataType: r.DATA_TYPE != null ? String(r.DATA_TYPE) : null,
+      typeOwner: r.TYPE_OWNER != null ? String(r.TYPE_OWNER) : null,
+      typeName: r.TYPE_NAME != null ? String(r.TYPE_NAME) : null,
+    }));
+  }
+
   private sourceCache = new Map<string, string>();
   private viewCache = new Map<string, { text: string; textLength: number }>();
   private triggerCache = new Map<

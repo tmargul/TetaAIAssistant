@@ -71,6 +71,13 @@ export function compareKpReferencePath(input: {
   writerPackageNames: string[];
   gatewayNames: string[];
   targetObjectName: string;
+  paths?: Array<{
+    writerPackageId: string;
+    programUnitId: string;
+    dmlOperations: Array<{ operation: string; targetObjectRaw: string }>;
+    callHops?: Array<{ fromProgramUnitId: string; toProgramUnitId: string; matchKind: string }>;
+    gatewayReferences: Array<{ gatewayName: string }>;
+  }>;
 }): { matched: boolean; matches: string[]; mismatches: string[] } {
   const expected = {
     gateway: 'SkladnikiPlacoweTG',
@@ -93,4 +100,33 @@ export function compareKpReferencePath(input: {
     else mismatches.push(k);
   }
   return { matched: mismatches.length === 0, matches, mismatches };
+}
+
+export function compareKpOrderedPath(input: {
+  targetObjectName: string;
+  paths: Array<{
+    writerPackageId: string;
+    programUnitId: string;
+    dmlOperations: Array<{ operation: string; targetObjectRaw: string }>;
+    callHops?: Array<{ fromProgramUnitId: string; toProgramUnitId: string; matchKind: string }>;
+    gatewayReferences: Array<{ gatewayName: string }>;
+  }>;
+}): { kpOrderedPathMatched: boolean; kpOrderedPathProgramUnits: string[]; kpBrokenHop: string | null } {
+  const target = input.targetObjectName.toUpperCase();
+  for (const p of input.paths) {
+    const hasGateway = p.gatewayReferences.some((g) => g.gatewayName.includes('SkladnikiPlacoweTG'));
+    if (!hasGateway) continue;
+    const hasDml = p.dmlOperations.some((d) => String(d.targetObjectRaw).toUpperCase().includes(target));
+    if (!hasDml) continue;
+    const hops = [...(p.callHops ?? [])].sort((a, b) => a.toProgramUnitId.localeCompare(b.toProgramUnitId));
+    const chain = [...new Set(hops.map((h) => h.fromProgramUnitId).concat([p.programUnitId]))];
+    const hasDac = chain.some((id) => id.includes(':NT_KP_SLO_SKLADNIKI_PLAC_DAC:'));
+    const hasDae = chain.some((id) => id.includes(':NT_KP_SLO_SKLADNIKI_PLAC_DAE:'));
+    const hasDef = p.writerPackageId === 'KP_SKLP_DEF' || chain.some((id) => id.includes(':KP_SKLP_DEF:'));
+    if (!hasDac) return { kpOrderedPathMatched: false, kpOrderedPathProgramUnits: chain, kpBrokenHop: 'missing_dac_hop' };
+    if (!hasDae) return { kpOrderedPathMatched: false, kpOrderedPathProgramUnits: chain, kpBrokenHop: 'missing_dae_hop' };
+    if (!hasDef) return { kpOrderedPathMatched: false, kpOrderedPathProgramUnits: chain, kpBrokenHop: 'missing_def_hop' };
+    return { kpOrderedPathMatched: true, kpOrderedPathProgramUnits: chain, kpBrokenHop: null };
+  }
+  return { kpOrderedPathMatched: false, kpOrderedPathProgramUnits: [], kpBrokenHop: 'no_gateway_to_writer_dml_path' };
 }

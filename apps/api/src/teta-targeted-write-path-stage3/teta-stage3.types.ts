@@ -42,9 +42,16 @@ export type Stage3GapRow = {
 
 export type Stage3ParameterRole = 'VALUE_SOURCE' | 'ROW_SELECTOR';
 
+export type Stage3SignatureSource = 'stage2_index' | 'oracle_all_arguments' | 'source_header';
+
+export type Stage3ProgramUnitResolution = 'resolved' | 'unresolved';
+
 export type Stage3ExpressionClassification =
   | 'direct_field'
   | 'direct_param'
+  | 'direct_local_symbol'
+  | 'direct_package_symbol'
+  | 'unresolved_symbol'
   | 'literal'
   | 'transformed'
   | 'sequence'
@@ -83,6 +90,13 @@ export type Stage3ParameterMapping = {
   transformFunction?: string | null;
   positional: boolean;
   provenance: Stage3Provenance;
+  symbolName?: string | null;
+  programUnitId?: string | null;
+  signatureSource?: Stage3SignatureSource | null;
+  matchedArgumentName?: string | null;
+  subprogramId?: number | null;
+  overload?: number | null;
+  mappingConfidence?: Stage3Confidence;
 };
 
 export type Stage3DmlOperation = {
@@ -145,6 +159,16 @@ export type Stage3Caller = {
   callerPackageName: string | null;
   packageFamily: Stage3PackageFamily;
   depth: number;
+  callMatchKind: 'routine_exact' | 'package_fallback';
+  provenance: Stage3Provenance;
+};
+
+export type Stage3CallHop = {
+  depth: number;
+  fromProgramUnitId: string;
+  toProgramUnitId: string;
+  matchKind: 'routine_exact' | 'package_fallback';
+  confidenceClass: Stage3Confidence;
   provenance: Stage3Provenance;
 };
 
@@ -174,12 +198,14 @@ export type Stage3WritePath = {
   lookups: Stage3LookupCheck[];
   sideEffectCalls: Stage3SideEffectCall[];
   callers: Stage3Caller[];
+  callHops: Stage3CallHop[];
   gatewayReferences: Stage3GatewayReference[];
   runtimeBoundaries: Stage3RuntimeBoundary[];
   confidence: Stage3Confidence;
   truncated: boolean;
   truncationReason?: string | null;
   sourceStatus: 'available' | 'unavailable' | 'not_attempted';
+  programUnitResolution?: Stage3ProgramUnitResolution;
 };
 
 export type Stage3Metrics = {
@@ -202,6 +228,9 @@ export type Stage3Metrics = {
   sideEffectCallsFound: number;
   cyclesDetected: number;
   distinctWriterPackages: number;
+  validationCallSitesFound: number;
+  distinctValidationRoutines: number;
+  validationLookupsFound: number;
 };
 
 export type Stage3Audit = {
@@ -268,6 +297,9 @@ export const emptyStage3Metrics = (): Stage3Metrics => ({
   sideEffectCallsFound: 0,
   cyclesDetected: 0,
   distinctWriterPackages: 0,
+  validationCallSitesFound: 0,
+  distinctValidationRoutines: 0,
+  validationLookupsFound: 0,
 });
 
 export const emptyStage3Audit = (): Stage3Audit => ({
