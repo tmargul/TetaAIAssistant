@@ -1,6 +1,7 @@
 {
   "stage4ApplicationFirstEvidenceResolverV2": "accepted_and_committed",
   "STAGE_4_FINAL_STATUS": "accepted_and_committed",
+  "stage4CommitSha": "45e0336d4df1e1d01ca65cc365b930b23c0c4500",
   "contractVersion": "teta-aia-application-first-evidence-resolver-v2",
   "nextRoadmapStage": "stage5_clarification_engine",
   "boundedStaticGapsAcceptable": [

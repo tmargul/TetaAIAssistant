@@ -13,7 +13,7 @@
 ### Stage 4 — Application-First Evidence Resolver v2 — ACCEPTED
 
 - **STATUS:** `STAGE_4_FINAL_STATUS=accepted_and_committed`
-- **Commit SHA:** `cd2509e8797e7a6248dafaee7b7eed479c01a124`
+- **Commit SHA:** `45e0336d4df1e1d01ca65cc365b930b23c0c4500`
 - Pipeline: business concept → anchors → ACE → Oracle → Stage2 → optional Stage3 → candidate-scoped enrichment → VIEW surface/projection → BindingHypotheses → Stage0
 - Core blind current-position: `goldenCoreTopologyPresent=true`, rank=1, `dictionaryReference=SSTN_ID` (exposed VIEW, nie `KASTA_SL_STAN_ID`)
 - Lineage: `NT_KP_KDR_STANOWISKA.SSTN_ID` → `L_STANOWISKA.KASTA_SL_STAN_ID` → słownik; `columnLineageHops[]` bez fałszywego FK
