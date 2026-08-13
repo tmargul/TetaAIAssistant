@@ -2,6 +2,7 @@
   "stage5ClarificationEngine": "accepted_and_committed",
   "contractVersion": "teta-aia-clarification-engine-stage5-v1",
   "STAGE_5_FINAL_STATUS": "accepted_and_committed",
+  "commitSha": "573c39500cef354a21095a6cd467a957f6c6a8ec",
   "surfaceChoicePolicy": {
     "lexiconTokenUsedAsUserFacingChoice": 0,
     "moduleHintOnlyChoices": 0,
