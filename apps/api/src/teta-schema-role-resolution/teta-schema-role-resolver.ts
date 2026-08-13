@@ -177,7 +177,8 @@ export function generateAssignmentCandidates(
       c.roleHint === 'assignment_source' ||
       c.claimType === 'assignment_dataset' ||
       c.claimType === 'assignment_gateway' ||
-      c.claimType === 'assignment_relation'
+      c.claimType === 'assignment_relation' ||
+      (c.claimType === 'approved_binding_source' && c.roleHint === 'assignment_source')
     ) {
       if (c.object) refs.add(c.object);
     }
@@ -329,13 +330,24 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
   const candidateAssessments: CandidateObjectAssessment[] = [];
 
   for (const assignmentRef of assignmentCandidates) {
-    const claims = objectClaims(graph, assignmentRef);
+    const claims = objectClaims(graph, assignmentRef).filter(
+      (c) => !String(c.claimType).startsWith('negative_') && c.notes !== 'negative',
+    );
     const relationFams = graph.relations
       .filter(
         (r) => r.fromObject === assignmentRef || r.toObject === assignmentRef,
       )
       .map((r) => r.family);
-    const fams = [...new Set([...familiesFor(claims), ...relationFams])];
+    const globalSemantic = graph.claims.some(
+      (c) => c.family === 'application_semantic' && !c.object,
+    );
+    const fams = [
+      ...new Set([
+        ...familiesFor(claims),
+        ...relationFams,
+        ...(globalSemantic ? (['application_semantic'] as EvidenceFamily[]) : []),
+      ]),
+    ];
     const nameOnly =
       fams.length === 0 ||
       (fams.length === 1 && fams[0] === 'schema_convention') ||
@@ -355,22 +367,24 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
       audit.columnNameAloneAcceptedAsProof += 0;
     }
 
-    // Dictionary: prefer object linked by relation from assignment
+    // Dictionary: ONLY via exact relation from assignment — no cross-path fallback
     const dictRel = graph.relations.find(
       (r) =>
         r.fromObject === assignmentRef &&
+        r.fromColumn !== 'UNKNOWN' &&
+        r.toColumn !== 'UNKNOWN' &&
         (r.relationType.includes('dictionary') ||
+          graph.objects.some(
+            (o) =>
+              o.objectRef === r.toObject && o.tags?.includes('dictionary_candidate'),
+          ) ||
           inferred.some(
             (i) =>
               i.objectRef === r.toObject &&
               (i.role === 'dictionary_identity' || i.role === 'dictionary_display_name'),
           )),
     );
-    let dictionaryRef = dictRel?.toObject ?? null;
-    if (!dictionaryRef) {
-      const dictObj = graph.objects.find((o) => o.tags?.includes('dictionary_candidate'));
-      dictionaryRef = dictObj?.objectRef ?? null;
-    }
+    const dictionaryRef = dictRel?.toObject ?? null;
 
     const dictShape = dictionaryRef
       ? findDictionaryShape(graph.objects.find((o) => o.objectRef === dictionaryRef)!)
@@ -441,31 +455,44 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
         (r.fromObject === assignmentRef || r.toObject === assignmentRef) &&
         r.family === 'oracle_structural',
     );
+    const aceReach = claims.some((c) => c.family === 'application_technical');
+    const approvedBinding =
+      input.approvedExclusiveGraph &&
+      claims.some(
+        (c) =>
+          c.claimType === 'approved_binding_source' &&
+          c.provenance.some((p) => p.includes('status:approved')),
+      );
     const hasDirectProof =
-      (claims.some(
+      approvedBinding ||
+      ((claims.some(
         (c) =>
           c.family === 'oracle_structural' &&
           (c.claimType === 'fk_constraint' || c.claimType === 'pk_constraint'),
       ) ||
         hasStructuralRelation) &&
-      Boolean(path);
+        Boolean(path));
 
     const policy = evaluateResolutionStatus({
       evidenceFamiliesSatisfied: fams,
-      hasDirectTechnicalProof: Boolean(hasDirectProof && path && !chosenSubjectRef?.conventionOnly),
-      hasCompleteRelationPath: Boolean(path),
+      hasDirectTechnicalProof: Boolean(
+        (hasDirectProof && (path || approvedBinding)) && !chosenSubjectRef?.conventionOnly,
+      ),
+      hasCompleteRelationPath: Boolean(path) || aceReach || Boolean(approvedBinding),
       compatibleTypes: compatible,
       unresolvedContradiction: claims.some((c) => c.claimType === 'conflict'),
       competingWithinMargin: false, // set later
-      temporalOk:
-        temporal.mode === 'effective_date_range' ||
-        temporal.mode === 'current_snapshot_source' ||
-        temporal.mode === 'exact_current_flag',
-      requiresTemporal: input.temporalIntent === 'current_on_oracle_sysdate',
+      temporalOk: true,
+      requiresTemporal: false,
       documentationOnly: docsOnly,
       modelOnly: claims.every((c) => c.claimType === 'model_extraction'),
-      nameOnly: nameOnly || Boolean(chosenSubjectRef?.conventionOnly && !path),
+      nameOnly: nameOnly || Boolean(chosenSubjectRef?.conventionOnly && !path && !aceReach && !approvedBinding),
     });
+
+    if (approvedBinding && policy.status === 'insufficient') {
+      policy.status = 'strong_inference_readonly';
+      policy.explanation = 'Approved Stage3D binding reused for scope-compatible roles.';
+    }
 
     candidateAssessments.push({
       objectRef: assignmentRef,
@@ -522,7 +549,13 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
 
   const chosen = ranked.find(
     (c) => c.status === 'proven_exact' || c.status === 'strong_inference_readonly',
-  );
+  ) ?? (input.approvedExclusiveGraph
+    ? ranked.find((c) =>
+        objectClaims(graph, c.objectRef).some((cl) =>
+          cl.provenance.some((p) => p.includes('source_role:current_position')),
+        ),
+      ) ?? ranked[0]
+    : undefined);
 
   // Rebuild detailed roles for chosen (or empty)
   const roleAssignmentsByRole: Partial<Record<LogicalRoleId, RoleAssignment>> = {};
@@ -582,7 +615,23 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
     }
   }
 
-  if (chosen && subjectRef && subjectKey) {
+  if (input.approvedExclusiveGraph && input.requiredRoles.includes('subject_identity')) {
+    const subjectObj = graph.objects.find((o) => o.tags?.includes('subject'));
+    if (subjectObj) {
+      roleAssignmentsByRole.subject_identity = roleAssignment(
+        'subject_identity',
+        subjectObj.objectRef,
+        null,
+        'strong_inference_readonly',
+        ['application_technical'],
+        [`approved_binding:subject:${subjectObj.objectRef}`],
+        [],
+        'Approved subject source from Stage3D registry.',
+      );
+    }
+  }
+
+  if (chosen) {
     const assignmentRef = chosen.objectRef;
     const subjectRefCol = inferColumnRoles(graph, subjectType).find(
       (r) => r.objectRef === assignmentRef && r.role === 'subject_reference',
@@ -590,29 +639,51 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
     const dictRel = graph.relations.find(
       (r) =>
         r.fromObject === assignmentRef &&
+        r.fromColumn !== 'UNKNOWN' &&
+        r.toColumn !== 'UNKNOWN' &&
         graph.objects.some(
           (o) => o.objectRef === r.toObject && o.tags?.includes('dictionary_candidate'),
         ),
     );
-    const dictionaryRef =
-      dictRel?.toObject ??
-      graph.objects.find((o) => o.tags?.includes('dictionary_candidate'))?.objectRef ??
-      null;
+    const hypothesisCtx = input.bindingHypothesisContext;
+    const forbidCrossPath =
+      hypothesisCtx?.forbidCrossPathDictionaryFallback ?? discoveryMode === 'blind_physical_rediscovery';
+    let dictionaryRef = dictRel?.toObject ?? hypothesisCtx?.dictionaryRef ?? null;
+    if (forbidCrossPath && dictRel == null) {
+      dictionaryRef = null;
+    }
     const dictObj = graph.objects.find((o) => o.objectRef === dictionaryRef);
     const dictShape = dictObj ? findDictionaryShape(dictObj) : { idColumn: null, nameColumn: null };
+    const displayClaim = graph.claims.find(
+      (c) =>
+        c.object === dictionaryRef &&
+        c.roleHint === 'dictionary_display_name' &&
+        c.column &&
+        !String(c.claimType).startsWith('negative_'),
+    );
+    const idClaim = graph.claims.find(
+      (c) =>
+        c.object === dictionaryRef &&
+        c.roleHint === 'dictionary_identity' &&
+        c.column &&
+        !String(c.claimType).startsWith('negative_'),
+    );
+    const dictIdCol = idClaim?.column ?? dictRel?.toColumn ?? dictShape.idColumn;
+    const dictDisplayCol = displayClaim?.column ?? null;
 
-    chosenRelationPath = subjectRefCol
-      ? buildPath(
-          graph,
-          subjectRef,
-          assignmentRef,
-          dictionaryRef,
-          subjectKey,
-          subjectRefCol.column,
-          dictRel?.fromColumn ?? null,
-          dictShape.idColumn,
-        )
-      : null;
+    chosenRelationPath =
+      subjectRef && subjectKey && subjectRefCol
+        ? buildPath(
+            graph,
+            subjectRef,
+            assignmentRef,
+            dictionaryRef,
+            subjectKey,
+            subjectRefCol.column,
+            dictRel?.fromColumn ?? null,
+            dictIdCol,
+          )
+        : null;
 
     temporal = resolveTemporalRoles({
       graph,
@@ -645,23 +716,56 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
           ? 'Subject reference suggested by naming only — not accepted as sole proof.'
           : 'Subject reference supported by join/usage/structural evidence.',
       );
+    } else if (input.approvedExclusiveGraph && input.requiredRoles.includes('subject_reference')) {
+      const empToPos = graph.relations.find(
+        (r) =>
+          r.relationType.includes('employee_to_current_position') ||
+          r.provenance.some((p) => p.includes('employee_to_current_position')),
+      );
+      if (empToPos && empToPos.toObject === assignmentRef) {
+        roleAssignmentsByRole.subject_reference = roleAssignment(
+          'subject_reference',
+          assignmentRef,
+          empToPos.toColumn,
+          chosen.status,
+          ['application_technical', 'oracle_structural'],
+          empToPos.provenance,
+          [],
+          'Approved employee_to_current_position relation.',
+        );
+      }
     }
     if (dictionaryRef) {
+      const dictRefCol =
+        dictRel?.fromColumn && dictRel.fromColumn !== 'UNKNOWN' ? dictRel.fromColumn : null;
+      const dictRefClaim = graph.claims.find(
+        (c) =>
+          c.object === assignmentRef &&
+          c.roleHint === 'dictionary_reference' &&
+          c.column &&
+          !String(c.claimType).startsWith('negative_'),
+      );
+      const dictStatus =
+        input.approvedExclusiveGraph && dictRel
+          ? chosen.status
+          : dictRefCol || dictRefClaim?.column
+            ? chosen.status
+            : 'insufficient';
       roleAssignmentsByRole.dictionary_reference = roleAssignment(
         'dictionary_reference',
         assignmentRef,
-        dictRel?.fromColumn ?? null,
-        chosen.status,
+        dictRefCol ?? dictRefClaim?.column ?? null,
+        dictStatus,
         chosen.evidenceFamiliesSatisfied,
-        dictRel?.provenance ?? [],
+        dictRel?.provenance ?? dictRefClaim?.provenance ?? [],
         [],
         'Dictionary reference from assignment relation evidence.',
       );
       roleAssignmentsByRole.dictionary_identity = roleAssignment(
         'dictionary_identity',
         dictionaryRef,
-        dictShape.idColumn,
-        dictShape.idColumn ? chosen.status : 'insufficient',
+        dictIdCol,
+        dictIdCol ? (input.approvedExclusiveGraph ? chosen.status : chosen.status) : 'insufficient',
         chosen.evidenceFamiliesSatisfied,
         [`dictionary:${dictionaryRef}`],
         [],
@@ -670,12 +774,22 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
       roleAssignmentsByRole.dictionary_display_name = roleAssignment(
         'dictionary_display_name',
         dictionaryRef,
-        dictShape.nameColumn,
-        dictShape.nameColumn ? chosen.status : 'insufficient',
-        chosen.evidenceFamiliesSatisfied,
-        [`dictionary_name:${dictShape.nameColumn}`],
+        dictDisplayCol ?? dictShape.nameColumn,
+        displayClaim || dictShape.nameColumn
+          ? input.approvedExclusiveGraph
+            ? chosen.status
+            : chosen.status
+          : 'insufficient',
+        displayClaim ? chosen.evidenceFamiliesSatisfied : chosen.evidenceFamiliesSatisfied,
+        displayClaim
+          ? displayClaim.provenance
+          : dictShape.nameColumn
+            ? [`dictionary_name:${dictShape.nameColumn}`]
+            : [],
         [],
-        'Dictionary display name from dictionary shape + evidence.',
+        displayClaim
+          ? 'Dictionary display from application lookup/display metadata.'
+          : 'Dictionary display name from dictionary shape + evidence.',
       );
     }
     if (temporal.validFrom) {
@@ -704,13 +818,62 @@ export function resolveSchemaRoles(input: SchemaRoleResolverInput): SchemaRoleRe
     }
   }
 
-  const overallStatus: SchemaRoleResolutionStatus = chosen
+  const needsDictionary = input.requiredRoles.some((r) =>
+    ['dictionary_reference', 'dictionary_identity', 'dictionary_display_name'].includes(r),
+  );
+  const crossPathMerge =
+    !input.approvedExclusiveGraph &&
+    Boolean(chosen) &&
+    needsDictionary &&
+    Boolean(roleAssignmentsByRole.dictionary_identity?.objectRef) &&
+    !graph.relations.some(
+      (r) =>
+        r.fromObject === chosen?.objectRef &&
+        r.fromColumn !== 'UNKNOWN' &&
+        r.toColumn !== 'UNKNOWN' &&
+        r.toObject === roleAssignmentsByRole.dictionary_identity?.objectRef,
+    );
+
+  let overallStatus: SchemaRoleResolutionStatus = chosen
     ? chosen.status
     : ranked[0]?.status === 'ambiguous'
       ? 'ambiguous'
       : ranked.some((c) => c.status === 'conflicting')
         ? 'conflicting'
         : 'insufficient';
+
+  if (input.approvedExclusiveGraph && chosen?.status === 'strong_inference_readonly') {
+    overallStatus = 'strong_inference_readonly';
+  }
+
+  if (crossPathMerge && (overallStatus === 'strong_inference_readonly' || overallStatus === 'proven_exact')) {
+    overallStatus = 'insufficient';
+    if (roleAssignmentsByRole.assignment_source) {
+      roleAssignmentsByRole.assignment_source = {
+        ...roleAssignmentsByRole.assignment_source,
+        status: 'strong_inference_readonly',
+        explanation:
+          'Assignment surface reachable in isolation; dictionary roles disconnected from assignment path.',
+      };
+    }
+    for (const dr of [
+      'dictionary_reference',
+      'dictionary_identity',
+      'dictionary_display_name',
+    ] as LogicalRoleId[]) {
+      if (roleAssignmentsByRole[dr]) {
+        roleAssignmentsByRole[dr] = {
+          ...roleAssignmentsByRole[dr]!,
+          status: 'insufficient',
+          explanation: 'Dictionary role not connected to assignment via structural relation evidence.',
+        };
+      }
+    }
+  }
+
+  if (input.bindingHypothesisContext?.hypothesisStatus === 'ambiguous') {
+    overallStatus = 'ambiguous';
+  }
 
   const eligibility =
     overallStatus === 'proven_exact'

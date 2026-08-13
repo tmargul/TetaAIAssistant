@@ -36,27 +36,61 @@ export function resolveTemporalRoles(input: {
   const inferred = inferColumnRoles(input.graph).filter(
     (r) => r.objectRef === input.assignmentObjectRef,
   );
-  const from = inferred.find((r) => r.role === 'valid_from');
-  const to = inferred.find((r) => r.role === 'valid_to');
-  const flag = inferred.find((r) => r.role === 'current_flag');
-
   const claimsForAssignment = input.graph.claims.filter(
     (c) => c.object === input.assignmentObjectRef || c.subject === input.assignmentObjectRef,
   );
+  const fromClaim = claimsForAssignment.find(
+    (c) =>
+      c.roleHint === 'valid_from' &&
+      c.column &&
+      !String(c.claimType).startsWith('negative_'),
+  );
+  const toClaim = claimsForAssignment.find(
+    (c) =>
+      c.roleHint === 'valid_to' &&
+      c.column &&
+      !String(c.claimType).startsWith('negative_'),
+  );
+  void claimsForAssignment.filter((c) => c.claimType === 'temporal_predicate' && c.column);
+
+  const from =
+    fromClaim && fromClaim.column
+      ? {
+          objectRef: fromClaim.object ?? input.assignmentObjectRef,
+          column: fromClaim.column,
+          evidenceRefs: fromClaim.provenance,
+        }
+      : inferred.find((r) => r.role === 'valid_from' && !r.conventionOnly);
+  const to =
+    toClaim && toClaim.column
+      ? {
+          objectRef: toClaim.object ?? input.assignmentObjectRef,
+          column: toClaim.column,
+          evidenceRefs: toClaim.provenance,
+        }
+      : inferred.find((r) => r.role === 'valid_to' && !r.conventionOnly);
+  const flag = inferred.find((r) => r.role === 'current_flag' && !r.conventionOnly);
+
   const families = uniqueFamilies([
     ...claimsForAssignment.map((c) => c.family),
     ...(input.graph.documentationClaims ?? [])
-      .filter((c) => /period|obowiązyw|valid|data_od|effective/i.test(c.claimType + (c.notes ?? '')))
+      .filter((c) => /period|obowiązyw|valid|effective/i.test(c.claimType + (c.notes ?? '')))
       .map((c) => c.family),
   ]);
 
   const nonConventionSupport = claimsForAssignment.some(
     (c) =>
-      c.family === 'application_semantic' ||
-      c.family === 'application_technical' ||
-      c.family === 'implementation_usage' ||
-      c.family === 'documentation_semantic' ||
-      c.family === 'oracle_structural',
+      (c.family === 'application_semantic' ||
+        c.family === 'application_technical' ||
+        c.family === 'implementation_usage' ||
+        c.family === 'documentation_semantic' ||
+        c.family === 'oracle_structural') &&
+      (c.roleHint === 'valid_from' ||
+        c.roleHint === 'valid_to' ||
+        c.claimType === 'temporal_predicate' ||
+        c.claimType === 'temporal_period_labels' ||
+        c.claimType === 'period_semantics' ||
+        c.claimType === 'current_snapshot_source'),
   );
 
   if (flag && nonConventionSupport) {

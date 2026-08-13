@@ -223,3 +223,34 @@ export function compareCurrentPositionGroundTruth(actual: {
   }
   return { matched: mismatches.length === 0, mismatches, matches };
 }
+
+/** Post-extraction core topology — assignment/subject/dictionary structural roles only. */
+export function compareCurrentPositionCoreTopology(actual: {
+  assignment?: string | null;
+  subjectReference?: string | null;
+  dictionaryReference?: string | null;
+  dictionary?: string | null;
+}): {
+  goldenCoreTopologyPresent: boolean;
+  matchedCoreRoles: string[];
+  mismatchedCoreRoles: string[];
+} {
+  const gt = CURRENT_POSITION_GROUND_TRUTH_AFTER_RESOLUTION;
+  const matchedCoreRoles: string[] = [];
+  const mismatchedCoreRoles: string[] = [];
+  const checks: Array<[string, string | null | undefined, string]> = [
+    ['assignment', actual.assignment, gt.assignment],
+    ['subjectReference', actual.subjectReference, gt.subjectReference],
+    ['dictionaryReference', actual.dictionaryReference, gt.dictionaryReference],
+    ['dictionary', actual.dictionary, gt.dictionary],
+  ];
+  for (const [k, a, e] of checks) {
+    if (a === e) matchedCoreRoles.push(k);
+    else mismatchedCoreRoles.push(`${k}:actual=${a ?? 'null'};expected=${e}`);
+  }
+  return {
+    goldenCoreTopologyPresent: mismatchedCoreRoles.length === 0,
+    matchedCoreRoles,
+    mismatchedCoreRoles,
+  };
+}

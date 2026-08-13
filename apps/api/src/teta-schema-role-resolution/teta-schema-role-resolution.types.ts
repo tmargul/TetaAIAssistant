@@ -94,6 +94,17 @@ export type SchemaRoleResolverInput = {
   /** Injected evidence graph for tests / offline adapters — no human Oracle seeds in pilots. */
   evidenceGraph?: SchemaEvidenceGraph;
   ambiguityMargin?: number;
+  /** Connected binding hypothesis context — prevents cross-path role merges. */
+  bindingHypothesisContext?: {
+    hypothesisId: string;
+    assignmentRef: string;
+    dictionaryRef?: string | null;
+    subjectRef?: string | null;
+    forbidCrossPathDictionaryFallback: boolean;
+    hypothesisStatus?: SchemaRoleResolutionStatus;
+  };
+  /** Approved mode: use approved graph exclusively without blind candidate contamination. */
+  approvedExclusiveGraph?: boolean;
 };
 
 export type EvidenceClaim = {

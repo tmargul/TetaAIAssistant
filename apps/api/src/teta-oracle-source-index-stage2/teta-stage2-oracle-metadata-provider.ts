@@ -343,6 +343,84 @@ export class OracleMetadataSourceProvider implements OracleSourceProvider {
   }
 
   /**
+   * Authoritative VIEW surface columns from ALL_TAB_COLUMNS (metadata-only, ordered by COLUMN_ID).
+   */
+  async loadViewColumnMetadata(
+    objects: Array<{ owner: string; objectName: string }>,
+  ): Promise<
+    Map<
+      string,
+      Array<{
+        owner: string;
+        viewName: string;
+        columnName: string;
+        columnId: number;
+        dataType: string | null;
+      }>
+    >
+  > {
+    const out = new Map<
+      string,
+      Array<{
+        owner: string;
+        viewName: string;
+        columnName: string;
+        columnId: number;
+        dataType: string | null;
+      }>
+    >();
+    if (!this.capabilities.allTabColumns || objects.length === 0) return out;
+
+    const byOwner = new Map<string, Set<string>>();
+    for (const o of objects) {
+      const owner = o.owner.trim().toUpperCase();
+      const name = o.objectName.trim().toUpperCase();
+      if (!owner || !name) continue;
+      const set = byOwner.get(owner) ?? new Set<string>();
+      set.add(name);
+      byOwner.set(owner, set);
+    }
+
+    for (const [owner, names] of byOwner) {
+      const nameList = [...names];
+      const { binds, placeholders } = buildInBinds(nameList, 'n');
+      binds.o = owner;
+      const rows = await this.metaSelect<{
+        OWNER: string;
+        TABLE_NAME: string;
+        COLUMN_NAME: string;
+        COLUMN_ID: number;
+        DATA_TYPE: string | null;
+      }>(
+        `SELECT owner AS "OWNER",
+                table_name AS "TABLE_NAME",
+                column_name AS "COLUMN_NAME",
+                column_id AS "COLUMN_ID",
+                data_type AS "DATA_TYPE"
+         FROM all_tab_columns
+         WHERE owner = :o
+           AND table_name IN (${placeholders})
+         ORDER BY table_name, column_id`,
+        binds,
+      );
+      for (const r of rows) {
+        const viewName = String(r.TABLE_NAME).toUpperCase();
+        const key = `${owner}.${viewName}`;
+        const list = out.get(key) ?? [];
+        list.push({
+          owner,
+          viewName,
+          columnName: String(r.COLUMN_NAME).toUpperCase(),
+          columnId: Number(r.COLUMN_ID),
+          dataType: r.DATA_TYPE != null ? String(r.DATA_TYPE) : null,
+        });
+        out.set(key, list);
+      }
+    }
+    return out;
+  }
+
+  /**
    * Broad ALL_OBJECTS scan (VIEW/TABLE/SYNONYM/PACKAGE/... for indexed owners),
    * used only for endpoint resolution — unlike `inventory`, TABLE and SYNONYM
    * have no PL/SQL source so they are never yielded by iterateSources().

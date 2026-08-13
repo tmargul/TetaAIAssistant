@@ -273,6 +273,457 @@ export function parseSimpleJoinOn(onClause: string | null | undefined): Array<{
   return out;
 }
 
+export type ViewProjectionKind =
+  | 'direct_column'
+  | 'aliased_direct_column'
+  | 'qualified_direct_column'
+  | 'expression'
+  | 'function_expression'
+  | 'constant'
+  | 'unresolved';
+
+export type ViewProjectionFact = {
+  viewOwner: string;
+  viewName: string;
+  viewColumn: string;
+  projectionExpression: string;
+  sourceAlias: string | null;
+  sourceObject: string | null;
+  sourceColumn: string | null;
+  projectionKind: ViewProjectionKind;
+  ordinal: number;
+  /** Explicit SELECT alias when present (AS alias or implicit alias). */
+  explicitAlias?: string | null;
+  /** How the externally visible VIEW column name was resolved. */
+  exposedColumnSource?:
+    | 'oracle_metadata'
+    | 'ddl_explicit_list'
+    | 'select_alias'
+    | 'ordinal_placeholder';
+  projectionConfidence?: 'exact_static' | 'strong_static' | 'unresolved';
+};
+
+/** Authoritative Oracle VIEW surface column from ALL_TAB_COLUMNS (metadata-only). */
+export type ViewExposedColumnMetadata = {
+  owner: string;
+  viewName: string;
+  columnName: string;
+  columnId: number;
+  dataType?: string | null;
+};
+
+export type ViewProjectionAlignmentMetrics = {
+  projectionOrdinalAlignmentsAttempted: number;
+  projectionOrdinalAlignmentsExact: number;
+  projectionOrdinalAlignmentsRejected: number;
+  projectionCountMismatches: number;
+  projectionAliasMetadataConflicts: number;
+  exposedViewColumnFactsRecovered: number;
+  ddlMetadataConflicts: string[];
+};
+
+const PROJECTION_EXPR_FUNCS =
+  /\b(CAST|NVL|COALESCE|CASE|DECODE|SUBSTR|TRIM|TO_CHAR|TO_NUMBER|TO_DATE|TRUNC|ROUND|ABS|LENGTH|UPPER|LOWER|CONCAT|LTRIM|RTRIM|REPLACE|SIGN|MOD|GREATEST|LEAST)\s*\(/i;
+
+function splitTopLevelCommaList(body: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of body) {
+    if (ch === '(') depth += 1;
+    if (ch === ')') depth = Math.max(0, depth - 1);
+    if (ch === ',' && depth === 0) {
+      parts.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.trim()) parts.push(cur);
+  return parts.map((p) => p.trim()).filter(Boolean);
+}
+
+function parseSelectItemAlias(item: string): { expression: string; outputAlias: string | null } {
+  const trimmed = item.trim();
+  const asMatch = /\s+AS\s+("([^"]+)"|[A-Za-z_][\w$#]*)\s*$/i.exec(trimmed);
+  if (asMatch) {
+    return {
+      expression: trimmed.slice(0, asMatch.index).trim(),
+      outputAlias: normalizeOracleName(asMatch[2] ?? asMatch[1]!),
+    };
+  }
+  const implicit = /^(.+?)\s+("([^"]+)"|[A-Za-z_][\w$#]*)\s*$/i.exec(trimmed);
+  if (implicit) {
+    const expr = implicit[1]!.trim();
+    const aliasToken = (implicit[3] ?? implicit[2]!).replace(/"/g, '');
+    if (
+      !/[\+\-\*\/]$/.test(expr) &&
+      !/\)\s*$/.test(expr) &&
+      !/^(SELECT|FROM|WHERE|AND|OR|NULL|DISTINCT|ALL)$/i.test(aliasToken) &&
+      !PROJECTION_EXPR_FUNCS.test(expr)
+    ) {
+      return { expression: expr, outputAlias: normalizeOracleName(aliasToken) };
+    }
+  }
+  return { expression: trimmed, outputAlias: null };
+}
+
+function parseDirectColumnRef(expr: string): {
+  sourceAlias: string | null;
+  sourceObject: string | null;
+  sourceColumn: string;
+  kind: ViewProjectionKind;
+} | null {
+  const e = expr.trim();
+  const triple =
+    /^((?:"[^"]+"|[A-Za-z_][\w$#]*)\.)((?:"[^"]+"|[A-Za-z_][\w$#]*)\.)((?:"[^"]+"|[A-Za-z_][\w$#]*))$/i.exec(
+      e,
+    );
+  if (triple) {
+    const owner = normalizeOracleName(triple[1]!.replace(/\.$/, ''));
+    const objectName = normalizeOracleName(triple[2]!);
+    return {
+      sourceAlias: null,
+      sourceObject: `${owner}.${objectName}`,
+      sourceColumn: normalizeOracleName(triple[3]!),
+      kind: 'qualified_direct_column',
+    };
+  }
+  const pair =
+    /^((?:"[^"]+"|[A-Za-z_][\w$#]*)\.)((?:"[^"]+"|[A-Za-z_][\w$#]*))$/i.exec(e);
+  if (pair) {
+    return {
+      sourceAlias: normalizeOracleName(pair[1]!.replace(/\.$/, '')),
+      sourceObject: null,
+      sourceColumn: normalizeOracleName(pair[2]!),
+      kind: 'direct_column',
+    };
+  }
+  const bare = /^((?:"[^"]+"|[A-Za-z_][\w$#]*))$/i.exec(e);
+  if (bare) {
+    return {
+      sourceAlias: null,
+      sourceObject: null,
+      sourceColumn: normalizeOracleName(bare[1]!),
+      kind: 'direct_column',
+    };
+  }
+  return null;
+}
+
+/** Parse CREATE VIEW (col_a, col_b, ...) explicit exposed-column list when present. */
+export function parseCreateViewExplicitColumnList(sql: string): string[] | null {
+  const text = preprocessSqlForStaticExtraction(sql);
+  const createColList =
+    /\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:FORCE\s+)?VIEW\s+(?:(?:"[^"]+"|[A-Za-z_][\w$#]*)\.)?(?:"[^"]+"|[A-Za-z_][\w$#]*)\s*\(\s*([^)]+)\s*\)\s+AS\b/i.exec(
+      text,
+    );
+  if (!createColList) return null;
+  return splitTopLevelCommaList(createColList[1]!).map((c) =>
+    normalizeOracleName(c.replace(/"/g, '')),
+  );
+}
+
+const DIRECT_PROJECTION_KINDS = new Set<ViewProjectionKind>([
+  'direct_column',
+  'aliased_direct_column',
+  'qualified_direct_column',
+]);
+
+/**
+ * Align parsed SELECT projections with authoritative VIEW surface columns (ordinal N ↔ N).
+ * Oracle metadata is preferred over DDL text; conflicts are recorded, not silently resolved.
+ */
+export function alignViewProjectionsWithSurface(input: {
+  viewOwner: string;
+  viewName: string;
+  projections: ViewProjectionFact[];
+  exposedColumns: ViewExposedColumnMetadata[];
+  declaredColumnsFromDdl?: string[] | null;
+  unresolvedConstructs?: string[];
+}): {
+  projections: ViewProjectionFact[];
+  projectionConfidence: 'exact_static' | 'strong_static' | 'unresolved';
+  metrics: ViewProjectionAlignmentMetrics;
+} {
+  const owner = normalizeOracleName(input.viewOwner);
+  const vName = normalizeOracleName(input.viewName);
+  const metrics: ViewProjectionAlignmentMetrics = {
+    projectionOrdinalAlignmentsAttempted: 0,
+    projectionOrdinalAlignmentsExact: 0,
+    projectionOrdinalAlignmentsRejected: 0,
+    projectionCountMismatches: 0,
+    projectionAliasMetadataConflicts: 0,
+    exposedViewColumnFactsRecovered: 0,
+    ddlMetadataConflicts: [],
+  };
+
+  const unresolved = input.unresolvedConstructs ?? [];
+  const sortedMeta = [...input.exposedColumns]
+    .filter((c) => normalizeOracleName(c.owner) === owner && normalizeOracleName(c.viewName) === vName)
+    .sort((a, b) => a.columnId - b.columnId);
+
+  if (!sortedMeta.length) {
+    const out = input.projections.map((p) => ({
+      ...p,
+      projectionConfidence: 'unresolved' as const,
+    }));
+    return { projections: out, projectionConfidence: 'unresolved', metrics };
+  }
+
+  metrics.exposedViewColumnFactsRecovered = sortedMeta.length;
+  metrics.projectionOrdinalAlignmentsAttempted = Math.max(
+    sortedMeta.length,
+    input.projections.length,
+  );
+
+  if (sortedMeta.length !== input.projections.length) {
+    metrics.projectionCountMismatches += 1;
+  }
+
+  const ddlCols = input.declaredColumnsFromDdl ?? null;
+  if (ddlCols?.length) {
+    const len = Math.min(ddlCols.length, sortedMeta.length);
+    for (let i = 0; i < len; i++) {
+      if (ddlCols[i]!.toUpperCase() !== sortedMeta[i]!.columnName.toUpperCase()) {
+        metrics.ddlMetadataConflicts.push(
+          `ordinal_${i + 1}:ddl=${ddlCols[i]}:metadata=${sortedMeta[i]!.columnName}`,
+        );
+      }
+    }
+    if (ddlCols.length !== sortedMeta.length) {
+      metrics.ddlMetadataConflicts.push(
+        `count:ddl=${ddlCols.length}:metadata=${sortedMeta.length}`,
+      );
+    }
+  }
+
+  const hasStar = input.projections.some(
+    (p) => p.projectionKind === 'unresolved' && (p.viewColumn === '*' || /\*/.test(p.projectionExpression)),
+  );
+  const blockingConstructs = unresolved.filter((u) =>
+    ['UNION', 'SUBQUERY_IN_SELECT', 'SELECT_MISSING'].includes(u),
+  );
+
+  let exactEligible =
+    sortedMeta.length > 0 &&
+    sortedMeta.length === input.projections.length &&
+    !hasStar &&
+    blockingConstructs.length === 0 &&
+    metrics.ddlMetadataConflicts.length === 0;
+
+  const aligned: ViewProjectionFact[] = input.projections.map((p, i) => {
+    const meta = sortedMeta[i];
+    if (!meta) {
+      metrics.projectionOrdinalAlignmentsRejected += 1;
+      exactEligible = false;
+      return { ...p, projectionConfidence: 'unresolved' as const };
+    }
+
+    const exposedName = normalizeOracleName(meta.columnName);
+    let aliasConflict = false;
+    if (p.explicitAlias && p.explicitAlias.toUpperCase() !== exposedName) {
+      metrics.projectionAliasMetadataConflicts += 1;
+      aliasConflict = true;
+      exactEligible = false;
+    }
+
+    let projectionKind = p.projectionKind;
+    if (
+      p.sourceColumn &&
+      DIRECT_PROJECTION_KINDS.has(p.projectionKind) &&
+      exposedName !== p.sourceColumn.toUpperCase()
+    ) {
+      projectionKind = 'aliased_direct_column';
+    }
+
+    if (exactEligible && !aliasConflict) {
+      metrics.projectionOrdinalAlignmentsExact += 1;
+    } else {
+      metrics.projectionOrdinalAlignmentsRejected += 1;
+    }
+
+    return {
+      ...p,
+      viewColumn: exposedName,
+      projectionKind,
+      explicitAlias: p.explicitAlias ?? null,
+      exposedColumnSource: 'oracle_metadata' as const,
+      projectionConfidence: exactEligible && !aliasConflict ? ('exact_static' as const) : aliasConflict || hasStar || blockingConstructs.length ? ('unresolved' as const) : ('strong_static' as const),
+    };
+  });
+
+  const projectionConfidence: 'exact_static' | 'strong_static' | 'unresolved' = exactEligible
+    ? metrics.projectionAliasMetadataConflicts === 0
+      ? 'exact_static'
+      : 'strong_static'
+    : sortedMeta.length === input.projections.length && !hasStar && blockingConstructs.length === 0
+      ? 'strong_static'
+      : 'unresolved';
+
+  for (const p of aligned) {
+    if (projectionConfidence === 'exact_static') {
+      p.projectionConfidence = 'exact_static';
+    } else if (p.projectionConfidence === 'exact_static') {
+      p.projectionConfidence = projectionConfidence;
+    }
+  }
+
+  return { projections: aligned, projectionConfidence, metrics };
+}
+
+/**
+ * Deterministic SELECT projection lineage for VIEW definitions.
+ * Maps externally addressable VIEW.COLUMN → source alias/object/column when statically visible.
+ * Exposed VIEW column names come from metadata alignment — never from base/source column identity alone.
+ */
+export function extractViewProjectionLineage(
+  sql: string,
+  viewOwner: string,
+  viewName: string,
+  aliasToObject?: Map<string, string>,
+): {
+  projections: ViewProjectionFact[];
+  unresolvedConstructs: string[];
+} {
+  const text = preprocessSqlForStaticExtraction(sql);
+  const unresolvedConstructs: string[] = [];
+  const owner = normalizeOracleName(viewOwner);
+  const vName = normalizeOracleName(viewName);
+
+  const declaredColumns = parseCreateViewExplicitColumnList(sql);
+
+  const selectMatch = /\bSELECT\b([\s\S]*?)\bFROM\b/i.exec(text);
+  if (!selectMatch) {
+    unresolvedConstructs.push('SELECT_MISSING');
+    return { projections: [], unresolvedConstructs };
+  }
+  const selectBody = selectMatch[1] ?? '';
+  if (/\bUNION\b/i.test(text)) unresolvedConstructs.push('UNION');
+  if (/\(\s*SELECT\b/i.test(selectBody)) unresolvedConstructs.push('SUBQUERY_IN_SELECT');
+
+  const items = splitTopLevelCommaList(selectBody);
+  const projections: ViewProjectionFact[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]!;
+    const ordinal = i + 1;
+    if (/^\*\s*$/.test(item) || /\.\*\s*$/.test(item)) {
+      projections.push({
+        viewOwner: owner,
+        viewName: vName,
+        viewColumn: declaredColumns?.[i] ?? '*',
+        projectionExpression: item,
+        sourceAlias: null,
+        sourceObject: null,
+        sourceColumn: null,
+        projectionKind: 'unresolved',
+        ordinal,
+        explicitAlias: null,
+        exposedColumnSource: declaredColumns?.[i] ? 'ddl_explicit_list' : 'ordinal_placeholder',
+      });
+      continue;
+    }
+
+    const { expression, outputAlias } = parseSelectItemAlias(item);
+    let viewColumn = outputAlias ?? declaredColumns?.[i] ?? `COL_${ordinal}`;
+    const exposedColumnSource: ViewProjectionFact['exposedColumnSource'] = outputAlias
+      ? 'select_alias'
+      : declaredColumns?.[i]
+        ? 'ddl_explicit_list'
+        : 'ordinal_placeholder';
+
+    const trimmedExpr = expression.trim();
+    if (
+      /^'/.test(trimmedExpr) ||
+      /^NULL$/i.test(trimmedExpr) ||
+      /^\d+(\.\d+)?$/.test(trimmedExpr)
+    ) {
+      projections.push({
+        viewOwner: owner,
+        viewName: vName,
+        viewColumn,
+        projectionExpression: expression,
+        sourceAlias: null,
+        sourceObject: null,
+        sourceColumn: null,
+        projectionKind: 'constant',
+        ordinal,
+        explicitAlias: outputAlias,
+        exposedColumnSource,
+      });
+      continue;
+    }
+
+    if (
+      PROJECTION_EXPR_FUNCS.test(expression) ||
+      /\bCASE\b/i.test(expression) ||
+      /[\+\-\*\/\|\|]/.test(expression)
+    ) {
+      projections.push({
+        viewOwner: owner,
+        viewName: vName,
+        viewColumn,
+        projectionExpression: expression,
+        sourceAlias: null,
+        sourceObject: null,
+        sourceColumn: null,
+        projectionKind: PROJECTION_EXPR_FUNCS.test(expression)
+          ? 'function_expression'
+          : 'expression',
+        ordinal,
+        explicitAlias: outputAlias,
+        exposedColumnSource,
+      });
+      continue;
+    }
+
+    const direct = parseDirectColumnRef(expression);
+    if (!direct) {
+      projections.push({
+        viewOwner: owner,
+        viewName: vName,
+        viewColumn,
+        projectionExpression: expression,
+        sourceAlias: null,
+        sourceObject: null,
+        sourceColumn: null,
+        projectionKind: 'unresolved',
+        ordinal,
+        explicitAlias: outputAlias,
+        exposedColumnSource,
+      });
+      continue;
+    }
+
+    let sourceObject = direct.sourceObject;
+    if (!sourceObject && direct.sourceAlias && aliasToObject) {
+      sourceObject = aliasToObject.get(direct.sourceAlias.toUpperCase()) ?? null;
+    }
+
+    const kind: ViewProjectionKind =
+      outputAlias && direct.sourceColumn.toUpperCase() !== viewColumn.toUpperCase()
+        ? 'aliased_direct_column'
+        : direct.kind;
+
+    projections.push({
+      viewOwner: owner,
+      viewName: vName,
+      viewColumn,
+      projectionExpression: expression,
+      sourceAlias: direct.sourceAlias,
+      sourceObject,
+      sourceColumn: direct.sourceColumn,
+      projectionKind: kind,
+      ordinal,
+      explicitAlias: outputAlias,
+      exposedColumnSource,
+    });
+  }
+
+  return { projections, unresolvedConstructs };
+}
+
 /** Extract FROM / JOIN object references from view SQL (shallow). */
 export function extractViewLineage(sql: string): {
   reads: Array<{ raw: string; qualified: QualifiedName; alias: string | null }>;
@@ -303,20 +754,61 @@ export function extractViewLineage(sql: string): {
     conditionStatus: 'resolved' | 'unresolved' | 'not_provided';
   }> = [];
 
-  const fromRe =
-    /\bFROM\s+((?:"[^"]+"|[A-Za-z_][\w$#]*)(?:\.(?:"[^"]+"|[A-Za-z_][\w$#]*))?)\s*(?:(?:AS\s+)?([A-Za-z_][\w$#]*))?/gi;
-  let m: RegExpExecArray | null;
-  while ((m = fromRe.exec(text))) {
-    const q = splitQualifiedName(m[1]!);
-    reads.push({
-      raw: m[1]!,
-      qualified: q,
-      alias: m[2] ? normalizeOracleName(m[2]) : null,
-    });
+  // Oracle comma-style FROM: FROM a alias1, b alias2, c alias3
+  const fromClause =
+    /\bFROM\b([\s\S]*?)(?:\bWHERE\b|\bGROUP\b|\bORDER\b|\bUNION\b|\bCONNECT\b|$)/i.exec(text);
+  if (fromClause) {
+    const fromBody = fromClause[1] ?? '';
+    // Split on commas that are not inside parentheses.
+    const parts: string[] = [];
+    let depth = 0;
+    let cur = '';
+    for (const ch of fromBody) {
+      if (ch === '(') depth += 1;
+      if (ch === ')') depth = Math.max(0, depth - 1);
+      if (ch === ',' && depth === 0) {
+        parts.push(cur);
+        cur = '';
+        continue;
+      }
+      cur += ch;
+    }
+    if (cur.trim()) parts.push(cur);
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (!trimmed || /\bJOIN\b/i.test(trimmed)) continue;
+      const item =
+        /^((?:"[^"]+"|[A-Za-z_][\w$#]*)(?:\.(?:"[^"]+"|[A-Za-z_][\w$#]*))?)\s*(?:(?:AS\s+)?([A-Za-z_][\w$#]*))?/i.exec(
+          trimmed,
+        );
+      if (!item) continue;
+      const q = splitQualifiedName(item[1]!);
+      reads.push({
+        raw: item[1]!,
+        qualified: q,
+        alias: item[2] ? normalizeOracleName(item[2]) : null,
+      });
+    }
+  }
+
+  // Fallback: single FROM object when comma parser found nothing
+  if (reads.length === 0) {
+    const fromRe =
+      /\bFROM\s+((?:"[^"]+"|[A-Za-z_][\w$#]*)(?:\.(?:"[^"]+"|[A-Za-z_][\w$#]*))?)\s*(?:(?:AS\s+)?([A-Za-z_][\w$#]*))?/gi;
+    let m: RegExpExecArray | null;
+    while ((m = fromRe.exec(text))) {
+      const q = splitQualifiedName(m[1]!);
+      reads.push({
+        raw: m[1]!,
+        qualified: q,
+        alias: m[2] ? normalizeOracleName(m[2]) : null,
+      });
+    }
   }
 
   const joinRe =
     /\b((?:INNER|LEFT|RIGHT|FULL|CROSS)\s+(?:OUTER\s+)?JOIN|JOIN)\s+((?:"[^"]+"|[A-Za-z_][\w$#]*)(?:\.(?:"[^"]+"|[A-Za-z_][\w$#]*))?)\s*(?:(?:AS\s+)?([A-Za-z_][\w$#]*))?\s*(?:ON\s+((?:(?!\b(?:INNER|LEFT|RIGHT|FULL|CROSS|JOIN|WHERE|GROUP|ORDER|UNION)\b).)+))?/gi;
+  let m: RegExpExecArray | null;
   while ((m = joinRe.exec(text))) {
     const q = splitQualifiedName(m[2]!);
     const onClause = m[4]?.trim() ?? null;
@@ -334,6 +826,55 @@ export function extractViewLineage(sql: string): {
       parsedPairs: pairs,
       conditionStatus,
     });
+  }
+
+  // Oracle comma-FROM equijoins live in WHERE (alias.col = alias.col).
+  // Emit synthetic JOIN facts when multiple FROM objects exist and WHERE has exact pairs.
+  if (reads.length >= 2) {
+    const where = /\bWHERE\b([\s\S]*?)(?:\bGROUP\b|\bORDER\b|\bUNION\b|$)/i.exec(text);
+    const whereClause = where?.[1] ?? '';
+    const aliasToRaw = new Map<string, { raw: string; qualified: QualifiedName }>();
+    for (const r of reads) {
+      if (r.alias) aliasToRaw.set(r.alias.toUpperCase(), { raw: r.raw, qualified: r.qualified });
+      aliasToRaw.set(r.qualified.objectName.toUpperCase(), {
+        raw: r.raw,
+        qualified: r.qualified,
+      });
+    }
+    const eqRe =
+      /([A-Za-z_][\w$#]*)\.([A-Za-z_][\w$#]*)\s*=\s*([A-Za-z_][\w$#]*)\.([A-Za-z_][\w$#]*)/g;
+    let eq: RegExpExecArray | null;
+    const emitted = new Set<string>();
+    while ((eq = eqRe.exec(whereClause))) {
+      const leftAlias = eq[1]!.toUpperCase();
+      const rightAlias = eq[3]!.toUpperCase();
+      const leftCol = eq[2]!.toUpperCase();
+      const rightCol = eq[4]!.toUpperCase();
+      if (leftAlias === rightAlias) continue;
+      const left = aliasToRaw.get(leftAlias);
+      const right = aliasToRaw.get(rightAlias);
+      if (!left || !right) continue;
+      const key = `${leftAlias}.${leftCol}=${rightAlias}.${rightCol}`;
+      if (emitted.has(key)) continue;
+      emitted.add(key);
+      const onClause = `${leftAlias}.${leftCol} = ${rightAlias}.${rightCol}`;
+      joins.push({
+        raw: right.raw,
+        qualified: right.qualified,
+        alias: rightAlias === right.qualified.objectName.toUpperCase() ? null : rightAlias,
+        joinType: 'WHERE_EQUIJOIN',
+        onClause,
+        parsedPairs: [
+          {
+            leftAlias,
+            leftColumn: leftCol,
+            rightAlias,
+            rightColumn: rightCol,
+          },
+        ],
+        conditionStatus: 'resolved',
+      });
+    }
   }
 
   return { reads, joins, unresolvedConstructs };

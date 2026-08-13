@@ -30,6 +30,20 @@ export function inferColumnRoles(
   subjectIdentityType?: string,
 ): InferredColumnRole[] {
   const out: InferredColumnRole[] = [];
+  for (const c of graph.claims) {
+    if (!c.object || !c.column || !c.roleHint) continue;
+    if (c.claimType?.startsWith('negative_')) continue;
+    const role = c.roleHint as LogicalRoleId;
+    const conventionOnly =
+      c.family === 'schema_convention' || c.claimType === 'name_similarity';
+    out.push({
+      objectRef: c.object,
+      column: c.column,
+      role,
+      conventionOnly,
+      evidenceRefs: c.provenance,
+    });
+  }
   for (const obj of graph.objects) {
     for (const col of obj.columns ?? []) {
       const refs = [`object:${obj.objectRef}`, `column:${col.name}`];

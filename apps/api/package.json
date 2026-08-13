@@ -65,7 +65,8 @@
     "pilot:p1-employee-time-work-group": "ts-node -r tsconfig-paths/register src/scripts/p1-employee-time-work-group-pilot.ts",
     "ace:stage1": "ts-node -r tsconfig-paths/register src/scripts/application-code-graph-stage1.ts",
     "osi:stage2": "ts-node -r tsconfig-paths/register src/scripts/oracle-source-index-stage2.ts",
-    "twp:stage3": "ts-node -r tsconfig-paths/register src/scripts/targeted-write-path-stage3.ts"
+    "twp:stage3": "ts-node -r tsconfig-paths/register src/scripts/targeted-write-path-stage3.ts",
+    "afer:stage4": "ts-node -r tsconfig-paths/register src/scripts/application-first-evidence-resolver-v2.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
