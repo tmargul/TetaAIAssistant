@@ -1,31 +1,32 @@
 # Kontekst rozmów — Teta AI Assistant
 
-> Ostatnia aktualizacja: **2026-08-13** (Stage 4 ACCEPTED + COMMITTED)
+> Ostatnia aktualizacja: **2026-08-13** (Stage 5 commit pending push; Stage 6 acceptance next)
 
 ---
 
 ## Notatki sesji (2026-08-13)
 
-### Stage 3 — ACCEPTED + COMMITTED
-
-- SHA bazowy przed Stage 4: `8fa6ddb21912bbb26597db9d64e3be54d31d14a3`
-
-### Stage 4 — Application-First Evidence Resolver v2 — ACCEPTED
+### Stage 4 — ACCEPTED + COMMITTED
 
 - **STATUS:** `STAGE_4_FINAL_STATUS=accepted_and_committed`
-- **Commit SHA:** `45e0336d4df1e1d01ca65cc365b930b23c0c4500`
-- Pipeline: business concept → anchors → ACE → Oracle → Stage2 → optional Stage3 → candidate-scoped enrichment → VIEW surface/projection → BindingHypotheses → Stage0
-- Core blind current-position: `goldenCoreTopologyPresent=true`, rank=1, `dictionaryReference=SSTN_ID` (exposed VIEW, nie `KASTA_SL_STAN_ID`)
-- Lineage: `NT_KP_KDR_STANOWISKA.SSTN_ID` → `L_STANOWISKA.KASTA_SL_STAN_ID` → słownik; `columnLineageHops[]` bez fałszywego FK
-- **Akceptowalne static gaps (fail-closed):** display / temporal / Stage3 zero evidence / domeny insufficient
-- Gate: 479/479; API build EXIT 0; `strictErrors=[]`
-- B3A: `stash@{0}` untouched; `.local/**` untracked
+- **Feature SHA:** `45e0336d4df1e1d01ca65cc365b930b23c0c4500`
+- **Docs SHA:** `b2ea575ddb9ee0275adfc6482b7679daf082123a`
 
-### Stage 5 — NEXT
+### Stage 5 — Application-Language Clarification Engine
 
-- Application-Language Clarification Engine (local, not committed until review)
+- Contract: `teta-aia-clarification-engine-stage5-v1`
+- Module: `apps/api/src/teta-clarification-engine-stage5/`
+- CLI: `clarify:stage5`
+- Principles: insufficient ≠ clarification; hypothesis-backed surfaces only; no physical injection
+- Clean gate (pre-commit): 414 pass / 0 fail / 0 timeouts; Stage5 20/20; API build OK
+- **STATUS:** `STAGE_5_FINAL_STATUS=accepted_and_committed` (SHA recorded after push)
+
+### B3A / .local
+
+- B3A: `stash@{0}` untouched
+- `.local/**` untracked
 
 ## Otwarte
 
-- [ ] Stage 5 implementacja lokalna → architect review
-- [ ] B3A pozostaje w stash (nie restore)
+- [ ] Stage 6 acceptance (TWG + unseen) — local only, do not commit yet
+- [ ] B3A pozostaje w stash

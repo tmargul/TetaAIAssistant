@@ -1,0 +1,45 @@
+{
+  "stage5ClarificationEngine": "accepted_and_committed",
+  "contractVersion": "teta-aia-clarification-engine-stage5-v1",
+  "STAGE_5_FINAL_STATUS": "accepted_and_committed",
+  "surfaceChoicePolicy": {
+    "lexiconTokenUsedAsUserFacingChoice": 0,
+    "moduleHintOnlyChoices": 0,
+    "choicesMustPartitionSurvivingHypotheses": true,
+    "forceSemanticDimension": "fixture_test_only",
+    "insufficientDoesNotImplyClarification": true,
+    "clarificationInjectsPhysicalMappings": false
+  },
+  "principles": [
+    "insufficient != clarification",
+    "technical uncertainty is not delegated to user",
+    "clarification choices come from surviving application hypotheses",
+    "weak surface evidence is suppressed",
+    "clarification answer changes semantic/application context only",
+    "no physical mappings are injected by clarification"
+  ],
+  "acceptance": {
+    "currentPosition": {
+      "clarificationRequired": false,
+      "technicalGapOnly": true
+    },
+    "ambiguity": {
+      "weakWhichFormSuppressedWhenNoPartition": true
+    },
+    "currentVsHistory": {
+      "fixtureKind": "semantic_fixture_test_only",
+      "businessLanguageClarification": true
+    },
+    "technicalOnly": {
+      "clarificationRequired": false
+    },
+    "unseenBhp": {
+      "weakWhichFormSuppressedWhenUnsupported": true
+    },
+    "multiForm": {
+      "realPartitionProducesQuestion": true,
+      "answerReducesUncertainty": true
+    }
+  },
+  "doNotStart": ["stage7", "b3a_restore"]
+}
