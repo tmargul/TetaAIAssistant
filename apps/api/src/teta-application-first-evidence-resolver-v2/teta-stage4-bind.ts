@@ -290,28 +290,25 @@ export function bindEvidenceToRoleGraph(input: {
     });
   }
 
-  // Semantic anchors: attach once globally, and only to assignment surfaces whose
-  // ACE path shares an anchor form/token (avoid false corroboration across all candidates).
+  // Semantic anchors: attach ONLY to assignment surfaces whose ACE path aligns
+  // with the anchor (no global unattached claims — they pollute all candidates).
   for (const a of input.anchors.anchors) {
     const fp = originFingerprint('semantic_anchor', [a.anchorId]);
     fingerprints.add(fp);
-    claims.push({
-      family: 'application_semantic',
-      claimType: 'application_anchor',
-      weight: a.recognitionConfidence === 'exact' ? 3 : 2,
-      provenance: [fp, ...a.semanticEvidence.slice(0, 4)],
-      notes: a.label,
-      subject: a.formRef ? `form:${a.formRef}` : undefined,
-    });
     const formNeedle = (a.formRef ?? a.label ?? '').toLowerCase();
     const tokens = (a.matchTokens ?? []).map((t) => t.toLowerCase()).filter((t) => t.length >= 4);
+    let attached = false;
     for (const c of input.oracle.candidates) {
       if (!c.candidateRoleHypotheses.includes('assignment_source')) continue;
       const pathBlob = c.acePath.join('|').toLowerCase();
+      const reached = (c.reachedFromApplicationNode ?? '').toLowerCase();
+      const blob = `${pathBlob}|${reached}`;
       const hit =
-        (formNeedle.length >= 4 && pathBlob.includes(formNeedle.slice(0, Math.min(formNeedle.length, 24)))) ||
-        tokens.some((t) => pathBlob.includes(t));
+        (formNeedle.length >= 4 &&
+          blob.includes(formNeedle.slice(0, Math.min(formNeedle.length, 24)))) ||
+        tokens.some((t) => blob.includes(t));
       if (!hit) continue;
+      attached = true;
       const objectRef = `${c.owner}.${c.objectName}`;
       claims.push({
         family: 'application_semantic',
@@ -319,7 +316,18 @@ export function bindEvidenceToRoleGraph(input: {
         object: objectRef,
         roleHint: 'assignment_source',
         weight: a.recognitionConfidence === 'exact' ? 3 : 2,
-        provenance: [fp, ...a.semanticEvidence.slice(0, 4), `ace_path_hit:${objectRef}`],
+        provenance: [fp, ...a.semanticEvidence.slice(0, 4), `ace_path_hit:${objectRef}`, `cohort_anchor:${a.anchorId}`],
+        notes: a.label,
+        subject: a.formRef ? `form:${a.formRef}` : undefined,
+      });
+    }
+    if (!attached && (a.anchorType === 'pa_plugin' || a.anchorType === 'pa_form_token')) {
+      // Path-unreachable PA anchor — record as negative scope signal, not global semantic proof.
+      claims.push({
+        family: 'application_semantic',
+        claimType: 'negative_unaligned_application_anchor',
+        weight: 1,
+        provenance: [fp, ...a.semanticEvidence.slice(0, 2), 'semantic_path_not_reached'],
         notes: a.label,
         subject: a.formRef ? `form:${a.formRef}` : undefined,
       });

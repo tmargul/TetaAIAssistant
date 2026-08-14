@@ -153,7 +153,10 @@ function roleStatusForBinding(
 ): SchemaRoleResolutionStatus {
   if (!hasEvidence) return 'insufficient';
   if (!connected && role !== 'assignment_source') return 'insufficient';
-  if (role === 'assignment_source' && isolatedStrong && !connected) return 'strong_inference_readonly';
+  if (role === 'assignment_source' && isolatedStrong) {
+    // Isolated technical reachability alone is NOT strong — semantic gate may still apply.
+    return 'insufficient';
+  }
   if (hasEvidence && connected) return 'strong_inference_readonly';
   return 'insufficient';
 }

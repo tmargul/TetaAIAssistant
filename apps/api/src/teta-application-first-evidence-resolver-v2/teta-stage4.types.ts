@@ -180,6 +180,21 @@ export type Stage4Metrics = {
   exposedViewColumnFactsRecovered: number;
   /** @deprecated use aceNodesVisited — kept for transitional readers */
   graphNodesVisited?: number;
+  semanticCohortsBuilt: number;
+  anchorsAssignedToCohorts: number;
+  compoundConceptMatches: number;
+  multiTokenMatches: number;
+  isolatedTokenMatches: number;
+  lowDiscriminativeTokenMatches: number;
+  crossModuleTokenCollisions: number;
+  crossProductTokenCollisions: number;
+  semanticEvidencePathAligned: number;
+  semanticEvidencePathRejected: number;
+  candidatesRejectedFromStrongBySemanticGate: number;
+  hypothesesRejectedFromStrongBySemanticGate: number;
+  crossCohortSemanticMerges: number;
+  falseStrongBindings: number;
+  additionalOracleCallsForDomainCoherence: number;
 };
 
 export type Stage4Audit = {
@@ -212,6 +227,16 @@ export type Stage4Audit = {
   blindDiscoveryLeakIntoApprovedReuse: number;
   sharedBaseOnlyPromotedToExact: number;
   crossPathRoleMerges: number;
+  scenarioSpecificDomainCoherenceBranches: number;
+  hardcodedTwgSemanticRules: number;
+  hardcodedUnseenSemanticRules: number;
+  hardcodedCurrentPositionSemanticRules: number;
+  hardcodedPayrollSemanticRules: number;
+  domainStopwordExceptionRules: number;
+  goldenPhysicalMappingUsedForSemanticCoherence: number;
+  expectedOracleNamesUsedForSemanticCoherence: number;
+  semanticEvidencePathAlignedViolations: number;
+  crossCohortSemanticMerges: number;
 };
 
 export type Stage4ResolutionResult = {
@@ -333,6 +358,21 @@ export const emptyStage4Metrics = (): Stage4Metrics => ({
   projectionCountMismatches: 0,
   projectionAliasMetadataConflicts: 0,
   exposedViewColumnFactsRecovered: 0,
+  semanticCohortsBuilt: 0,
+  anchorsAssignedToCohorts: 0,
+  compoundConceptMatches: 0,
+  multiTokenMatches: 0,
+  isolatedTokenMatches: 0,
+  lowDiscriminativeTokenMatches: 0,
+  crossModuleTokenCollisions: 0,
+  crossProductTokenCollisions: 0,
+  semanticEvidencePathAligned: 0,
+  semanticEvidencePathRejected: 0,
+  candidatesRejectedFromStrongBySemanticGate: 0,
+  hypothesesRejectedFromStrongBySemanticGate: 0,
+  crossCohortSemanticMerges: 0,
+  falseStrongBindings: 0,
+  additionalOracleCallsForDomainCoherence: 0,
 });
 
 export const emptyStage4Audit = (): Stage4Audit => ({
@@ -365,4 +405,14 @@ export const emptyStage4Audit = (): Stage4Audit => ({
   blindDiscoveryLeakIntoApprovedReuse: 0,
   sharedBaseOnlyPromotedToExact: 0,
   crossPathRoleMerges: 0,
+  scenarioSpecificDomainCoherenceBranches: 0,
+  hardcodedTwgSemanticRules: 0,
+  hardcodedUnseenSemanticRules: 0,
+  hardcodedCurrentPositionSemanticRules: 0,
+  hardcodedPayrollSemanticRules: 0,
+  domainStopwordExceptionRules: 0,
+  goldenPhysicalMappingUsedForSemanticCoherence: 0,
+  expectedOracleNamesUsedForSemanticCoherence: 0,
+  semanticEvidencePathAlignedViolations: 0,
+  crossCohortSemanticMerges: 0,
 });

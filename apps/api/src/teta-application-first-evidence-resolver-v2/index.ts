@@ -15,3 +15,4 @@ export * from './teta-stage4-coherence-diagnostic';
 export * from './teta-stage4-source-enrichment';
 export * from './teta-stage4-oracle-lineage';
 export * from './teta-stage4-view-projection';
+export * from './teta-stage4-domain-coherence';

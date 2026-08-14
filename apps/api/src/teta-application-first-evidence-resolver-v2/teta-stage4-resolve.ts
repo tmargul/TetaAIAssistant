@@ -25,6 +25,11 @@ import {
 } from './teta-stage4-hypotheses';
 import { buildAssignmentCandidateCoherenceDiagnostic } from './teta-stage4-coherence-diagnostic';
 import {
+  applySemanticGateToHypotheses,
+  applySemanticGateToSchemaRoleResolution,
+  buildCandidateSemanticAssessments,
+} from './teta-stage4-domain-coherence';
+import {
   collectAceApplicationJoinCandidates,
   enrichGraphForCandidates,
 } from './teta-stage4-source-enrichment';
@@ -425,6 +430,13 @@ export async function resolveApplicationFirstEvidence(input: {
   Object.assign(metrics, enrichmentMetrics);
   audit.sharedBaseOnlyPromotedToExact = metrics.sharedBaseOnlyPromotedToExact;
 
+  const semanticCoherence = buildCandidateSemanticAssessments({
+    businessConcept: input.request.businessConcept,
+    anchors: anchors.anchors,
+    candidates: oracleForHypotheses.candidates,
+  });
+  Object.assign(metrics, semanticCoherence.metrics);
+
   // Connected binding hypotheses BEFORE Stage0
   let bindingHypotheses: BindingHypothesis[] = [];
   let selectedHypothesis: BindingHypothesis | null = null;
@@ -438,6 +450,19 @@ export async function resolveApplicationFirstEvidence(input: {
     const hypMetrics = summarizeHypothesisMetrics(bindingHypotheses);
     Object.assign(metrics, hypMetrics);
     audit.crossPathRoleMerges = hypMetrics.crossPathRoleMerges;
+
+    bindingHypotheses = applySemanticGateToHypotheses({
+      hypotheses: bindingHypotheses,
+      byRef: semanticCoherence.byRef,
+      metrics: semanticCoherence.metrics,
+    });
+    Object.assign(metrics, {
+      hypothesesRejectedFromStrongBySemanticGate:
+        semanticCoherence.metrics.hypothesesRejectedFromStrongBySemanticGate,
+      candidatesRejectedFromStrongBySemanticGate:
+        semanticCoherence.metrics.candidatesRejectedFromStrongBySemanticGate,
+      falseStrongBindings: semanticCoherence.metrics.falseStrongBindings,
+    });
 
     const { ambiguous, rivals } = detectAmbiguousHypotheses(bindingHypotheses);
     if (ambiguous && rivals.length >= 2) {
@@ -507,7 +532,7 @@ export async function resolveApplicationFirstEvidence(input: {
     detail: `Evidence objects=${evidenceGraph.objects.length} claims=${evidenceGraph.claims.length}`,
   });
 
-  const schemaRoleResolution = invokeStage0({
+  const schemaRoleResolutionRaw = invokeStage0({
     request: input.request,
     evidenceGraph,
     anchors,
@@ -526,6 +551,17 @@ export async function resolveApplicationFirstEvidence(input: {
         : undefined,
     approvedExclusiveGraph: approvedExclusive,
   });
+  const schemaRoleResolution = applySemanticGateToSchemaRoleResolution({
+    resolution: schemaRoleResolutionRaw,
+    byRef: semanticCoherence.byRef,
+    metrics: semanticCoherence.metrics,
+  });
+  Object.assign(metrics, {
+    candidatesRejectedFromStrongBySemanticGate:
+      semanticCoherence.metrics.candidatesRejectedFromStrongBySemanticGate,
+    falseStrongBindings: semanticCoherence.metrics.falseStrongBindings,
+  });
+  audit.crossCohortSemanticMerges = semanticCoherence.metrics.crossCohortSemanticMerges;
   trace.push({
     step: step++,
     phase: 'stage0_resolution',
