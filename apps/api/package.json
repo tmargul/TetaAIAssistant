@@ -67,7 +67,9 @@
     "osi:stage2": "ts-node -r tsconfig-paths/register src/scripts/oracle-source-index-stage2.ts",
     "twp:stage3": "ts-node -r tsconfig-paths/register src/scripts/targeted-write-path-stage3.ts",
     "afer:stage4": "ts-node -r tsconfig-paths/register src/scripts/application-first-evidence-resolver-v2.ts",
-    "clarify:stage5": "ts-node -r tsconfig-paths/register src/scripts/clarification-engine-stage5.ts"
+    "clarify:stage5": "ts-node -r tsconfig-paths/register src/scripts/clarification-engine-stage5.ts",
+    "aia:eval": "ts-node -r tsconfig-paths/register src/scripts/aia-eval-cli.ts",
+    "aia:eval-smoke": "ts-node -r tsconfig-paths/register src/scripts/aia-eval-smoke.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

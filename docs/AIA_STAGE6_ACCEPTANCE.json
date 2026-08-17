@@ -1,0 +1,36 @@
+{
+  "STAGE_4_DOMAIN_COHERENCE_STATUS": "accepted_and_committed",
+  "STAGE_5_STATUS": "accepted_and_committed",
+  "STAGE4_DOMAIN_COHERENCE_COMMIT_SHA": "ace2ce8ed641756d31c4eb4fe8155182e0b6c9e4",
+  "STAGE1_CONNECTIVITY_FREEZE_SHA": "ace2ce8ed641756d31c4eb4fe8155182e0b6c9e4",
+  "STAGE_6_REACCEPTANCE_STATUS": "blocked_twg_stage4_evidence_gap",
+  "doNotCommit": true,
+  "twgReacceptance": {
+    "request": "Podaj grupę czasu pracy pracownika o numerze ewidencyjnym 00069.",
+    "physicalSeedCount": 0,
+    "falseStrongBindings": [],
+    "reachabilityBefore": false,
+    "reachabilityAfter": true,
+    "twgShortestPathLengthAfter": 1,
+    "primaryGapAfterStage1Fix": "stage4_unresolved_relation_discovery_gap",
+    "secondaryGapClassification": "independent_stage4_gap_confirmed",
+    "stage5": {
+      "technicalGapOnly": true,
+      "clarificationRequired": false
+    }
+  },
+  "stage1Connectivity": {
+    "orphanApplicationJoinDatasetsBefore": 53,
+    "orphanApplicationJoinDatasetsAfter": 23,
+    "newEvidenceBackedConnectivityEdges": 4738,
+    "newConnectivityEdgesWithoutProvenance": 0,
+    "duplicateEdges": 0,
+    "danglingEdges": 0,
+    "brokenEdges": 0
+  },
+  "unseenSafetyRegression": {
+    "question": "Jakie okresy wypowiedzeń są dostępne w słowniku personelu?",
+    "assignmentFalseStrongBindings": [],
+    "resolutionStatus": "insufficient"
+  }
+}

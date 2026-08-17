@@ -1,30 +1,32 @@
 # Kontekst rozmów — Teta AI Assistant
 
-> Ostatnia aktualizacja: **2026-08-13** (Stage 5 committed; Stage 6 acceptance next)
+> Ostatnia aktualizacja: **2026-08-17** (Stage 1 connectivity commit + AIA eval harness)
 
----
+## Stan bazowy (commitowany)
 
-## Notatki sesji (2026-08-13)
+- Stage 4 domain coherence: `accepted_and_committed` (`ace2ce8`)
+- Stage 5: `accepted_and_committed` (`ace2ce8`)
+- Stage 1 dataset connectivity: `accepted_and_committed`
+- **SHA produkcji:** `a667d0de7692853cfac81152c85c0bb027152428`
 
-### Stage 4 — ACCEPTED + COMMITTED
+## Stage 1 dataset connectivity (committed)
 
-- **STATUS:** `STAGE_4_FINAL_STATUS=accepted_and_committed`
-- **Feature SHA:** `45e0336d4df1e1d01ca65cc365b930b23c0c4500`
+- `GATEWAY_BINDS_DATASET` tylko z pair-specific static evidence (Stage2B/Stage2D)
+- Precision audit: `3086` edges, `boScopedOnlyEdges=0`, `cartesianRiskEdges=0`
+- TWG: `HarmonogramPracowikaTG → GrupaCzasuPracyPracownika` **nie** materializowany (brak pair-specific proof) — poprawne fail-closed
+- TWG status: `stage1_graph_connectivity_gap` (bez patchowania w tej sesji)
 
-### Stage 5 — ACCEPTED + COMMITTED
+## Interactive AIA eval harness (LOCAL, uncommitted)
 
-- **STATUS:** `STAGE_5_FINAL_STATUS=accepted_and_committed`
-- **Commit SHA:** `573c39500cef354a21095a6cd467a957f6c6a8ec`
-- Contract: `teta-aia-clarification-engine-stage5-v1`
-- Principles: insufficient ≠ clarification; hypothesis-backed surfaces; no physical injection
-- Clean gate: 414 pass / 0 fail / 0 timeouts; Stage5 20/20; API build OK
-
-### B3A / .local
-
-- B3A: `stash@{0}` untouched
-- `.local/**` untracked
+- Uruchomienie: `pnpm --filter @teta/api run aia:eval`
+- Smoke: `pnpm --filter @teta/api run aia:eval-smoke`
+- Pliki: `apps/api/src/aia-eval/*`, `apps/api/src/scripts/aia-eval-cli.ts`, `aia-eval-smoke.ts`
+- Logi sesji: `.local/aia-eval/sessions/`
+- Akceptowane executory P1: prefix nazwiska, aktualne stanowisko, prefix+stanowisko
+- TWG kontrolne: `INSUFFICIENT_EVIDENCE` (bez fabrykacji odpowiedzi)
 
 ## Otwarte
 
-- [ ] Stage 6 acceptance (TWG + unseen) — local only, do not commit yet
-- [ ] B3A pozostaje w stash
+- [ ] Commit harness po pierwszej sesji użytkownika (opcjonalnie)
+- [ ] Stage 6 diagnostic scripts/docs — lokalne, bez commita
+- [ ] B3A w stash
