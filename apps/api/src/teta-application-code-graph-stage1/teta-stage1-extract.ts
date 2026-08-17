@@ -93,6 +93,13 @@ type GatewayAccum = {
   relations: Array<NonNullable<ReturnType<typeof parseAddRelation>>>;
 };
 
+type Stage2dMainSourceEvidence = {
+  method?: string | null;
+  offset?: string | null;
+  assignment?: string | null;
+  resolvedMember?: string | null;
+};
+
 async function forEachNdjson(
   filePath: string,
   onRow: (row: Record<string, unknown>) => void | Promise<void>,
@@ -259,6 +266,7 @@ export async function extractApplicationCodeGraphStage1(input: {
   const formToBo = new Map<string, string[]>();
   const formDatasets = new Map<string, Set<string>>();
   const gatewayByType = new Map<string, GatewayAccum>();
+  const typeRoleByFullName = new Map<string, string>();
   const boToGateways = new Map<string, Set<string>>();
   const datasetToGateways = new Map<string, Set<string>>();
   const gatewayOwners = new Map<string, Set<string>>(); // gateway → BO/DF owners
@@ -572,6 +580,7 @@ export async function extractApplicationCodeGraphStage1(input: {
     }
     const role = String(row.technicalRole ?? '');
     const assembly = String(row.assemblyName ?? '');
+    if (role && fullName) typeRoleByFullName.set(fullName, role);
     if (role === 'BO') metrics.businessObjectsScanned += 1;
     if (role === 'DF') metrics.dataFormsScanned += 1;
     if (role === 'TG' || role === 'MTG') metrics.gatewaysScanned += 1;
@@ -1139,6 +1148,101 @@ export async function extractApplicationCodeGraphStage1(input: {
     if (String(row.kind ?? '') !== 'dataset') return;
     const datasetName = String(row.datasetTable ?? '');
     const declaringType = String(row.declaringType ?? '');
+    const role = String(row.technicalRole ?? typeRoleByFullName.get(declaringType) ?? '');
+    const assemblyName = String(row.assemblyName ?? '');
+
+    // Generic Stage 1 connectivity closure:
+    // materialize owner/binder -> dataset only when source evidence carries explicit owner identity.
+    const gatewayOwnersFromFacts = new Map<
+      string,
+      {
+        confidenceClass: 'exact_from_source' | 'strong_static_inference';
+        extractionMechanism: string;
+        evidenceRefs: string[];
+        sourceMember?: string | null;
+        sourceLineStart?: string | null;
+      }
+    >();
+
+    if (datasetName && declaringType && (role === 'TG' || role === 'MTG')) {
+      gatewayOwnersFromFacts.set(declaringType, {
+        confidenceClass: 'exact_from_source',
+        extractionMechanism: 'stage2d_dataset_declaring_gateway',
+        evidenceRefs: [`stage2d:${declaringType}`, `dataset:${datasetName}`],
+      });
+    }
+
+    const mainSource = row.mainSource as
+      | {
+          source?: string;
+          evidence?: Stage2dMainSourceEvidence[];
+        }
+      | undefined;
+    for (const ev of mainSource?.evidence ?? []) {
+      const resolvedMember = String(ev.resolvedMember ?? '');
+      if (!resolvedMember) continue;
+      const memberRole = String(typeRoleByFullName.get(resolvedMember) ?? '');
+      if (memberRole !== 'TG' && memberRole !== 'MTG') continue;
+      if (!datasetName) continue;
+      const stage2bDatasetForGateway = gatewayByType.get(resolvedMember)?.datasetTable ?? null;
+      if (stage2bDatasetForGateway && stage2bDatasetForGateway !== datasetName) {
+        // Conflict with gateway's explicit Stage2B dataset binding; do not materialize.
+        continue;
+      }
+      gatewayOwnersFromFacts.set(resolvedMember, {
+        confidenceClass: mainSource?.source === 'confirmed_from_stage2b'
+          ? 'strong_static_inference'
+          : 'exact_from_source',
+        extractionMechanism: 'stage2d_mainSource_resolvedMember_gateway',
+        evidenceRefs: [
+          `stage2d:${declaringType || resolvedMember}`,
+          `dataset:${datasetName}`,
+          ev.assignment ? `assignment:${ev.assignment}` : 'assignment:unset',
+        ],
+        sourceMember: ev.method ?? null,
+        sourceLineStart: ev.offset ?? null,
+      });
+    }
+
+    // NOTE: BO/DF-level co-occurrence (BO->gateway + BO->dataset) is intentionally NOT
+    // materialized into gateway->dataset connectivity. It is owner-scope evidence only and
+    // can create ambiguous/cartesian links without a gateway-specific binding fact.
+
+    for (const [gatewayType, ownerFact] of gatewayOwnersFromFacts) {
+      if (!datasetToGateways.has(datasetName)) datasetToGateways.set(datasetName, new Set());
+      datasetToGateways.get(datasetName)!.add(gatewayType);
+      addEdge(
+        makeEdge({
+          edgeKind: 'GATEWAY_BINDS_DATASET',
+          from: node('gateway', gatewayType),
+          to: node('dataset', datasetName),
+          confidenceClass: ownerFact.confidenceClass,
+          provenance: [
+            prov({
+              sourceKind: 'stage2d_ndjson',
+              sourceFile: STAGE1_ARTIFACT_PATHS.stage2d,
+              sourceAssembly: assemblyName || null,
+              sourceType: declaringType || gatewayType,
+              sourceMember: ownerFact.sourceMember ?? null,
+              sourceLineStart: ownerFact.sourceLineStart ?? null,
+              extractionMechanism: ownerFact.extractionMechanism,
+              rawValue: datasetName,
+              normalizedValue: datasetName,
+              confidenceClass: ownerFact.confidenceClass,
+              evidenceRefs: ownerFact.evidenceRefs,
+            }),
+          ],
+          attributes: {
+            sourceFamily: 'stage2d_connectivity_closure',
+            relationMechanism: 'dataset_owner_binding',
+            ownerDeclaringType: declaringType || null,
+            ownerDeclaringRole: role || null,
+          },
+        }),
+      );
+      metrics.datasetToGatewayEdges += 1;
+    }
+
     const joins = (
       (row.effectiveJoins as Array<Record<string, unknown>>) ??
       (row.joins as Array<Record<string, unknown>>) ??

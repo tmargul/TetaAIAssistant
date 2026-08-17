@@ -1,4 +1,5 @@
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import {
   classifyRuntimeBoundary,
@@ -232,6 +233,135 @@ describe('Stage1 ACE integrity (dedup + endpoints)', () => {
       { kind: 'business_object', name: 'BO' },
     );
     expect(a).toBe(b);
+  });
+
+  it('adds gateway->dataset connectivity only from explicit static owner evidence', async () => {
+    const tempRoot = mkdtempSync(path.join(tmpdir(), 'ace-s1-connectivity-'));
+    try {
+      mkdirSync(path.join(tempRoot, '.local'), { recursive: true });
+      writeFileSync(path.join(tempRoot, '.local', 'AIA_FORM_TECHNICAL_BINDINGS_STAGE2A.full.ndjson'), '');
+      writeFileSync(
+        path.join(tempRoot, '.local', 'AIA_BOS_ORACLE_MAPPING_STAGE2B.full.ndjson'),
+        [
+          JSON.stringify({
+            kind: 'type',
+            fullName: 'X.BO.OwnerBO',
+            technicalRole: 'BO',
+            assemblyName: 'x.dll',
+            gateways: [{ gatewayType: 'X.TG.OwnerTG', gatewayKind: 'TG', confidence: 'confirmed_from_il' }],
+          }),
+          JSON.stringify({
+            kind: 'type',
+            fullName: 'X.TG.OwnerTG',
+            technicalRole: 'TG',
+            assemblyName: 'x.dll',
+            gateways: [],
+          }),
+        ].join('\n'),
+      );
+      writeFileSync(
+        path.join(tempRoot, '.local', 'AIA_SQLJOIN_STAGE2D.full.ndjson'),
+        [
+          JSON.stringify({
+            kind: 'dataset',
+            declaringType: 'X.BO.OwnerBO',
+            technicalRole: 'BO',
+            assemblyName: 'x.dll',
+            datasetTable: 'OwnedDataset',
+            effectiveJoins: [{ joinedObject: 'NT_X', sourceApi: 'JoinDefinition', conditionStatus: 'not_provided_in_il' }],
+            mainSource: { source: 'confirmed_from_stage2b', evidence: [{ resolvedMember: 'X.TG.OwnerTG', assignment: 'proof', method: '.ctor', offset: '0x10' }] },
+          }),
+          JSON.stringify({
+            kind: 'dataset',
+            declaringType: 'X.BO.OtherBO',
+            technicalRole: 'BO',
+            assemblyName: 'x.dll',
+            datasetTable: 'OrphanDataset',
+            effectiveJoins: [{ joinedObject: 'NT_Y', sourceApi: 'JoinDefinition', conditionStatus: 'not_provided_in_il' }],
+          }),
+        ].join('\n'),
+      );
+      writeFileSync(path.join(tempRoot, '.local', 'AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson'), '');
+
+      const result = await extractApplicationCodeGraphStage1({ repoRoot: tempRoot, skipBaseGraphIndex: true });
+      const hasOwned = result.edges.some(
+        (e) =>
+          e.edgeKind === 'GATEWAY_BINDS_DATASET' &&
+          e.from.name === 'X.TG.OwnerTG' &&
+          e.to.name === 'OwnedDataset',
+      );
+      const hasOrphan = result.edges.some(
+        (e) =>
+          e.edgeKind === 'GATEWAY_BINDS_DATASET' &&
+          e.to.name === 'OrphanDataset' &&
+          e.from.name !== 'X.TG.OwnerTG',
+      );
+      expect(hasOwned).toBe(true);
+      expect(hasOrphan).toBe(false);
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('does not create BO-scope cartesian gateway-dataset links', async () => {
+    const tempRoot = mkdtempSync(path.join(tmpdir(), 'ace-s1-nocartesian-'));
+    try {
+      mkdirSync(path.join(tempRoot, '.local'), { recursive: true });
+      writeFileSync(path.join(tempRoot, '.local', 'AIA_FORM_TECHNICAL_BINDINGS_STAGE2A.full.ndjson'), '');
+      writeFileSync(
+        path.join(tempRoot, '.local', 'AIA_BOS_ORACLE_MAPPING_STAGE2B.full.ndjson'),
+        [
+          JSON.stringify({
+            kind: 'type',
+            fullName: 'X.BO.B1',
+            technicalRole: 'BO',
+            assemblyName: 'x.dll',
+            gateways: [
+              { gatewayType: 'X.TG.G1', gatewayKind: 'TG', datasetTable: 'D1', confidence: 'confirmed_from_il' },
+              { gatewayType: 'X.TG.G2', gatewayKind: 'TG', datasetTable: 'D2', confidence: 'confirmed_from_il' },
+            ],
+          }),
+        ].join('\n'),
+      );
+      writeFileSync(
+        path.join(tempRoot, '.local', 'AIA_SQLJOIN_STAGE2D.full.ndjson'),
+        [
+          JSON.stringify({
+            kind: 'dataset',
+            declaringType: 'X.BO.B1',
+            technicalRole: 'BO',
+            assemblyName: 'x.dll',
+            datasetTable: 'D3',
+            effectiveJoins: [{ joinedObject: 'NT_Z', sourceApi: 'JoinDefinition', conditionStatus: 'not_provided_in_il' }],
+          }),
+          JSON.stringify({
+            kind: 'dataset',
+            declaringType: 'X.TG.G2',
+            technicalRole: 'TG',
+            assemblyName: 'x.dll',
+            datasetTable: 'D2',
+            effectiveJoins: [{ joinedObject: 'NT_Y', sourceApi: 'JoinDefinition', conditionStatus: 'not_provided_in_il' }],
+          }),
+        ].join('\n'),
+      );
+      writeFileSync(path.join(tempRoot, '.local', 'AIA_CANONICAL_KNOWLEDGE_GRAPH_STAGE2E.full.ndjson'), '');
+
+      const result = await extractApplicationCodeGraphStage1({ repoRoot: tempRoot, skipBaseGraphIndex: true });
+      const hasG1D3 = result.edges.some(
+        (e) => e.edgeKind === 'GATEWAY_BINDS_DATASET' && e.from.name === 'X.TG.G1' && e.to.name === 'D3',
+      );
+      const hasG2D3 = result.edges.some(
+        (e) => e.edgeKind === 'GATEWAY_BINDS_DATASET' && e.from.name === 'X.TG.G2' && e.to.name === 'D3',
+      );
+      const hasExplicitG2D2 = result.edges.some(
+        (e) => e.edgeKind === 'GATEWAY_BINDS_DATASET' && e.from.name === 'X.TG.G2' && e.to.name === 'D2',
+      );
+      expect(hasG1D3).toBe(false);
+      expect(hasG2D3).toBe(false);
+      expect(hasExplicitG2D2).toBe(true);
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
   });
 });
 
